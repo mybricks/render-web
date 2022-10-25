@@ -1,22 +1,28 @@
-# 欢迎使用 @mybricks/designer-spa
+# Mybricks web渲染器
+
+```jsx
+import {render} from 'react-dom'
+import {render as renderUI} from '@mybricks/render-web'
 
 
-### 1. clone 工程
- > git clone git@github.com:mybricks/designer-spa-demo.git
- >
+render(<Page/>, document.querySelector('#root'))
 
+function Page() {
+ return (
+         <div>
+          {
+           renderUI({
+            json: json,//设计器toJSON结果
+            env: {//配置组件运行的各类环境信息
+             i18n(text) {//多语言
+              return text
+             }
+            }
+           })
+          }
+         </div>
+ )
+}
 
-### 2. 安装依赖项
-> npm install
+```
 
-
-### 3. 编译应用，启动服务
-> npm run dev
->
-
-
-### 4. 打开浏览器，访问
-> http://localhost:8000/
-> 
-
-![img1.png](img1.png)
