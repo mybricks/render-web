@@ -17,9 +17,7 @@
   "author": "CheMingjun",
   "license": "ISC",
   "dependencies": {
-    "@mybricks/designer-spa": "^1.0.11",
-    "@mybricks/rxui": "^1.0.86",
-    "antd": "^4.23.6"
+    "@mybricks/rxui": "^1.0.86"
   },
   "devDependencies": {
     "@babel/core": "^7.18.9",
