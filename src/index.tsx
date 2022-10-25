@@ -1,16 +1,11 @@
-import {render as rxuiRender} from '@mybricks/rxui'
+
+import React from "react";
+
 import Main from "./Main";
 
-export function render({
-                         json,
-                         env,
-                         dom
-                       }: { json: { script, slot }, env?: {} }) {
+export function render({ json, env }) {
+
   return (
-    <div ref={el => {
-      if (el) {
-        rxuiRender(<Main json={json} env={env}/>, el)
-      }
-    }}/>
-  )
+    <Main json={json} env={env}/>
+  );
 }
