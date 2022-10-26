@@ -54,7 +54,29 @@ export default function RenderSlot({slot, env, getComDef, getContext}) {
         const classes = getClasses({style})
         const sizeStyle = getSizeStyle({style})
         const marginStyle = getMarginStyle({style})
-        const otherStyle = {}
+
+        const otherStyle: any = {}
+
+        // switch (true) {
+        //   case ['fixed'].includes(style.position): {
+        //     otherStyle.position = 'fixed'
+        //     otherStyle.zIndex = 1000;
+        //     style.fixedX === 'right' ? (otherStyle.right = style.right + 'px') : (otherStyle.left = style.left + 'px');
+        //     style.fixedY === 'bottom' ? (otherStyle.bottom = style.bottom + 'px') : (otherStyle.top = style.top + 'px');
+        //     break
+        //   }
+        //
+        //   case ['absolute'].includes(style.position) || (parent.style.layout === 'absolute' && style.position === undefined): {
+        //     otherStyle.position = 'absolute'
+        //     otherStyle.zIndex = 1000;
+        //     otherStyle.top = style.top + 'px';
+        //     otherStyle.left = style.left + 'px';
+        //     break
+        //   }
+        //   default: {
+        //     break
+        //   }
+        // }
 
         return (
           <div key={id} style={{

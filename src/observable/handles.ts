@@ -31,6 +31,8 @@ function get (target, key) {
 }
 
 function set (target, key, value) {
+  debugger
+
   // 观察对象和原始对象隔离
   if (isObject(value)) {
     value = proxyToRaw.get(value) || value;
