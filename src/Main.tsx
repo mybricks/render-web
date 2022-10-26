@@ -1,14 +1,14 @@
-import React, {useMemo, useCallback} from "react";
+import React, { useMemo, useCallback } from "react";
 
-import {observable} from "./observable";
-import RenderSlot from './RenderSlot'
+import RenderSlot from "./RenderSlot";
+import { observable } from "./observable";
 
 export default function Main({json, env: defEnv}) {
   const comDefs = useMemo(() => {//所有组件定义
     const comLibs = window["__comlibs_rt_"];//运行组件库，在preivew.html中引入
 
     if (!comLibs || !Array.isArray(comLibs)) {
-      throw new Error(`组件库为空，请检查是否通过<script src='组件库地址'></script>加载了组件库运行时.`)
+      throw new Error(`组件库为空，请检查是否通过<script src="组件库地址"></script>加载了组件库运行时.`)
     }
 
     const comDefs = {};
@@ -56,7 +56,6 @@ export default function Main({json, env: defEnv}) {
       throw new Error(`导出的JSON执行异常，请检查 script 部分的正确性.`)
     }
   }, [])
-
 
   return (
     <RenderSlot
