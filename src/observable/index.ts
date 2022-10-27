@@ -25,9 +25,14 @@ function hijackReactcreateElement() {
 
     React.createElement = function() {
       let [type, ...other] = arguments;
+      let rxuiType = type;
 
-      if (typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent) {
-        if (!type.__rxui__) {
+      if (typeof rxuiType !== 'function' && rxuiType.__enhanced__) {
+        rxuiType = type.type
+      }
+
+      if (typeof rxuiType === "function" && rxuiType.prototype && !(rxuiType.prototype instanceof React.Component) && !rxuiType.prototype.isReactComponent) {
+        if (!rxuiType.__rxui__) {
           function Render (props) {
             const ref = useRef<Reaction | null>(null);
             const [, setState] = useState([]);
@@ -52,16 +57,16 @@ function hijackReactcreateElement() {
             let render;
           
             ref.current?.track(() => {
-              render = type(props);
+              render = rxuiType(props);
             });
           
             return render;
           }
   
-          type.__rxui__ = Render;
+          rxuiType.__rxui__ = Render;
         }
 
-        return createElement(type.__rxui__, ...other);
+        return createElement(rxuiType.__rxui__, ...other);
       } else {
         return createElement(type, ...other);
       }
