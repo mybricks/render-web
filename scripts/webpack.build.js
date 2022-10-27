@@ -5,10 +5,6 @@
  */
 const path = require('path');
 const webpack = require('webpack')
-
-const {merge} = require("webpack-merge")
-const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin
-
 const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
@@ -24,13 +20,7 @@ module.exports = {
   //devtool: 'cheap-module-eval-source-map',
   externals: [{
     'react': 'react',
-    'react-dom': 'react-dom',
-    '@mybricks/rxui': {
-      commonjs: "@mybricks/rxui",
-      commonjs2: "@mybricks/rxui",
-      amd: '@mybricks/rxui',
-      root: 'rxui'
-    }
+    'react-dom': 'react-dom'
   }],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
