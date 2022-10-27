@@ -19,20 +19,15 @@ let createElement;
 /**
  * 劫持 React.createElement 函数
  */
-function hijackReactcreateElement() {
+export function hijackReactcreateElement() {
   if (!createElement) {
     createElement = React.createElement;
 
     React.createElement = function() {
       let [type, ...other] = arguments;
-      let rxuiType = type;
 
-      if (typeof rxuiType !== 'function' && rxuiType.__enhanced__) {
-        rxuiType = type.type
-      }
-
-      if (typeof rxuiType === "function" && rxuiType.prototype && !(rxuiType.prototype instanceof React.Component) && !rxuiType.prototype.isReactComponent) {
-        if (!rxuiType.__rxui__) {
+      if (typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent) {
+        if (!type.__rxui__) {
           function Render (props) {
             const ref = useRef<Reaction | null>(null);
             const [, setState] = useState([]);
@@ -57,24 +52,22 @@ function hijackReactcreateElement() {
             let render;
           
             ref.current?.track(() => {
-              render = rxuiType(props);
+              render = type(props);
             });
           
             return render;
           }
   
-          rxuiType.__rxui__ = Render;
+          type.__rxui__ = Render;
         }
 
-        return createElement(rxuiType.__rxui__, ...other);
+        return createElement(type.__rxui__, ...other);
       } else {
         return createElement(type, ...other);
       }
     };
   }
 }
-
-hijackReactcreateElement();
 
 export function observable<T extends object>(obj: T): T {
   if (!isObject(obj)) {

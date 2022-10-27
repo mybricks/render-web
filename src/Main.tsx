@@ -1,7 +1,7 @@
 import React, { useMemo, useCallback } from "react";
 
+import RenderSlot from "./RenderSlot";
 import {observable as defaultObservable} from "./observable";
-import RenderSlot from './RenderSlot'
 
 export default function Main({json, opts}: { json, opts: { env, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义

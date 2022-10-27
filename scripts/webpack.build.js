@@ -24,7 +24,13 @@ module.exports = {
   //devtool: 'cheap-module-eval-source-map',
   externals: [{
     'react': 'react',
-    'react-dom': 'react-dom'
+    'react-dom': 'react-dom',
+    '@mybricks/rxui': {
+      commonjs: "@mybricks/rxui",
+      commonjs2: "@mybricks/rxui",
+      amd: '@mybricks/rxui',
+      root: 'rxui'
+    }
   }],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
