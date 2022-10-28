@@ -1,10 +1,17 @@
 import React, { useMemo, useCallback } from "react";
 
 import RenderSlot from "./RenderSlot";
-import {observable as defaultObservable} from "./observable";
+import {observable as defaultObservable, hijackReactcreateElement} from "./observable";
 
 export default function Main({json, opts}: { json, opts: { env, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
+    const CurrentNodeInfo = window["__rxui__"]?.CurrentNodeInfo;
+  
+    if (!(CurrentNodeInfo && "current" in CurrentNodeInfo)) {
+      // 非rxui.render渲染
+      hijackReactcreateElement();
+    }
+    
     if (opts.comDefs) {
       return opts.comDefs
     }
