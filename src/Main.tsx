@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from "react";
+import React, {useMemo, useCallback, useEffect, useLayoutEffect} from "react";
 
 import RenderSlot from "./RenderSlot";
 import {observable as defaultObservable, hijackReactcreateElement} from "./observable";
@@ -6,12 +6,12 @@ import {observable as defaultObservable, hijackReactcreateElement} from "./obser
 export default function Main({json, opts}: { json, opts: { env, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
     const CurrentNodeInfo = window["__rxui__"]?.CurrentNodeInfo;
-  
+
     if (!(CurrentNodeInfo && "current" in CurrentNodeInfo)) {
       // 非rxui.render渲染
       hijackReactcreateElement();
     }
-    
+
     if (opts.comDefs) {
       return opts.comDefs
     }
@@ -59,19 +59,31 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
   const {slot, script} = json;
 
   //根据script生成context对象
-  const context = useMemo(() => {
+  const [context, refs] = useMemo(() => {
     try {
-      return eval(script)({
+      let refs
+      const context = eval(script)({
         comDefs,
         env,
-        ref: opts.ref
+        ref(_refs) {
+          refs = _refs
+          if (opts.ref) {
+            opts.ref(_refs)
+          }
+        }
       }, {
         observable: opts.observable || defaultObservable
       })
+
+      return [context, refs]
     } catch (ex) {
       console.error(ex);
-      throw new Error(`导出的JSON执行异常，请检查 script 部分的正确性.`)
+      throw new Error(`导出的JSON.script执行异常.`)
     }
+  }, [])
+
+  useLayoutEffect(() => {
+    refs.run()
   }, [])
 
   return (
