@@ -1,5 +1,5 @@
 ﻿/**
- * XGraph opensource
+ * Mybricks opensource
  * CheMingjun @2019
  * Mail:chemingjun@126.com Wechat:ALJZJZ
  */
@@ -14,13 +14,14 @@ module.exports = {
     globalObject: 'this',
     filename: 'index.min.js',
     path: path.resolve(__dirname, '../'),
-    libraryTarget: 'umd'
+    libraryTarget: 'umd',
+    library: '_mybricks_render_web'
   },
   //devtool: 'cheap-module-source-map',
   //devtool: 'cheap-module-eval-source-map',
   externals: [{
-    'react': 'react',
-    'react-dom': 'react-dom'
+    'react': {commonjs: "react", commonjs2: "react", amd: "react", root: "React"},
+    'react-dom': {commonjs: "react-dom", commonjs2: "react-dom", amd: "react-dom", root: "ReactDOM"}
   }],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
