@@ -1,112 +1,213 @@
-import React from "react";
+import React, {memo} from "react";
 
-import { isNumber } from "./utils";
+import {isNumber} from "./utils";
 
 import css from "./RenderSlot.less";
 
-export default function RenderSlot({slot, env, getComDef, getContext}) {
+export default function RenderSlot({scopeId, slot, env, getComDef, getContext}) {
+  const {style, comAry} = slot
+
   return (
-    slot.map(com => {//组件逐个渲染
-      const { id, def, slots = {} }: Com = com
-      const comDef = getComDef(def)
+    <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+      {
+        comAry.map(com => {//组件逐个渲染
+          const {id, def, slots = {}}: Com = com
+          const comDef = getComDef(def)
+          const scope = scopeId ? {id: scopeId} : void 0
 
-      if (comDef) {
-        //在context中获取各类对象
-        const {data, style, inputs, outputs} = getContext(id);
+          if (comDef) {
+            //在context中获取各类对象
+            const {data, style, inputs, outputs} = getContext(id, scope);
 
-        //递归渲染插槽
-        const slotsProxy = new Proxy(slots, {
-          get(target, slotId: string) {
-            const props = getContext(id, slotId)
-            const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
+            //递归渲染插槽
+            const slotsProxy = new Proxy(slots, {
+              get(target, slotId: string) {
+                const props = getContext(id, slotId)
+                const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
-            if (!props) {
-              throw new Error(`${errorStringPrefix} 获取context失败.`)
-            }
-
-            return {
-              render() {
-                const slot = slots[slotId]
-
-                if (slot) {
-                  return (
-                    <RenderSlot
-                      env={env}
-                      slot={slot}
-                      getComDef={getComDef}
-                      getContext={getContext}
-                    />
-                  )
-                } else {
-                  return (
-                    <div className={css.error}>
-                      {errorStringPrefix} 未找到.
-                    </div>
-                  )
+                if (!props) {
+                  throw new Error(`${errorStringPrefix} 获取context失败.`)
                 }
-              },
-              inputs: props.inputs,
-              outputs: props.outputs
-            }
+
+                return {
+                  render(params) {
+                    //const TX = memo(({params}) => {
+                    const slot = slots[slotId]
+
+                    if (slot) {
+                      let scopeId
+                      if (params) {
+                        scopeId = params.key
+                        const scope = scopeId ? {id: scopeId} : void 0
+                        //setTimeout(v => {
+                        const ivs = params.inputValues
+                        if (typeof ivs === 'object') {
+                          for (let pro in ivs) {
+                            props.inputs[pro](ivs[pro], scope)
+                          }
+                        }
+                        //})
+                      }
+
+                      return (
+                        <RenderSlot
+                          scopeId={scopeId}
+                          env={env}
+                          slot={slot}
+                          getComDef={getComDef}
+                          getContext={getContext}
+                        />
+                      )
+                    } else {
+                      return (
+                        <div className={css.error}>
+                          {errorStringPrefix} 未找到.
+                        </div>
+                      )
+                    }
+                    // })
+                    //
+                    // return <TX params={params}/>
+                  },
+                  inputs: props.inputs,
+                  outputs: props.outputs
+                }
+              }
+            })
+
+            const classes = getClasses({style})
+            const sizeStyle = getSizeStyle({style})
+            const marginStyle = getMarginStyle({style})
+
+            const otherStyle: any = {}
+
+            // switch (true) {
+            //   case ['fixed'].includes(style.position): {
+            //     otherStyle.position = 'fixed'
+            //     otherStyle.zIndex = 1000;
+            //     style.fixedX === 'right' ? (otherStyle.right = style.right + 'px') : (otherStyle.left = style.left + 'px');
+            //     style.fixedY === 'bottom' ? (otherStyle.bottom = style.bottom + 'px') : (otherStyle.top = style.top + 'px');
+            //     break
+            //   }
+            //
+            //   case ['absolute'].includes(style.position) || (parent.style.layout === 'absolute' && style.position === undefined): {
+            //     otherStyle.position = 'absolute'
+            //     otherStyle.zIndex = 1000;
+            //     otherStyle.top = style.top + 'px';
+            //     otherStyle.left = style.left + 'px';
+            //     break
+            //   }
+            //   default: {
+            //     break
+            //   }
+            // }
+
+            return (
+              <div key={id} style={{
+                display: style.display,
+                overflow: "hidden",
+                position: style.position || "relative",
+                ...otherStyle,
+                ...sizeStyle,
+                ...marginStyle,
+                ...(style.ext || {})
+              }} className={classes}>
+                <comDef.runtime
+                  env={env}
+                  data={data}
+                  style={style}
+                  inputs={inputs}
+                  outputs={outputs}
+                  slots={slotsProxy}
+                />
+              </div>
+            );
+          } else {
+            return (
+              <div className={css.error}>
+                组件 (namespace = {def.namespace}）未找到.
+              </div>
+            )
           }
         })
-
-        const classes = getClasses({style})
-        const sizeStyle = getSizeStyle({style})
-        const marginStyle = getMarginStyle({style})
-
-        const otherStyle: any = {}
-
-        // switch (true) {
-        //   case ['fixed'].includes(style.position): {
-        //     otherStyle.position = 'fixed'
-        //     otherStyle.zIndex = 1000;
-        //     style.fixedX === 'right' ? (otherStyle.right = style.right + 'px') : (otherStyle.left = style.left + 'px');
-        //     style.fixedY === 'bottom' ? (otherStyle.bottom = style.bottom + 'px') : (otherStyle.top = style.top + 'px');
-        //     break
-        //   }
-        //
-        //   case ['absolute'].includes(style.position) || (parent.style.layout === 'absolute' && style.position === undefined): {
-        //     otherStyle.position = 'absolute'
-        //     otherStyle.zIndex = 1000;
-        //     otherStyle.top = style.top + 'px';
-        //     otherStyle.left = style.left + 'px';
-        //     break
-        //   }
-        //   default: {
-        //     break
-        //   }
-        // }
-
-        return (
-          <div key={id} style={{
-            display: style.display,
-            overflow: "hidden",
-            position: style.position || "relative",
-            ...otherStyle,
-            ...sizeStyle,
-            ...marginStyle,
-            ...(style.ext || {})
-          }} className={classes}>
-            <comDef.runtime
-              env={env}
-              data={data}
-              style={style}
-              inputs={inputs}
-              outputs={outputs}
-              slots={slotsProxy}
-            />
-          </div>
-        );
-      } else {
-        return (
-          <div className={css.error}>
-            组件 (namespace = {def.namespace}）未找到.
-          </div>
-        )
       }
-    })
+    </div>
   )
+}
+
+//-----------------------------------------------------------------------
+
+function calSlotStyles(style) {
+  const slotStyle = {
+    paddingLeft: style.paddingLeft || 0,
+    paddingTop: style.paddingTop || 0,
+    paddingRight: style.paddingRight || 0,
+    paddingBottom: style.paddingBottom || 0,
+    //height: style.customHeight || '100%'
+  } as any
+
+  if (style.background) {
+    const {
+      background: bg,
+      backgroundImage,
+      backgroundColor,
+      backgroundRepeat,
+      backgroundSize
+    } = style.background;
+
+    slotStyle.backgroundRepeat = backgroundRepeat
+    slotStyle.backgroundSize = backgroundSize
+
+    if (bg) {
+      slotStyle.background = bg
+    } else {
+      slotStyle.backgroundImage = backgroundImage
+      slotStyle.backgroundColor = backgroundColor
+    }
+  }
+
+  return slotStyle
+}
+
+function calSlotClasses(slotStyle) {
+  const rtn = [css.slot]
+
+  const style = slotStyle
+  if (style) {
+    if (style.layout?.toLowerCase() == 'flex-column') {
+      rtn.push(css.lyFlexColumn)
+    } else if (style.layout?.toLowerCase() == 'flex-row') {
+      rtn.push(css.lyFlexRow)
+    }
+
+    const justifyContent = style.justifyContent
+    if (justifyContent) {
+      if (justifyContent.toUpperCase() === 'FLEX-START') {
+        rtn.push(css.justifyContentFlexStart)
+      } else if (justifyContent.toUpperCase() === 'CENTER') {
+        rtn.push(css.justifyContentFlexCenter)
+      } else if (justifyContent.toUpperCase() === 'FLEX-END') {
+        rtn.push(css.justifyContentFlexFlexEnd)
+      } else if (justifyContent.toUpperCase() === 'SPACE-AROUND') {
+        rtn.push(css.justifyContentFlexSpaceAround)
+      } else if (justifyContent.toUpperCase() === 'SPACE-BETWEEN') {
+        rtn.push(css.justifyContentFlexSpaceBetween)
+      }
+    }
+
+    const alignItems = style.alignItems
+    if (alignItems) {
+      if (alignItems.toUpperCase() === 'FLEX-START') {
+        rtn.push(css.alignItemsFlexStart)
+      } else if (alignItems.toUpperCase() === 'CENTER') {
+        rtn.push(css.alignItemsFlexCenter)
+      } else if (alignItems.toUpperCase() === 'FLEX-END') {
+        rtn.push(css.alignItemsFlexFlexEnd)
+      }
+    }
+  }
+
+  return rtn.join(' ')
 }
 
 function getClasses({style}) {

@@ -29,6 +29,9 @@
     "paths": {
       "@mybricks/rxui": [
         "../../rxui/types.d.ts"
+      ],
+      "@mybricks/comlib-core": [
+        "../../_comlibs/comlib-core/src/runtime.ts"
       ]
     }
   },

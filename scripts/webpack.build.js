@@ -21,10 +21,14 @@ module.exports = {
   //devtool: 'cheap-module-eval-source-map',
   externals: [{
     'react': {commonjs: "react", commonjs2: "react", amd: "react", root: "React"},
-    'react-dom': {commonjs: "react-dom", commonjs2: "react-dom", amd: "react-dom", root: "ReactDOM"}
+    'react-dom': {commonjs: "react-dom", commonjs2: "react-dom", amd: "react-dom", root: "ReactDOM"},
   }],
   resolve: {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
+    alias: {
+      '@mybricks/comlib-core':
+        path.resolve(__dirname, '../../../_comlibs/comlib-core/src/runtime.ts'),
+    }
   },
   module: {
     rules: [

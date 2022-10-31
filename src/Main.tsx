@@ -3,6 +3,9 @@ import React, {useMemo, useCallback, useEffect, useLayoutEffect} from "react";
 import RenderSlot from "./RenderSlot";
 import {observable as defaultObservable, hijackReactcreateElement} from "./observable";
 
+import coreLib from '@mybricks/comlib-core'
+
+
 export default function Main({json, opts}: { json, opts: { env, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
     const CurrentNodeInfo = window["__rxui__"]?.CurrentNodeInfo;
@@ -21,6 +24,8 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
     if (!comLibs || !Array.isArray(comLibs)) {
       throw new Error(`组件库为空，请检查是否通过<script src="组件库地址"></script>加载了组件库运行时.`)
     }
+
+    comLibs.push(coreLib)
 
     const comDefs = {}
     const regAry = (comAray) => {
