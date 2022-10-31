@@ -1,4 +1,4 @@
-import React, {useMemo, useCallback, useEffect, useLayoutEffect} from "react";
+import React, {useMemo, useCallback, useLayoutEffect} from "react";
 
 import RenderSlot from "./RenderSlot";
 import {observable as defaultObservable, hijackReactcreateElement} from "./observable";

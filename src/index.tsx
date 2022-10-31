@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 
 import Main from "./Main";
 import pkg from "../package.json";
