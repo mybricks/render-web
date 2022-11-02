@@ -43,6 +43,8 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
               const slot = slots[slotId]
 
               if (slot) {
+                props.run()
+
                 let scopeId, wrapFn
                 if (params) {
                   scopeId = params.key
