@@ -31,7 +31,7 @@
         "../../rxui/types.d.ts"
       ],
       "@mybricks/comlib-core": [
-        "../../_comlibs/comlib-core/src/runtime.ts"
+        "../_comlibs/comlib-core/src/runtime.ts"
       ]
     }
   },

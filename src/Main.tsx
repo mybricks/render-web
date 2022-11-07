@@ -14,6 +14,7 @@ import {observable as defaultObservable, hijackReactcreateElement} from "./obser
 
 import coreLib from '@mybricks/comlib-core'
 
+import executor from './executor'
 
 export default function Main({json, opts}: { json, opts: { env, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
@@ -76,7 +77,7 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
   const [context, refs] = useMemo(() => {
     try {
       let refs
-      const context = eval(script)({
+      const context = eval(script)(executor({
         comDefs,
         env,
         ref(_refs) {
@@ -87,7 +88,7 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
         }
       }, {
         observable: opts.observable || defaultObservable
-      })
+      }))
 
       return [context, refs]
     } catch (ex) {

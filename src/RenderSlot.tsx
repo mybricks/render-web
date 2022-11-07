@@ -45,10 +45,15 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
               if (slot) {
                 props.run()
 
-                let scopeId, wrapFn
+                let nowScopeId, wrapFn
                 if (params) {
-                  scopeId = params.key
-                  const scope = scopeId ? {id: scopeId} : void 0
+                  if (params.key) {
+                    nowScopeId = `${scopeId ? (scopeId + '/') : ''}${params.key}`
+                  } else {
+                    nowScopeId = scopeId
+                  }
+
+                  const scope = nowScopeId ? {id: nowScopeId} : void 0
                   //setTimeout(v => {
                   const ivs = params.inputValues
                   if (typeof ivs === 'object') {
@@ -65,7 +70,7 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
 
                 return (
                   <RenderSlot
-                    scopeId={scopeId}
+                    scopeId={nowScopeId}
                     env={env}
                     slot={slot}
                     wrapper={wrapFn}
