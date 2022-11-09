@@ -71,13 +71,14 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
     }
   }, opts.env)
 
-  const {slot, script} = json;
+  const {slot} = json;
 
   //根据script生成context对象
   const [context, refs] = useMemo(() => {
     try {
       let refs
-      const context = eval(script)(executor({
+      const context = executor({
+        json,
         comDefs,
         env,
         ref(_refs) {
@@ -88,7 +89,7 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
         }
       }, {
         observable: opts.observable || defaultObservable
-      }))
+      })
 
       return [context, refs]
     } catch (ex) {

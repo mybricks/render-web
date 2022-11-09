@@ -9,7 +9,12 @@
 
 
 export default function init(opts, {observable}) {
-  const {comDefs, env, ref} = opts
+  const {json,comDefs, env, ref} = opts
+  const _Coms = json.coms
+  const _ComsAutoRun = json.comsAutoRun
+  const _Cons = json.cons
+  const _PinRels = json.pinRels
+
   const _ComDefs = comDefs
   const _Env = env
 
@@ -17,10 +22,7 @@ export default function init(opts, {observable}) {
 
   const _frameOutputProxy = {}
 
-  let _Coms
-  let _ComsAutoRun
-  let _Cons
-  let _PinRels
+  const _exedJSCom = {}
 
   function _log(msg) {
     console.log('【Mybricks】' + msg)
@@ -205,7 +207,7 @@ export default function init(opts, {observable}) {
       }
     })
 
-    let rtn = _Props[key] = {
+    return _Props[key] = {
       data: obsModel.data,
       style: obsModel.style,
       _inputRegs: inputRegs,
@@ -216,8 +218,6 @@ export default function init(opts, {observable}) {
       _inputs,
       _outputs
     }
-
-    return rtn
   }
 
   function _exeInputForCom(inReg, val, scope, outputRels?) {
@@ -241,12 +241,18 @@ export default function init(opts, {observable}) {
 
             _log(`${comDef.namespace} | ${pinId} -> ${val}`)
 
-            comDef.runtime({
-              env: _Env,
-              data: props.data,
-              inputs: props.inputs,
-              outputs: props.outputs
-            })
+            const myId = (scope ? scope.id + '-' : '') + id
+
+            if (!_exedJSCom[myId]) {
+              _exedJSCom[myId] = true
+
+              comDef.runtime({//exe once
+                env: _Env,
+                data: props.data,
+                inputs: props.inputs,
+                outputs: props.outputs
+              })
+            }
 
             props._inputRegs[pinId](val, new Proxy({}, {//relOutputs
               get(target, name) {
@@ -393,29 +399,38 @@ export default function init(opts, {observable}) {
     }
   }
 
-  return (args: any) => {
-    _Coms = args.Coms
-    _ComsAutoRun = args.ComsAutoRun
-    _Cons = args.Cons
-    _PinRels = args.PinRels
-
-    if (typeof ref === 'function') {
-      ref({
-        run() {
-          _exeForFrame({frameId: '_rootFrame_'})
-        },
-        inputs: new Proxy({}, {
-          get(target, pinId) {
-            return function (val) {
-              _exeInputForFrame({frameId: '_rootFrame_', pinId}, val)
-            }
+  if (typeof ref === 'function') {
+    ref({
+      run() {
+        _exeForFrame({frameId: '_rootFrame_'})
+      },
+      inputs: new Proxy({}, {
+        get(target, pinId) {
+          return function (val) {
+            _exeInputForFrame({frameId: '_rootFrame_', pinId}, val)
           }
-        })
+        }
       })
-    }
+    })
+  }
 
-    return {
-      _getSlotProps, _getComProps
+  return {
+    get(comId: string, _slotId: string, _scope: { id: string }) {
+      let slotId, scope
+      for (let i = 0; i < arguments.length; i++) {
+        if (i > 0 && typeof arguments[i] === 'string') {
+          slotId = arguments[i]
+        }
+        if (typeof arguments[i] === 'object') {
+          scope = arguments[i]
+        }
+      }
+
+      if (slotId) {
+        return _getSlotProps(comId, slotId)
+      } else {
+        return _getComProps(comId, scope)
+      }
     }
   }
 }
