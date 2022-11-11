@@ -154,11 +154,11 @@ export default function init(opts, {observable}) {
       }
     })
 
-    const exeCons = (cons, val) => {
+    const exeCons = (cons, val,curScope) => {
       if (cons) {
         cons.forEach(inReg => {
           if (inReg.type === 'com') {
-            _exeInputForCom(inReg, val, scope)
+            _exeInputForCom(inReg, val, curScope||scope)
           } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
             if (inReg.comId) {
               if (inReg.direction === 'inner-input') {
@@ -191,12 +191,12 @@ export default function init(opts, {observable}) {
         }
       },
       get(target, name, receiver) {
-        return function (val) {
+        return function (val,scope) {
           const comDef = getComDef(def)
           logOutputVal(comDef, name, val)
 
           const cons = _Cons[comId + '-' + name]
-          exeCons(cons, val)
+          exeCons(cons, val,scope)
         }
       }
     })
@@ -269,6 +269,10 @@ export default function init(opts, {observable}) {
 
             logInputVal(comDef, pinId, val)
 
+            // if(pinId==='input1'){
+            //   debugger
+            // }
+
             const myId = (scope ? scope.id + '-' : '') + id
 
             if (!_exedJSCom[myId]) {
@@ -313,7 +317,7 @@ export default function init(opts, {observable}) {
             nowRels = new Proxy({}, {//relOutputs
               get(target, name) {
                 return function (val) {
-                  props.outputs[name](val)
+                  props.outputs[name](val,scope)//with current scope
 
                   // const rels = _PinRels[id + '-' + pinId]
                   // if (rels) {
@@ -326,7 +330,7 @@ export default function init(opts, {observable}) {
             })
           }
 
-          fn(val, nowRels)//invoke the input
+          fn(val, nowRels)//invoke the input,with current scope
         } else {
           props.addInputTodo(pinId, val)
         }
@@ -408,7 +412,6 @@ export default function init(opts, {observable}) {
         }
       })
     }
-
   }
 
   function _exeInputForFrame(opts, val, scope?) {
