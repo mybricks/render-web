@@ -19,6 +19,7 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
     const {id, def, slots = {}}: Com = com
+
     const comDef = getComDef(def)
     const scope = scopeId ? {id: scopeId} : void 0
 
@@ -149,6 +150,8 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
         id, jsx, inputs: inputsCallable
       })
     } else {
+      debugger
+
       jsx = (
         <div className={css.error}>
           组件 (namespace = {def.namespace}）未找到.

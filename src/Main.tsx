@@ -15,6 +15,7 @@ import {observable as defaultObservable, hijackReactcreateElement} from "./obser
 import coreLib from '@mybricks/comlib-core'
 
 import executor from './executor'
+import {compareVersion} from "./utils";
 
 export default function Main({json, opts}: { json, opts: { env, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
@@ -60,7 +61,32 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
   }, [])
 
   const getComDef = useCallback((def) => {
-    return comDefs[`${def.namespace}-${def.version}`];
+    const rtn = comDefs[def.namespace + '-' + def.version]
+    if (!rtn) {
+      const ary = []
+      for (let ns in comDefs) {
+        if (ns.startsWith(def.namespace + '-')) {
+          ary.push(comDefs[ns])
+        }
+      }
+
+      if (ary) {
+        ary.sort((a, b) => {
+          return compareVersion(a.version, b.version)
+        })
+
+        const rtn0 = ary[0]
+
+        console.warn(`组件${def.namespace + '@' + def.version}未找到，使用${rtn0.namespace}@${rtn0.version}代替.`)
+
+        return rtn0
+      } else {
+        console.log(comDefs)
+
+        throw new Error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
+      }
+    }
+    return rtn
   }, [])
 
   //环境变量，此处可以定义连接器、多语言等实现
@@ -79,7 +105,7 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
       let refs
       const context = executor({
         json,
-        comDefs,
+        getComDef,
         env,
         ref(_refs) {
           refs = _refs

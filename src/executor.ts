@@ -9,13 +9,12 @@
 
 
 export default function init(opts, {observable}) {
-  const {json,comDefs, env, ref} = opts
+  const {json, getComDef, env, ref} = opts
   const _Coms = json.coms
   const _ComsAutoRun = json.comsAutoRun
   const _Cons = json.cons
   const _PinRels = json.pinRels
 
-  const _ComDefs = comDefs
   const _Env = env
 
   const _Props = {}
@@ -29,10 +28,6 @@ export default function init(opts, {observable}) {
   }
 
   const _frameOutput = {};
-
-  function _getComDef(def) {
-    return _ComDefs[def.namespace + '-' + def.version]
-  }
 
   function _getComProps(comId, scope?: { id: string }) {//with opts:{scopeId}
     let tnow = scope?.id || ''
@@ -241,7 +236,7 @@ export default function init(opts, {observable}) {
           if (jsCom) {
             const props = _getComProps(id, scope)
 
-            const comDef = _getComDef(def)
+            const comDef = getComDef(def)
 
             _log(`${comDef.namespace} | ${pinId} -> ${val}`)
 
@@ -276,7 +271,7 @@ export default function init(opts, {observable}) {
       } else {//ui
         const props = _getComProps(id, scope)
 
-        const comDef = _getComDef(def)
+        const comDef = getComDef(def)
 
         _log(`${comDef.namespace} | ${pinId} -> ${val}`)
 
@@ -371,7 +366,7 @@ export default function init(opts, {observable}) {
         if (jsCom) {
           const props = _getComProps(id)
 
-          const comDef = _getComDef(def)
+          const comDef = getComDef(def)
 
           _log(`${comDef.namespace} | (autorun)`)
 
