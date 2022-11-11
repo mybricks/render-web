@@ -154,11 +154,18 @@ export default function init(opts, {observable}) {
       }
     })
 
-    const exeCons = (cons, val,curScope) => {
+    const exeCons = (cons, val, curScope, fromCon) => {
       if (cons) {
         cons.forEach(inReg => {
           if (inReg.type === 'com') {
-            _exeInputForCom(inReg, val, curScope||scope)
+            if (fromCon) {
+              if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
+                _exeInputForCom(inReg, val, curScope || scope)
+              }
+            } else {
+              _exeInputForCom(inReg, val, curScope || scope)
+            }
+
           } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
             if (inReg.comId) {
               if (inReg.direction === 'inner-input') {
@@ -191,12 +198,12 @@ export default function init(opts, {observable}) {
         }
       },
       get(target, name, receiver) {
-        return function (val,scope) {
+        return function (val, scope, fromCon) {
           const comDef = getComDef(def)
           logOutputVal(comDef, name, val)
 
           const cons = _Cons[comId + '-' + name]
-          exeCons(cons, val,scope)
+          exeCons(cons, val, scope, fromCon)
         }
       }
     })
@@ -259,47 +266,45 @@ export default function init(opts, {observable}) {
         props.style.display = 'none'
       }
     } else {
-      if (def.rtType) {
-        if (def.rtType.match(/^js/gi)) {//js
-          const jsCom = _Coms[id]
-          if (jsCom) {
-            const props = _getComProps(id, scope)
+      if (def.rtType?.match(/^js/gi)) {//js
+        const jsCom = _Coms[id]
+        if (jsCom) {
+          const props = _getComProps(id, scope)
 
-            const comDef = getComDef(def)
+          const comDef = getComDef(def)
 
-            logInputVal(comDef, pinId, val)
+          logInputVal(comDef, pinId, val)
 
-            // if(pinId==='input1'){
-            //   debugger
-            // }
+          // if(pinId==='input1'){
+          //   debugger
+          // }
 
-            const myId = (scope ? scope.id + '-' : '') + id
+          const myId = (scope ? scope.id + '-' : '') + id
 
-            if (!_exedJSCom[myId]) {
-              _exedJSCom[myId] = true
+          if (!_exedJSCom[myId]) {
+            _exedJSCom[myId] = true
 
-              comDef.runtime({//exe once
-                env: _Env,
-                data: props.data,
-                inputs: props.inputs,
-                outputs: props.outputs
-              })
-            }
-
-            props._inputRegs[pinId](val, new Proxy({}, {//relOutputs
-              get(target, name) {
-                return function (val) {
-                  props.outputs[name](val)
-                  // const rels = _PinRels[id + '-' + pinId]
-                  // if (rels) {
-                  //   rels.forEach(relId => {
-                  //     props.outputs[relId](val)
-                  //   })
-                  // }
-                }
-              }
-            }))//invoke the input
+            comDef.runtime({//exe once
+              env: _Env,
+              data: props.data,
+              inputs: props.inputs,
+              outputs: props.outputs
+            })
           }
+
+          props._inputRegs[pinId](val, new Proxy({}, {//relOutputs
+            get(target, name) {
+              return function (val) {
+                props.outputs[name](val)
+                // const rels = _PinRels[id + '-' + pinId]
+                // if (rels) {
+                //   rels.forEach(relId => {
+                //     props.outputs[relId](val)
+                //   })
+                // }
+              }
+            }
+          }))//invoke the input
         }
       } else {//ui
         const props = _getComProps(id, scope)
@@ -317,7 +322,7 @@ export default function init(opts, {observable}) {
             nowRels = new Proxy({}, {//relOutputs
               get(target, name) {
                 return function (val) {
-                  props.outputs[name](val,scope)//with current scope
+                  props.outputs[name](val, scope, inReg)//with current scope
 
                   // const rels = _PinRels[id + '-' + pinId]
                   // if (rels) {
