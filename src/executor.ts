@@ -1,3 +1,5 @@
+import pkg from "../package.json";
+
 /**
  * MyBricks Opensource
  * https://mybricks.world
@@ -24,7 +26,29 @@ export default function init(opts, {observable}) {
   const _exedJSCom = {}
 
   function _log(msg) {
-    console.log('【Mybricks】' + msg)
+    console.log(`%c[Mybricks]%c ${msg}`, `color:#FFF;background:#fa6400`, ``, ``);
+  }
+
+  function logInputVal(comDef, pinId, val) {
+    let tval
+    try {
+      tval = JSON.stringify(val)
+    } catch (ex) {
+      tval = val
+    }
+
+    _log(`输入项 ${comDef.namespace}/${pinId} 收到数据 \n ${tval}`)
+  }
+
+  function logOutputVal(comDef, pinId, val) {
+    let tval
+    try {
+      tval = JSON.stringify(val)
+    } catch (ex) {
+      tval = val
+    }
+
+    _log(`输出项 ${comDef.namespace}/${pinId} 收到数据 \n ${tval}`)
   }
 
   const _frameOutput = {};
@@ -194,6 +218,8 @@ export default function init(opts, {observable}) {
         return function (val) {
           const cons = _Cons[comId + '-' + name]
           if (cons) {
+            logOutputVal(def, name, val)
+
             cons.forEach(inReg => {
               if (inReg.type === 'com') {
                 _exeInputForCom(inReg, val, scope)
@@ -238,7 +264,7 @@ export default function init(opts, {observable}) {
 
             const comDef = getComDef(def)
 
-            _log(`${comDef.namespace} | ${pinId} -> ${val}`)
+            logInputVal(comDef, pinId, val)
 
             const myId = (scope ? scope.id + '-' : '') + id
 
@@ -273,7 +299,7 @@ export default function init(opts, {observable}) {
 
         const comDef = getComDef(def)
 
-        _log(`${comDef.namespace} | ${pinId} -> ${val}`)
+        logInputVal(comDef, pinId, val)
 
         const fn = props._inputRegs[pinId]
         if (typeof fn === 'function') {
@@ -368,7 +394,7 @@ export default function init(opts, {observable}) {
 
           const comDef = getComDef(def)
 
-          _log(`${comDef.namespace} | (autorun)`)
+          _log(`${comDef.namespace} 开始执行`)
 
           comDef.runtime({
             env: _Env,

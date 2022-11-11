@@ -76,8 +76,7 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
         })
 
         const rtn0 = ary[0]
-
-        console.warn(`组件${def.namespace + '@' + def.version}未找到，使用${rtn0.namespace}@${rtn0.version}代替.`)
+        console.warn(`【Mybricks】组件${def.namespace + '@' + def.version}未找到，使用${rtn0.namespace}@${rtn0.version}代替.`)
 
         return rtn0
       } else {
