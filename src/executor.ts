@@ -28,6 +28,8 @@ export default function init(opts, {observable}) {
     console.log('【Mybricks】' + msg)
   }
 
+  const _frameOutput = {};
+
   function _getComDef(def) {
     return _ComDefs[def.namespace + '-' + def.version]
   }
@@ -149,6 +151,8 @@ export default function init(opts, {observable}) {
                 const cons = _Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
                 exeCons(cons, val)
               }
+            } else {
+              _frameOutput[inReg.pinId]?.(val)
             }
           } else {
             throw new Error(`尚未实现`)
@@ -410,7 +414,10 @@ export default function init(opts, {observable}) {
             _exeInputForFrame({frameId: '_rootFrame_', pinId}, val)
           }
         }
-      })
+      }),
+      outputs(id, fn) {
+        _frameOutput[id] = fn;
+      }
     })
   }
 
