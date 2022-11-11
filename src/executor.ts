@@ -26,7 +26,7 @@ export default function init(opts, {observable}) {
   const _exedJSCom = {}
 
   function _log(msg) {
-    console.log(`%c[Mybricks]%c ${msg}`, `color:#FFF;background:#fa6400`, ``, ``);
+    console.log(`%c[Mybricks]%c ${msg}\n`, `color:#FFF;background:#fa6400`, ``, ``);
   }
 
   function logInputVal(comDef, pinId, val) {
@@ -37,7 +37,7 @@ export default function init(opts, {observable}) {
       tval = val
     }
 
-    _log(`输入项 ${comDef.namespace}/${pinId} 收到数据 \n ${tval}`)
+    console.log(`%c[Mybricks] 输入项 %c ${comDef.title || comDef.namespace} | ${pinId} > ${tval}\n`, `color:#FFF;background:#000`, ``, ``);
   }
 
   function logOutputVal(comDef, pinId, val) {
@@ -48,7 +48,7 @@ export default function init(opts, {observable}) {
       tval = val
     }
 
-    _log(`输出项 ${comDef.namespace}/${pinId} 收到数据 \n ${tval}`)
+    console.log(`%c[Mybricks] 输出项 %c ${comDef.title || comDef.namespace} | ${pinId} > ${tval}\n`, `color:#FFF;background:#fa6400`, ``, ``);
   }
 
   const _frameOutput = {};
@@ -192,6 +192,9 @@ export default function init(opts, {observable}) {
       },
       get(target, name, receiver) {
         return function (val) {
+          const comDef = getComDef(def)
+          logOutputVal(comDef, name, val)
+
           const cons = _Cons[comId + '-' + name]
           exeCons(cons, val)
         }
