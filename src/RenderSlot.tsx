@@ -74,14 +74,16 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
                 }
 
                 return (
-                  <RenderSlot
-                    scopeId={nowScopeId}
-                    env={env}
-                    slot={slot}
-                    wrapper={wrapFn}
-                    getComDef={getComDef}
-                    getContext={getContext}
-                  />
+                  <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+                    <RenderSlot
+                      scopeId={nowScopeId}
+                      env={env}
+                      slot={slot}
+                      wrapper={wrapFn}
+                      getComDef={getComDef}
+                      getContext={getContext}
+                    />
+                  </div>
                 )
               } else {
                 return (
