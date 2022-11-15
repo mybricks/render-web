@@ -106,6 +106,16 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
 
       const otherStyle: any = {}
 
+      if (['fixed', 'absolute'].includes(style.position)) {
+        if (style.top) {
+          otherStyle.top = style.top;
+        }
+        if (style.left) {
+          otherStyle.left = style.left;
+        }
+        otherStyle.zIndex = 1000;
+      }
+
       // switch (true) {
       //   case ['fixed'].includes(style.position): {
       //     otherStyle.position = 'fixed'
@@ -129,7 +139,6 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
 
       jsx = (
         <div key={id} style={{
-          ...style,
           display: style.display,
           overflow: "hidden",
           position: style.position || "relative",
