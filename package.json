@@ -1,10 +1,11 @@
 {
   "name": "@mybricks/render-web",
-  "version": "1.0.17",
+  "version": "1.0.19",
   "description": "Render for web projects",
   "main": "index.min.js",
   "scripts": {
-    "build": "webpack --config ./scripts/webpack.build.js"
+    "build": "webpack --config ./scripts/webpack.build.js",
+    "dev": "webpack-dev-server --config ./scripts/webpack.dev.js"
   },
   "repository": {
     "type": "git",

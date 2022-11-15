@@ -19,7 +19,9 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
     const {id, def, slots = {}}: Com = com
-
+// if(def.namespace==='mybricks.normal-pc.grid'){
+// debugger
+// }
     const comDef = getComDef(def)
     const scope = scopeId ? {id: scopeId} : void 0
 
@@ -67,6 +69,8 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
                     wrapFn = params.wrap
                   }
                   //})
+                }else{
+                  nowScopeId = scopeId
                 }
 
                 return (

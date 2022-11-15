@@ -11,7 +11,7 @@ import pkg from "../package.json";
 
 
 export default function init(opts, {observable}) {
-  const {json, getComDef, env, ref} = opts
+  const {json, getComDef, env, events, ref} = opts
   const _Coms = json.coms
   const _ComsAutoRun = json.comsAutoRun
   const _Cons = json.cons
@@ -37,7 +37,7 @@ export default function init(opts, {observable}) {
       tval = val
     }
 
-    console.log(`%c[Mybricks] 输入项 %c ${comDef.title || comDef.namespace} | ${pinId} > ${tval}\n`, `color:#FFF;background:#000`, ``, ``);
+    console.log(`%c[Mybricks] 输入项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#000`, ``, ``);
   }
 
   function logOutputVal(comDef, pinId, val) {
@@ -48,7 +48,7 @@ export default function init(opts, {observable}) {
       tval = val
     }
 
-    console.log(`%c[Mybricks] 输出项 %c ${comDef.title || comDef.namespace} | ${pinId} > ${tval}\n`, `color:#FFF;background:#fa6400`, ``, ``);
+    console.log(`%c[Mybricks] 输出项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#fa6400`, ``, ``);
   }
 
   const _frameOutput = {};
@@ -202,6 +202,34 @@ export default function init(opts, {observable}) {
           const comDef = getComDef(def)
           logOutputVal(comDef, name, val)
 
+          const evts = model.outputEvents
+          if (evts) {
+            const eAry = evts[name]
+            if (eAry && Array.isArray(eAry)) {
+              const activeEvt = eAry.find(e => e.active)
+              if (activeEvt) {
+                if (activeEvt.type === 'none') {
+                  return
+                }
+
+                if (activeEvt.type !== 'defined') {
+                  if (Array.isArray(events)) {
+                    const def = events.find(ce => {
+                      if (ce.type === activeEvt.type) {
+                        return ce
+                      }
+                    })
+                    if (def && typeof def.exe === 'function') {
+                      def.exe(activeEvt.options)
+                    }
+                  }
+
+                  return
+                }
+              }
+            }
+          }
+
           const cons = _Cons[comId + '-' + name]
           exeCons(cons, val, scope, fromCon)
         }
@@ -275,10 +303,6 @@ export default function init(opts, {observable}) {
 
           logInputVal(comDef, pinId, val)
 
-          // if(pinId==='input1'){
-          //   debugger
-          // }
-
           const myId = (scope ? scope.id + '-' : '') + id
 
           if (!_exedJSCom[myId]) {
@@ -295,7 +319,7 @@ export default function init(opts, {observable}) {
           props._inputRegs[pinId](val, new Proxy({}, {//relOutputs
             get(target, name) {
               return function (val) {
-                props.outputs[name](val)
+                props.outputs[name](val, scope, inReg)
                 // const rels = _PinRels[id + '-' + pinId]
                 // if (rels) {
                 //   rels.forEach(relId => {

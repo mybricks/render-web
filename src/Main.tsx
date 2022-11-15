@@ -17,7 +17,7 @@ import coreLib from '@mybricks/comlib-core'
 import executor from './executor'
 import {compareVersion} from "./utils";
 
-export default function Main({json, opts}: { json, opts: { env, comDefs, observable, ref } }) {
+export default function Main({json, opts}: { json, opts: { env, events, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
     const CurrentNodeInfo = window["__rxui__"]?.CurrentNodeInfo;
 
@@ -105,6 +105,7 @@ export default function Main({json, opts}: { json, opts: { env, comDefs, observa
       const context = executor({
         json,
         getComDef,
+        events: opts.events,
         env,
         ref(_refs) {
           refs = _refs
