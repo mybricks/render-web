@@ -129,6 +129,7 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
 
       jsx = (
         <div key={id} style={{
+          ...style,
           display: style.display,
           overflow: "hidden",
           position: style.position || "relative",
