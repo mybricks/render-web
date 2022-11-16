@@ -337,31 +337,50 @@ export default function init(opts, {observable}) {
 
         logInputVal(comDef, pinId, val)
 
-        const fn = props._inputRegs[pinId]
-        if (typeof fn === 'function') {
-          let nowRels
-          if (outputRels) {
-            nowRels = outputRels
-          } else {
-            nowRels = new Proxy({}, {//relOutputs
-              get(target, name) {
-                return function (val) {
-                  props.outputs[name](val, scope, inReg)//with current scope
+        if (pinType === 'config') {
+          /**
+           * 配置项类型，根据extBinding值操作
+           * 例如：extBinding：data.text
+           * 结果：props.data.text = val
+           */
+          const { extBinding } = inReg
+          const ary = extBinding.split('.')
+          let nowObj = props
 
-                  // const rels = _PinRels[id + '-' + pinId]
-                  // if (rels) {
-                  //   rels.forEach(relId => {
-                  //     props.outputs[relId](val)
-                  //   })
-                  // }
-                }
-              }
-            })
-          }
-
-          fn(val, nowRels)//invoke the input,with current scope
+          ary.forEach((nkey, idx) => {
+            if (idx !== ary.length - 1) {
+              nowObj = nowObj[nkey]
+            } else {
+              nowObj[nkey] = val
+            }
+          })
         } else {
-          props.addInputTodo(pinId, val)
+          const fn = props._inputRegs[pinId]
+          if (typeof fn === 'function') {
+            let nowRels
+            if (outputRels) {
+              nowRels = outputRels
+            } else {
+              nowRels = new Proxy({}, {//relOutputs
+                get(target, name) {
+                  return function (val) {
+                    props.outputs[name](val, scope, inReg)//with current scope
+
+                    // const rels = _PinRels[id + '-' + pinId]
+                    // if (rels) {
+                    //   rels.forEach(relId => {
+                    //     props.outputs[relId](val)
+                    //   })
+                    // }
+                  }
+                }
+              })
+            }
+
+            fn(val, nowRels)//invoke the input,with current scope
+          } else {
+            props.addInputTodo(pinId, val)
+          }
         }
       }
     }
