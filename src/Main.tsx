@@ -17,6 +17,16 @@ import coreLib from '@mybricks/comlib-core'
 import executor from './executor'
 import {compareVersion} from "./utils";
 
+const regAry = (comAray, comDefs) => {
+  comAray.forEach(comDef => {
+    if (comDef.comAray) {
+      regAry(comDef.comAray, comDefs);
+    } else {
+      comDefs[`${comDef.namespace}-${comDef.version}`] = comDef;
+    }
+  })
+}
+
 export default function Main({json, opts}: { json, opts: { env, events, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
     const CurrentNodeInfo = window["__rxui__"]?.CurrentNodeInfo;
@@ -27,6 +37,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
     }
 
     if (opts.comDefs) {
+      regAry(coreLib.comAray, opts.comDefs);
       return opts.comDefs
     }
 
@@ -36,24 +47,13 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       throw new Error(`组件库为空，请检查是否通过<script src="组件库地址"></script>加载了组件库运行时.`)
     }
 
-    comLibs.push(coreLib)
-
     const comDefs = {}
-    const regAry = (comAray) => {
-      comAray.forEach(comDef => {
-        if (comDef.comAray) {
-          regAry(comDef.comAray);
-        } else {
-          comDefs[`${comDef.namespace}-${comDef.version}`] = comDef;
-        }
-      })
-    }
-
+    comLibs.push(coreLib)
     comLibs.forEach(lib => {
       const comAray = lib.comAray;
 
       if (comAray && Array.isArray(comAray)) {
-        regAry(comAray);
+        regAry(comAray, comDefs);
       }
     })
 
