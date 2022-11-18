@@ -163,7 +163,7 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
       )
 
       itemAry.push({
-        id, jsx, inputs: inputsCallable
+        id, jsx, inputs: inputsCallable, style
       })
     } else {
       debugger
