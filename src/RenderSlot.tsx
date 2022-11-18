@@ -69,7 +69,7 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
                     wrapFn = params.wrap
                   }
                   //})
-                }else{
+                } else {
                   nowScopeId = scopeId
                 }
 
@@ -158,6 +158,9 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
             _inputs={_inputs}
             _outputs={_outputs}
             slots={slotsProxy}
+            createPortal={e => {
+
+            }}
           />
         </div>
       )

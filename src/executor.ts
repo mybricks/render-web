@@ -9,13 +9,13 @@ import pkg from "../package.json";
  * mybricks@126.com
  */
 
-
 export default function init(opts, {observable}) {
   const {json, getComDef, env, events, ref} = opts
   const _Coms = json.coms
   const _ComsAutoRun = json.comsAutoRun
   const _Cons = json.cons
   const _PinRels = json.pinRels
+  const _PinProxies = json.pinProxies
 
   const _Env = env
 
@@ -157,6 +157,14 @@ export default function init(opts, {observable}) {
     const exeCons = (cons, val, curScope, fromCon) => {
       if (cons) {
         cons.forEach(inReg => {
+          const proxyDesc = _PinProxies[inReg.comId + '-' + inReg.pinId]
+          if (proxyDesc) {
+            if (proxyDesc.type === 'frame') {
+              _exeInputForFrame(proxyDesc, val)
+              return
+            }
+          }
+
           if (inReg.type === 'com') {
             if (fromCon) {
               if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
@@ -284,10 +292,10 @@ export default function init(opts, {observable}) {
   }
 
   function _exeInputForCom(inReg, val, scope, outputRels?) {
-    const {id, def, pinId, pinType} = inReg
+    const {comId, def, pinId, pinType} = inReg
 
     if (pinType === 'ext') {
-      const props =  _Props[id] || _getComProps(id, scope)
+      const props = _Props[comId] || _getComProps(comId, scope)
       if (pinId === 'show') {
         props.style.display = ''
       } else if (pinId === 'hide') {
@@ -295,15 +303,15 @@ export default function init(opts, {observable}) {
       }
     } else {
       if (def.rtType?.match(/^js/gi)) {//js
-        const jsCom = _Coms[id]
+        const jsCom = _Coms[comId]
         if (jsCom) {
-          const props = _getComProps(id, scope)
+          const props = _getComProps(comId, scope)
 
           const comDef = getComDef(def)
 
           logInputVal(comDef, pinId, val)
 
-          const myId = (scope ? scope.id + '-' : '') + id
+          const myId = (scope ? scope.id + '-' : '') + comId
 
           if (!_exedJSCom[myId]) {
             _exedJSCom[myId] = true
@@ -331,7 +339,7 @@ export default function init(opts, {observable}) {
           }))//invoke the input
         }
       } else {//ui
-        const props = _getComProps(id, scope)
+        const props = _getComProps(comId, scope)
 
         const comDef = getComDef(def)
 
@@ -343,7 +351,7 @@ export default function init(opts, {observable}) {
            * 例如：extBinding：data.text
            * 结果：props.data.text = val
            */
-          const { extBinding } = inReg
+          const {extBinding} = inReg
           const ary = extBinding.split('.')
           let nowObj = props
 
