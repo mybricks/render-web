@@ -10,12 +10,21 @@ import pkg from "../package.json";
  */
 
 export default function init(opts, {observable}) {
-  const {json, getComDef, env, events, ref} = opts
-  const _Coms = json.coms
-  const _ComsAutoRun = json.comsAutoRun
-  const _Cons = json.cons
-  const _PinRels = json.pinRels
-  const _PinProxies = json.pinProxies
+  const {
+    json,
+    getComDef,
+    env,
+    events,
+    ref
+  } = opts
+
+  const {
+    coms: Coms,
+    comsAutoRun: ComsAutoRun,
+    cons: Cons,
+    pinRels: PinRels,
+    pinProxies: PinProxies
+  } = json
 
   const _Env = env
 
@@ -25,57 +34,93 @@ export default function init(opts, {observable}) {
 
   const _exedJSCom = {}
 
-  function _log(msg) {
-    console.log(`%c[Mybricks]%c ${msg}\n`, `color:#FFF;background:#fa6400`, ``, ``);
-  }
+  const _frameOutput = {}
 
-  function logInputVal(comDef, pinId, val) {
-    let tval
-    try {
-      tval = JSON.stringify(val)
-    } catch (ex) {
-      tval = val
+  function exeCons(cons, val, curScope, fromCon?, candidateScope?) {
+    if (cons) {
+      cons.forEach(inReg => {
+        const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
+        if (proxyDesc) {
+          if (proxyDesc.type === 'frame') {//call fx frame
+            const comProps = getComProps(inReg.comId, curScope)
+            let myScope
+            if (!curScope) {
+              myScope = {
+                id: inReg.comId,
+                parent: curScope,
+                proxyComProps: comProps//current proxied component instance
+              }
+            }
+
+            exeInputForFrame(proxyDesc, val, myScope)
+            return
+          }
+        }
+
+        if (inReg.type === 'com') {
+          if (fromCon) {
+            if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
+              exeInputForCom(inReg, val, curScope || candidateScope)
+            }
+          } else {
+            exeInputForCom(inReg, val, curScope || candidateScope)
+          }
+
+        } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
+          if (inReg.comId) {
+            if (inReg.direction === 'inner-input') {
+              const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
+              if (proxyFn) {
+                proxyFn(val)
+              }
+            } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
+              const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
+              exeCons(cons, val)
+            }
+          } else {
+            const proxiedComProps = curScope?.proxyComProps
+            if (proxiedComProps) {
+
+              const outPin = proxiedComProps.outputs[inReg.pinId]
+              if (outPin) {
+                outPin(val, curScope.parent)
+                return
+              }
+            }
+
+            _frameOutput[inReg.pinId]?.(val)
+          }
+        } else {
+          throw new Error(`尚未实现`)
+        }
+      })
     }
-
-    console.log(`%c[Mybricks] 输入项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#000`, ``, ``);
   }
 
-  function logOutputVal(comDef, pinId, val) {
-    let tval
-    try {
-      tval = JSON.stringify(val)
-    } catch (ex) {
-      tval = val
-    }
-
-    console.log(`%c[Mybricks] 输出项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#fa6400`, ``, ``);
-  }
-
-  const _frameOutput = {};
-
-  function _getComProps(comId, scope?: { id: string }) {//with opts:{scopeId}
-    let tnow = scope?.id || ''
-    while (true) {
-      const pre = tnow !== '' ? (tnow + '-') : tnow
-      const key = pre + comId
+  function getComProps(comId, scope?: { id: string, parent }) {//with opts:{scopeId}
+    let curScope = scope
+    while (curScope) {
+      const key = curScope.id + '-' + comId
 
       const found = _Props[key]
       if (found) {
         return found
       }
 
-      if (tnow !== '') {
-        tnow = tnow.substring(0, tnow.lastIndexOf('/'))
-      } else {
-        break
-      }
+      curScope = curScope.parent
+    }
+
+    const found = _Props[comId]//global
+    if (found) {
+      return found
     }
 
     //--------------------------------------------------------
 
     const key = (scope ? (scope.id + '-') : '') + comId
 
-    const com = _Coms[comId]
+    const com = Coms[comId]
+
     const def = com.def
     const model = com.model
 
@@ -129,7 +174,7 @@ export default function init(opts, {observable}) {
     const inputsCallable = new Proxy({}, {
       get(target, name) {
         return function (val) {
-          const rels = _PinRels[comId + '-' + name]
+          const rels = PinRels[comId + '-' + name]
           if (rels) {
             const rtn = {}
             const reg = {}
@@ -141,59 +186,18 @@ export default function init(opts, {observable}) {
             })
 
             Promise.resolve().then(() => {
-              const inReg = {id: comId, def, pinId: name}
-              _exeInputForCom(inReg, val, scope, reg)
+              const inReg = {comId, def, pinId: name}
+              exeInputForCom(inReg, val, scope, reg)
             })
 
             return rtn
           } else {
-            const inReg = {id: comId, def, pinId: name}
-            _exeInputForCom(inReg, val, scope)
+            const inReg = {comId, def, pinId: name}
+            exeInputForCom(inReg, val, scope)
           }
         }
       }
     })
-
-    const exeCons = (cons, val, curScope, fromCon) => {
-      if (cons) {
-        cons.forEach(inReg => {
-          const proxyDesc = _PinProxies[inReg.comId + '-' + inReg.pinId]
-          if (proxyDesc) {
-            if (proxyDesc.type === 'frame') {
-              _exeInputForFrame(proxyDesc, val)
-              return
-            }
-          }
-
-          if (inReg.type === 'com') {
-            if (fromCon) {
-              if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
-                _exeInputForCom(inReg, val, curScope || scope)
-              }
-            } else {
-              _exeInputForCom(inReg, val, curScope || scope)
-            }
-
-          } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
-            if (inReg.comId) {
-              if (inReg.direction === 'inner-input') {
-                const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
-                if (proxyFn) {
-                  proxyFn(val)
-                }
-              } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
-                const cons = _Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
-                exeCons(cons, val)
-              }
-            } else {
-              _frameOutput[inReg.pinId]?.(val)
-            }
-          } else {
-            throw new Error(`尚未实现`)
-          }
-        })
-      }
-    }
 
     const outputs = new Proxy({}, {
       ownKeys(target) {
@@ -206,7 +210,7 @@ export default function init(opts, {observable}) {
         }
       },
       get(target, name, receiver) {
-        return function (val, scope, fromCon) {
+        return function (val, curScope, fromCon) {
           const comDef = getComDef(def)
           logOutputVal(comDef, name, val)
 
@@ -238,8 +242,8 @@ export default function init(opts, {observable}) {
             }
           }
 
-          const cons = _Cons[comId + '-' + name]
-          exeCons(cons, val, scope, fromCon)
+          const cons = Cons[comId + '-' + name]
+          exeCons(cons, val, curScope || scope, fromCon)
         }
       }
     })
@@ -262,13 +266,13 @@ export default function init(opts, {observable}) {
     const _outputs = new Proxy({}, {
       get(target, name, receiver) {
         return function (val) {
-          const cons = _Cons[comId + '-' + name]
+          const cons = Cons[comId + '-' + name]
           if (cons) {
             logOutputVal(def, name, val)
 
             cons.forEach(inReg => {
               if (inReg.type === 'com') {
-                _exeInputForCom(inReg, val, scope)
+                exeInputForCom(inReg, val, scope)
               } else {
                 throw new Error(`尚未实现`)
               }
@@ -291,11 +295,11 @@ export default function init(opts, {observable}) {
     }
   }
 
-  function _exeInputForCom(inReg, val, scope, outputRels?) {
+  function exeInputForCom(inReg, val, scope, outputRels?) {
     const {comId, def, pinId, pinType} = inReg
 
     if (pinType === 'ext') {
-      const props = _Props[comId] || _getComProps(comId, scope)
+      const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === 'show') {
         props.style.display = ''
       } else if (pinId === 'hide') {
@@ -303,9 +307,9 @@ export default function init(opts, {observable}) {
       }
     } else {
       if (def.rtType?.match(/^js/gi)) {//js
-        const jsCom = _Coms[comId]
+        const jsCom = Coms[comId]
         if (jsCom) {
-          const props = _getComProps(comId, scope)
+          const props = getComProps(comId, scope)
 
           const comDef = getComDef(def)
 
@@ -339,7 +343,7 @@ export default function init(opts, {observable}) {
           }))//invoke the input
         }
       } else {//ui
-        const props = _getComProps(comId, scope)
+        const props = getComProps(comId, scope)
 
         const comDef = getComDef(def)
 
@@ -394,7 +398,7 @@ export default function init(opts, {observable}) {
     }
   }
 
-  function _getSlotProps(comId, slotId) {
+  function getSlotProps(comId, slotId) {
     const key = comId + '-' + slotId
 
     let rtn = _Props[key]
@@ -404,11 +408,11 @@ export default function init(opts, {observable}) {
       const inputs = new Proxy({}, {
         get(target, name) {
           return function (val, scope) {//set data
-            const cons = _Cons[comId + '-' + slotId + '-' + name]
+            const cons = Cons[comId + '-' + slotId + '-' + name]
             if (cons) {
               cons.forEach(inReg => {
                 if (inReg.type === 'com') {
-                  _exeInputForCom(inReg, val, scope)
+                  exeInputForCom(inReg, val, scope)
                 }
               })
             }
@@ -431,7 +435,7 @@ export default function init(opts, {observable}) {
         run() {
           if (!runExed) {
             runExed = true//only once
-            _exeForFrame({comId, frameId: slotId})
+            exeForFrame({comId, frameId: slotId})
           }
         },
         //_outputRegs,
@@ -443,21 +447,21 @@ export default function init(opts, {observable}) {
     return rtn
   }
 
-  function _exeForFrame(opts) {
+  function exeForFrame(opts) {
     const {comId, frameId} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
 
-    const autoAry = _ComsAutoRun[idPre]
+    const autoAry = ComsAutoRun[idPre]
     if (autoAry) {
       autoAry.forEach(com => {
         const {id, def} = com
-        const jsCom = _Coms[id]
+        const jsCom = Coms[id]
         if (jsCom) {
-          const props = _getComProps(id)
+          const props = getComProps(id)
 
           const comDef = getComDef(def)
 
-          _log(`${comDef.namespace} 开始执行`)
+          log(`${comDef.namespace} 开始执行`)
 
           comDef.runtime({
             env: _Env,
@@ -470,31 +474,26 @@ export default function init(opts, {observable}) {
     }
   }
 
-  function _exeInputForFrame(opts, val, scope?) {
+  function exeInputForFrame(opts, val, scope?) {
     const {frameId, comId, pinId} = opts
+
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
 
-    const cons = _Cons[idPre + '-' + pinId]
+    const cons = Cons[idPre + '-' + pinId]
     if (cons) {
-      cons.forEach(inReg => {
-        if (inReg.type === 'com') {
-          _exeInputForCom(inReg, val, scope)
-        } else {
-          throw new Error(`尚未实现`)
-        }
-      })
+      exeCons(cons, val, scope)
     }
   }
 
   if (typeof ref === 'function') {
     ref({
       run() {
-        _exeForFrame({frameId: '_rootFrame_'})
+        exeForFrame({frameId: '_rootFrame_'})
       },
       inputs: new Proxy({}, {
         get(target, pinId) {
           return function (val) {
-            _exeInputForFrame({frameId: '_rootFrame_', pinId}, val)
+            exeInputForFrame({frameId: '_rootFrame_', pinId}, val)
           }
         }
       }),
@@ -505,22 +504,48 @@ export default function init(opts, {observable}) {
   }
 
   return {
-    get(comId: string, _slotId: string, _scope: { id: string }) {
-      let slotId, scope
+    get(comId: string, _slotId: string, scope: { id: string }) {
+      let slotId, curScope
       for (let i = 0; i < arguments.length; i++) {
         if (i > 0 && typeof arguments[i] === 'string') {
           slotId = arguments[i]
         }
         if (typeof arguments[i] === 'object') {
-          scope = arguments[i]
+          curScope = arguments[i]
         }
       }
 
       if (slotId) {
-        return _getSlotProps(comId, slotId)
+        return getSlotProps(comId, slotId)
       } else {
-        return _getComProps(comId, scope)
+        return getComProps(comId, curScope)
       }
     }
   }
+}
+
+function log(msg) {
+  console.log(`%c[Mybricks]%c ${msg}\n`, `color:#FFF;background:#fa6400`, ``, ``);
+}
+
+function logInputVal(comDef, pinId, val) {
+  let tval
+  try {
+    tval = JSON.stringify(val)
+  } catch (ex) {
+    tval = val
+  }
+
+  console.log(`%c[Mybricks] 输入项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#000`, ``, ``);
+}
+
+function logOutputVal(comDef, pinId, val) {
+  let tval
+  try {
+    tval = JSON.stringify(val)
+  } catch (ex) {
+    tval = val
+  }
+
+  console.log(`%c[Mybricks] 输出项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#fa6400`, ``, ``);
 }

@@ -13,7 +13,7 @@ import {isNumber} from "./utils";
 
 import css from "./RenderSlot.less";
 
-export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getContext}) {
+export default function RenderSlot({scope, slot, wrapper, env, getComDef, getContext}) {
   const {style, comAry} = slot
 
   const itemAry = []
@@ -23,7 +23,6 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
 // debugger
 // }
     const comDef = getComDef(def)
-    const scope = scopeId ? {id: scopeId} : void 0
 
     let jsx
     if (comDef) {
@@ -48,20 +47,27 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
               if (slot) {
                 props.run()
 
-                let nowScopeId, wrapFn
+                let curScope, wrapFn
                 if (params) {
+                  let nowScopeId
                   if (params.key) {
-                    nowScopeId = `${scopeId ? (scopeId + '/') : ''}${params.key}`
-                  } else {
-                    nowScopeId = scopeId
+                    nowScopeId = params.key
                   }
 
-                  const scope = nowScopeId ? {id: nowScopeId} : void 0
+                  if (nowScopeId) {
+                    curScope = {id: nowScopeId}
+                    if (scope) {
+                      curScope.parent = scope
+                    }
+                  } else {
+                    curScope = scope
+                  }
+
                   //setTimeout(v => {
                   const ivs = params.inputValues
                   if (typeof ivs === 'object') {
                     for (let pro in ivs) {
-                      props.inputs[pro](ivs[pro], scope)
+                      props.inputs[pro](ivs[pro], curScope)
                     }
                   }
 
@@ -70,13 +76,13 @@ export default function RenderSlot({scopeId, slot, wrapper, env, getComDef, getC
                   }
                   //})
                 } else {
-                  nowScopeId = scopeId
+                  curScope = scope
                 }
 
                 return (
                   <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
                     <RenderSlot
-                      scopeId={nowScopeId}
+                      scope={curScope}
                       env={env}
                       slot={slot}
                       wrapper={wrapFn}
