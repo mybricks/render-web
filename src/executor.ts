@@ -287,7 +287,7 @@ export default function init(opts, {observable}) {
     const {id, def, pinId, pinType} = inReg
 
     if (pinType === 'ext') {
-      const props = _Props[id]
+      const props =  _Props[id] || _getComProps(id, scope)
       if (pinId === 'show') {
         props.style.display = ''
       } else if (pinId === 'hide') {
