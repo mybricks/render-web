@@ -13,7 +13,7 @@ import {isNumber} from "./utils";
 
 import css from "./RenderSlot.less";
 
-export default function RenderSlot({scope, slot, wrapper, env, getComDef, getContext}) {
+export default function RenderSlot({scope, slot, wrapper, template, env, getComDef, getContext}) {
   const {style, comAry} = slot
 
   const itemAry = []
@@ -40,7 +40,7 @@ export default function RenderSlot({scope, slot, wrapper, env, getComDef, getCon
           }
 
           return {
-            render(params) {
+            render(params: { key, inputValues, wrap, itemWrap }) {
               //const TX = memo(({params}) => {
               const slot = slots[slotId]
 
@@ -86,6 +86,7 @@ export default function RenderSlot({scope, slot, wrapper, env, getComDef, getCon
                       env={env}
                       slot={slot}
                       wrapper={wrapFn}
+                      template={params?.itemWrap}
                       getComDef={getComDef}
                       getContext={getContext}
                     />
@@ -146,6 +147,26 @@ export default function RenderSlot({scope, slot, wrapper, env, getComDef, getCon
       // }
 
       jsx = (
+        <comDef.runtime
+          env={env}
+          data={data}
+          style={style}
+          inputs={inputs}
+          outputs={outputs}
+          _inputs={_inputs}
+          _outputs={_outputs}
+          slots={slotsProxy}
+          createPortal={e => {
+
+          }}
+        />
+      )
+
+      if (typeof template === 'function') {
+        jsx = template({id, jsx})
+      }
+
+      jsx = (
         <div key={id} style={{
           display: style.display,
           overflow: "hidden",
@@ -155,20 +176,7 @@ export default function RenderSlot({scope, slot, wrapper, env, getComDef, getCon
           ...marginStyle,
           ...(style.ext || {})
         }} className={classes}>
-          <comDef.runtime
-            env={env}
-            data={data}
-            style={style}
-            inputs={inputs}
-            outputs={outputs}
-            _inputs={_inputs}
-            _outputs={_outputs}
-            slots={slotsProxy}
-            logger={console}
-            createPortal={e => {
-
-            }}
-          />
+          {jsx}
         </div>
       )
 
