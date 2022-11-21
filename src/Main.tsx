@@ -30,6 +30,7 @@ const regAry = (comAray, comDefs) => {
 export default function Main({json, opts}: { json, opts: { env, events, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
     if (!opts.observable) {
+      // 未传入observable，使用内置observable配合对React.createElement的劫持
       hijackReactcreateElement();
     }
 

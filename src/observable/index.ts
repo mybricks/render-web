@@ -14,13 +14,15 @@ import {
 import { isObject } from "../utils";
 import baseHandlers from "./handles";
 
+const globalKey = "__render-web-createElement__";
 let createElement;
 
 /**
  * 劫持 React.createElement 函数
  */
 export function hijackReactcreateElement() {
-  if (!createElement) {
+  if (!window[globalKey]) {
+    window[globalKey] = true;
     createElement = React.createElement;
 
     React.createElement = function() {
