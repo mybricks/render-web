@@ -27,7 +27,7 @@ module.exports = {
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
     alias: {
       '@mybricks/comlib-core':
-        path.resolve(__dirname, '../../_comlibs/comlib-core/src/runtime.ts'),
+        path.resolve(__dirname, '../comlib-core/runtime.ts'),
     }
   },
   module: {

@@ -29,10 +29,7 @@ const regAry = (comAray, comDefs) => {
 
 export default function Main({json, opts}: { json, opts: { env, events, comDefs, observable, ref } }) {
   const comDefs = useMemo(() => {//所有组件定义
-    const CurrentNodeInfo = window["__rxui__"]?.CurrentNodeInfo;
-
-    if (!(CurrentNodeInfo && "current" in CurrentNodeInfo)) {
-      // 非rxui.render渲染
+    if (!opts.observable) {
       hijackReactcreateElement();
     }
 

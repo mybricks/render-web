@@ -10,3 +10,4 @@ tags/*
 .vscode/
 package-lock.json
 index.min.js
+comlib-core/
