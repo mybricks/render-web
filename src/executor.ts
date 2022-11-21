@@ -291,7 +291,8 @@ export default function init(opts, {observable}) {
       inputsCallable,
       outputs,
       _inputs,
-      _outputs
+      _outputs,
+      logger: console
     }
   }
 

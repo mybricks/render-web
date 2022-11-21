@@ -164,6 +164,7 @@ export default function RenderSlot({scope, slot, wrapper, env, getComDef, getCon
             _inputs={_inputs}
             _outputs={_outputs}
             slots={slotsProxy}
+            logger={console}
             createPortal={e => {
 
             }}
