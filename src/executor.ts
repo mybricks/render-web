@@ -133,12 +133,12 @@ export default function init(opts, {observable}) {
     const _inputRegs = {}
     const _inputTodo = {}
 
-    const addInputTodo = (inputId, val) => {
+    const addInputTodo = (inputId, val, fromCon) => {
       let ary = inputTodo[inputId]
       if (!ary) {
         inputTodo[inputId] = ary = []
       }
-      ary.push(val)
+      ary.push({val, fromCon})
     }
 
     const inputs = new Proxy({}, {
@@ -156,11 +156,11 @@ export default function init(opts, {observable}) {
           inputRegs[name] = fn
           const ary = inputTodo[name]
           if (ary) {
-            ary.forEach(val => {
+            ary.forEach(({val, fromCon}) => {
               fn(val, new Proxy({}, {//relOutputs
                 get(target, name) {
                   return function (val) {
-                    outputs[name](val)
+                    outputs[name](val, curScope, fromCon)
                   }
                 }
               }))
@@ -392,7 +392,7 @@ export default function init(opts, {observable}) {
 
             fn(val, nowRels)//invoke the input,with current scope
           } else {
-            props.addInputTodo(pinId, val)
+            props.addInputTodo(pinId, val, inReg)
           }
         }
       }
