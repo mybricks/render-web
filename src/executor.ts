@@ -115,6 +115,9 @@ export default function init(opts, {observable}) {
       return found
     }
 
+// if(comId==='u_Rvvfg'){
+// debugger
+// }
     //--------------------------------------------------------
 
     const key = (scope ? (scope.id + '-') : '') + comId
@@ -153,6 +156,11 @@ export default function init(opts, {observable}) {
       },
       get(target, name) {
         return function (fn) {
+//           if(name==='dataSource'){
+// debugger
+//           }
+
+
           inputRegs[name] = fn
           const ary = inputTodo[name]
           if (ary) {
@@ -243,7 +251,8 @@ export default function init(opts, {observable}) {
           }
 
           const cons = Cons[comId + '-' + name]
-          exeCons(cons, val, curScope || scope, fromCon)
+          //exeCons(cons, val, curScope || scope, fromCon)
+          exeCons(cons, val, curScope, fromCon)
         }
       }
     })
