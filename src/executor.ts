@@ -100,11 +100,12 @@ export default function init(opts, {observable}) {
 
   function getComProps(comId,
                        scope?: { id: string, frameId: string, parent },
-                       ioProxy?: { inputs, outputs, _inputs, _outputs }) {//with opts:{scopeId}
-    // if(scope){
-    //   debugger
-    //
+                       //ioProxy?: { inputs, outputs, _inputs, _outputs }
+  ) {
+    // if(ioProxy){
+    //   console.log(comId,scope)
     // }
+
 
     const com = Coms[comId]
     const comInFrameId = com.frameId || '_rootFrame_'
@@ -131,7 +132,9 @@ export default function init(opts, {observable}) {
       curScope = curScope.parent
     }
 
-    const found = frameProps[comId]//global
+    const key = (storeScopeId ? (storeScopeId + '-') : '') + comId
+
+    const found = frameProps[key]//global
     if (found) {
       return found
     }
@@ -139,11 +142,13 @@ export default function init(opts, {observable}) {
 // if(comId==='u_Rvvfg'){
 // debugger
 // }
+
+    // if (ioProxy) {
+    //   console.log(comId, scope)
+    // }
+
     //--------------------------------------------------------
 
-    //const key = (scope ? (scope.id + '-') : '') + comId
-
-    const key = (storeScopeId ? (storeScopeId + '-') : '') + comId
 
     const def = com.def
     const model = com.model
@@ -165,43 +170,45 @@ export default function init(opts, {observable}) {
       ary.push({val, fromCon})
     }
 
-    const inputs = new Proxy({}, {
-      ownKeys(target) {
-        return com.inputs
-      },
-      getOwnPropertyDescriptor(k) {
-        return {
-          enumerable: true,
-          configurable: true,
-        }
-      },
-      get(target, name) {
-        return function (fn) {
-          const proxiedInputs = ioProxy?.inputs
-          if (proxiedInputs) {//存在代理的情况
-            const proxy = proxiedInputs[name]
-            if (typeof proxy === 'function') {
-              proxy(fn)
-            }
-          } else {
-            inputRegs[name] = fn
-            const ary = inputTodo[name]
-            if (ary) {
-              ary.forEach(({val, fromCon}) => {
-                fn(val, new Proxy({}, {//relOutputs
-                  get(target, name) {
-                    return function (val) {
-                      outputs[name](val, curScope, fromCon)
+    const inputs = function (ioProxy?) {
+      return new Proxy({}, {
+        ownKeys(target) {
+          return com.inputs
+        },
+        getOwnPropertyDescriptor(k) {
+          return {
+            enumerable: true,
+            configurable: true,
+          }
+        },
+        get(target, name) {
+          return function (fn) {
+            const proxiedInputs = ioProxy?.inputs
+            if (proxiedInputs) {//存在代理的情况
+              const proxy = proxiedInputs[name]
+              if (typeof proxy === 'function') {
+                proxy(fn)
+              }
+            } else {
+              inputRegs[name] = fn
+              const ary = inputTodo[name]
+              if (ary) {
+                ary.forEach(({val, fromCon}) => {
+                  fn(val, new Proxy({}, {//relOutputs
+                    get(target, name) {
+                      return function (val) {
+                        outputs[name](val, curScope, fromCon)
+                      }
                     }
-                  }
-                }))
-              })
-              inputTodo[name] = void 0
+                  }))
+                })
+                inputTodo[name] = void 0
+              }
             }
           }
         }
-      }
-    })
+      })
+    }
 
     const inputsCallable = new Proxy({}, {
       get(target, name) {
@@ -276,13 +283,8 @@ export default function init(opts, {observable}) {
 
           const cons = Cons[comId + '-' + name]
 
-          if (scope) {
-            debugger
-          }
-
-          //exeCons(cons, val, myScope || curScope, fromCon)
           //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-          exeCons(cons, val, myScope || scope, fromCon)/////TODO
+          exeCons(cons, val, myScope || scope, fromCon)
           //exeCons(cons, val, myScope, fromCon)/////TODO
         }
       }
@@ -322,18 +324,31 @@ export default function init(opts, {observable}) {
       }
     })
 
-    return frameProps[key] = {
+    const rtn = {
       data: obsModel.data,
       style: obsModel.style,
       _inputRegs: inputRegs,
       addInputTodo,
-      inputs,
+      inputs: inputs(),
       inputsCallable,
       outputs,
       _inputs,
       _outputs,
+      clone(ioProxy) {
+        const rtn = {
+          inputs: inputs(ioProxy)
+        }
+
+        Object.setPrototypeOf(rtn, this)
+
+        return rtn
+      },
       logger: console
     }
+
+    frameProps[key] = rtn
+
+    return rtn
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
@@ -553,9 +568,9 @@ export default function init(opts, {observable}) {
           slotId = arg
         }
         if (typeof arg === 'object') {
-          if (arg.inputs || arg.outputs || arg._inputs || arg._outputs) {
+          if (arg.inputs || arg.outputs || arg._inputs || arg._outputs) {//ioProxy
             ioProxy = arg
-          } else {
+          } else if (arg.id || arg.parent) {//scope
             curScope = arg
           }
         }
@@ -564,7 +579,12 @@ export default function init(opts, {observable}) {
       if (slotId) {
         return getSlotProps(comId, slotId)
       } else {
-        return getComProps(comId, curScope, ioProxy)
+        const rtn = getComProps(comId, curScope)
+        if (ioProxy) {
+          return rtn.clone(ioProxy)
+        } else {
+          return rtn
+        }
       }
     }
   }

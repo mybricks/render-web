@@ -38,7 +38,6 @@ export default function RenderSlot({
 
     let jsx
     if (comDef) {
-      //在context中获取各类对象
       const {
         data,
         style,
@@ -51,7 +50,6 @@ export default function RenderSlot({
         inputs, outputs, _inputs, _outputs
       })
 
-      //递归渲染插槽
       const slotsProxy = new Proxy(slots, {
         get(target, slotId: string) {
           const props = getContext(id, slotId)
