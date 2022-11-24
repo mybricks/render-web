@@ -61,7 +61,7 @@ export default function init(opts, {observable}) {
         if (inReg.type === 'com') {
           if (fromCon) {
             if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
-              exeInputForCom(inReg, val, curScope || candidateScope)
+              exeInputForCom(inReg, val, curScope)
             }
           } else {
             exeInputForCom(inReg, val, curScope)
