@@ -13,7 +13,19 @@ import {isNumber} from "./utils";
 
 import css from "./RenderSlot.less";
 
-export default function RenderSlot({scope, slot, wrapper, template, env, getComDef, getContext}) {
+export default function RenderSlot({
+                                     scope,
+                                     slot,
+                                     inputs,
+                                     outputs,
+                                     _inputs,
+                                     _outputs,
+                                     wrapper,
+                                     template,
+                                     env,
+                                     getComDef,
+                                     getContext
+                                   }) {
   const {style, comAry} = slot
 
   const itemAry = []
@@ -27,7 +39,17 @@ export default function RenderSlot({scope, slot, wrapper, template, env, getComD
     let jsx
     if (comDef) {
       //在context中获取各类对象
-      const {data, style, inputs, inputsCallable, outputs, _inputs, _outputs} = getContext(id, scope);
+      const {
+        data,
+        style,
+        inputs: myInputs,
+        inputsCallable,
+        outputs: myOutputs,
+        _inputs: _myInputs,
+        _outputs: _myOutputs
+      } = getContext(id, scope, {
+        inputs, outputs, _inputs, _outputs
+      })
 
       //递归渲染插槽
       const slotsProxy = new Proxy(slots, {
@@ -40,10 +62,9 @@ export default function RenderSlot({scope, slot, wrapper, template, env, getComD
           }
 
           return {
-            render(params: { key, inputValues, wrap, itemWrap }) {
+            render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap }) {
               //const TX = memo(({params}) => {
               const slot = slots[slotId]
-
               if (slot) {
                 props.run()
 
@@ -55,7 +76,10 @@ export default function RenderSlot({scope, slot, wrapper, template, env, getComD
                   }
 
                   if (nowScopeId) {
-                    curScope = {id: nowScopeId}
+                    curScope = {
+                      id: nowScopeId,
+                      frameId: slotId
+                    }
                     if (scope) {
                       curScope.parent = scope
                     }
@@ -89,6 +113,10 @@ export default function RenderSlot({scope, slot, wrapper, template, env, getComD
                       template={params?.itemWrap}
                       getComDef={getComDef}
                       getContext={getContext}
+                      inputs={params?.inputs}
+                      outputs={params?.outputs}
+                      _inputs={params?._inputs}
+                      _outputs={params?._outputs}
                     />
                   </div>
                 )
@@ -151,10 +179,10 @@ export default function RenderSlot({scope, slot, wrapper, template, env, getComD
           env={env}
           data={data}
           style={style}
-          inputs={inputs}
-          outputs={outputs}
-          _inputs={_inputs}
-          _outputs={_outputs}
+          inputs={myInputs}
+          outputs={myOutputs}
+          _inputs={_myInputs}
+          _outputs={_myOutputs}
           slots={slotsProxy}
           createPortal={e => {
 

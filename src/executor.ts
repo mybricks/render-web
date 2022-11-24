@@ -36,7 +36,7 @@ export default function init(opts, {observable}) {
 
   const _frameOutput = {}
 
-  function exeCons(cons, val, curScope, fromCon?, candidateScope?) {
+  function exeCons(cons, val, curScope, fromCon?) {
     if (cons) {
       cons.forEach(inReg => {
         const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
@@ -47,6 +47,7 @@ export default function init(opts, {observable}) {
             if (!curScope) {
               myScope = {
                 id: inReg.comId,
+                frameId: proxyDesc.frameId,
                 parent: curScope,
                 proxyComProps: comProps//current proxied component instance
               }
@@ -63,7 +64,7 @@ export default function init(opts, {observable}) {
               exeInputForCom(inReg, val, curScope || candidateScope)
             }
           } else {
-            exeInputForCom(inReg, val, curScope || candidateScope)
+            exeInputForCom(inReg, val, curScope)
           }
 
         } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
@@ -97,20 +98,40 @@ export default function init(opts, {observable}) {
     }
   }
 
-  function getComProps(comId, scope?: { id: string, parent }) {//with opts:{scopeId}
+  function getComProps(comId,
+                       scope?: { id: string, frameId: string, parent },
+                       ioProxy?: { inputs, outputs, _inputs, _outputs }) {//with opts:{scopeId}
+    // if(scope){
+    //   debugger
+    //
+    // }
+
+    const com = Coms[comId]
+    const comInFrameId = com.frameId || '_rootFrame_'
+
+    let frameProps = _Props[comInFrameId]
+    if (!frameProps) {
+      frameProps = _Props[comInFrameId] = {}
+    }
+
+    let storeScopeId
     let curScope = scope
     while (curScope) {
       const key = curScope.id + '-' + comId
 
-      const found = _Props[key]
-      if (found) {
-        return found
+      if (curScope.frameId === com.frameId) {
+        storeScopeId = curScope.id
+
+        const found = frameProps[key]
+        if (found) {
+          return found
+        }
       }
 
       curScope = curScope.parent
     }
 
-    const found = _Props[comId]//global
+    const found = frameProps[comId]//global
     if (found) {
       return found
     }
@@ -120,9 +141,9 @@ export default function init(opts, {observable}) {
 // }
     //--------------------------------------------------------
 
-    const key = (scope ? (scope.id + '-') : '') + comId
+    //const key = (scope ? (scope.id + '-') : '') + comId
 
-    const com = Coms[comId]
+    const key = (storeScopeId ? (storeScopeId + '-') : '') + comId
 
     const def = com.def
     const model = com.model
@@ -156,24 +177,27 @@ export default function init(opts, {observable}) {
       },
       get(target, name) {
         return function (fn) {
-//           if(name==='dataSource'){
-// debugger
-//           }
-
-
-          inputRegs[name] = fn
-          const ary = inputTodo[name]
-          if (ary) {
-            ary.forEach(({val, fromCon}) => {
-              fn(val, new Proxy({}, {//relOutputs
-                get(target, name) {
-                  return function (val) {
-                    outputs[name](val, curScope, fromCon)
+          const proxiedInputs = ioProxy?.inputs
+          if (proxiedInputs) {//存在代理的情况
+            const proxy = proxiedInputs[name]
+            if (typeof proxy === 'function') {
+              proxy(fn)
+            }
+          } else {
+            inputRegs[name] = fn
+            const ary = inputTodo[name]
+            if (ary) {
+              ary.forEach(({val, fromCon}) => {
+                fn(val, new Proxy({}, {//relOutputs
+                  get(target, name) {
+                    return function (val) {
+                      outputs[name](val, curScope, fromCon)
+                    }
                   }
-                }
-              }))
-            })
-            inputTodo[name] = void 0
+                }))
+              })
+              inputTodo[name] = void 0
+            }
           }
         }
       }
@@ -218,7 +242,7 @@ export default function init(opts, {observable}) {
         }
       },
       get(target, name, receiver) {
-        return function (val, curScope, fromCon) {
+        return function (val, myScope, fromCon) {
           const comDef = getComDef(def)
           logOutputVal(comDef, name, val)
 
@@ -251,8 +275,15 @@ export default function init(opts, {observable}) {
           }
 
           const cons = Cons[comId + '-' + name]
-          //exeCons(cons, val, curScope || scope, fromCon)
-          exeCons(cons, val, curScope, fromCon)
+
+          if (scope) {
+            debugger
+          }
+
+          //exeCons(cons, val, myScope || curScope, fromCon)
+          //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
+          exeCons(cons, val, myScope || scope, fromCon)/////TODO
+          //exeCons(cons, val, myScope, fromCon)/////TODO
         }
       }
     })
@@ -291,7 +322,7 @@ export default function init(opts, {observable}) {
       }
     })
 
-    return _Props[key] = {
+    return frameProps[key] = {
       data: obsModel.data,
       style: obsModel.style,
       _inputRegs: inputRegs,
@@ -514,21 +545,26 @@ export default function init(opts, {observable}) {
   }
 
   return {
-    get(comId: string, _slotId: string, scope: { id: string }) {
-      let slotId, curScope
+    get(comId: string, _slotId: string, scope: { id: string }, _ioProxy) {
+      let slotId, curScope, ioProxy
       for (let i = 0; i < arguments.length; i++) {
-        if (i > 0 && typeof arguments[i] === 'string') {
-          slotId = arguments[i]
+        const arg = arguments[i]
+        if (i > 0 && typeof arg === 'string') {
+          slotId = arg
         }
-        if (typeof arguments[i] === 'object') {
-          curScope = arguments[i]
+        if (typeof arg === 'object') {
+          if (arg.inputs || arg.outputs || arg._inputs || arg._outputs) {
+            ioProxy = arg
+          } else {
+            curScope = arg
+          }
         }
       }
 
       if (slotId) {
         return getSlotProps(comId, slotId)
       } else {
-        return getComProps(comId, curScope)
+        return getComProps(comId, curScope, ioProxy)
       }
     }
   }
