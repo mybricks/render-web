@@ -106,6 +106,11 @@ export default function init(opts, {observable}) {
     //   console.log(comId,scope)
     // }
 
+    // if(comId==='u_CEodv'){
+    //   debugger
+    //
+    //   console.log('==>curScope',scope)
+    // }
 
     const com = Coms[comId]
     const comInFrameId = com.frameId || '_rootFrame_'
@@ -138,10 +143,6 @@ export default function init(opts, {observable}) {
     if (found) {
       return found
     }
-
-// if(comId==='u_Rvvfg'){
-// debugger
-// }
 
     // if (ioProxy) {
     //   console.log(comId, scope)
@@ -189,22 +190,23 @@ export default function init(opts, {observable}) {
               if (typeof proxy === 'function') {
                 proxy(fn)
               }
-            } else {
-              inputRegs[name] = fn
-              const ary = inputTodo[name]
-              if (ary) {
-                ary.forEach(({val, fromCon}) => {
-                  fn(val, new Proxy({}, {//relOutputs
-                    get(target, name) {
-                      return function (val) {
-                        outputs[name](val, curScope, fromCon)
-                      }
-                    }
-                  }))
-                })
-                inputTodo[name] = void 0
-              }
             }
+            //else {////TODO 待严格测试
+            inputRegs[name] = fn
+            const ary = inputTodo[name]
+            if (ary) {
+              ary.forEach(({val, fromCon}) => {
+                fn(val, new Proxy({}, {//relOutputs
+                  get(target, name) {
+                    return function (val) {
+                      outputs[name](val, curScope, fromCon)
+                    }
+                  }
+                }))
+              })
+              inputTodo[name] = void 0
+            }
+            //}
           }
         }
       })
@@ -249,7 +251,12 @@ export default function init(opts, {observable}) {
         }
       },
       get(target, name, receiver) {
-        return function (val, myScope, fromCon) {
+        return function (val, _myScope, fromCon) {
+          let myScope
+          if (_myScope && typeof _myScope === 'object') {//存在组件中output数据有误的情况
+            myScope = _myScope
+          }
+
           const comDef = getComDef(def)
           logOutputVal(comDef, name, val)
 
@@ -464,6 +471,15 @@ export default function init(opts, {observable}) {
       const inputs = new Proxy({}, {
         get(target, name) {
           return function (val, scope) {//set data
+            // if(!scope){
+            //   //debugger
+            //
+            //   scope = {////TODO
+            //     id: comId+Math.random(),
+            //     frameId: slotId
+            //   }
+            // }
+
             const cons = Cons[comId + '-' + slotId + '-' + name]
             if (cons) {
               cons.forEach(inReg => {
@@ -575,6 +591,11 @@ export default function init(opts, {observable}) {
           }
         }
       }
+
+      // if(comId==='u_CEodv'){
+      //   console.log('curScope::',curScope)
+      // }
+
 
       if (slotId) {
         return getSlotProps(comId, slotId)

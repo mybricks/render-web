@@ -13,6 +13,8 @@ import {isNumber} from "./utils";
 
 import css from "./RenderSlot.less";
 
+//const SlotRenderKey = new WeakMap()
+
 export default function RenderSlot({
                                      scope,
                                      slot,
@@ -35,6 +37,10 @@ export default function RenderSlot({
 // debugger
 // }
     const comDef = getComDef(def)
+
+    // if (id === 'u_CEodv') {
+    //   console.log(scope)
+    // }
 
     let jsx
     if (comDef) {
@@ -71,6 +77,18 @@ export default function RenderSlot({
                   let nowScopeId
                   if (params.key) {
                     nowScopeId = params.key
+                  }
+
+                  if (typeof params.wrap === 'function' && !params.key) {
+                    if(scope){//存在父作用域，例如 list<form-contianer>
+                      nowScopeId = scope.id
+                    }
+                    // nowScopeId = SlotRenderKey.get(params)
+                    // if(!nowScopeId){
+                    //   nowScopeId = slotId+'-'+Math.random()
+                    //   SlotRenderKey.set(params,nowScopeId)
+                    // }
+                    // throw new Error(`params.key not found.`)
                   }
 
                   if (nowScopeId) {
