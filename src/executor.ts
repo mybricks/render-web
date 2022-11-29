@@ -350,7 +350,10 @@ export default function init(opts, {observable}) {
 
         return rtn
       },
-      logger: console
+      logger: console,
+      onError: (err: any) => {
+        console.error(err)
+      }
     }
 
     frameProps[key] = rtn
