@@ -44,14 +44,14 @@ export default function init(opts, {observable}) {
           if (proxyDesc.type === 'frame') {//call fx frame
             const comProps = getComProps(inReg.comId, curScope)
             let myScope
-            if (!curScope) {
+            //if (!curScope) {////TODO 待严格测试
               myScope = {
                 id: inReg.comId,
                 frameId: proxyDesc.frameId,
                 parent: curScope,
                 proxyComProps: comProps//current proxied component instance
               }
-            }
+            //}
 
             exeInputForFrame(proxyDesc, val, myScope)
             return
@@ -66,7 +66,6 @@ export default function init(opts, {observable}) {
           } else {
             exeInputForCom(inReg, val, curScope)
           }
-
         } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
           if (inReg.comId) {
             if (inReg.direction === 'inner-input') {
@@ -113,7 +112,7 @@ export default function init(opts, {observable}) {
     // }
 
     const com = Coms[comId]
-    const comInFrameId = com.frameId || '_rootFrame_'
+    const comInFrameId = comId+(com.frameId || '_rootFrame_')
 
     let frameProps = _Props[comInFrameId]
     if (!frameProps) {
