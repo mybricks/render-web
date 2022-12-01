@@ -389,7 +389,11 @@ export default function init(opts, {observable}) {
               env: _Env,
               data: props.data,
               inputs: props.inputs,
-              outputs: props.outputs
+              outputs: props.outputs,
+              logger: console,
+              onError: (err: any) => {
+                console.error(err)
+              }
             })
           }
 
@@ -541,7 +545,11 @@ export default function init(opts, {observable}) {
             env: _Env,
             data: props.data,
             inputs: props.inputs,
-            outputs: props.outputs
+            outputs: props.outputs,
+            logger: console,
+            onError: (err: any) => {
+              console.error(err)
+            }
           })
         }
       })
