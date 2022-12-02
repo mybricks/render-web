@@ -45,12 +45,12 @@ export default function init(opts, {observable}) {
             const comProps = getComProps(inReg.comId, curScope)
             let myScope
             //if (!curScope) {////TODO 待严格测试
-              myScope = {
-                id: inReg.comId,
-                frameId: proxyDesc.frameId,
-                parent: curScope,
-                proxyComProps: comProps//current proxied component instance
-              }
+            myScope = {
+              id: inReg.comId,
+              frameId: proxyDesc.frameId,
+              parent: curScope,
+              proxyComProps: comProps//current proxied component instance
+            }
             //}
 
             exeInputForFrame(proxyDesc, val, myScope)
@@ -112,7 +112,7 @@ export default function init(opts, {observable}) {
     // }
 
     const com = Coms[comId]
-    const comInFrameId = comId+(com.frameId || '_rootFrame_')
+    const comInFrameId = comId + (com.frameId || '_rootFrame_')
 
     let frameProps = _Props[comInFrameId]
     if (!frameProps) {
@@ -170,7 +170,7 @@ export default function init(opts, {observable}) {
       ary.push({val, fromCon})
     }
 
-    const inputs = function (ioProxy?) {
+    const inputs = function (ioProxy?: { inputs, outputs }) {
       return new Proxy({}, {
         ownKeys(target) {
           return com.inputs
@@ -190,6 +190,7 @@ export default function init(opts, {observable}) {
                 proxy(fn)
               }
             }
+
             //else {////TODO 待严格测试
             inputRegs[name] = fn
             const ary = inputTodo[name]
@@ -239,62 +240,73 @@ export default function init(opts, {observable}) {
       }
     })
 
-    const outputs = new Proxy({}, {
-      ownKeys(target) {
-        return com.outputs
-      },
-      getOwnPropertyDescriptor(k) {
-        return {
-          enumerable: true,
-          configurable: true,
-        }
-      },
-      get(target, name, receiver) {
-        return function (val, _myScope, fromCon) {
-          let myScope
-          if (_myScope && typeof _myScope === 'object') {//存在组件中output数据有误的情况
-            myScope = _myScope
+    const outputs = function (ioProxy?: { inputs, outputs }) {
+      return new Proxy({}, {
+        ownKeys(target) {
+          return com.outputs
+        },
+        getOwnPropertyDescriptor(k) {
+          return {
+            enumerable: true,
+            configurable: true,
           }
+        },
+        get(target, name, receiver) {
+          return function (val, _myScope, fromCon) {
+            const proxiedOutputs = ioProxy?.outputs
+            if (proxiedOutputs) {//存在代理的情况
+              const proxy = proxiedOutputs[name]
+              if (typeof proxy === 'function') {
+                proxy(val)
+              }
+            }
 
-          const comDef = getComDef(def)
-          logOutputVal(comDef, name, val)
 
-          const evts = model.outputEvents
-          if (evts) {
-            const eAry = evts[name]
-            if (eAry && Array.isArray(eAry)) {
-              const activeEvt = eAry.find(e => e.active)
-              if (activeEvt) {
-                if (activeEvt.type === 'none') {
-                  return
-                }
+            let myScope
+            if (_myScope && typeof _myScope === 'object') {//存在组件中output数据有误的情况
+              myScope = _myScope
+            }
 
-                if (activeEvt.type !== 'defined') {
-                  if (Array.isArray(events)) {
-                    const def = events.find(ce => {
-                      if (ce.type === activeEvt.type) {
-                        return ce
-                      }
-                    })
-                    if (def && typeof def.exe === 'function') {
-                      def.exe(activeEvt.options)
-                    }
+            const comDef = getComDef(def)
+            logOutputVal(comDef, name, val)
+
+            const evts = model.outputEvents
+            if (evts) {
+              const eAry = evts[name]
+              if (eAry && Array.isArray(eAry)) {
+                const activeEvt = eAry.find(e => e.active)
+                if (activeEvt) {
+                  if (activeEvt.type === 'none') {
+                    return
                   }
 
-                  return
+                  if (activeEvt.type !== 'defined') {
+                    if (Array.isArray(events)) {
+                      const def = events.find(ce => {
+                        if (ce.type === activeEvt.type) {
+                          return ce
+                        }
+                      })
+                      if (def && typeof def.exe === 'function') {
+                        def.exe(activeEvt.options)
+                      }
+                    }
+
+                    return
+                  }
                 }
               }
             }
+
+            const cons = Cons[comId + '-' + name]
+
+            //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
+            exeCons(cons, val, myScope || scope, fromCon)
+            //exeCons(cons, val, myScope, fromCon)/////TODO
           }
-
-          const cons = Cons[comId + '-' + name]
-
-          //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-          exeCons(cons, val, myScope || scope, fromCon)
-          //exeCons(cons, val, myScope, fromCon)/////TODO
         }
-      }
-    })
+      })
+    }
 
     const _inputs = new Proxy({}, {
       get(target, name, receiver) {
@@ -337,12 +349,13 @@ export default function init(opts, {observable}) {
       addInputTodo,
       inputs: inputs(),
       inputsCallable,
-      outputs,
+      outputs: outputs(),
       _inputs,
       _outputs,
       clone(ioProxy) {
         const rtn = {
-          inputs: inputs(ioProxy)
+          inputs: inputs(ioProxy),
+          outputs: outputs(ioProxy),
         }
 
         Object.setPrototypeOf(rtn, this)

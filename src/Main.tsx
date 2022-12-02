@@ -39,7 +39,11 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       return opts.comDefs
     }
 
-    const comLibs = window["__comlibs_rt_"];//运行组件库，在preivew.html中引入
+    let comLibs = window["__comlibs_rt_"];//运行组件库，在preivew.html中引入
+
+    if(!comLibs){
+      comLibs = window["__comlibs_edit_"]//设计状态
+    }
 
     if (!comLibs || !Array.isArray(comLibs)) {
       throw new Error(`组件库为空，请检查是否通过<script src="组件库地址"></script>加载了组件库运行时.`)
@@ -68,7 +72,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
         }
       }
 
-      if (ary) {
+      if (ary && ary.length > 0) {
         ary.sort((a, b) => {
           return compareVersion(a.version, b.version)
         })
