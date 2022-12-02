@@ -213,7 +213,7 @@ export default function RenderSlot({
       jsx = (
         <div key={id} style={{
           display: style.display,
-          overflow: "hidden",
+          // overflow: "hidden",
           position: style.position || "relative",
           ...otherStyle,
           ...sizeStyle,
