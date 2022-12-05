@@ -140,6 +140,7 @@ export default function RenderSlot({
                       _outputs={params?._outputs}
                       onError={onError}
                       logger={logger}
+                      __rxui_child__={__rxui_child__}
                     />
                   </div>
                 )
