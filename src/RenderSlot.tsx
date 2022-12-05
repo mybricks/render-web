@@ -27,7 +27,9 @@ export default function RenderSlot({
                                      env,
                                      getComDef,
                                      getContext,
-                                     __rxui_child__
+                                     __rxui_child__,
+                                     onError,
+                                     logger
                                    }) {
   const {style, comAry} = slot
 
@@ -134,6 +136,8 @@ export default function RenderSlot({
                       outputs={params?.outputs}
                       _inputs={params?._inputs}
                       _outputs={params?._outputs}
+                      onError={onError}
+                      logger={logger}
                     />
                   </div>
                 )
@@ -205,6 +209,8 @@ export default function RenderSlot({
 
           }}
           __rxui_child__={__rxui_child__}
+          onError={onError}
+          logger={logger}
         />
       )
 

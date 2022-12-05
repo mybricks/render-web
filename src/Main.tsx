@@ -16,6 +16,7 @@ import coreLib from '@mybricks/comlib-core'
 
 import executor from './executor'
 import {compareVersion} from "./utils";
+import toastDebugInfo from "./toastDebugInfo";
 
 const regAry = (comAray, comDefs) => {
   comAray.forEach(comDef => {
@@ -101,6 +102,28 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
   }, [])
 
   const {slot} = json;
+  
+  // onError
+  const onError = useMemo(() => {
+    return (e) => {
+      if (env && env.toastDebugMsg) {
+        toastDebugInfo.error(e);
+      }
+      console.error(e);
+    };
+  }, [env]);
+  // logger
+  const logger = useMemo(() => {
+    return {
+      ...console,
+      error: (...res) => {
+        if (env && env.toastDebugMsg) {
+          toastDebugInfo.error(res[0]);
+        }
+        console.error(...res);
+      }
+    };
+  }, [env]);
 
   //根据script生成context对象
   const [context, refs] = useMemo(() => {
@@ -116,7 +139,9 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
           if (opts.ref) {
             opts.ref(_refs)
           }
-        }
+        },
+        onError,
+        logger
       }, {//////TODO goon
         observable: opts.observable || defaultObservable
       })
@@ -139,6 +164,8 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       getComDef={getComDef}
       getContext={context.get}
       __rxui_child__={!opts.observable}
+      onError={onError}
+      logger={logger}
     />
   )
 }

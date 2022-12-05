@@ -15,7 +15,9 @@ export default function init(opts, {observable}) {
     getComDef,
     env,
     events,
-    ref
+    ref,
+    onError,
+    logger
   } = opts
 
   const {
@@ -385,10 +387,8 @@ export default function init(opts, {observable}) {
 
         return rtn
       },
-      logger: console,
-      onError: (err: any) => {
-        console.error(err)
-      }
+      logger,
+      onError
     }
 
     frameProps[key] = rtn
@@ -426,10 +426,8 @@ export default function init(opts, {observable}) {
               data: props.data,
               inputs: props.inputs,
               outputs: props.outputs,
-              logger: console,
-              onError: (err: any) => {
-                console.error(err)
-              }
+              logger,
+              onError
             })
           }
 
@@ -582,10 +580,8 @@ export default function init(opts, {observable}) {
             data: props.data,
             inputs: props.inputs,
             outputs: props.outputs,
-            logger: console,
-            onError: (err: any) => {
-              console.error(err)
-            }
+            logger,
+            onError
           })
         }
       })
