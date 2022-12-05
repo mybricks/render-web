@@ -1,6 +1,6 @@
 {
   "name": "@mybricks/render-web",
-  "version": "1.0.58",
+  "version": "1.0.60",
   "description": "Render for web projects",
   "main": "index.min.js",
   "scripts": {
@@ -17,7 +17,9 @@
   },
   "author": "CheMingjun",
   "license": "ISC",
-  "dependencies": {},
+  "dependencies": {
+    "@mybricks/comlib-core": "0.0.2"
+  },
   "devDependencies": {
     "@babel/core": "^7.18.9",
     "@babel/plugin-proposal-class-properties": "^7.18.6",
