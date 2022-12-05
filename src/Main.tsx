@@ -41,7 +41,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
 
     let comLibs = window["__comlibs_rt_"];//运行组件库，在preivew.html中引入
 
-    if(!comLibs){
+    if (!comLibs) {
       comLibs = window["__comlibs_edit_"]//设计状态
     }
 
@@ -91,12 +91,14 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
   }, [])
 
   //环境变量，此处可以定义连接器、多语言等实现
-  const env = Object.assign({
-    runtime: {},
-    i18n(text: any) {
-      return text
-    }
-  }, opts.env)
+  const env = useMemo(() => {
+    return Object.assign({
+      runtime: {},
+      i18n(text: any) {
+        return text
+      }
+    }, opts.env)
+  }, [])
 
   const {slot} = json;
 
@@ -115,7 +117,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
             opts.ref(_refs)
           }
         }
-      }, {
+      }, {//////TODO goon
         observable: opts.observable || defaultObservable
       })
 

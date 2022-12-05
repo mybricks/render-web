@@ -39,6 +39,11 @@ export default function init(opts, {observable}) {
   function exeCons(cons, val, curScope, fromCon?) {
     if (cons) {
       cons.forEach(inReg => {
+        // if (inReg.comId === 'u_WXrNp') {
+        //   debugger
+        // }
+
+
         const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
         if (proxyDesc) {
           if (proxyDesc.type === 'frame') {//call fx frame
@@ -105,10 +110,10 @@ export default function init(opts, {observable}) {
     //   console.log(comId,scope)
     // }
 
-    // if(comId==='u_CEodv'){
+    // if (comId === 'u_Hlptx') {
     //   debugger
     //
-    //   console.log('==>curScope',scope)
+    //   console.log('==>curScope', scope)
     // }
 
     const com = Coms[comId]
@@ -196,10 +201,22 @@ export default function init(opts, {observable}) {
             const ary = inputTodo[name]
             if (ary) {
               ary.forEach(({val, fromCon}) => {
+                // if (fromCon) {
+                //   if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
+                //
+                //   }
+                // }
+
+
                 fn(val, new Proxy({}, {//relOutputs
                   get(target, name) {
                     return function (val) {
-                      outputs[name](val, curScope, fromCon)
+                      const fn = outputs()[name]
+                      if (typeof fn === 'function') {
+                        fn(val, curScope, fromCon)
+                      } else {
+                        throw new Error(`outputs.${name} not found`)
+                      }
                     }
                   }
                 }))
@@ -253,6 +270,7 @@ export default function init(opts, {observable}) {
         },
         get(target, name, receiver) {
           return function (val, _myScope, fromCon) {
+            const args = arguments
             const proxiedOutputs = ioProxy?.outputs
             if (proxiedOutputs) {//存在代理的情况
               const proxy = proxiedOutputs[name]
@@ -268,7 +286,7 @@ export default function init(opts, {observable}) {
             }
 
             const comDef = getComDef(def)
-            logOutputVal(comDef, name, val)
+            logOutputVal(com.title, comDef, name, val)
 
             const evts = model.outputEvents
             if (evts) {
@@ -300,9 +318,13 @@ export default function init(opts, {observable}) {
 
             const cons = Cons[comId + '-' + name]
 
-            //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-            exeCons(cons, val, myScope || scope, fromCon)
-            //exeCons(cons, val, myScope, fromCon)/////TODO
+            if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
+              exeCons(cons, val, myScope, fromCon)
+            } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
+              //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
+              exeCons(cons, val, myScope || scope, fromCon)
+              //exeCons(cons, val, myScope, fromCon)/////TODO
+            }
           }
         }
       })
@@ -328,7 +350,7 @@ export default function init(opts, {observable}) {
         return function (val) {
           const cons = Cons[comId + '-' + name]
           if (cons) {
-            logOutputVal(def, name, val)
+            logOutputVal(com.title, def, name, val)
 
             cons.forEach(inReg => {
               if (inReg.type === 'com') {
@@ -343,6 +365,7 @@ export default function init(opts, {observable}) {
     })
 
     const rtn = {
+      title: com.title,
       data: obsModel.data,
       style: obsModel.style,
       _inputRegs: inputRegs,
@@ -391,7 +414,7 @@ export default function init(opts, {observable}) {
 
           const comDef = getComDef(def)
 
-          logInputVal(comDef, pinId, val)
+          logInputVal(props.title, comDef, pinId, val)
 
           const myId = (scope ? scope.id + '-' : '') + comId
 
@@ -429,7 +452,7 @@ export default function init(opts, {observable}) {
 
         const comDef = getComDef(def)
 
-        logInputVal(comDef, pinId, val)
+        logInputVal(props.title, comDef, pinId, val)
 
         if (pinType === 'config') {
           /**
@@ -638,7 +661,7 @@ function log(msg) {
   console.log(`%c[Mybricks]%c ${msg}\n`, `color:#FFF;background:#fa6400`, ``, ``);
 }
 
-function logInputVal(comDef, pinId, val) {
+function logInputVal(comTitle, comDef, pinId, val) {
   let tval
   try {
     tval = JSON.stringify(val)
@@ -646,10 +669,10 @@ function logInputVal(comDef, pinId, val) {
     tval = val
   }
 
-  console.log(`%c[Mybricks] 输入项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#000`, ``, ``);
+  console.log(`%c[Mybricks] 输入项 %c ${comTitle || comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#000`, ``, ``);
 }
 
-function logOutputVal(comDef, pinId, val) {
+function logOutputVal(comTitle, comDef, pinId, val) {
   let tval
   try {
     tval = JSON.stringify(val)
@@ -657,5 +680,5 @@ function logOutputVal(comDef, pinId, val) {
     tval = val
   }
 
-  console.log(`%c[Mybricks] 输出项 %c ${comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#fa6400`, ``, ``);
+  console.log(`%c[Mybricks] 输出项 %c ${comTitle || comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#fa6400`, ``, ``);
 }
