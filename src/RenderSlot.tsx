@@ -203,6 +203,7 @@ export default function RenderSlot({
           createPortal={e => {
 
           }}
+          __rxui_child__
         />
       )
 

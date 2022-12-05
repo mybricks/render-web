@@ -28,7 +28,7 @@ export function hijackReactcreateElement() {
     React.createElement = function() {
       let [type, ...other] = arguments;
 
-      if (typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent) {
+      if (arguments[1]?.__rxui_child__ && typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent) {
         if (!type.__rxui__) {
           function Render (props) {
             const ref = useRef<Reaction | null>(null);
