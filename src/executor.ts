@@ -110,7 +110,7 @@ export default function init(opts, {observable}) {
     //   console.log(comId,scope)
     // }
 
-    // if (comId === 'u_Hlptx') {
+    // if (comId === 'u_npG0S') {
     //   debugger
     //
     //   console.log('==>curScope', scope)
@@ -135,6 +135,8 @@ export default function init(opts, {observable}) {
         const found = frameProps[key]
         if (found) {
           return found
+        }else{
+          break
         }
       }
 
@@ -629,6 +631,7 @@ export default function init(opts, {observable}) {
         if (i > 0 && typeof arg === 'string') {
           slotId = arg
         }
+
         if (typeof arg === 'object') {
           if (arg.inputs || arg.outputs || arg._inputs || arg._outputs) {//ioProxy
             ioProxy = arg

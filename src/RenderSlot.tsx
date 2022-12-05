@@ -120,6 +120,8 @@ export default function RenderSlot({
                   curScope = scope
                 }
 
+                console.log(curScope)
+
                 return (
                   <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
                     <RenderSlot
