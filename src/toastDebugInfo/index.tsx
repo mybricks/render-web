@@ -103,5 +103,5 @@ const dispatchToast = (toast: string, type: TypeEnum) => {
 };
 
 export default {
-  error: (v) => dispatchToast(v, TypeEnum.Error)
+  error: (v) => dispatchToast(v?.stack || v?.message || v, TypeEnum.Error)
 };
