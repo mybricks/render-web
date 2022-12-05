@@ -138,7 +138,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       slot={slot}
       getComDef={getComDef}
       getContext={context.get}
-      __rxui_child__
+      __rxui_child__={!opts.observable}
     />
   )
 }

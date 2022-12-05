@@ -26,7 +26,8 @@ export default function RenderSlot({
                                      template,
                                      env,
                                      getComDef,
-                                     getContext
+                                     getContext,
+                                     __rxui_child__
                                    }) {
   const {style, comAry} = slot
 
@@ -203,7 +204,7 @@ export default function RenderSlot({
           createPortal={e => {
 
           }}
-          __rxui_child__
+          __rxui_child__={__rxui_child__}
         />
       )
 
