@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 
-import React, {useMemo, useCallback, useLayoutEffect} from "react";
+import React, {useMemo, useCallback, useLayoutEffect, useEffect} from "react";
 
 import RenderSlot from "./RenderSlot";
 import {observable as defaultObservable, hijackReactcreateElement} from "./observable";
@@ -124,6 +124,15 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       }
     };
   }, [env]);
+  // catch onerror
+  useEffect(() => {
+    if (env && env.toastDebugMsg) {
+      window.onerror = function (message, source, lineno, colno, error) {
+        toastDebugInfo.error(error || message);
+        return false;
+      };
+    }
+  }, [env?.toastDebugMsg]);
 
   //根据script生成context对象
   const [context, refs] = useMemo(() => {
