@@ -16,7 +16,7 @@ import coreLib from '@mybricks/comlib-core'
 
 import executor from './executor'
 import {compareVersion} from "./utils";
-import toastDebugInfo from "./toastDebugInfo";
+import ErrorBoundary from "./ErrorBoundary";
 
 const regAry = (comAray, comDefs) => {
   comAray.forEach(comDef => {
@@ -106,33 +106,13 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
   // onError
   const onError = useMemo(() => {
     return (e) => {
-      if (env && env.toastDebugMsg) {
-        toastDebugInfo.error(e);
-      }
       console.error(e);
     };
-  }, [env]);
+  }, []);
   // logger
   const logger = useMemo(() => {
-    return {
-      ...console,
-      error: (...res) => {
-        if (env && env.toastDebugMsg) {
-          toastDebugInfo.error(res[0]);
-        }
-        console.error(...res);
-      }
-    };
-  }, [env]);
-  // catch onerror
-  useEffect(() => {
-    if (env && env.toastDebugMsg) {
-      window.onerror = function (message, source, lineno, colno, error) {
-        toastDebugInfo.error(error || message);
-        return false;
-      };
-    }
-  }, [env?.toastDebugMsg]);
+    return console;
+  }, []);
 
   //根据script生成context对象
   const [context, refs] = useMemo(() => {
@@ -167,15 +147,17 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
   }, [])
 
   return (
-    <RenderSlot
-      env={env}
-      slot={slot}
-      getComDef={getComDef}
-      getContext={context.get}
-      __rxui_child__={!opts.observable}
-      onError={onError}
-      logger={logger}
-    />
+    <ErrorBoundary errorTip={`页面渲染错误`}>
+      <RenderSlot
+        env={env}
+        slot={slot}
+        getComDef={getComDef}
+        getContext={context.get}
+        __rxui_child__={!opts.observable}
+        onError={onError}
+        logger={logger}
+      />
+    </ErrorBoundary>
   )
 }
 

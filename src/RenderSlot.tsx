@@ -12,6 +12,7 @@ import React, {memo} from "react";
 import {isNumber} from "./utils";
 
 import css from "./RenderSlot.less";
+import ErrorBoundary from "./ErrorBoundary";
 
 //const SlotRenderKey = new WeakMap()
 
@@ -231,7 +232,9 @@ export default function RenderSlot({
           ...marginStyle,
           ...(style.ext || {})
         }} className={classes}>
-          {jsx}
+          <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}>
+            {jsx}
+          </ErrorBoundary>
         </div>
       )
 
