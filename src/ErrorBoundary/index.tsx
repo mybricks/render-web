@@ -14,15 +14,16 @@ export default class ErrorBoundary extends React.PureComponent<Props> {
   static getDerivedStateFromError(error) {
     return {
       hasError: true,
-      error
+      error: error?.stack || error?.message || error?.toString?.()
     };
   }
 
   componentDidCatch(error, errorInfo) {
     console.error(error, errorInfo);
     this.setState({
-      error,
-      errorInfo
+      error: error?.stack || error?.message || error?.toString?.(),
+      errorInfo:
+        errorInfo?.stack || errorInfo?.message || errorInfo?.toString?.()
     });
   }
 
