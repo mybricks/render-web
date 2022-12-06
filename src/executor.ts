@@ -137,7 +137,7 @@ export default function init(opts, {observable}) {
         const found = frameProps[key]
         if (found) {
           return found
-        }else{
+        } else {
           break
         }
       }
@@ -310,7 +310,7 @@ export default function init(opts, {observable}) {
                         }
                       })
                       if (def && typeof def.exe === 'function') {
-                        def.exe(activeEvt.options)
+                        def.exe({options: activeEvt.options})//与设计器中的使用方法对齐
                       }
                     }
 
