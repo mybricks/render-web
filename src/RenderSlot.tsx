@@ -80,11 +80,11 @@ export default function RenderSlot({
                 if (params) {
                   let nowScopeId
                   if (params.key) {
-                    nowScopeId = params.key
+                    nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
                   }
 
                   if (typeof params.wrap === 'function' && !params.key) {
-                    if(scope){//存在父作用域，例如 list<form-contianer>
+                    if (scope) {//存在父作用域，例如 list<form-contianer>
                       nowScopeId = scope.id
                     }
                     // nowScopeId = SlotRenderKey.get(params)
@@ -122,8 +122,6 @@ export default function RenderSlot({
                 } else {
                   curScope = scope
                 }
-
-                console.log(curScope)
 
                 return (
                   <div className={calSlotClasses(style)} style={calSlotStyles(style)}>

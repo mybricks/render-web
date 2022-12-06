@@ -111,7 +111,7 @@ export default function init(opts, {observable}) {
     //   console.log(comId,scope)
     // }
 
-    // if (comId === 'u_npG0S') {
+    // if (comId === 'u_pqjHZ') {
     //   debugger
     //
     //   console.log('==>curScope', scope)
