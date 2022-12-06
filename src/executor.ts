@@ -14,7 +14,6 @@ export default function init(opts, {observable}) {
     json,
     getComDef,
     env,
-    events,
     ref,
     onError,
     logger
@@ -303,8 +302,8 @@ export default function init(opts, {observable}) {
                   }
 
                   if (activeEvt.type !== 'defined') {
-                    if (Array.isArray(events)) {
-                      const def = events.find(ce => {
+                    if (Array.isArray(env?.events)) {
+                      const def = env.events.find(ce => {
                         if (ce.type === activeEvt.type) {
                           return ce
                         }
