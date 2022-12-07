@@ -7,9 +7,9 @@
  * mybricks@126.com
  */
 
-import React, {memo} from "react";
+import React, {memo, useEffect, useMemo} from "react";
 
-import {isNumber} from "./utils";
+import {isNumber, uuid} from "./utils";
 
 import css from "./RenderSlot.less";
 import ErrorBoundary from "./ErrorBoundary";
@@ -34,215 +34,43 @@ export default function RenderSlot({
                                    }) {
   const {style, comAry} = slot
 
+  // useMemo(() => {
+  //   if (scope) {
+  //     scope.id += Math.random()//
+  //   }
+  // }, [])
+
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
-    const {id, def, slots = {}}: Com = com
-// if(def.namespace==='mybricks.normal-pc.grid'){
-// debugger
-// }
+    const {id, def}: Com = com
     const comDef = getComDef(def)
 
     // if (id === 'u_CEodv') {
     //   console.log(scope)
     // }
 
-    let jsx
     if (comDef) {
-      const {
-        data,
-        style,
-        inputs: myInputs,
-        inputsCallable,
-        outputs: myOutputs,
-        _inputs: _myInputs,
-        _outputs: _myOutputs
-      } = getContext(id, scope, {
+      const props = getContext(id, scope, {
         inputs, outputs, _inputs, _outputs
       })
 
-      const slotsProxy = new Proxy(slots, {
-        get(target, slotId: string) {
-          const props = getContext(id, slotId)
-          const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
-
-          if (!props) {
-            throw new Error(`${errorStringPrefix} 获取context失败.`)
-          }
-
-          return {
-            render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap }) {
-              //const TX = memo(({params}) => {
-              const slot = slots[slotId]
-              if (slot) {
-                props.run()
-
-                let curScope, wrapFn
-                if (params) {
-                  let nowScopeId
-                  if (params.key) {
-                    nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
-                  }
-
-                  if (typeof params.wrap === 'function' && !params.key) {
-                    if (scope) {//存在父作用域，例如 list<form-contianer>
-                      nowScopeId = scope.id
-                    }
-                    // nowScopeId = SlotRenderKey.get(params)
-                    // if(!nowScopeId){
-                    //   nowScopeId = slotId+'-'+Math.random()
-                    //   SlotRenderKey.set(params,nowScopeId)
-                    // }
-                    // throw new Error(`params.key not found.`)
-                  }
-
-                  if (nowScopeId) {
-                    curScope = {
-                      id: nowScopeId,
-                      frameId: slotId
-                    }
-                    if (scope) {
-                      curScope.parent = scope
-                    }
-                  } else {
-                    curScope = scope
-                  }
-
-                  //setTimeout(v => {
-                  const ivs = params.inputValues
-                  if (typeof ivs === 'object') {
-                    for (let pro in ivs) {
-                      props.inputs[pro](ivs[pro], curScope)
-                    }
-                  }
-
-                  if (typeof params.wrap === 'function') {
-                    wrapFn = params.wrap
-                  }
-                  //})
-                } else {
-                  curScope = scope
-                }
-
-                return (
-                  <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
-                    <RenderSlot
-                      scope={curScope}
-                      env={env}
-                      slot={slot}
-                      wrapper={wrapFn}
-                      template={params?.itemWrap}
-                      getComDef={getComDef}
-                      getContext={getContext}
-                      inputs={params?.inputs}
-                      outputs={params?.outputs}
-                      _inputs={params?._inputs}
-                      _outputs={params?._outputs}
-                      onError={onError}
-                      logger={logger}
-                      __rxui_child__={__rxui_child__}
-                    />
-                  </div>
-                )
-              } else {
-                return (
-                  <div className={css.error}>
-                    {errorStringPrefix} 未找到.
-                  </div>
-                )
-              }
-              // })
-              //
-              // return <TX params={params}/>
-            },
-            inputs: props.inputs,
-            outputs: props.outputs
-          }
-        }
-      })
-
-      const classes = getClasses({style})
-      const sizeStyle = getSizeStyle({style})
-      const marginStyle = getMarginStyle({style})
-
-      const otherStyle: any = {}
-
-      if (['fixed', 'absolute'].includes(style.position)) {
-        if (style.top) {
-          otherStyle.top = style.top;
-        }
-        if (style.left) {
-          otherStyle.left = style.left;
-        }
-        otherStyle.zIndex = 1000;
-      }
-
-      // switch (true) {
-      //   case ['fixed'].includes(style.position): {
-      //     otherStyle.position = 'fixed'
-      //     otherStyle.zIndex = 1000;
-      //     style.fixedX === 'right' ? (otherStyle.right = style.right + 'px') : (otherStyle.left = style.left + 'px');
-      //     style.fixedY === 'bottom' ? (otherStyle.bottom = style.bottom + 'px') : (otherStyle.top = style.top + 'px');
-      //     break
-      //   }
-      //
-      //   case ['absolute'].includes(style.position) || (parent.style.layout === 'absolute' && style.position === undefined): {
-      //     otherStyle.position = 'absolute'
-      //     otherStyle.zIndex = 1000;
-      //     otherStyle.top = style.top + 'px';
-      //     otherStyle.left = style.left + 'px';
-      //     break
-      //   }
-      //   default: {
-      //     break
-      //   }
-      // }
-
-      jsx = (
-        <comDef.runtime
-          env={env}
-          data={data}
-          style={style}
-          inputs={myInputs}
-          outputs={myOutputs}
-          _inputs={_myInputs}
-          _outputs={_myOutputs}
-          slots={slotsProxy}
-          createPortal={e => {
-
-          }}
-          __rxui_child__={__rxui_child__}
-          onError={onError}
-          logger={logger}
-        />
-      )
-
-      if (typeof template === 'function') {
-        jsx = template({id, jsx})
-      }
-
-      jsx = (
-        <div key={id} style={{
-          display: style.display,
-          // overflow: "hidden",
-          position: style.position || "relative",
-          ...otherStyle,
-          ...sizeStyle,
-          ...marginStyle,
-          ...(style.ext || {})
-        }} className={classes}>
-          <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}>
-            {jsx}
-          </ErrorBoundary>
-        </div>
-      )
-
       itemAry.push({
-        id, jsx, inputs: inputsCallable, style
+        id,
+        jsx: <RenderCom key={idx} com={com}
+                        getComDef={getComDef}
+                        getContext={getContext}
+                        scope={scope}
+                        props={props}
+                        env={env}
+                        template={template}
+                        onError={onError}
+                        logger={logger}
+                        __rxui_child__={__rxui_child__}/>,
+        inputs: props.inputsCallable,
+        style
       })
     } else {
-      debugger
-
-      jsx = (
+      const jsx = (
         <div className={css.error}>
           组件 (namespace = {def.namespace}）未找到.
         </div>
@@ -252,6 +80,7 @@ export default function RenderSlot({
         id, jsx
       })
     }
+
   })
 
   if (wrapper) {
@@ -263,6 +92,222 @@ export default function RenderSlot({
       </div>
     )
   }
+}
+
+function RenderCom({
+                     com,
+                     props,
+                     scope,
+                     template,
+                     env,
+                     getComDef,
+                     getContext,
+                     __rxui_child__,
+                     onError,
+                     logger
+                   }) {
+  const {id, def, slots = {}}: Com = com
+  const {
+    data,
+    style,
+    inputs: myInputs,
+    outputs: myOutputs,
+    _inputs: _myInputs,
+    _outputs: _myOutputs
+  } = props
+// if(def.namespace==='mybricks.normal-pc.grid'){
+// debugger
+// }
+  //console.log(id)
+  const comDef = getComDef(def)
+
+  // if (id === 'u_CEodv') {
+  //   console.log(scope)
+  // }
+
+  // useEffect(() => {
+  //   return () => {
+  //     debugger
+  //   }
+  // }, [])
+
+  const slotsProxy = new Proxy(slots, {
+    get(target, slotId: string) {
+      const props = getContext(id, slotId)
+
+      const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
+
+      if (!props) {
+        throw new Error(`${errorStringPrefix} 获取context失败.`)
+      }
+
+      return {
+        render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap }) {
+          //const TX = memo(({params}) => {
+          const slot = slots[slotId]
+          if (slot) {
+            props.run()
+
+            let curScope, wrapFn
+            if (params) {
+              let nowScopeId = uuid()
+              // if (params.key) {
+              //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
+              // }
+
+              // if (typeof params.wrap === 'function' && !params.key) {
+              //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
+              //     nowScopeId = scope.id
+              //   }
+              //   // nowScopeId = SlotRenderKey.get(params)
+              //   // if(!nowScopeId){
+              //   //   nowScopeId = slotId+'-'+Math.random()
+              //   //   SlotRenderKey.set(params,nowScopeId)
+              //   // }
+              //   // throw new Error(`params.key not found.`)
+              // }
+
+              curScope = {
+                id: nowScopeId,
+                frameId: slotId
+              }
+
+              if (scope) {
+                curScope.parent = scope
+              }
+
+              //setTimeout(v => {
+              const ivs = params.inputValues
+              if (typeof ivs === 'object') {
+                //requestAnimationFrame(() => {
+                  for (let pro in ivs) {
+                    props.inputs[pro](ivs[pro], curScope)
+                  }
+                //})
+              }
+
+              if (typeof params.wrap === 'function') {
+                wrapFn = params.wrap
+              }
+              //})
+            } else {
+              curScope = scope
+            }
+
+            return (
+              <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+                <RenderSlot
+                  scope={curScope}
+                  env={env}
+                  slot={slot}
+                  wrapper={wrapFn}
+                  template={params?.itemWrap}
+                  getComDef={getComDef}
+                  getContext={getContext}
+                  inputs={params?.inputs}
+                  outputs={params?.outputs}
+                  _inputs={params?._inputs}
+                  _outputs={params?._outputs}
+                  onError={onError}
+                  logger={logger}
+                  __rxui_child__={__rxui_child__}
+                />
+              </div>
+            )
+          } else {
+            return (
+              <div className={css.error}>
+                {errorStringPrefix} 未找到.
+              </div>
+            )
+          }
+          // })
+          //
+          // return <TX params={params}/>
+        },
+        inputs: props.inputs,
+        outputs: props.outputs
+      }
+    }
+  })
+
+  const classes = getClasses({style})
+  const sizeStyle = getSizeStyle({style})
+  const marginStyle = getMarginStyle({style})
+
+  const otherStyle: any = {}
+
+  if (['fixed', 'absolute'].includes(style.position)) {
+    if (style.top) {
+      otherStyle.top = style.top;
+    }
+    if (style.left) {
+      otherStyle.left = style.left;
+    }
+    otherStyle.zIndex = 1000;
+  }
+
+  // switch (true) {
+  //   case ['fixed'].includes(style.position): {
+  //     otherStyle.position = 'fixed'
+  //     otherStyle.zIndex = 1000;
+  //     style.fixedX === 'right' ? (otherStyle.right = style.right + 'px') : (otherStyle.left = style.left + 'px');
+  //     style.fixedY === 'bottom' ? (otherStyle.bottom = style.bottom + 'px') : (otherStyle.top = style.top + 'px');
+  //     break
+  //   }
+  //
+  //   case ['absolute'].includes(style.position) || (parent.style.layout === 'absolute' && style.position === undefined): {
+  //     otherStyle.position = 'absolute'
+  //     otherStyle.zIndex = 1000;
+  //     otherStyle.top = style.top + 'px';
+  //     otherStyle.left = style.left + 'px';
+  //     break
+  //   }
+  //   default: {
+  //     break
+  //   }
+  // }
+
+  let jsx = (
+    <comDef.runtime
+      env={env}
+      data={data}
+      style={style}
+      inputs={myInputs}
+      outputs={myOutputs}
+      _inputs={_myInputs}
+      _outputs={_myOutputs}
+      slots={slotsProxy}
+      createPortal={e => {
+
+      }}
+      __rxui_child__={__rxui_child__}
+      onError={onError}
+      logger={logger}
+    />
+  )
+
+  if (typeof template === 'function') {
+    jsx = template({id, jsx})
+  }
+
+  jsx = (
+    <div key={id} style={{
+      display: style.display,
+      // overflow: "hidden",
+      position: style.position || "relative",
+      ...otherStyle,
+      ...sizeStyle,
+      ...marginStyle,
+      ...(style.ext || {})
+    }} className={classes}>
+      <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}>
+        {jsx}
+      </ErrorBoundary>
+    </div>
+  )
+
+  return jsx
 }
 
 //-----------------------------------------------------------------------

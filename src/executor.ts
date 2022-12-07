@@ -1,5 +1,3 @@
-import pkg from "../package.json";
-
 /**
  * MyBricks Opensource
  * https://mybricks.world
@@ -111,7 +109,7 @@ export default function init(opts, {observable}) {
     //   console.log(comId,scope)
     // }
 
-    // if (comId === 'u_pqjHZ') {
+    // if (comId === 'u_BcCY4') {
     //   debugger
     //
     //   console.log('==>curScope', scope)
@@ -471,6 +469,8 @@ export default function init(opts, {observable}) {
             }
           })
         } else {
+          //debugger
+
           const fn = props._inputRegs[pinId]
           if (typeof fn === 'function') {
             let nowRels
