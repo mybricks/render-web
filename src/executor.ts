@@ -109,11 +109,11 @@ export default function init(opts, {observable}) {
     //   console.log(comId,scope)
     // }
 
-    // if (comId === 'u_BcCY4') {
-    //   debugger
-    //
-    //   console.log('==>curScope', scope)
-    // }
+    if (comId === 'u_OUxIx') {
+      debugger
+
+      console.log('==>curScope', scope)
+    }
 
     const com = Coms[comId]
     const comInFrameId = comId + (com.frameId || '_rootFrame_')
@@ -404,6 +404,14 @@ export default function init(opts, {observable}) {
         props.style.display = ''
       } else if (pinId === 'hide') {
         props.style.display = 'none'
+      } else if (pinId === 'showOrHide') {
+        const sty = props.style
+        if (sty.display === 'none') {
+          sty.display = ''
+        } else {
+          sty.display = 'none'
+        }
+
       }
     } else {
       if (def.rtType?.match(/^js/gi)) {//js
@@ -446,6 +454,12 @@ export default function init(opts, {observable}) {
         }
       } else {//ui
         const props = getComProps(comId, scope)
+
+        // if (comId === 'u_OUxIx') {
+        //   debugger
+        //
+        //   console.log('==>curScope', scope)
+        // }
 
         const comDef = getComDef(def)
 

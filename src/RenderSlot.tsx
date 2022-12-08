@@ -150,11 +150,13 @@ function RenderCom({
 
             let curScope, wrapFn
             if (params) {
+              //debugger
+//console.log(params)
               let nowScopeId = uuid()
               // if (params.key) {
               //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
               // }
-
+              //
               // if (typeof params.wrap === 'function' && !params.key) {
               //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
               //     nowScopeId = scope.id
