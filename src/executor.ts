@@ -105,11 +105,8 @@ export default function init(opts, {observable}) {
                        scope?: { id: string, frameId: string, parent },
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
-    // if(ioProxy){
-    //   console.log(comId,scope)
-    // }
 
-    // if (comId === 'u_--ssB') {
+    // if (comId === 'u_R7TQz') {
     //   debugger
     //
     //   console.log('==>curScope', scope)
@@ -516,30 +513,23 @@ export default function init(opts, {observable}) {
     }
   }
 
-  function getSlotProps(comId, slotId) {
+  function getSlotProps(comId, slotId, scope) {
     const key = comId + '-' + slotId
 
     let rtn = _Props[key]
     if (!rtn) {
       //const _outputRegs = {}
 
+      const Cur = {scope}//保存当前scope，在renderSlot中调用run方法会被更新
+
       const inputs = new Proxy({}, {
         get(target, name) {
-          return function (val, scope) {//set data
-            // if(!scope){
-            //   //debugger
-            //
-            //   scope = {////TODO
-            //     id: comId+Math.random(),
-            //     frameId: slotId
-            //   }
-            // }
-
+          return function (val, curScope) {//set data
             const cons = Cons[comId + '-' + slotId + '-' + name]
             if (cons) {
               cons.forEach(inReg => {
                 if (inReg.type === 'com') {
-                  exeInputForCom(inReg, val, scope)
+                  exeInputForCom(inReg, val, curScope || Cur.scope)
                 }
               })
             }
@@ -560,9 +550,11 @@ export default function init(opts, {observable}) {
 
       rtn = _Props[key] = {
         run(scope) {
+          Cur.scope = scope//更新当前scope
+
           if (!runExed) {
             runExed = true//only once
-            exeForFrame({comId, frameId: slotId,scope})
+            exeForFrame({comId, frameId: slotId, scope})
           }
         },
         //_outputRegs,
@@ -575,7 +567,7 @@ export default function init(opts, {observable}) {
   }
 
   function exeForFrame(opts) {
-    const {comId, frameId,scope} = opts
+    const {comId, frameId, scope} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
 
     const autoAry = ComsAutoRun[idPre]
@@ -584,7 +576,7 @@ export default function init(opts, {observable}) {
         const {id, def} = com
         const jsCom = Coms[id]
         if (jsCom) {
-          const props = getComProps(id,scope)
+          const props = getComProps(id, scope)
 
           const comDef = getComDef(def)
 
@@ -622,7 +614,7 @@ export default function init(opts, {observable}) {
       inputs: new Proxy({}, {
         get(target, pinId) {
           return function (val) {
-            exeInputForFrame({frameId: '_rootFrame_', pinId}, val)
+            exeInputForFrame({frameId: '_rootFrame_', pinId,}, val)
           }
         }
       }),
@@ -656,7 +648,7 @@ export default function init(opts, {observable}) {
 
 
       if (slotId) {
-        return getSlotProps(comId, slotId)
+        return getSlotProps(comId, slotId, curScope)
       } else {
         const rtn = getComProps(comId, curScope)
         if (ioProxy) {

@@ -115,21 +115,12 @@ function RenderCom({
     _inputs: _myInputs,
     _outputs: _myOutputs
   } = props
-// if(def.namespace==='mybricks.normal-pc.grid'){
-// debugger
-// }
-  //console.log(id)
+
   const comDef = getComDef(def)
 
   // if (id === 'u_CEodv') {
   //   console.log(scope)
   // }
-
-  // useEffect(() => {
-  //   return () => {
-  //     debugger
-  //   }
-  // }, [])
 
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
@@ -149,6 +140,17 @@ function RenderCom({
             let curScope
             if (params) {
               let nowScopeId = uuid()
+
+              // if (params.key) {
+              //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
+              // }
+
+              // if (typeof params.wrap === 'function' && !params.key) {
+              //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
+              //     nowScopeId = scope.id
+              //   }
+              // }
+
               curScope = {
                 id: nowScopeId,
                 frameId: slotId
@@ -157,11 +159,11 @@ function RenderCom({
               if (scope) {
                 curScope.parent = scope
               }
-            }else {
+            } else {
               curScope = scope
             }
 
-            props.run(curScope)
+            props.run(curScope)//传递scope
 
             let wrapFn
             if (params) {
@@ -197,9 +199,9 @@ function RenderCom({
               const ivs = params.inputValues
               if (typeof ivs === 'object') {
                 //requestAnimationFrame(() => {
-                  for (let pro in ivs) {
-                    props.inputs[pro](ivs[pro], curScope)
-                  }
+                for (let pro in ivs) {
+                  props.inputs[pro](ivs[pro], curScope)
+                }
                 //})
               }
 
