@@ -146,29 +146,9 @@ function RenderCom({
           //const TX = memo(({params}) => {
           const slot = slots[slotId]
           if (slot) {
-            props.run()
-
-            let curScope, wrapFn
+            let curScope
             if (params) {
-              //debugger
-//console.log(params)
               let nowScopeId = uuid()
-              // if (params.key) {
-              //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
-              // }
-              //
-              // if (typeof params.wrap === 'function' && !params.key) {
-              //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
-              //     nowScopeId = scope.id
-              //   }
-              //   // nowScopeId = SlotRenderKey.get(params)
-              //   // if(!nowScopeId){
-              //   //   nowScopeId = slotId+'-'+Math.random()
-              //   //   SlotRenderKey.set(params,nowScopeId)
-              //   // }
-              //   // throw new Error(`params.key not found.`)
-              // }
-
               curScope = {
                 id: nowScopeId,
                 frameId: slotId
@@ -177,6 +157,41 @@ function RenderCom({
               if (scope) {
                 curScope.parent = scope
               }
+            }else {
+              curScope = scope
+            }
+
+            props.run(curScope)
+
+            let wrapFn
+            if (params) {
+              //debugger
+//console.log(params)
+//               let nowScopeId = uuid()
+//               if (params.key) {
+//                 nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
+//               }
+//
+//               if (typeof params.wrap === 'function' && !params.key) {
+//                 if (scope) {//存在父作用域，例如 List中嵌套FormContainer
+//                   nowScopeId = scope.id
+//                 }
+//                 // nowScopeId = SlotRenderKey.get(params)
+//                 // if(!nowScopeId){
+//                 //   nowScopeId = slotId+'-'+Math.random()
+//                 //   SlotRenderKey.set(params,nowScopeId)
+//                 // }
+//                 // throw new Error(`params.key not found.`)
+//               }
+//
+//               curScope = {
+//                 id: nowScopeId,
+//                 frameId: slotId
+//               }
+//
+//               if (scope) {
+//                 curScope.parent = scope
+//               }
 
               //setTimeout(v => {
               const ivs = params.inputValues
@@ -192,8 +207,6 @@ function RenderCom({
                 wrapFn = params.wrap
               }
               //})
-            } else {
-              curScope = scope
             }
 
             return (

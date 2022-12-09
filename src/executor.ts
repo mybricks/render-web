@@ -109,11 +109,11 @@ export default function init(opts, {observable}) {
     //   console.log(comId,scope)
     // }
 
-    if (comId === 'u_OUxIx') {
-      debugger
-
-      console.log('==>curScope', scope)
-    }
+    // if (comId === 'u_--ssB') {
+    //   debugger
+    //
+    //   console.log('==>curScope', scope)
+    // }
 
     const com = Coms[comId]
     const comInFrameId = comId + (com.frameId || '_rootFrame_')
@@ -559,10 +559,10 @@ export default function init(opts, {observable}) {
       let runExed
 
       rtn = _Props[key] = {
-        run() {
+        run(scope) {
           if (!runExed) {
             runExed = true//only once
-            exeForFrame({comId, frameId: slotId})
+            exeForFrame({comId, frameId: slotId,scope})
           }
         },
         //_outputRegs,
@@ -575,7 +575,7 @@ export default function init(opts, {observable}) {
   }
 
   function exeForFrame(opts) {
-    const {comId, frameId} = opts
+    const {comId, frameId,scope} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
 
     const autoAry = ComsAutoRun[idPre]
@@ -584,7 +584,7 @@ export default function init(opts, {observable}) {
         const {id, def} = com
         const jsCom = Coms[id]
         if (jsCom) {
-          const props = getComProps(id)
+          const props = getComProps(id,scope)
 
           const comDef = getComDef(def)
 
