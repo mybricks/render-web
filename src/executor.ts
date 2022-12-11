@@ -106,7 +106,7 @@ export default function init(opts, {observable}) {
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
 
-    // if (comId === 'u_R7TQz') {
+    // if (comId === 'u_FXDm_') {
     //   debugger
     //
     //   console.log('==>curScope', scope)

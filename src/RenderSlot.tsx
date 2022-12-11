@@ -134,103 +134,12 @@ function RenderCom({
 
       return {
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap }) {
-          //const TX = memo(({params}) => {
           const slot = slots[slotId]
           if (slot) {
-            let curScope
-            if (params) {
-              let nowScopeId = uuid()
-
-              // if (params.key) {
-              //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
-              // }
-
-              // if (typeof params.wrap === 'function' && !params.key) {
-              //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
-              //     nowScopeId = scope.id
-              //   }
-              // }
-
-              curScope = {
-                id: nowScopeId,
-                frameId: slotId
-              }
-
-              if (scope) {
-                curScope.parent = scope
-              }
-            } else {
-              curScope = scope
-            }
-
-            props.run(curScope)//传递scope
-
-            let wrapFn
-            if (params) {
-              //debugger
-//console.log(params)
-//               let nowScopeId = uuid()
-//               if (params.key) {
-//                 nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
-//               }
-//
-//               if (typeof params.wrap === 'function' && !params.key) {
-//                 if (scope) {//存在父作用域，例如 List中嵌套FormContainer
-//                   nowScopeId = scope.id
-//                 }
-//                 // nowScopeId = SlotRenderKey.get(params)
-//                 // if(!nowScopeId){
-//                 //   nowScopeId = slotId+'-'+Math.random()
-//                 //   SlotRenderKey.set(params,nowScopeId)
-//                 // }
-//                 // throw new Error(`params.key not found.`)
-//               }
-//
-//               curScope = {
-//                 id: nowScopeId,
-//                 frameId: slotId
-//               }
-//
-//               if (scope) {
-//                 curScope.parent = scope
-//               }
-
-              //setTimeout(v => {
-              const ivs = params.inputValues
-              if (typeof ivs === 'object') {
-                //requestAnimationFrame(() => {
-                for (let pro in ivs) {
-                  props.inputs[pro](ivs[pro], curScope)
-                }
-                //})
-              }
-
-              if (typeof params.wrap === 'function') {
-                wrapFn = params.wrap
-              }
-              //})
-            }
-
-            return (
-              <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
-                <RenderSlot
-                  scope={curScope}
-                  env={env}
-                  slot={slot}
-                  wrapper={wrapFn}
-                  template={params?.itemWrap}
-                  getComDef={getComDef}
-                  getContext={getContext}
-                  inputs={params?.inputs}
-                  outputs={params?.outputs}
-                  _inputs={params?._inputs}
-                  _outputs={params?._outputs}
-                  onError={onError}
-                  logger={logger}
-                  __rxui_child__={__rxui_child__}
-                />
-              </div>
-            )
+            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={style}
+                               onError={onError}
+                               logger={logger} env={env} scope={scope} getComDef={getComDef} getContext={getContext}
+                               __rxui_child__={__rxui_child__}/>
           } else {
             return (
               <div className={css.error}>
@@ -238,6 +147,7 @@ function RenderCom({
               </div>
             )
           }
+
           // })
           //
           // return <TX params={params}/>
@@ -326,6 +236,123 @@ function RenderCom({
 
   return jsx
 }
+
+const SlotRender = memo(({
+                           slotId,
+                           props,
+                           slot,
+                           params,
+                           scope,
+                           env,
+                           style,
+                           getComDef,
+                           getContext,
+                           onError,
+                           logger,
+                           __rxui_child__
+                         }) => {
+  let curScope
+  if (params) {
+    let nowScopeId = uuid()
+    //console.log(nowScopeId)
+    // if (params.key) {
+    //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
+    // }
+    //
+    // if (typeof params.wrap === 'function' && !params.key) {
+    //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
+    //     nowScopeId = scope.id
+    //   }
+    // }
+
+    curScope = {
+      id: nowScopeId,
+      frameId: slotId
+    }
+
+    if (scope) {
+      curScope.parent = scope
+    }
+  } else {
+    curScope = scope
+  }
+
+  props.run(curScope)//传递scope
+
+  let wrapFn
+  if (params) {
+    //debugger
+//console.log(params)
+//               let nowScopeId = uuid()
+//               if (params.key) {
+//                 nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
+//               }
+//
+//               if (typeof params.wrap === 'function' && !params.key) {
+//                 if (scope) {//存在父作用域，例如 List中嵌套FormContainer
+//                   nowScopeId = scope.id
+//                 }
+//                 // nowScopeId = SlotRenderKey.get(params)
+//                 // if(!nowScopeId){
+//                 //   nowScopeId = slotId+'-'+Math.random()
+//                 //   SlotRenderKey.set(params,nowScopeId)
+//                 // }
+//                 // throw new Error(`params.key not found.`)
+//               }
+//
+//               curScope = {
+//                 id: nowScopeId,
+//                 frameId: slotId
+//               }
+//
+//               if (scope) {
+//                 curScope.parent = scope
+//               }
+
+    //setTimeout(v => {
+    const ivs = params.inputValues
+    if (typeof ivs === 'object') {
+      //requestAnimationFrame(() => {
+      for (let pro in ivs) {
+        props.inputs[pro](ivs[pro], curScope)
+      }
+      //})
+    }
+
+    if (typeof params.wrap === 'function') {
+      wrapFn = params.wrap
+    }
+    //})
+  }
+
+  return (
+    <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+      <RenderSlot
+        scope={curScope}
+        env={env}
+        slot={slot}
+        wrapper={wrapFn}
+        template={params?.itemWrap}
+        getComDef={getComDef}
+        getContext={getContext}
+        inputs={params?.inputs}
+        outputs={params?.outputs}
+        _inputs={params?._inputs}
+        _outputs={params?._outputs}
+        onError={onError}
+        logger={logger}
+        __rxui_child__={__rxui_child__}
+      />
+    </div>
+  )
+
+}, (prevProps, nextProps) => {
+  if (prevProps.params?.key !== nextProps?.params?.key) {//key 不同才刷新
+    return false
+  }
+
+  return true
+})
 
 //-----------------------------------------------------------------------
 
