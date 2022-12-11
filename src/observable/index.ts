@@ -26,46 +26,60 @@ export function hijackReactcreateElement() {
     createElement = React.createElement;
 
     React.createElement = function() {
-      let [type, ...other] = arguments;
+      let [type, props, ...other] = arguments;
 
-      if (arguments[1]?.__rxui_child__ && typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent) {
-        if (!type.__rxui__) {
-          function Render (props) {
-            const ref = useRef<Reaction | null>(null);
-            const [, setState] = useState([]);
-          
-            const update = useCallback(() => {
-              setState([]);
-            }, []);
-          
-            useMemo(() => {
-              if (!ref.current) {
-                ref.current = new Reaction(update);
-              }
-            }, []);
-          
-            useEffect(() => {
-              return () => {
-                ref.current?.destroy();
-                ref.current = null;
-              };
-            }, []);
-          
-            let render;
-          
-            ref.current?.track(() => {
-              render = type(props);
-            });
-          
-            return render;
-          }
-  
-          type.__rxui__ = Render;
+      if (typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent && props) {
+        let useRxui = props.__rxui_child__ || type.__rxui__;
+
+        if (!useRxui) {
+          useRxui = !!Object.keys(props).find((key) => {
+            const value = props[key];
+    
+            return proxyToRaw.has(value);
+          });
         }
 
-        return createElement(type.__rxui__, ...other);
+        if (useRxui) {
+          if (!type.__rxui__) {
+            function Render (props) {
+              const ref = useRef<Reaction | null>(null);
+              const [, setState] = useState([]);
+            
+              const update = useCallback(() => {
+                setState([]);
+              }, []);
+            
+              useMemo(() => {
+                if (!ref.current) {
+                  ref.current = new Reaction(update);
+                }
+              }, []);
+            
+              useEffect(() => {
+                return () => {
+                  ref.current?.destroy();
+                  ref.current = null;
+                };
+              }, []);
+            
+              let render;
+            
+              ref.current?.track(() => {
+                render = type(props);
+              });
+            
+              return render;
+            }
+    
+            type.__rxui__ = Render;
+          }
+  
+          return createElement(type.__rxui__, props, ...other);
+        }
+
+        return createElement(type, props, ...other);
       } else {
-        return createElement(type, ...other);
+        return createElement(type, props, ...other);
       }
     };
   }
