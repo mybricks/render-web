@@ -364,6 +364,8 @@ export default function init(opts, {observable}) {
 
     const rtn = {
       title: com.title,
+      frameId: com.frameId,
+      parentComId: com.parentComId,
       data: obsModel.data,
       style: obsModel.style,
       _inputRegs: inputRegs,
@@ -519,8 +521,17 @@ export default function init(opts, {observable}) {
     let rtn = _Props[key]
     if (!rtn) {
       //const _outputRegs = {}
+      const _inputRegs = {}
 
       const Cur = {scope}//保存当前scope，在renderSlot中调用run方法会被更新
+
+      const _inputs = new Proxy({}, {
+        get(target, name) {
+          return function (fn) {
+            _inputRegs[name] = fn
+          }
+        }
+      })
 
       const inputs = new Proxy({}, {
         get(target, name) {
@@ -558,6 +569,8 @@ export default function init(opts, {observable}) {
           }
         },
         //_outputRegs,
+        _inputs,
+        _inputRegs,
         inputs,
         outputs
       }

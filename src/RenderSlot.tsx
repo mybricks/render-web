@@ -147,16 +147,31 @@ function RenderCom({
               </div>
             )
           }
-
-          // })
-          //
-          // return <TX params={params}/>
         },
+        _inputs: props._inputs,
         inputs: props.inputs,
         outputs: props.outputs
       }
     }
   })
+
+  const parentSlot = useMemo(() => {
+    if (props.frameId && props.parentComId) {
+      const slotProps = getContext(props.parentComId, props.frameId, scope?.parent)
+      if (slotProps) {
+        return {
+          get _inputs() {
+            return new Proxy({}, {
+              get(target, name) {
+                const fn = slotProps._inputRegs[name]
+                return fn
+              }
+            })
+          }
+        }
+      }
+    }
+  }, [])
 
   const classes = getClasses({style})
   const sizeStyle = getSizeStyle({style})
@@ -174,29 +189,10 @@ function RenderCom({
     otherStyle.zIndex = 1000;
   }
 
-  // switch (true) {
-  //   case ['fixed'].includes(style.position): {
-  //     otherStyle.position = 'fixed'
-  //     otherStyle.zIndex = 1000;
-  //     style.fixedX === 'right' ? (otherStyle.right = style.right + 'px') : (otherStyle.left = style.left + 'px');
-  //     style.fixedY === 'bottom' ? (otherStyle.bottom = style.bottom + 'px') : (otherStyle.top = style.top + 'px');
-  //     break
-  //   }
-  //
-  //   case ['absolute'].includes(style.position) || (parent.style.layout === 'absolute' && style.position === undefined): {
-  //     otherStyle.position = 'absolute'
-  //     otherStyle.zIndex = 1000;
-  //     otherStyle.top = style.top + 'px';
-  //     otherStyle.left = style.left + 'px';
-  //     break
-  //   }
-  //   default: {
-  //     break
-  //   }
-  // }
 
   let jsx = (
     <comDef.runtime
+      id={id}
       env={env}
       data={data}
       style={style}
@@ -208,6 +204,7 @@ function RenderCom({
       createPortal={e => {
 
       }}
+      parentSlot={parentSlot}
       __rxui_child__={__rxui_child__}
       onError={onError}
       logger={logger}
