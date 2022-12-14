@@ -17,6 +17,7 @@ import coreLib from '@mybricks/comlib-core'
 import executor from './executor'
 import {compareVersion} from "./utils";
 import ErrorBoundary from "./ErrorBoundary";
+import { setLoggerSilent } from "./logger";
 
 const regAry = (comAray, comDefs) => {
   comAray.forEach(comDef => {
@@ -93,6 +94,9 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
 
   //环境变量，此处可以定义连接器、多语言等实现
   const env = useMemo(() => {
+    if (!!opts?.env?.silent) {
+      setLoggerSilent();
+    }
     return Object.assign({
       runtime: {},
       i18n(text: any) {

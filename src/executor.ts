@@ -6,6 +6,7 @@
  * CheMingjun @2019
  * mybricks@126.com
  */
+import { log, logInputVal, logOutputVal } from './logger';
 
 export default function init(opts, {observable}) {
   const {
@@ -672,30 +673,4 @@ export default function init(opts, {observable}) {
       }
     }
   }
-}
-
-function log(msg) {
-  console.log(`%c[Mybricks]%c ${msg}\n`, `color:#FFF;background:#fa6400`, ``, ``);
-}
-
-function logInputVal(comTitle, comDef, pinId, val) {
-  let tval
-  try {
-    tval = JSON.stringify(val)
-  } catch (ex) {
-    tval = val
-  }
-
-  console.log(`%c[Mybricks] 输入项 %c ${comTitle || comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#000`, ``, ``);
-}
-
-function logOutputVal(comTitle, comDef, pinId, val) {
-  let tval
-  try {
-    tval = JSON.stringify(val)
-  } catch (ex) {
-    tval = val
-  }
-
-  console.log(`%c[Mybricks] 输出项 %c ${comTitle || comDef.title || comDef.namespace} | ${pinId} -> ${tval}`, `color:#FFF;background:#fa6400`, ``, ``);
 }
