@@ -67,7 +67,7 @@ export default function RenderSlot({
                         logger={logger}
                         __rxui_child__={__rxui_child__}/>,
         inputs: props.inputsCallable,
-        style
+        style:props.style
       })
     } else {
       const jsx = (
