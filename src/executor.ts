@@ -43,7 +43,6 @@ export default function init(opts, {observable}) {
         //   debugger
         // }
 
-
         const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
         if (proxyDesc) {
           if (proxyDesc.type === 'frame') {//call fx frame
@@ -107,9 +106,8 @@ export default function init(opts, {observable}) {
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
 
-    // if (comId === 'u_FXDm_') {
+    // if (comId === 'u_DVT7M') {
     //   debugger
-    //
     //   console.log('==>curScope', scope)
     // }
 
@@ -166,12 +164,12 @@ export default function init(opts, {observable}) {
     const _inputRegs = {}
     const _inputTodo = {}
 
-    const addInputTodo = (inputId, val, fromCon) => {
+    const addInputTodo = (inputId, val, fromCon,fromScope) => {
       let ary = inputTodo[inputId]
       if (!ary) {
         inputTodo[inputId] = ary = []
       }
-      ary.push({val, fromCon})
+      ary.push({val, fromCon,fromScope})
     }
 
     const inputs = function (ioProxy?: { inputs, outputs }) {
@@ -195,11 +193,16 @@ export default function init(opts, {observable}) {
               }
             }
 
+            // if (comId === 'u_DVT7M'&&name==='getTableData') {
+            //   debugger
+            //   console.log('==>curScope', scope)
+            // }
+
             //else {////TODO 待严格测试
             inputRegs[name] = fn
             const ary = inputTodo[name]
             if (ary) {
-              ary.forEach(({val, fromCon}) => {
+              ary.forEach(({val, fromCon,fromScope}) => {
                 // if (fromCon) {
                 //   if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
                 //
@@ -212,7 +215,7 @@ export default function init(opts, {observable}) {
                     return function (val) {
                       const fn = outputs()[name]
                       if (typeof fn === 'function') {
-                        fn(val, curScope, fromCon)
+                        fn(val, fromScope||curScope, fromCon)
                       } else {
                         throw new Error(`outputs.${name} not found`)
                       }
@@ -277,7 +280,6 @@ export default function init(opts, {observable}) {
                 proxy(val)
               }
             }
-
 
             let myScope
             if (_myScope && typeof _myScope === 'object') {//存在组件中output数据有误的情况
@@ -455,9 +457,8 @@ export default function init(opts, {observable}) {
       } else {//ui
         const props = getComProps(comId, scope)
 
-        // if (comId === 'u_OUxIx') {
+        // if (comId === 'u_DVT7M') {
         //   debugger
-        //
         //   console.log('==>curScope', scope)
         // }
 
@@ -483,8 +484,6 @@ export default function init(opts, {observable}) {
             }
           })
         } else {
-          //debugger
-
           const fn = props._inputRegs[pinId]
           if (typeof fn === 'function') {
             let nowRels
@@ -509,7 +508,7 @@ export default function init(opts, {observable}) {
 
             fn(val, nowRels)//invoke the input,with current scope
           } else {
-            props.addInputTodo(pinId, val, inReg)
+            props.addInputTodo(pinId, val, inReg,scope)
           }
         }
       }
