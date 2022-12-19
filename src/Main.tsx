@@ -17,7 +17,7 @@ import coreLib from '@mybricks/comlib-core'
 import executor from './executor'
 import {compareVersion} from "./utils";
 import ErrorBoundary from "./ErrorBoundary";
-import { setLoggerSilent } from "./logger";
+import {setLoggerSilent} from "./logger";
 
 const regAry = (comAray, comDefs) => {
   comAray.forEach(comDef => {
@@ -101,12 +101,15 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       runtime: {},
       i18n(text: any) {
         return text
+      },
+      get canvasElement() {
+        return document.body//根据实际场景提供覆盖的写法
       }
     }, opts.env)
   }, [])
 
   const {slot} = json;
-  
+
   // onError
   const onError = useMemo(() => {
     return (e) => {
