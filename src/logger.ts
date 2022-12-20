@@ -4,10 +4,20 @@ export function setLoggerSilent() {
   silent = true;
 }
 
+/** 收集IO事件 */
+const globalKey = "__IOEventList__";
+const ioLogger = {
+  log: (...res) => {
+    if (!window[globalKey]) {
+      window[globalKey] = [];
+    }
+    window[globalKey].push(res[0]);
+    console.log(...res);
+  },
+};
+
+/** 包版本号打印 */
 export function log(msg) {
-  if (silent) {
-    return;
-  }
   console.log(
     `%c[Mybricks]%c ${msg}\n`,
     `color:#FFF;background:#fa6400`,
@@ -27,7 +37,7 @@ export function logInputVal(comTitle, comDef, pinId, val) {
     tval = val;
   }
 
-  console.log(
+  ioLogger.log(
     `%c[Mybricks] 输入项 %c ${
       comTitle || comDef.title || comDef.namespace
     } | ${pinId} -> ${tval}`,
@@ -48,7 +58,7 @@ export function logOutputVal(comTitle, comDef, pinId, val) {
     tval = val;
   }
 
-  console.log(
+  ioLogger.log(
     `%c[Mybricks] 输出项 %c ${
       comTitle || comDef.title || comDef.namespace
     } | ${pinId} -> ${tval}`,
