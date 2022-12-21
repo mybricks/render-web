@@ -6,7 +6,7 @@
  * CheMingjun @2019
  * mybricks@126.com
  */
-import { log, logInputVal, logOutputVal } from './logger';
+import {log, logInputVal, logOutputVal} from './logger';
 
 export default function init(opts, {observable}) {
   const {
@@ -19,6 +19,7 @@ export default function init(opts, {observable}) {
   } = opts
 
   const {
+    slot: UIRoot,
     coms: Coms,
     comsAutoRun: ComsAutoRun,
     cons: Cons,
@@ -71,6 +72,12 @@ export default function init(opts, {observable}) {
             exeInputForCom(inReg, val, curScope)
           }
         } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
+          if (fromCon) {
+            if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels
+              return
+            }
+          }
+
           if (inReg.comId) {
             if (inReg.direction === 'inner-input') {
               const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
@@ -106,10 +113,10 @@ export default function init(opts, {observable}) {
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
 
-    // if (comId === 'u_DVT7M') {
-    //   debugger
-    //   console.log('==>curScope', scope)
-    // }
+    if (comId === 'u_HERyF') {
+      debugger
+      console.log('==>curScope', scope)
+    }
 
     const com = Coms[comId]
     const comInFrameId = comId + (com.frameId || '_rootFrame_')
@@ -164,12 +171,12 @@ export default function init(opts, {observable}) {
     const _inputRegs = {}
     const _inputTodo = {}
 
-    const addInputTodo = (inputId, val, fromCon,fromScope) => {
+    const addInputTodo = (inputId, val, fromCon, fromScope) => {
       let ary = inputTodo[inputId]
       if (!ary) {
         inputTodo[inputId] = ary = []
       }
-      ary.push({val, fromCon,fromScope})
+      ary.push({val, fromCon, fromScope})
     }
 
     const inputs = function (ioProxy?: { inputs, outputs }) {
@@ -202,7 +209,7 @@ export default function init(opts, {observable}) {
             inputRegs[name] = fn
             const ary = inputTodo[name]
             if (ary) {
-              ary.forEach(({val, fromCon,fromScope}) => {
+              ary.forEach(({val, fromCon, fromScope}) => {
                 // if (fromCon) {
                 //   if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
                 //
@@ -215,7 +222,7 @@ export default function init(opts, {observable}) {
                     return function (val) {
                       const fn = outputs()[name]
                       if (typeof fn === 'function') {
-                        fn(val, fromScope||curScope, fromCon)
+                        fn(val, fromScope || curScope, fromCon)
                       } else {
                         throw new Error(`outputs.${name} not found`)
                       }
@@ -400,6 +407,10 @@ export default function init(opts, {observable}) {
   function exeInputForCom(inReg, val, scope, outputRels?) {
     const {comId, def, pinId, pinType} = inReg
 
+    if (comId === 'u_liDBH') {
+      debugger
+    }
+
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === 'show') {
@@ -510,9 +521,27 @@ export default function init(opts, {observable}) {
 
           fn(val, nowRels)//invoke the input,with current scope
         } else {
-          props.addInputTodo(pinId, val, inReg,scope)
+          props.addInputTodo(pinId, val, inReg, scope)
         }
       }
+    }
+  }
+
+  function searchComInSlot(slot, comId) {
+    if (slot.comAry) {
+      return slot.comAry.find(com => {
+        if (com.id === comId) {
+          return com
+        }
+        if (com.slots) {
+          for (let id in com.slots) {
+            const found = searchComInSlot(com.slots[id], comId)
+            if (found) {
+              return found
+            }
+          }
+        }
+      })
     }
   }
 
@@ -521,6 +550,9 @@ export default function init(opts, {observable}) {
 
     let rtn = _Props[key]
     if (!rtn) {
+      const foundCom = searchComInSlot(UIRoot, comId)
+      const slotDef = foundCom.slots[slotId]
+
       //const _outputRegs = {}
       const _inputRegs = {}
 
@@ -561,6 +593,7 @@ export default function init(opts, {observable}) {
       let runExed
 
       rtn = _Props[key] = {
+        type: slotDef.type,
         run(scope) {
           Cur.scope = scope//更新当前scope
 

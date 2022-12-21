@@ -67,7 +67,7 @@ export default function RenderSlot({
                         logger={logger}
                         __rxui_child__={__rxui_child__}/>,
         inputs: props.inputsCallable,
-        style:props.style
+        style: props.style
       })
     } else {
       const jsx = (
@@ -249,7 +249,9 @@ const SlotRender = memo(({
                            __rxui_child__
                          }) => {
   let curScope
-  if (params) {
+  //if (params) {
+  if (props.type==='scope') {//作用域插槽
+
     let nowScopeId = uuid()
     //console.log(nowScopeId)
     // if (params.key) {
