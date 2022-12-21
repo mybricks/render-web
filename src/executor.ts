@@ -415,6 +415,26 @@ export default function init(opts, {observable}) {
         }
 
       }
+    } else if (pinType === 'config') {
+      const props = getComProps(comId, scope);
+      const comDef = getComDef(def);
+      logInputVal(props.title, comDef, pinId, val);
+      /**
+       * 配置项类型，根据extBinding值操作
+       * 例如：extBinding：data.text
+       * 结果：props.data.text = val
+       */
+      const { extBinding } = inReg;
+      const ary = extBinding.split(".");
+      let nowObj = props;
+
+      ary.forEach((nkey, idx) => {
+        if (idx !== ary.length - 1) {
+          nowObj = nowObj[nkey];
+        } else {
+          nowObj[nkey] = val;
+        }
+      });
     } else {
       if (def.rtType?.match(/^js/gi)) {//js
         const jsCom = Coms[comId]
@@ -466,50 +486,31 @@ export default function init(opts, {observable}) {
 
         logInputVal(props.title, comDef, pinId, val)
 
-        if (pinType === 'config') {
-          /**
-           * 配置项类型，根据extBinding值操作
-           * 例如：extBinding：data.text
-           * 结果：props.data.text = val
-           */
-          const {extBinding} = inReg
-          const ary = extBinding.split('.')
-          let nowObj = props
-
-          ary.forEach((nkey, idx) => {
-            if (idx !== ary.length - 1) {
-              nowObj = nowObj[nkey]
-            } else {
-              nowObj[nkey] = val
-            }
-          })
-        } else {
-          const fn = props._inputRegs[pinId]
-          if (typeof fn === 'function') {
-            let nowRels
-            if (outputRels) {
-              nowRels = outputRels
-            } else {
-              nowRels = new Proxy({}, {//relOutputs
-                get(target, name) {
-                  return function (val) {
-                    props.outputs[name](val, scope, inReg)//with current scope
-
-                    // const rels = _PinRels[id + '-' + pinId]
-                    // if (rels) {
-                    //   rels.forEach(relId => {
-                    //     props.outputs[relId](val)
-                    //   })
-                    // }
-                  }
-                }
-              })
-            }
-
-            fn(val, nowRels)//invoke the input,with current scope
+        const fn = props._inputRegs[pinId]
+        if (typeof fn === 'function') {
+          let nowRels
+          if (outputRels) {
+            nowRels = outputRels
           } else {
-            props.addInputTodo(pinId, val, inReg,scope)
+            nowRels = new Proxy({}, {//relOutputs
+              get(target, name) {
+                return function (val) {
+                  props.outputs[name](val, scope, inReg)//with current scope
+
+                  // const rels = _PinRels[id + '-' + pinId]
+                  // if (rels) {
+                  //   rels.forEach(relId => {
+                  //     props.outputs[relId](val)
+                  //   })
+                  // }
+                }
+              }
+            })
           }
+
+          fn(val, nowRels)//invoke the input,with current scope
+        } else {
+          props.addInputTodo(pinId, val, inReg,scope)
         }
       }
     }
