@@ -113,10 +113,10 @@ export default function init(opts, {observable}) {
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
 
-    if (comId === 'u_HERyF') {
-      debugger
-      console.log('==>curScope', scope)
-    }
+    // if (comId === 'u_HERyF') {
+    //   debugger
+    //   console.log('==>curScope', scope)
+    // }
 
     const com = Coms[comId]
     const comInFrameId = comId + (com.frameId || '_rootFrame_')
@@ -205,7 +205,6 @@ export default function init(opts, {observable}) {
             //   console.log('==>curScope', scope)
             // }
 
-            //else {////TODO 待严格测试
             inputRegs[name] = fn
             const ary = inputTodo[name]
             if (ary) {
@@ -407,9 +406,9 @@ export default function init(opts, {observable}) {
   function exeInputForCom(inReg, val, scope, outputRels?) {
     const {comId, def, pinId, pinType} = inReg
 
-    if (comId === 'u_liDBH') {
-      debugger
-    }
+    // if (comId === 'u_liDBH') {
+    //   debugger
+    // }
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)

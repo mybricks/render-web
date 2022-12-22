@@ -14,8 +14,6 @@ import {isNumber, uuid} from "./utils";
 import css from "./RenderSlot.less";
 import ErrorBoundary from "./ErrorBoundary";
 
-//const SlotRenderKey = new WeakMap()
-
 export default function RenderSlot({
                                      scope,
                                      slot,
@@ -34,20 +32,10 @@ export default function RenderSlot({
                                    }) {
   const {style, comAry} = slot
 
-  // useMemo(() => {
-  //   if (scope) {
-  //     scope.id += Math.random()//
-  //   }
-  // }, [])
-
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
     const {id, def}: Com = com
     const comDef = getComDef(def)
-
-    // if (id === 'u_CEodv') {
-    //   console.log(scope)
-    // }
 
     if (comDef) {
       const props = getContext(id, scope, {
@@ -248,10 +236,36 @@ const SlotRender = memo(({
                            logger,
                            __rxui_child__
                          }) => {
-  let curScope
-  //if (params) {
-  if (props.type==='scope') {//作用域插槽
+  // let curScope
+  // //if (params) {
+  // if (props.type==='scope') {//作用域插槽
+  //
+  //   let nowScopeId = uuid()
+  //   //console.log(nowScopeId)
+  //   // if (params.key) {
+  //   //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
+  //   // }
+  //   //
+  //   // if (typeof params.wrap === 'function' && !params.key) {
+  //   //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
+  //   //     nowScopeId = scope.id
+  //   //   }
+  //   // }
+  //
+  //   curScope = {
+  //     id: nowScopeId,
+  //     frameId: slotId
+  //   }
+  //
+  //   if (scope) {
+  //     curScope.parent = scope
+  //   }
+  // } else {
+  //   curScope = scope
+  // }
 
+  let curScope
+  if (params) {
     let nowScopeId = uuid()
     //console.log(nowScopeId)
     // if (params.key) {
@@ -280,35 +294,6 @@ const SlotRender = memo(({
 
   let wrapFn
   if (params) {
-    //debugger
-//console.log(params)
-//               let nowScopeId = uuid()
-//               if (params.key) {
-//                 nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
-//               }
-//
-//               if (typeof params.wrap === 'function' && !params.key) {
-//                 if (scope) {//存在父作用域，例如 List中嵌套FormContainer
-//                   nowScopeId = scope.id
-//                 }
-//                 // nowScopeId = SlotRenderKey.get(params)
-//                 // if(!nowScopeId){
-//                 //   nowScopeId = slotId+'-'+Math.random()
-//                 //   SlotRenderKey.set(params,nowScopeId)
-//                 // }
-//                 // throw new Error(`params.key not found.`)
-//               }
-//
-//               curScope = {
-//                 id: nowScopeId,
-//                 frameId: slotId
-//               }
-//
-//               if (scope) {
-//                 curScope.parent = scope
-//               }
-
-    //setTimeout(v => {
     const ivs = params.inputValues
     if (typeof ivs === 'object') {
       //requestAnimationFrame(() => {
