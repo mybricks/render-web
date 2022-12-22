@@ -593,7 +593,7 @@ export default function init(opts, {observable}) {
       let runExed
 
       rtn = _Props[key] = {
-        type: slotDef.type,
+        type: slotDef?.type,
         run(scope) {
           Cur.scope = scope//更新当前scope
 
