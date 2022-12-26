@@ -102,9 +102,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       i18n(text: any) {
         return text
       },
-      canvasElement() {
-        return document.body//根据实际场景提供覆盖的写法
-      }
+      canvasElement: document.body
     }, opts.env)
   }, [])
 
