@@ -121,10 +121,10 @@ function RenderCom({
       }
 
       return {
-        render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap }) {
+        render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {
-            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={style}
+            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={params.style || style}
                                onError={onError}
                                logger={logger} env={env} scope={scope} getComDef={getComDef} getContext={getContext}
                                __rxui_child__={__rxui_child__}/>
@@ -314,7 +314,7 @@ const SlotRender = memo(({
       <RenderSlot
         scope={curScope}
         env={env}
-        slot={slot}
+        slot={{...slot, style}}
         wrapper={wrapFn}
         template={params?.itemWrap}
         getComDef={getComDef}
