@@ -44,16 +44,18 @@ export default function init(opts, {observable}) {
         //   debugger
         // }
 
+        const nextScope = inReg._exeScope
+
         const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
         if (proxyDesc) {
           if (proxyDesc.type === 'frame') {//call fx frame
-            const comProps = getComProps(inReg.comId, curScope)
+            const comProps = getComProps(inReg.comId, nextScope)
             let myScope
-            //if (!curScope) {////TODO 待严格测试
+            //if (!curScope) {
             myScope = {
               id: inReg.comId,
               frameId: proxyDesc.frameId,
-              parent: curScope,
+              parent: nextScope,
               proxyComProps: comProps//current proxied component instance
             }
             //}
@@ -65,11 +67,11 @@ export default function init(opts, {observable}) {
 
         if (inReg.type === 'com') {
           if (fromCon) {
-            if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
-              exeInputForCom(inReg, val, curScope)
+            if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels///TODO
+              exeInputForCom(inReg, val, nextScope)
             }
           } else {
-            exeInputForCom(inReg, val, curScope)
+            exeInputForCom(inReg, val, nextScope)
           }
         } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
           if (fromCon) {
@@ -89,12 +91,12 @@ export default function init(opts, {observable}) {
               exeCons(cons, val)
             }
           } else {
-            const proxiedComProps = curScope?.proxyComProps
+            const proxiedComProps = nextScope?.proxyComProps
             if (proxiedComProps) {
 
               const outPin = proxiedComProps.outputs[inReg.pinId]
               if (outPin) {
-                outPin(val, curScope.parent)
+                outPin(val, nextScope.parent)
                 return
               }
             }
@@ -615,6 +617,19 @@ export default function init(opts, {observable}) {
   function exeForFrame(opts) {
     const {comId, frameId, scope} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
+
+    for(let cid in Cons){
+      const cons = Cons[cid]
+      if(cons){
+        cons.forEach(con=>{
+          //con._exeScope = void 0
+          if(con.frameKey===idPre){/////TODO
+            //debugger
+            con._exeScope = scope//更新当前运行时scope
+          }
+        })
+      }
+    }
 
     const autoAry = ComsAutoRun[idPre]
     if (autoAry) {
