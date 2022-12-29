@@ -71,15 +71,11 @@ export default function RenderSlot({
 
   })
 
-  if (wrapper) {
-    return wrapper(itemAry)
-  } else {
-    return (
-      <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
-        {itemAry.map(item => item.jsx)}
-      </div>
-    )
-  }
+  return (
+    <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+      {wrapper ? wrapper(itemAry) : itemAry.map(item => item.jsx)}
+    </div>
+  )
 }
 
 function RenderCom({
@@ -124,7 +120,7 @@ function RenderCom({
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {
-            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={params?.style || style}
+            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={params?.style || slot.style || style}
                                onError={onError}
                                logger={logger} env={env} scope={scope} getComDef={getComDef} getContext={getContext}
                                __rxui_child__={__rxui_child__}/>
@@ -310,7 +306,7 @@ const SlotRender = memo(({
   }
 
   return (
-    <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+    // <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
       <RenderSlot
         scope={curScope}
         env={env}
@@ -327,7 +323,7 @@ const SlotRender = memo(({
         logger={logger}
         __rxui_child__={__rxui_child__}
       />
-    </div>
+    // </div>
   )
 
 }, (prevProps, nextProps) => {
