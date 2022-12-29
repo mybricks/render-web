@@ -37,14 +37,24 @@ export default function init(opts, {observable}) {
 
   const _frameOutput = {}
 
-  function exeCons(cons, val, curScope, fromCon?) {
+  function exeCons(cons, val, curScope, fromCon?, checkFrameScope?) {
     if (cons) {
       cons.forEach(inReg => {
-        // if (inReg.comId === 'u_WXrNp') {
+        // if (inReg.comId === 'u_ZhcZ4') {
         //   debugger
         // }
 
-        const nextScope = inReg._exeScope
+        let nextScope = curScope
+
+        if (checkFrameScope) {
+          const frameKey = inReg.frameKey, ary = frameKey.split('-')
+          if (ary.length >= 2) {
+            const slotProps = getSlotProps(ary[0], ary[1])
+            if (slotProps.curScope !== nextScope) {
+              nextScope = slotProps.curScope
+            }
+          }
+        }
 
         const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
         if (proxyDesc) {
@@ -280,6 +290,8 @@ export default function init(opts, {observable}) {
         },
         get(target, name, receiver) {
           return function (val, _myScope, fromCon) {
+            const checkFrameScope = typeof _myScope === 'boolean' && _myScope//变量组件的特殊处理
+
             const args = arguments
             const proxiedOutputs = ioProxy?.outputs
             if (proxiedOutputs) {//存在代理的情况
@@ -331,8 +343,7 @@ export default function init(opts, {observable}) {
               exeCons(cons, val, myScope, fromCon)
             } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
               //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-              exeCons(cons, val, myScope || scope, fromCon)
-              //exeCons(cons, val, myScope, fromCon)/////TODO
+              exeCons(cons, val, myScope || scope, fromCon, checkFrameScope)//检查frameScope
             }
           }
         }
@@ -436,7 +447,7 @@ export default function init(opts, {observable}) {
        * 例如：extBinding：data.text
        * 结果：props.data.text = val
        */
-      const { extBinding } = inReg;
+      const {extBinding} = inReg;
       const ary = extBinding.split(".");
       let nowObj = props;
 
@@ -598,6 +609,20 @@ export default function init(opts, {observable}) {
         run(scope) {
           Cur.scope = scope//更新当前scope
 
+          // for(let cid in Cons){
+          //   const cons = Cons[cid]
+          //   if(cons){
+          //     cons.forEach(con=>{
+          //       //con._exeScope = void 0
+          //       if(con.frameKey===key){
+          //         //debugger
+          //         con._exeScope = scope//更新当前运行时scope
+          //       }
+          //     })
+          //   }
+          // }
+
+
           if (!runExed) {
             runExed = true//only once
             exeForFrame({comId, frameId: slotId, scope})
@@ -607,7 +632,10 @@ export default function init(opts, {observable}) {
         _inputs,
         _inputRegs,
         inputs,
-        outputs
+        outputs,
+        get curScope() {
+          return Cur.scope
+        }
       }
     }
 
@@ -617,19 +645,6 @@ export default function init(opts, {observable}) {
   function exeForFrame(opts) {
     const {comId, frameId, scope} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
-
-    for(let cid in Cons){
-      const cons = Cons[cid]
-      if(cons){
-        cons.forEach(con=>{
-          //con._exeScope = void 0
-          if(con.frameKey===idPre){/////TODO
-            //debugger
-            con._exeScope = scope//更新当前运行时scope
-          }
-        })
-      }
-    }
 
     const autoAry = ComsAutoRun[idPre]
     if (autoAry) {

@@ -1,6 +1,6 @@
 {
   "name": "@mybricks/render-web",
-  "version": "1.0.91",
+  "version": "1.0.92",
   "description": "Render for web projects",
   "main": "index.min.js",
   "scripts": {
