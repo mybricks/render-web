@@ -124,7 +124,7 @@ function RenderCom({
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {
-            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={params.style || style}
+            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={params?.style || style}
                                onError={onError}
                                logger={logger} env={env} scope={scope} getComDef={getComDef} getContext={getContext}
                                __rxui_child__={__rxui_child__}/>
