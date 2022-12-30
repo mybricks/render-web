@@ -71,11 +71,15 @@ export default function RenderSlot({
 
   })
 
-  return (
-    <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
-      {wrapper ? wrapper(itemAry) : itemAry.map(item => item.jsx)}
-    </div>
-  )
+  if (typeof wrapper === 'function') {
+    return wrapper(itemAry)
+  } else {
+    return (
+      <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+        {itemAry.map(item => item.jsx)}
+      </div>
+    )
+  }
 }
 
 function RenderCom({
@@ -374,7 +378,7 @@ function calSlotStyles(style) {
     }
   }
 
-  return {...slotStyle, ...otherStyle}
+  return slotStyle
 }
 
 function calSlotClasses(slotStyle) {
