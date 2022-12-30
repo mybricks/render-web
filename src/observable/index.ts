@@ -25,8 +25,8 @@ export function hijackReactcreateElement() {
     window[globalKey] = true;
     createElement = React.createElement;
 
-    React.createElement = function() {
-      let [type, props, ...other] = arguments;
+    React.createElement = function(...params) {
+      let [type, props, ...other] = params;
 
       if (typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent && props) {
         let useRxui = props.__rxui_child__ || type.__rxui__;
