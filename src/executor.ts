@@ -39,23 +39,7 @@ export default function init(opts, {observable}) {
 
   function exeCons(cons, val, curScope, fromCon?, checkFrameScope?) {
     if (cons) {
-      cons.forEach(inReg => {
-        // if (inReg.comId === 'u_ZhcZ4') {
-        //   debugger
-        // }
-
-        let nextScope = curScope
-
-        if (checkFrameScope) {
-          const frameKey = inReg.frameKey, ary = frameKey.split('-')
-          if (ary.length >= 2) {
-            const slotProps = getSlotProps(ary[0], ary[1])
-            if (slotProps.curScope !== nextScope) {
-              nextScope = slotProps.curScope
-            }
-          }
-        }
-
+      function exeCon(inReg, nextScope) {
         const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
         if (proxyDesc) {
           if (proxyDesc.type === 'frame') {//call fx frame
@@ -115,6 +99,39 @@ export default function init(opts, {observable}) {
           }
         } else {
           throw new Error(`尚未实现`)
+        }
+      }
+
+      cons.forEach(inReg => {
+        let nextScope = curScope
+
+        if (checkFrameScope) {
+          const frameKey = inReg.frameKey
+          if (!frameKey) {
+            throw new Error(`数据异常，请检查toJSON结果.`)
+          }
+          const ary = frameKey.split('-')
+          if (ary.length >= 2) {
+            const slotProps = getSlotProps(ary[0], ary[1])
+
+            if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
+              slotProps.pushTodo((curScope) => {
+                if (curScope !== nextScope) {
+                  nextScope = curScope
+                }
+
+                exeCon(inReg, nextScope)
+              })
+            } else {
+              if (slotProps.curScope !== nextScope) {
+                nextScope = slotProps.curScope
+              }
+
+              exeCon(inReg, nextScope)
+            }
+          }
+        } else {
+          exeCon(inReg, nextScope)
         }
       })
     }
@@ -568,7 +585,7 @@ export default function init(opts, {observable}) {
       //const _outputRegs = {}
       const _inputRegs = {}
 
-      const Cur = {scope}//保存当前scope，在renderSlot中调用run方法会被更新
+      const Cur = {scope, todo: void 0}//保存当前scope，在renderSlot中调用run方法会被更新
 
       const _inputs = new Proxy({}, {
         get(target, name) {
@@ -622,10 +639,16 @@ export default function init(opts, {observable}) {
           //   }
           // }
 
-
           if (!runExed) {
             runExed = true//only once
             exeForFrame({comId, frameId: slotId, scope})
+          }
+
+          if (Array.isArray(Cur.todo)) {
+            Cur.todo.forEach(fn => {
+              fn(scope)
+            })
+            Cur.todo = void 0//执行完成清空
           }
         },
         //_outputRegs,
@@ -635,6 +658,12 @@ export default function init(opts, {observable}) {
         outputs,
         get curScope() {
           return Cur.scope
+        },
+        pushTodo(fn) {
+          if (!Cur.todo) {
+            Cur.todo = []
+          }
+          Cur.todo.push(fn)
         }
       }
     }
