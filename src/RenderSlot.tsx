@@ -337,22 +337,31 @@ const SlotRender = memo(({
 //-----------------------------------------------------------------------
 
 function calSlotStyles(style) {
+  // 兼容旧的style
+  const {
+    paddingLeft,
+    paddingTop,
+    paddingRight,
+    paddingBottom,
+    background,
+    ...otherStyle
+  } = style;
   const slotStyle = {
-    paddingLeft: style.paddingLeft || 0,
-    paddingTop: style.paddingTop || 0,
-    paddingRight: style.paddingRight || 0,
-    paddingBottom: style.paddingBottom || 0,
+    paddingLeft: paddingLeft || 0,
+    paddingTop: paddingTop || 0,
+    paddingRight: paddingRight || 0,
+    paddingBottom: paddingBottom || 0,
     //height: style.customHeight || '100%'
   } as any
-
-  if (style.background) {
+// 兼容旧的style
+  if (background) {
     const {
       background: bg,
       backgroundImage,
       backgroundColor,
       backgroundRepeat,
       backgroundSize
-    } = style.background;
+    } = background;
 
     slotStyle.backgroundRepeat = backgroundRepeat
     slotStyle.backgroundSize = backgroundSize
@@ -365,7 +374,7 @@ function calSlotStyles(style) {
     }
   }
 
-  return slotStyle
+  return {...slotStyle, ...otherStyle}
 }
 
 function calSlotClasses(slotStyle) {
