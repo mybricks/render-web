@@ -9,4 +9,3 @@ tags/*
 .history
 .vscode/
 package-lock.json
-index.min.js
