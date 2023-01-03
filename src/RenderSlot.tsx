@@ -17,6 +17,7 @@ import ErrorBoundary from "./ErrorBoundary";
 export default function RenderSlot({
                                      scope,
                                      slot,
+                                     params,
                                      inputs,
                                      outputs,
                                      _inputs,
@@ -74,8 +75,10 @@ export default function RenderSlot({
   if (typeof wrapper === 'function') {
     return wrapper(itemAry)
   } else {
+    const paramsStyle = params?.style;
+    const slotStyle = paramsStyle || style;
     return (
-      <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+      <div className={calSlotClasses(slotStyle)} style={calSlotStyles(slotStyle, !!paramsStyle)}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
@@ -124,7 +127,7 @@ function RenderCom({
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {
-            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={params?.style || slot.style || style}
+            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={style}
                                onError={onError}
                                logger={logger} env={env} scope={scope} getComDef={getComDef} getContext={getContext}
                                __rxui_child__={__rxui_child__}/>
@@ -314,7 +317,8 @@ const SlotRender = memo(({
       <RenderSlot
         scope={curScope}
         env={env}
-        slot={{...slot, style}}
+        slot={slot}
+        params={params}
         wrapper={wrapFn}
         template={params?.itemWrap}
         getComDef={getComDef}
@@ -340,7 +344,7 @@ const SlotRender = memo(({
 
 //-----------------------------------------------------------------------
 
-function calSlotStyles(style) {
+function calSlotStyles(style, hasParamsStyle) {
   // 兼容旧的style
   const {
     paddingLeft,
@@ -375,6 +379,13 @@ function calSlotStyles(style) {
     } else {
       slotStyle.backgroundImage = backgroundImage
       slotStyle.backgroundColor = backgroundColor
+    }
+  }
+
+  if (hasParamsStyle) {
+    return {
+      ...slotStyle,
+      ...otherStyle
     }
   }
 
