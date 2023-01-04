@@ -18,6 +18,7 @@ import executor from './executor'
 import {compareVersion} from "./utils";
 import ErrorBoundary from "./ErrorBoundary";
 import {setLoggerSilent} from "./logger";
+import Notification from "./Notification";
 
 const regAry = (comAray, comDefs) => {
   comAray.forEach(comDef => {
@@ -97,6 +98,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
     if (!!opts?.env?.silent) {
       setLoggerSilent();
     }
+    Notification.init(!!opts?.env?.showErrorNotification);
     return Object.assign({
       runtime: {},
       i18n(text: any) {
@@ -112,11 +114,18 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
   const onError = useMemo(() => {
     return (e) => {
       console.error(e);
+      Notification.error(e);
     };
   }, []);
   // logger
   const logger = useMemo(() => {
-    return console;
+    return {
+      ...console,
+      error: (e) => {
+        console.error(e);
+        Notification.error(e);
+      },
+    };
   }, []);
 
   //根据script生成context对象
@@ -141,8 +150,9 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       })
 
       return [context, refs]
-    } catch (ex) {
+    } catch (ex: any) {
       console.error(ex);
+      Notification.error(`导出的JSON.script执行异常: ${ex?.stack || ex?.message || ex?.toString?.()}`);
       throw new Error(`导出的JSON.script执行异常.`)
     }
   }, [])

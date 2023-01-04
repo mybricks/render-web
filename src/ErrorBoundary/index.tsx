@@ -1,4 +1,5 @@
 import React from 'react';
+import Notification from '../Notification';
 import css from './style.less';
 
 interface Props {
@@ -20,6 +21,7 @@ export default class ErrorBoundary extends React.PureComponent<Props> {
 
   componentDidCatch(error, errorInfo) {
     console.error(error, errorInfo);
+    Notification.error(error);
     this.setState({
       error: error?.stack || error?.message || error?.toString?.(),
       errorInfo:
