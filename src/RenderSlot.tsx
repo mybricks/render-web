@@ -171,10 +171,14 @@ function RenderCom({
   const otherStyle: any = {}
 
   if (['fixed', 'absolute'].includes(style.position)) {
-    if (style.top) {
+    if (style.position === "fixed" && style.fixedY === "bottom") {
+      otherStyle.bottom = style.bottom;
+    } else if (style.top) {
       otherStyle.top = style.top;
     }
-    if (style.left) {
+    if (style.position === "fixed" && style.fixedX === "right") {
+      otherStyle.right = style.right;
+    } else if (style.left) {
       otherStyle.left = style.left;
     }
     otherStyle.zIndex = 1000;
