@@ -98,7 +98,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
     if (!!opts?.env?.silent) {
       setLoggerSilent();
     }
-    Notification.init(!!opts?.env?.showErrorNotification);
+    Notification.init(opts?.env?.showErrorNotification);
     return Object.assign({
       runtime: {},
       i18n(text: any) {

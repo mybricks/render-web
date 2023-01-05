@@ -86,7 +86,7 @@ const showNotification = (message: string | Event, type: TypeEnum) => {
   }
 
   if (containerDomNode) {
-    globalControl.add(item);
+    globalControl?.add(item);
   } else {
     containerDomNode = document.createElement("div");
     containerDomNode.setAttribute("id", containerDomNodeId);
@@ -99,10 +99,11 @@ const showNotification = (message: string | Event, type: TypeEnum) => {
 };
 
 export default {
-  init: (isShow) => {
-    showErrorNotification = isShow;
+  init: (isShow?: boolean) => {
+    showErrorNotification = isShow !== false;
     if (showErrorNotification) {
       window.onerror = function (message, source, lineno, colno, error) {
+        console.error(error || message);
         showNotification(
           error?.stack || error?.message || error?.toString?.() || message,
           TypeEnum.Error
