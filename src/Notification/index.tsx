@@ -98,11 +98,16 @@ const showNotification = (message: string | Event, type: TypeEnum) => {
   }
 };
 
+// 无效报错
+const ignoreErrors = ["ResizeObserver loop limit exceeded"];
 export default {
   init: (isShow?: boolean) => {
     showErrorNotification = isShow !== false;
     if (showErrorNotification) {
       window.onerror = function (message, source, lineno, colno, error) {
+        if (typeof message === "string" && ignoreErrors.includes(message)) {
+          return;
+        }
         console.error(error || message);
         showNotification(
           error?.stack || error?.message || error?.toString?.() || message,
@@ -114,10 +119,11 @@ export default {
   },
   error: (err) => {
     if (showErrorNotification) {
-      showNotification(
-        err?.stack || err?.message || err?.toString?.() || err,
-        TypeEnum.Error
-      );
+      const message = err?.stack || err?.message || err?.toString?.() || err;
+      if (typeof message === "string" && ignoreErrors.includes(message)) {
+        return;
+      }
+      showNotification(message, TypeEnum.Error);
     }
   },
 };
