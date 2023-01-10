@@ -7,6 +7,7 @@
  * mybricks@126.com
  */
 import {log, logInputVal, logOutputVal} from './logger';
+import {uuid} from "./utils";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
@@ -40,107 +41,108 @@ export default function init(opts, {observable}) {
   const _frameOutput = {}
 
   function exeCons(cons, val, curScope, fromCon?, notifyAll?) {
-    if (cons) {
-      function exeCon(inReg, nextScope) {
-        const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
-        if (proxyDesc) {
-          if (proxyDesc.type === 'frame') {//call fx frame
-            const comProps = getComProps(inReg.comId, nextScope)
-            let myScope
-            //if (!curScope) {
-            myScope = {
-              id: inReg.comId,
-              frameId: proxyDesc.frameId,
-              parent: nextScope,
-              proxyComProps: comProps//current proxied component instance
-            }
-            //}
+    function exeCon(inReg, nextScope) {
+      const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
+      if (proxyDesc) {
+        if (proxyDesc.type === 'frame') {//call fx frame
 
-            exeInputForFrame(proxyDesc, val, myScope)
+          const comProps = getComProps(inReg.comId, nextScope)
+          let myScope
+          //if (!curScope) {
+          myScope = {
+            id: uuid(),
+            frameId: proxyDesc.frameId,
+            parent: nextScope,
+            proxyComProps: comProps//current proxied component instance
+          }
+          //}
+
+          exeInputForFrame(proxyDesc, val, myScope)
+          return
+        }
+      }
+
+      if (inReg.type === 'com') {
+        if (fromCon) {
+          if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels///TODO
+            exeInputForCom(inReg, val, nextScope)
+          }
+        } else {
+          exeInputForCom(inReg, val, nextScope)
+        }
+      } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
+        if (fromCon) {
+          if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels
             return
           }
         }
 
-        if (inReg.type === 'com') {
-          if (fromCon) {
-            if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels///TODO
-              exeInputForCom(inReg, val, nextScope)
+        if (inReg.comId) {
+          if (inReg.direction === 'inner-input') {
+            const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
+            if (proxyFn) {
+              proxyFn(val)
             }
-          } else {
-            exeInputForCom(inReg, val, nextScope)
+          } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
+            const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
+            if(cons){
+              exeCons(cons, val)
+            }
           }
-        } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
-          if (fromCon) {
-            if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels
+        } else {
+          const proxiedComProps = nextScope?.proxyComProps
+          if (proxiedComProps) {
+
+            const outPin = proxiedComProps.outputs[inReg.pinId]
+            if (outPin) {
+              outPin(val, nextScope.parent)
               return
             }
           }
 
-          if (inReg.comId) {
-            if (inReg.direction === 'inner-input') {
-              const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
-              if (proxyFn) {
-                proxyFn(val)
-              }
-            } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
-              const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
-              exeCons(cons, val)
-            }
-          } else {
-            const proxiedComProps = nextScope?.proxyComProps
-            if (proxiedComProps) {
-
-              const outPin = proxiedComProps.outputs[inReg.pinId]
-              if (outPin) {
-                outPin(val, nextScope.parent)
-                return
-              }
-            }
-
-            _frameOutput[inReg.pinId]?.(val)
-          }
-        } else {
-          throw new Error(`尚未实现`)
+          _frameOutput[inReg.pinId]?.(val)
         }
+      } else {
+        throw new Error(`尚未实现`)
       }
+    }
 
-      cons.forEach(inReg => {
-        let nextScope = curScope
+    cons.forEach(inReg => {
+      let nextScope = curScope
 
-        if (notifyAll) {
-          const frameKey = inReg.frameKey
-          if (!frameKey) {
-            throw new Error(`数据异常，请检查toJSON结果.`)
-          }
-          if(frameKey===ROOT_FRAME_KEY){//root作用域
-            exeCon(inReg, nextScope)
-          }else{
-            const ary = frameKey.split('-')
-            if (ary.length >= 2) {
-              const slotProps = getSlotProps(ary[0], ary[1])
+      if (notifyAll) {
+        const frameKey = inReg.frameKey
+        if (!frameKey) {
+          throw new Error(`数据异常，请检查toJSON结果.`)
+        }
+        if (frameKey === ROOT_FRAME_KEY) {//root作用域
+          exeCon(inReg, nextScope)
+        } else {
+          const ary = frameKey.split('-')
+          if (ary.length >= 2) {
+            const slotProps = getSlotProps(ary[0], ary[1])
 
-              if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
-                slotProps.pushTodo((curScope) => {
-                  if (curScope !== nextScope) {
-                    nextScope = curScope
-                  }
-
-                  exeCon(inReg, nextScope)
-                })
-              } else {
-                if (slotProps.curScope !== nextScope) {
-                  nextScope = slotProps.curScope
+            if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
+              slotProps.pushTodo((curScope) => {
+                if (curScope !== nextScope) {
+                  nextScope = curScope
                 }
 
                 exeCon(inReg, nextScope)
+              })
+            } else {
+              if (slotProps.curScope !== nextScope) {
+                nextScope = slotProps.curScope
               }
+
+              exeCon(inReg, nextScope)
             }
           }
-        } else {
-          exeCon(inReg, nextScope)
         }
-      })
-    }
+      } else {
+        exeCon(inReg, nextScope)
+      }
+    })
   }
 
   function getComProps(comId,
@@ -361,12 +363,13 @@ export default function init(opts, {observable}) {
             }
 
             const cons = Cons[comId + '-' + name]
-
-            if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
-              exeCons(cons, val, myScope, fromCon)
-            } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
-              //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-              exeCons(cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
+            if(cons){
+              if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
+                exeCons(cons, val, myScope, fromCon)
+              } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
+                //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
+                exeCons(cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
+              }
             }
           }
         }
@@ -395,13 +398,15 @@ export default function init(opts, {observable}) {
           if (cons) {
             logOutputVal(com.title, def, name, val)
 
-            cons.forEach(inReg => {
-              if (inReg.type === 'com') {
-                exeInputForCom(inReg, val, scope)
-              } else {
-                throw new Error(`尚未实现`)
-              }
-            })
+            exeCons(cons, val, scope)
+
+            // cons.forEach(inReg => {
+            //   if (inReg.type === 'com') {
+            //     exeInputForCom(inReg, val, scope)
+            //   } else {
+            //     throw new Error(`尚未实现`)
+            //   }
+            // })
           }
         }
       }
@@ -480,7 +485,7 @@ export default function init(opts, {observable}) {
         } else {
           nowObj[nkey] = val;
         }
-      });
+      })
     } else {
       if (def.rtType?.match(/^js/gi)) {//js
         const jsCom = Coms[comId]
@@ -606,11 +611,13 @@ export default function init(opts, {observable}) {
           return function (val, curScope) {//set data
             const cons = Cons[comId + '-' + slotId + '-' + name]
             if (cons) {
-              cons.forEach(inReg => {
-                if (inReg.type === 'com') {
-                  exeInputForCom(inReg, val, curScope || Cur.scope)
-                }
-              })
+              exeCons(cons, val, curScope || Cur.scope)
+
+              // cons.forEach(inReg => {
+              //   if (inReg.type === 'com') {
+              //     exeInputForCom(inReg, val, curScope || Cur.scope)
+              //   }
+              // })
             }
           }
         }
