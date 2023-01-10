@@ -8,6 +8,8 @@
  */
 import {log, logInputVal, logOutputVal} from './logger';
 
+const ROOT_FRAME_KEY = '_rootFrame_'
+
 export default function init(opts, {observable}) {
   const {
     json,
@@ -37,7 +39,7 @@ export default function init(opts, {observable}) {
 
   const _frameOutput = {}
 
-  function exeCons(cons, val, curScope, fromCon?, checkFrameScope?) {
+  function exeCons(cons, val, curScope, fromCon?, notifyAll?) {
     if (cons) {
       function exeCon(inReg, nextScope) {
         const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
@@ -105,29 +107,33 @@ export default function init(opts, {observable}) {
       cons.forEach(inReg => {
         let nextScope = curScope
 
-        if (checkFrameScope) {
+        if (notifyAll) {
           const frameKey = inReg.frameKey
           if (!frameKey) {
             throw new Error(`数据异常，请检查toJSON结果.`)
           }
-          const ary = frameKey.split('-')
-          if (ary.length >= 2) {
-            const slotProps = getSlotProps(ary[0], ary[1])
+          if(frameKey===ROOT_FRAME_KEY){//root作用域
+            exeCon(inReg, nextScope)
+          }else{
+            const ary = frameKey.split('-')
+            if (ary.length >= 2) {
+              const slotProps = getSlotProps(ary[0], ary[1])
 
-            if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
-              slotProps.pushTodo((curScope) => {
-                if (curScope !== nextScope) {
-                  nextScope = curScope
+              if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
+                slotProps.pushTodo((curScope) => {
+                  if (curScope !== nextScope) {
+                    nextScope = curScope
+                  }
+
+                  exeCon(inReg, nextScope)
+                })
+              } else {
+                if (slotProps.curScope !== nextScope) {
+                  nextScope = slotProps.curScope
                 }
 
                 exeCon(inReg, nextScope)
-              })
-            } else {
-              if (slotProps.curScope !== nextScope) {
-                nextScope = slotProps.curScope
               }
-
-              exeCon(inReg, nextScope)
             }
           }
         } else {
@@ -148,7 +154,7 @@ export default function init(opts, {observable}) {
     // }
 
     const com = Coms[comId]
-    const comInFrameId = comId + (com.frameId || '_rootFrame_')
+    const comInFrameId = comId + (com.frameId || ROOT_FRAME_KEY)
 
     let frameProps = _Props[comInFrameId]
     if (!frameProps) {
@@ -307,7 +313,7 @@ export default function init(opts, {observable}) {
         },
         get(target, name, receiver) {
           return function (val, _myScope, fromCon) {
-            const checkFrameScope = typeof _myScope === 'boolean' && _myScope//变量组件的特殊处理
+            const notifyAll = typeof _myScope === 'boolean' && _myScope//变量组件的特殊处理
 
             const args = arguments
             const proxiedOutputs = ioProxy?.outputs
@@ -360,7 +366,7 @@ export default function init(opts, {observable}) {
               exeCons(cons, val, myScope, fromCon)
             } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
               //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-              exeCons(cons, val, myScope || scope, fromCon, checkFrameScope)//检查frameScope
+              exeCons(cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
             }
           }
         }
@@ -714,12 +720,12 @@ export default function init(opts, {observable}) {
   if (typeof ref === 'function') {
     ref({
       run() {
-        exeForFrame({frameId: '_rootFrame_'})
+        exeForFrame({frameId: ROOT_FRAME_KEY})
       },
       inputs: new Proxy({}, {
         get(target, pinId) {
           return function (val) {
-            exeInputForFrame({frameId: '_rootFrame_', pinId,}, val)
+            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,}, val)
           }
         }
       }),
