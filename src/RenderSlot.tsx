@@ -358,15 +358,16 @@ function calSlotStyles(style, hasParamsStyle) {
     background,
     ...otherStyle
   } = style;
-  const slotStyle = {
+  let slotStyle = {
     paddingLeft: paddingLeft || 0,
     paddingTop: paddingTop || 0,
     paddingRight: paddingRight || 0,
     paddingBottom: paddingBottom || 0,
     //height: style.customHeight || '100%'
   } as any
-// 兼容旧的style
-  if (background) {
+  // 兼容旧的style
+  const isOldBackground = typeof background === 'object'
+  if (isOldBackground) {
     const {
       background: bg,
       backgroundImage,
@@ -384,13 +385,12 @@ function calSlotStyles(style, hasParamsStyle) {
       slotStyle.backgroundImage = backgroundImage
       slotStyle.backgroundColor = backgroundColor
     }
+  } else {
+    slotStyle.background = background
   }
 
   if (hasParamsStyle) {
-    return {
-      ...slotStyle,
-      ...otherStyle
-    }
+    slotStyle = Object.assign(slotStyle, otherStyle)
   }
 
   return slotStyle
