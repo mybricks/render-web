@@ -44,6 +44,10 @@ export default function init(opts, {observable}) {
     function exeCon(inReg, nextScope) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
+        if (fromCon&&fromCon.finishPinParentKey !== inReg.startPinParentKey) {
+          return
+        }
+
         if (proxyDesc.type === 'frame') {//call fx frame
 
           const comProps = getComProps(inReg.comId, nextScope)
@@ -85,7 +89,7 @@ export default function init(opts, {observable}) {
             }
           } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
             const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
-            if(cons){
+            if (cons) {
               exeCons(cons, val)
             }
           }
@@ -363,7 +367,7 @@ export default function init(opts, {observable}) {
             }
 
             const cons = Cons[comId + '-' + name]
-            if(cons){
+            if (cons) {
               if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
                 exeCons(cons, val, myScope, fromCon)
               } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
