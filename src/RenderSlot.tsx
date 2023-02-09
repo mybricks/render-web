@@ -43,9 +43,10 @@ export default function RenderSlot({
         inputs, outputs, _inputs, _outputs
       })
 
+      const comKey = (scope ? scope.id : '') + idx//考虑到scope变化的情况，驱动组件强制刷新
       itemAry.push({
         id,
-        jsx: <RenderCom key={idx} com={com}
+        jsx: <RenderCom key={comKey} com={com}
                         getComDef={getComDef}
                         getContext={getContext}
                         scope={scope}
@@ -109,10 +110,6 @@ function RenderCom({
 
   const comDef = getComDef(def)
 
-  // if (id === 'u_CEodv') {
-  //   console.log(scope)
-  // }
-
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
       const props = getContext(id, slotId)
@@ -127,7 +124,11 @@ function RenderCom({
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {
-            return <SlotRender slotId={slotId} slot={slot} props={props} params={params} style={style}
+            return <SlotRender slotId={slotId}
+                               slot={slot}
+                               props={props}
+                               params={params}
+                               style={style}
                                onError={onError}
                                logger={logger} env={env} scope={scope} getComDef={getComDef} getContext={getContext}
                                __rxui_child__={__rxui_child__}/>
@@ -318,29 +319,41 @@ const SlotRender = memo(({
 
   return (
     // <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
-      <RenderSlot
-        scope={curScope}
-        env={env}
-        slot={slot}
-        params={params}
-        wrapper={wrapFn}
-        template={params?.itemWrap}
-        getComDef={getComDef}
-        getContext={getContext}
-        inputs={params?.inputs}
-        outputs={params?.outputs}
-        _inputs={params?._inputs}
-        _outputs={params?._outputs}
-        onError={onError}
-        logger={logger}
-        __rxui_child__={__rxui_child__}
-      />
+    <RenderSlot
+      scope={curScope}
+      env={env}
+      slot={slot}
+      params={params}
+      wrapper={wrapFn}
+      template={params?.itemWrap}
+      getComDef={getComDef}
+      getContext={getContext}
+      inputs={params?.inputs}
+      outputs={params?.outputs}
+      _inputs={params?._inputs}
+      _outputs={params?._outputs}
+      onError={onError}
+      logger={logger}
+      __rxui_child__={__rxui_child__}
+    />
     // </div>
   )
 
 }, (prevProps, nextProps) => {
-  if (prevProps.params?.key !== nextProps?.params?.key) {//key 不同才刷新
+  const preKey = prevProps.params?.key, nextKey = nextProps?.params?.key
+  if (preKey === void 0 && nextKey === void 0) {//对于没有key的情况，统一做刷新处理
     return false
+  }
+
+  if (preKey !== nextKey) {//key 不同刷新
+    return false
+  }
+
+
+  if (preKey !== void 0 && nextKey !== void 0 && preKey === nextKey) {
+    if (prevProps.params?.inputValues !== nextProps?.params?.inputValues) {//对于存在key的情况，如果params不同，做刷新处理
+      return false
+    }
   }
 
   return true

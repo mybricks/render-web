@@ -154,8 +154,8 @@ export default function init(opts, {observable}) {
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
 
-    // if (comId === 'u_HERyF') {
-    //   debugger
+    // if (comId === "u_ywekG") {
+    //   //debugger
     //   console.log('==>curScope', scope)
     // }
 
@@ -249,14 +249,12 @@ export default function init(opts, {observable}) {
             inputRegs[name] = fn
             const ary = inputTodo[name]
             if (ary) {
+              // if (comId === 'u_ywekG') {
+              //   debugger
+              //   console.log('==>curScope', scope)
+              // }
+
               ary.forEach(({val, fromCon, fromScope}) => {
-                // if (fromCon) {
-                //   if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels
-                //
-                //   }
-                // }
-
-
                 fn(val, new Proxy({}, {//relOutputs
                   get(target, name) {
                     return function (val) {
@@ -451,10 +449,6 @@ export default function init(opts, {observable}) {
   function exeInputForCom(inReg, val, scope, outputRels?) {
     const {comId, def, pinId, pinType} = inReg
 
-    // if (comId === 'u_liDBH') {
-    //   debugger
-    // }
-
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === 'show') {
@@ -531,11 +525,6 @@ export default function init(opts, {observable}) {
         }
       } else {//ui
         const props = getComProps(comId, scope)
-
-        // if (comId === 'u_DVT7M') {
-        //   debugger
-        //   console.log('==>curScope', scope)
-        // }
 
         const comDef = getComDef(def)
 
