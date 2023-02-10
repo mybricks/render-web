@@ -186,28 +186,26 @@ function RenderCom({
   }
 
 
-  let jsx = useMemo(() => {
-    return (
-      <comDef.runtime
-        id={id}
-        env={env}
-        data={data}
-        style={style}
-        inputs={myInputs}
-        outputs={myOutputs}
-        _inputs={_myInputs}
-        _outputs={_myOutputs}
-        slots={slotsProxy}
-        createPortal={e => {
-  
-        }}
-        parentSlot={parentSlot}
-        __rxui_child__={__rxui_child__}
-        onError={onError}
-        logger={logger}
-      />
-    )
-  }, [])
+  let jsx = (
+    <comDef.runtime
+      id={id}
+      env={env}
+      data={data}
+      style={style}
+      inputs={myInputs}
+      outputs={myOutputs}
+      _inputs={_myInputs}
+      _outputs={_myOutputs}
+      slots={slotsProxy}
+      createPortal={e => {
+
+      }}
+      parentSlot={parentSlot}
+      __rxui_child__={__rxui_child__}
+      onError={onError}
+      logger={logger}
+    />
+  )
 
   if (typeof template === 'function') {
     jsx = template({id, jsx})
