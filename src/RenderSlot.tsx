@@ -273,7 +273,7 @@ const SlotRender = memo(({
   // }
 
   let curScope
-  if (params) {
+  if (params && slot?.type === 'scope') {
     let nowScopeId = uuid()
     //console.log(nowScopeId)
     // if (params.key) {
