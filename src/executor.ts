@@ -40,6 +40,31 @@ export default function init(opts, {observable}) {
 
   const _frameOutput = {}
 
+  /**
+   * 存储组件等待输入的值(组件多入参能力)
+   * 组件等待in0.p0以及in0.p1到达后触发inputs['in0']
+   * "inputs": [
+      {
+        "id": "in0",
+        "title": "第一项",
+        "schema": [
+          {
+            "title": "参数0",
+            "name": "p0",
+            "type": "number"
+          },
+          {
+            "title": "参数1",
+            "name": "p1",
+            "type": "number"
+          }
+        ],
+        "desc": "第一项"
+      }
+    ],
+   */
+  const _valueBarrier = {}
+
   function exeCons(cons, val, curScope, fromCon?, notifyAll?) {
     function exeCon(inReg, nextScope) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
@@ -153,12 +178,6 @@ export default function init(opts, {observable}) {
                        scope?: { id: string, frameId: string, parent },
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
-
-    // if (comId === "u_ywekG") {
-    //   //debugger
-    //   console.log('==>curScope', scope)
-    // }
-
     const com = Coms[comId]
     const comInFrameId = comId + (com.frameId || ROOT_FRAME_KEY)
 
@@ -240,20 +259,9 @@ export default function init(opts, {observable}) {
                 proxy(fn)
               }
             }
-
-            // if (comId === 'u_DVT7M'&&name==='getTableData') {
-            //   debugger
-            //   console.log('==>curScope', scope)
-            // }
-
             inputRegs[name] = fn
             const ary = inputTodo[name]
             if (ary) {
-              // if (comId === 'u_ywekG') {
-              //   debugger
-              //   console.log('==>curScope', scope)
-              // }
-
               ary.forEach(({val, fromCon, fromScope}) => {
                 fn(val, new Proxy({}, {//relOutputs
                   get(target, name) {
@@ -489,12 +497,9 @@ export default function init(opts, {observable}) {
         const jsCom = Coms[comId]
         if (jsCom) {
           const props = getComProps(comId, scope)
-
           const comDef = getComDef(def)
-
-          logInputVal(props.title, comDef, pinId, val)
-
           const myId = (scope ? scope.id + '-' : '') + comId
+          logInputVal(props.title, comDef, pinId, val)
 
           if (!_exedJSCom[myId]) {
             _exedJSCom[myId] = true
@@ -509,38 +514,14 @@ export default function init(opts, {observable}) {
             })
           }
 
-          props._inputRegs[pinId](val, new Proxy({}, {//relOutputs
-            get(target, name) {
-              return function (val) {
-                props.outputs[name](val, scope, inReg)
-                // const rels = _PinRels[id + '-' + pinId]
-                // if (rels) {
-                //   rels.forEach(relId => {
-                //     props.outputs[relId](val)
-                //   })
-                // }
-              }
-            }
-          }))//invoke the input
-        }
-      } else {//ui
-        const props = getComProps(comId, scope)
-
-        const comDef = getComDef(def)
-
-        logInputVal(props.title, comDef, pinId, val)
-
-        const fn = props._inputRegs[pinId]
-        if (typeof fn === 'function') {
-          let nowRels
-          if (outputRels) {
-            nowRels = outputRels
-          } else {
-            nowRels = new Proxy({}, {//relOutputs
+          const { realId, realVal, isReady, isMultipleInput } = transformInputId(inReg, val, props)
+          
+          // 当前pin为 多输入并且输入都已到达 或者 非多输入
+          if ((isMultipleInput && isReady) || !isMultipleInput) {
+            props._inputRegs[realId](realVal, new Proxy({}, {//relOutputs
               get(target, name) {
                 return function (val) {
-                  props.outputs[name](val, scope, inReg)//with current scope
-
+                  props.outputs[name](val, scope, inReg)
                   // const rels = _PinRels[id + '-' + pinId]
                   // if (rels) {
                   //   rels.forEach(relId => {
@@ -549,14 +530,99 @@ export default function init(opts, {observable}) {
                   // }
                 }
               }
-            })
+            }))//invoke the input
           }
+        }
+      } else {//ui
+        const props = getComProps(comId, scope)
+        const comDef = getComDef(def)
+        logInputVal(props.title, comDef, pinId, val)
 
-          fn(val, nowRels)//invoke the input,with current scope
-        } else {
-          props.addInputTodo(pinId, val, inReg, scope)
+        const { realId, realVal, isReady, isMultipleInput } = transformInputId(inReg, val, props)
+        const fn = props._inputRegs[realId]
+
+        // 当前pin为 多输入并且输入都已到达 或者 非多输入
+        if ((isMultipleInput && isReady) || !isMultipleInput) {
+          if (typeof fn === 'function') {
+            let nowRels
+            if (outputRels) {
+              nowRels = outputRels
+            } else {
+              nowRels = new Proxy({}, {//relOutputs
+                get(target, name) {
+                  return function (val) {
+                    props.outputs[name](val, scope, inReg)//with current scope
+  
+                    // const rels = _PinRels[id + '-' + pinId]
+                    // if (rels) {
+                    //   rels.forEach(relId => {
+                    //     props.outputs[relId](val)
+                    //   })
+                    // }
+                  }
+                }
+              })
+            }
+  
+            fn(realVal, nowRels)//invoke the input,with current scope
+          } else {
+            props.addInputTodo(realId, realVal, inReg, scope)
+          }
         }
       }
+    }
+  }
+
+  /**
+   * 转换inputId,处理多输入配置
+   */
+  function transformInputId(inReg, val, props) {
+    const { pinId, comId } = inReg
+    const pidx = pinId.indexOf('.')
+
+    if (pidx !== -1) {
+      let realId = pinId.substring(0, pidx)
+      const paramId = pinId.substring(pidx + 1)
+
+      let barrier = _valueBarrier[comId]
+      if (!barrier) {
+        barrier = _valueBarrier[comId] = {}
+      }
+
+      barrier[paramId] = val
+
+      const regExp = new RegExp(`${realId}.`)
+      const allPins: string[] = Object.keys(props.inputs).filter((pin) => {
+        return !!pin.match(regExp)
+      })
+
+      if (Object.keys(barrier).length === allPins.length) {
+
+        delete _valueBarrier[comId]
+
+        return {
+          isMultipleInput: true,
+          isReady: true,
+          realId,
+          realVal: barrier
+        }
+      } else {
+        return {
+          isMultipleInput: true,
+          isReady: false
+        }
+      }
+    }
+
+    return {
+      // 是否多输入
+      isMultipleInput: false,
+      // 多输入是否可执行
+      isReady: true,
+      // 最终调用的pinId
+      realId: pinId,
+      // 最终传递的值
+      realVal: val
     }
   }
 
@@ -752,11 +818,6 @@ export default function init(opts, {observable}) {
           }
         }
       }
-
-      // if(comId==='u_CEodv'){
-      //   console.log('curScope::',curScope)
-      // }
-
 
       if (slotId) {
         return getSlotProps(comId, slotId, curScope)
