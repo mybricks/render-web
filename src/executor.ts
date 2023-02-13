@@ -445,6 +445,10 @@ export default function init(opts, {observable}) {
 
         return rtn
       },
+      destroy() {
+        // 组件销毁
+        delete frameProps[key]
+      },
       logger,
       onError
     }

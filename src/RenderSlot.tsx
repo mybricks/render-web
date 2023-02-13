@@ -227,6 +227,15 @@ function RenderCom({
     </div>
   )
 
+  /**
+   * 组件销毁
+   */
+  useEffect(() => {
+    return () => {
+      props.destroy()
+    }
+  }, [])
+
   return jsx
 }
 
