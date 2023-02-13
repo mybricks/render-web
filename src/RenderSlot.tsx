@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 
-import React, {memo, useEffect, useMemo} from "react";
+import React, {memo, useMemo} from "react";
 
 import {isNumber, uuid} from "./utils";
 
@@ -226,15 +226,6 @@ function RenderCom({
       </ErrorBoundary>
     </div>
   )
-
-  /**
-   * 组件销毁
-   */
-  useEffect(() => {
-    return () => {
-      props.destroy()
-    }
-  }, [])
 
   return jsx
 }
