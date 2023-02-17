@@ -349,12 +349,14 @@ const SlotRender = memo(({
     return false
   }
 
-
-  // if (preKey !== void 0 && nextKey !== void 0 && preKey === nextKey) {
-  //   if (prevProps.params?.inputValues !== nextProps?.params?.inputValues) {//对于存在key的情况，如果params不同，做刷新处理
-  //     return false
-  //   }
-  // }
+  // TODO
+  if (preKey !== void 0 && nextKey !== void 0 && preKey === nextKey) {
+    try {
+      if (JSON.stringify(prevProps.params?.inputValues) !== JSON.stringify(nextProps.params?.inputValues)) {
+        return false
+      }
+    } catch {}
+  }
 
   return true
 })
