@@ -186,32 +186,56 @@ function RenderCom({
   }
 
 
-  let jsx = (
-    <comDef.runtime
-      id={id}
-      env={env}
-      data={data}
-      style={style}
-      inputs={myInputs}
-      outputs={myOutputs}
-      _inputs={_myInputs}
-      _outputs={_myOutputs}
-      slots={slotsProxy}
-      createPortal={e => {
+  // --- 2023.2.21 兼容小程序
+  
+  // let jsx = (
+  //   <comDef.runtime
+  //     id={id}
+  //     env={env}
+  //     data={data}
+  //     style={style}
+  //     inputs={myInputs}
+  //     outputs={myOutputs}
+  //     _inputs={_myInputs}
+  //     _outputs={_myOutputs}
+  //     slots={slotsProxy}
+  //     createPortal={e => {
 
-      }}
-      parentSlot={parentSlot}
-      __rxui_child__={__rxui_child__}
-      onError={onError}
-      logger={logger}
-    />
-  )
+  //     }}
+  //     parentSlot={parentSlot}
+  //     __rxui_child__={__rxui_child__}
+  //     onError={onError}
+  //     logger={logger}
+  //   />
+  // )
+
+  let jsx = comDef.runtime({
+    id,
+    env,
+    data,
+    style,
+    inputs: myInputs,
+    outputs: myOutputs,
+    _inputs: _myInputs,
+    _outputs: _myOutputs,
+    slots: slotsProxy,
+    createPortal: e => {
+
+    },
+    parentSlot,
+    __rxui_child__,
+    onError,
+    logger,
+  })
+
+  // --- end
 
   if (typeof template === 'function') {
     jsx = template({id, jsx})
   }
 
-  jsx = (
+  // --- 2023.2.21 兼容小程序
+  jsx = jsx ? (
     <div key={id} style={{
       display: style.display,
       // overflow: "hidden",
@@ -225,7 +249,9 @@ function RenderCom({
         {jsx}
       </ErrorBoundary>
     </div>
-  )
+  ) : null
+
+  // --- end
 
   return jsx
 }
