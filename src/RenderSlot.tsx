@@ -101,6 +101,7 @@ function RenderCom({
   const {id, def, slots = {}}: Com = com
   const {
     data,
+    title,
     style,
     inputs: myInputs,
     outputs: myOutputs,
@@ -213,6 +214,7 @@ function RenderCom({
     id,
     env,
     data,
+    title,
     style,
     inputs: myInputs,
     outputs: myOutputs,
