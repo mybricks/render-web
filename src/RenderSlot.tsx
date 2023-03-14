@@ -141,6 +141,9 @@ function RenderCom({
             )
           }
         },
+        get size() {
+          return !!slots[slotId]?.comAry?.length
+        },
         _inputs: props._inputs,
         inputs: props.inputs,
         outputs: props.outputs
