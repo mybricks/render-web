@@ -108,11 +108,12 @@ export default {
         if (typeof message === "string" && ignoreErrors.includes(message)) {
           return;
         }
-        console.error(error || message);
-        showNotification(
-          error?.stack || error?.message || error?.toString?.() || message,
-          TypeEnum.Error
-        );
+        // Safari 中报错，暂时注释
+        // console.error(error || message);
+        // showNotification(
+        //   error?.stack || error?.message || error?.toString?.() || message,
+        //   TypeEnum.Error
+        // );
         return false;
       };
     }
