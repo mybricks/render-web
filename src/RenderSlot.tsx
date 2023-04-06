@@ -177,14 +177,14 @@ function RenderCom({
 
   if (['fixed', 'absolute'].includes(style.position)) {
     if (style.position === "fixed" && style.fixedY === "bottom") {
-      otherStyle.bottom = style.bottom;
+      otherStyle.bottom = isNumber(style.bottom) ? style.bottom + 'px' :  style.bottom;
     } else if (style.top) {
-      otherStyle.top = style.top;
+      otherStyle.top = isNumber(style.top) ? style.top + 'px' :  style.top;
     }
     if (style.position === "fixed" && style.fixedX === "right") {
-      otherStyle.right = style.right;
+      otherStyle.right = isNumber(style.right) ? style.right + 'px' :  style.right;
     } else if (style.left) {
-      otherStyle.left = style.left;
+      otherStyle.left = isNumber(style.left) ? style.left + 'px' :  style.left;
     } else if (style.position === 'fixed') {
       // --- 2023.3.22 只有固定布局才需要通过设置zIndex达到置顶效果，自由布局不需要设置zIndex，否则永远在最上层
       otherStyle.zIndex = 1000;
