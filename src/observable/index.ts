@@ -1,4 +1,5 @@
 import React, {
+  memo,
   useRef,
   useMemo,
   useState,
@@ -21,8 +22,8 @@ let createElement;
  * 劫持 React.createElement 函数
  */
 export function hijackReactcreateElement() {
-  if (!window[globalKey]) {
-    window[globalKey] = true;
+  if (!React[globalKey]) {
+    React[globalKey] = true;
     createElement = React.createElement;
 
     React.createElement = function(...params) {
@@ -71,7 +72,7 @@ export function hijackReactcreateElement() {
               return render;
             }
     
-            type.__rxui__ = Render;
+            type.__rxui__ = memo(Render);
           }
   
           return createElement(type.__rxui__, props, ...other);
