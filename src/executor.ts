@@ -119,6 +119,7 @@ export default function init(opts, {observable}) {
             }
           }
         } else {
+          const nextScope = getComProps(inReg.comId, curScope)
           const proxiedComProps = nextScope?.proxyComProps
           if (proxiedComProps) {
 
@@ -179,6 +180,7 @@ export default function init(opts, {observable}) {
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
     const com = Coms[comId]
+    if (!com) return null
     const comInFrameId = comId + (com.frameId || ROOT_FRAME_KEY)
 
     let frameProps = _Props[comInFrameId]

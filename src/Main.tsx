@@ -7,19 +7,23 @@
  * mybricks@126.com
  */
 
-import React, {useMemo, useCallback, useLayoutEffect, useEffect} from "react";
-
-import RenderSlot from "./RenderSlot";
-import {observable as defaultObservable, hijackReactcreateElement} from "./observable";
+import React, {
+  useMemo,
+  useCallback,
+  useLayoutEffect
+} from 'react';
 
 import coreLib from '@mybricks/comlib-core'
 
 import executor from './executor'
-import {compareVersion} from "./utils";
-import ErrorBoundary from "./ErrorBoundary";
-import {setLoggerSilent} from "./logger";
-import Notification from "./Notification";
+import RenderSlot from './RenderSlot';
+import {compareVersion} from './utils';
+import {setLoggerSilent} from './logger';
+import Notification from './Notification';
+import ErrorBoundary from './ErrorBoundary';
+import {observable as defaultObservable, hijackReactcreateElement} from './observable';
 
+/** 遍历组件库，处理成comDefs所需的格式 */
 const regAry = (comAray, comDefs) => {
   comAray.forEach(comDef => {
     if (comDef.comAray) {
@@ -31,32 +35,36 @@ const regAry = (comAray, comDefs) => {
 }
 
 export default function Main({json, opts}: { json, opts: { env, events, comDefs, observable, ref } }) {
-  const comDefs = useMemo(() => {//所有组件定义
+  const comDefs = useMemo(() => {
     if (!opts.observable) {
-      // 未传入observable，使用内置observable配合对React.createElement的劫持
+      /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
       hijackReactcreateElement();
     }
 
+    let comDefs: null | {[key: string]: any} = null;
+
+    /** 外部传入组件信息 */
     if (opts.comDefs) {
-      regAry(coreLib.comAray, opts.comDefs);
-      return opts.comDefs
+      comDefs = {};
+      Object.assign(comDefs, opts.comDefs);
     }
 
-    let comLibs = window["__comlibs_rt_"];//运行组件库，在preivew.html中引入
+    /** 默认从window上查找组件库 */
+    let comLibs = [...(window["__comlibs_edit_"] || []), ...(window["__comlibs_rt_"] || [])];
 
-    if (!comLibs) {
-      comLibs = window["__comlibs_edit_"]//设计状态
+    if (!comDefs) {
+      if (!comLibs.length) {
+        /** 没有外部传入切window上没有组件库 */
+        throw new Error(`组件库为空，请检查是否通过<script src="组件库地址"></script>加载或通过comDefs传入了组件库运行时.`)
+      } else {
+        comDefs = {}
+      }
     }
 
-    if (!comLibs || !Array.isArray(comLibs)) {
-      throw new Error(`组件库为空，请检查是否通过<script src="组件库地址"></script>加载了组件库运行时.`)
-    }
-
-    const comDefs = {}
+    /** 插入核心组件库(fn,var等) */
     comLibs.push(coreLib)
     comLibs.forEach(lib => {
       const comAray = lib.comAray;
-
       if (comAray && Array.isArray(comAray)) {
         regAry(comAray, comDefs);
       }
