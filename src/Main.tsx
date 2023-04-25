@@ -13,9 +13,9 @@ import React, {
   useLayoutEffect
 } from 'react';
 
-import coreLib from '@mybricks/comlib-core'
+import coreLib from '@mybricks/comlib-core';
 
-import executor from './executor'
+import executor from './executor';
 import RenderSlot from './RenderSlot';
 import {compareVersion} from './utils';
 import {setLoggerSilent} from './logger';
