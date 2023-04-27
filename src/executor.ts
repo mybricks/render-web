@@ -119,7 +119,6 @@ export default function init(opts, {observable}) {
             }
           }
         } else {
-          const nextScope = getComProps(inReg.comId, curScope)
           const proxiedComProps = nextScope?.proxyComProps
           if (proxiedComProps) {
 
@@ -146,7 +145,7 @@ export default function init(opts, {observable}) {
           throw new Error(`数据异常，请检查toJSON结果.`)
         }
         if (frameKey === ROOT_FRAME_KEY) {//root作用域
-          exeCon(inReg, nextScope)
+          exeCon(inReg, {})
         } else {
           const ary = frameKey.split('-')
           if (ary.length >= 2) {
