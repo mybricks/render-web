@@ -1,5 +1,7 @@
 import React from 'react'
 import Main from 'src/Main';
+import { render } from '../../../src/index'
+
 import { getJSONFromRXUIFile } from '@mybricks/file-parser'
 import './comlib'
 
@@ -13,6 +15,16 @@ const options = {
     },
     getQuery() {
       return "aaa"
+    },
+    renderCom(json, opts, coms) {
+      return new Promise((resolve) => {
+        resolve(
+          render(json, {
+            comDefs: { ...coms },
+            ...(opts || {}),
+          }),
+        );
+      });
     },
     showErrorNotification: false,
     events: [
@@ -31,7 +43,7 @@ const options = {
   },
 }
 
-const renderTestPage = (json) => {
+function renderTestPage(json) {
   return <Main json={getJSONFromRXUIFile(json.content)} opts={options}/>
 }
 
