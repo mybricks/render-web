@@ -10,3 +10,4 @@ tags/*
 .vscode/
 package-lock.json
 yarn.lock
+screenshots/
