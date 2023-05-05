@@ -27,7 +27,8 @@ export default function init(opts, {observable}) {
     comsAutoRun: ComsAutoRun,
     cons: Cons,
     pinRels: PinRels,
-    pinProxies: PinProxies
+    pinProxies: PinProxies,
+    pinValueProxies: PinValueProxies
   } = json
 
   const _Env = env
@@ -40,30 +41,21 @@ export default function init(opts, {observable}) {
 
   const _frameOutput = {}
 
-  /**
-   * 存储组件等待输入的值(组件多入参能力)
-   * 组件等待in0.p0以及in0.p1到达后触发inputs['in0']
-   * "inputs": [
-      {
-        "id": "in0",
-        "title": "第一项",
-        "schema": [
-          {
-            "title": "参数0",
-            "name": "p0",
-            "type": "number"
-          },
-          {
-            "title": "参数1",
-            "name": "p1",
-            "type": "number"
-          }
-        ],
-        "desc": "第一项"
-      }
-    ],
-   */
+  /** _next */
+  const _nextConsPinKeyMap = {}
+
+  Object.keys(Cons).forEach((key) => {
+    const cons = Cons[key]
+    const { startPinParentKey } = cons[0]
+
+    if (startPinParentKey) {
+      _nextConsPinKeyMap[startPinParentKey] = key
+    }
+  })
+
   const _valueBarrier = {}
+
+  const _slotValue = {}
 
   function exeCons(cons, val, curScope, fromCon?, notifyAll?) {
     function exeCon(inReg, nextScope) {
@@ -346,35 +338,71 @@ export default function init(opts, {observable}) {
             logOutputVal(com.title, comDef, name, val)
 
             const evts = model.outputEvents
+            let cons
             if (evts) {
               const eAry = evts[name]
               if (eAry && Array.isArray(eAry)) {
                 const activeEvt = eAry.find(e => e.active)
                 if (activeEvt) {
-                  if (activeEvt.type === 'none') {
-                    return
-                  }
+                  const { type } = activeEvt
 
-                  if (activeEvt.type !== 'defined') {
-                    if (Array.isArray(env?.events)) {
-                      const def = env.events.find(ce => {
-                        if (ce.type === activeEvt.type) {
-                          return ce
+
+                  switch (type) {
+                    case 'none':
+                      cons = []
+                      break
+                    case 'fx':
+                      const proxyDesc = PinProxies[comId + '-' + name]
+                      cons = proxyDesc?.type === 'frame' ? Cons[`${proxyDesc.frameId}-${proxyDesc.pinId}`] : []
+                      break
+                    case 'defined':
+                      break
+                    default:
+                      cons = []
+                      if (Array.isArray(env?.events)) {
+                        const def = env.events.find(ce => {
+                          if (ce.type === type) {
+                            return ce
+                          }
+                        })
+                        if (def && typeof def.exe === 'function') {
+                          def.exe({options: activeEvt.options})//与设计器中的使用方法对齐
                         }
-                      })
-                      if (def && typeof def.exe === 'function') {
-                        def.exe({options: activeEvt.options})//与设计器中的使用方法对齐
                       }
-                    }
-
-                    return
+                      break
                   }
+
+                  // if (type === 'none') {
+                  //   return
+                  // }
+
+                  // if (!['fx', 'defined'].includes(type)) {
+                  //   if (Array.isArray(env?.events)) {
+                  //     const def = env.events.find(ce => {
+                  //       if (ce.type === type) {
+                  //         return ce
+                  //       }
+                  //     })
+                  //     if (def && typeof def.exe === 'function') {
+                  //       def.exe({options: activeEvt.options})//与设计器中的使用方法对齐
+                  //     }
+                  //   }
+
+                  //   return
+                  // }
+
+                  // if (type === 'fx') {
+                  //   const proxyDesc = PinProxies[comId + '-' + name]
+                  //   if (proxyDesc?.type === 'frame') {
+                  //     cons = Cons[`${proxyDesc.frameId}-${proxyDesc.pinId}`]
+                  //   }
+                  // }
                 }
               }
             }
 
-            const cons = Cons[comId + '-' + name]
-            if (cons) {
+            cons = cons || Cons[comId + '-' + name]
+            if (cons?.length) {
               if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
                 exeCons(cons, val, myScope, fromCon)
               } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
@@ -456,7 +484,14 @@ export default function init(opts, {observable}) {
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
-    const {comId, def, pinId, pinType} = inReg
+    const {comId, def, pinId, pinType, frameKey, finishPinParentKey} = inReg
+
+    if (PinValueProxies) {
+      const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
+      if (pinValueProxy) {
+        val = _slotValue[`${frameKey}-${pinValueProxy.pinId}`]
+      }
+    }
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
@@ -572,6 +607,13 @@ export default function init(opts, {observable}) {
         }
       }
     }
+
+    if (finishPinParentKey) {
+      const cons = Cons[_nextConsPinKeyMap[finishPinParentKey]]
+      if (cons && !PinRels[`${comId}-${pinId}`]) {
+        exeCons(cons, void 0)
+      }
+    }
   }
 
   /**
@@ -669,7 +711,10 @@ export default function init(opts, {observable}) {
       const inputs = new Proxy({}, {
         get(target, name) {
           return function (val, curScope) {//set data
-            const cons = Cons[comId + '-' + slotId + '-' + name]
+            const key = comId + '-' + slotId + '-' + name
+            const cons = Cons[key]
+            _slotValue[key] = val
+
             if (cons) {
               exeCons(cons, val, curScope || Cur.scope)
 
