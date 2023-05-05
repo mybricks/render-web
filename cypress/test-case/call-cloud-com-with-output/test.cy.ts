@@ -8,7 +8,7 @@ describe('调用带有输出的云组件组件', () => {
     // it函数的回调不能是异步函数，异步函数只能放在cy.then里面
       const page = renderTestPage(json)
       cy.mount(page)
-      cy.contains('未2收到消息')
+      cy.contains('未收到消息')
       cy.contains('按钮').click()
       cy.contains('已收到消息')
       
