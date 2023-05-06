@@ -61,6 +61,7 @@ export default function init(opts, {observable}) {
     function exeCon(inReg, nextScope) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
+        _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
         if (fromCon&&fromCon.finishPinParentKey !== inReg.startPinParentKey) {
           return
         }
@@ -353,7 +354,13 @@ export default function init(opts, {observable}) {
                       break
                     case 'fx':
                       const proxyDesc = PinProxies[comId + '-' + name]
-                      cons = proxyDesc?.type === 'frame' ? Cons[`${proxyDesc.frameId}-${proxyDesc.pinId}`] : []
+                      if (proxyDesc?.type === 'frame') {
+                        const key = `${proxyDesc.frameId}-${proxyDesc.pinId}`
+                        cons = Cons[key] || []
+                        _slotValue[key] = val
+                      } else {
+                        cons = []
+                      }
                       break
                     case 'defined':
                       break
@@ -486,13 +493,6 @@ export default function init(opts, {observable}) {
   function exeInputForCom(inReg, val, scope, outputRels?) {
     const {comId, def, pinId, pinType, frameKey, finishPinParentKey} = inReg
 
-    if (PinValueProxies) {
-      const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
-      if (pinValueProxy) {
-        val = _slotValue[`${frameKey}-${pinValueProxy.pinId}`]
-      }
-    }
-
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === 'show') {
@@ -557,6 +557,12 @@ export default function init(opts, {observable}) {
             props._inputRegs[realId](realVal, new Proxy({}, {//relOutputs
               get(target, name) {
                 return function (val) {
+                  if (PinValueProxies) {
+                    const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
+                    if (pinValueProxy) {
+                      val = _slotValue[`${frameKey}-${pinValueProxy.pinId}`]
+                    }
+                  }
                   props.outputs[name](val, scope, inReg)
                   // const rels = _PinRels[id + '-' + pinId]
                   // if (rels) {
