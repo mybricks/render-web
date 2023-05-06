@@ -106,7 +106,8 @@ function RenderCom({
     inputs: myInputs,
     outputs: myOutputs,
     _inputs: _myInputs,
-    _outputs: _myOutputs
+    _outputs: _myOutputs,
+    _notifyBindings: _myNotifyBindings
   } = props
 
   const comDef = getComDef(def)
@@ -225,6 +226,7 @@ function RenderCom({
     outputs: myOutputs,
     _inputs: _myInputs,
     _outputs: _myOutputs,
+    _notifyBindings: _myNotifyBindings,
     slots: slotsProxy,
     createPortal: e => {
 

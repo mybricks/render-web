@@ -458,6 +458,31 @@ export default function init(opts, {observable}) {
       }
     })
 
+    function _notifyBindings(val) {
+      const { bindingsTo } = com.model
+      if (bindingsTo) {
+        for (let comId in bindingsTo) {
+          const com = getComProps(comId)
+          if (com) {
+            const bindings = bindingsTo[comId]
+            if (Array.isArray(bindings)) {
+              bindings.forEach((binding) => {
+                let nowObj = com
+                const ary = binding.split(".")
+                ary.forEach((nkey, idx) => {
+                  if (idx !== ary.length - 1) {
+                    nowObj = nowObj[nkey];
+                  } else {
+                    nowObj[nkey] = val;
+                  }
+                })
+              })
+            }
+          }
+        }
+      }
+    }
+
     const rtn = {
       title: com.title,
       frameId: com.frameId,
@@ -481,6 +506,7 @@ export default function init(opts, {observable}) {
 
         return rtn
       },
+      _notifyBindings,
       logger,
       onError
     }
@@ -545,6 +571,7 @@ export default function init(opts, {observable}) {
               data: props.data,
               inputs: props.inputs,
               outputs: props.outputs,
+              _notifyBindings: props._notifyBindings,
               logger,
               onError
             })
