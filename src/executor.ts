@@ -587,7 +587,7 @@ export default function init(opts, {observable}) {
                   if (PinValueProxies) {
                     const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
                     if (pinValueProxy) {
-                      val = _slotValue[`${frameKey}-${pinValueProxy.pinId}`]
+                      val = _slotValue[`${frameKey}-${pinValueProxy.pinId}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
                     }
                   }
                   props.outputs[name](val, scope, inReg)
@@ -746,7 +746,7 @@ export default function init(opts, {observable}) {
           return function (val, curScope) {//set data
             const key = comId + '-' + slotId + '-' + name
             const cons = Cons[key]
-            _slotValue[key] = val
+            _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
 
             if (cons) {
               exeCons(cons, val, curScope || Cur.scope)
