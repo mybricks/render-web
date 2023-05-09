@@ -560,7 +560,9 @@ export default function init(opts, {observable}) {
         if (jsCom) {
           const props = getComProps(comId, scope)
           const comDef = getComDef(def)
-          const myId = (scope ? scope.id + '-' : '') + comId
+          const scopeId = scope?.id
+          // const myId = (scope ? scope.id + '-' : '') + comId
+          const myId = (scopeId ? scopeId + '-' : '') + comId
           logInputVal(props.title, comDef, pinId, val)
 
           if (!_exedJSCom[myId]) {
