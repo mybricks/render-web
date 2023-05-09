@@ -377,7 +377,7 @@ const SlotRender = memo(({
 }, (prevProps, nextProps) => {
   const preKey = prevProps.params?.key, nextKey = nextProps?.params?.key
   if (preKey === void 0 && nextKey === void 0) {//对于没有key的情况，统一做刷新处理
-    return false
+    return true
   }
 
   if (preKey !== nextKey) {//key 不同刷新
