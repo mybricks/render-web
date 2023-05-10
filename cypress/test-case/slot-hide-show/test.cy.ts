@@ -12,6 +12,9 @@ describe('列表作用域插槽功能', () => {
       // 因为列表有2个元素，所以触发两次
       cy.contains('插槽触发次数为2')
 
+      // 表单内的输入框应该有数据
+      cy.get('input[value="表单正常数据"]').should('exist')
+
       // 测试隐藏操作
       cy.contains('隐藏').click()
       cy.contains('第一项').should('not.be.visible')
@@ -24,6 +27,8 @@ describe('列表作用域插槽功能', () => {
 
       // 显示和隐藏应该不会触发插槽io
       cy.contains('插槽触发次数为2')
+       // 隐藏关闭操作不应该清楚内部表单项的数据
+       cy.get('input[value="表单正常数据"]').should('exist')
       
   })
 })

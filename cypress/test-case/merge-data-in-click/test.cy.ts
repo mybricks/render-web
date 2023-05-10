@@ -8,6 +8,6 @@ describe('点击后触发数据合并', () => {
       cy.mount(page)
       cy.contains('没有合并数据')
       cy.contains('按钮').click()
-      cy.contains('收到数据合并')
+      cy.contains('收到合并数据')
   })
 })
