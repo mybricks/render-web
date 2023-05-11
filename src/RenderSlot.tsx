@@ -35,7 +35,7 @@ export default function RenderSlot({
 
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
-    const {id, def}: Com = com
+    const {id, def, name}: Com = com
     const comDef = getComDef(def)
 
     if (comDef) {
@@ -56,6 +56,7 @@ export default function RenderSlot({
                         onError={onError}
                         logger={logger}
                         __rxui_child__={__rxui_child__}/>,
+        name,
         inputs: props.inputsCallable,
         style: props.style
       })
@@ -67,7 +68,7 @@ export default function RenderSlot({
       )
 
       itemAry.push({
-        id, jsx
+        id, jsx, name
       })
     }
 
@@ -98,7 +99,7 @@ function RenderCom({
                      onError,
                      logger
                    }) {
-  const {id, def, slots = {}}: Com = com
+  const {id, def, name, slots = {}}: Com = com
   const {
     data,
     title,
@@ -220,6 +221,7 @@ function RenderCom({
     id,
     env,
     data,
+    name,
     title,
     style,
     inputs: myInputs,
@@ -240,7 +242,7 @@ function RenderCom({
   // --- end
 
   if (typeof template === 'function') {
-    jsx = template({id, jsx})
+    jsx = template({id, jsx, name})
   }
 
   // --- 2023.2.21 兼容小程序

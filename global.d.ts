@@ -24,4 +24,8 @@ interface Com {
   slots?: {
     [key: string]: Array<T_Com>
   }
+  /**
+   * 组件复制保持唯一
+   */
+  name: string;
 }
