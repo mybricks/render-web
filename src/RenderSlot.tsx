@@ -311,7 +311,7 @@ const SlotRender = memo(({
 
   let curScope
   if (params && slot?.type === 'scope') {
-    let nowScopeId = uuid()
+    let nowScopeId = uuid(10, 16)
     //console.log(nowScopeId)
     // if (params.key) {
     //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope

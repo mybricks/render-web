@@ -72,7 +72,7 @@ export default function init(opts, {observable}) {
           let myScope
           //if (!curScope) {
           myScope = {
-            id: uuid(),
+            id: nextScope?.id || uuid(10, 16),
             frameId: proxyDesc.frameId,
             parent: nextScope,
             proxyComProps: comProps//current proxied component instance
