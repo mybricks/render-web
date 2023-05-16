@@ -34,12 +34,21 @@ const regAry = (comAray, comDefs) => {
   })
 }
 
-export default function Main({json, opts}: { json, opts: { env, events, comDefs, observable, ref } }) {
+export default function Main({json, opts}: { json, opts: { env, events, comDefs, comInstance, observable, ref, platform } }) {
+  
+  const comInstance = useMemo(() => {
+    return opts.comInstance || {}
+  }, []);
+  
   const comDefs = useMemo(() => {
-    if (!opts.observable) {
-      /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
-      hijackReactcreateElement();
-    }
+    
+    // 仅在 web 平台下使用内置 observable
+    // if(opts.platform === 'web') {
+    //   if (!opts.observable) {
+    //     /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
+    //     hijackReactcreateElement();
+    //   }
+    // }
 
     let comDefs: null | {[key: string]: any} = null;
 
@@ -106,7 +115,8 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
     if (!!opts?.env?.silent) {
       setLoggerSilent();
     }
-    Notification.init(opts?.env?.showErrorNotification);
+    // 仅在 web 平台下可以启用 Notification
+    Notification.init(opts?.env?.showErrorNotification && opts.platform === "web");
     return Object.assign({
       runtime: {},
       i18n(text: any) {
@@ -142,6 +152,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       let refs
       const context = executor({
         json,
+        comInstance,
         getComDef,
         events: opts.events,
         env,

@@ -14,6 +14,7 @@ const ROOT_FRAME_KEY = '_rootFrame_'
 export default function init(opts, {observable}) {
   const {
     json,
+    comInstance,
     getComDef,
     env,
     ref,
@@ -568,15 +569,30 @@ export default function init(opts, {observable}) {
           if (!_exedJSCom[myId]) {
             _exedJSCom[myId] = true
 
-            comDef.runtime({//exe once
-              env: _Env,
-              data: props.data,
-              inputs: props.inputs,
-              outputs: props.outputs,
-              _notifyBindings: props._notifyBindings,
-              logger,
-              onError
-            })
+            // 当存在组件实例时，使用组件实例的方法
+            if (typeof comInstance?.[comId] === 'function') {
+              comInstance[comId]({//exe once
+                id: comId,
+                env: _Env,
+                data: props.data,
+                inputs: props.inputs,
+                outputs: props.outputs,
+                _notifyBindings: props._notifyBindings,
+                logger,
+                onError
+              })
+            } else {
+              comDef.runtime({//exe once
+                id: comId,
+                env: _Env,
+                data: props.data,
+                inputs: props.inputs,
+                outputs: props.outputs,
+                _notifyBindings: props._notifyBindings,
+                logger,
+                onError
+              })
+            }
           }
 
           const { realId, realVal, isReady, isMultipleInput } = transformInputId(inReg, val, props)
@@ -840,14 +856,28 @@ export default function init(opts, {observable}) {
 
           log(`${comDef.namespace} 开始执行`)
 
-          comDef.runtime({
-            env: _Env,
-            data: props.data,
-            inputs: props.inputs,
-            outputs: props.outputs,
-            logger,
-            onError
-          })
+          // 当组件有实例时，优先执行实例
+          if (typeof comInstance?.[id] === 'function') {
+            comInstance[id]({
+              id: id,
+              env: _Env,
+              data: props.data,
+              inputs: props.inputs,
+              outputs: props.outputs,
+              logger,
+              onError
+            })
+          } else {
+            comDef.runtime({
+              id: id,
+              env: _Env,
+              data: props.data,
+              inputs: props.inputs,
+              outputs: props.outputs,
+              logger,
+              onError
+            })
+          }
         }
       })
     }

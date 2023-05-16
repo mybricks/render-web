@@ -13,6 +13,8 @@ import {isNumber, uuid} from "./utils";
 
 import css from "./RenderSlot.less";
 import ErrorBoundary from "./ErrorBoundary";
+import { observer } from './observable'
+import View from "./View";
 
 export default function RenderSlot({
                                      scope,
@@ -62,9 +64,9 @@ export default function RenderSlot({
       })
     } else {
       const jsx = (
-        <div className={css.error}>
+        <View className={css.error}>
           组件 (namespace = {def.namespace}）未找到.
-        </div>
+        </View>
       )
 
       itemAry.push({
@@ -80,14 +82,14 @@ export default function RenderSlot({
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
-      <div className={calSlotClasses(slotStyle)} style={calSlotStyles(slotStyle, !!paramsStyle)}>
+      <View className={calSlotClasses(slotStyle)} style={calSlotStyles(slotStyle, !!paramsStyle)}>
         {itemAry.map(item => item.jsx)}
-      </div>
+      </View>
     )
   }
 }
 
-function RenderCom({
+const RenderCom = observer(function ({
                      com,
                      props,
                      scope,
@@ -137,9 +139,9 @@ function RenderCom({
                                __rxui_child__={__rxui_child__}/>
           } else {
             return (
-              <div className={css.error}>
+              <View className={css.error}>
                 {errorStringPrefix} 未找到.
-              </div>
+              </View>
             )
           }
         },
@@ -247,7 +249,7 @@ function RenderCom({
 
   // --- 2023.2.21 兼容小程序
   jsx = jsx ? (
-    <div key={id} style={{
+    <View key={id} style={{
       display: style.display,
       // overflow: "hidden",
       position: style.position || "relative",
@@ -259,13 +261,13 @@ function RenderCom({
       <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}>
         {jsx}
       </ErrorBoundary>
-    </div>
+    </View>
   ) : null
 
   // --- end
 
   return jsx
-}
+})
 
 const SlotRender = memo(({
                            slotId,
@@ -355,7 +357,7 @@ const SlotRender = memo(({
   }
 
   return (
-    // <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
+    // <View className={calSlotClasses(style)} style={calSlotStyles(style)}>
     <RenderSlot
       scope={curScope}
       env={env}
@@ -373,7 +375,7 @@ const SlotRender = memo(({
       logger={logger}
       __rxui_child__={__rxui_child__}
     />
-    // </div>
+    // </View>
   )
 
 }, (prevProps, nextProps) => {

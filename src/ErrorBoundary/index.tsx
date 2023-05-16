@@ -1,6 +1,7 @@
 import React from 'react';
 import Notification from '../Notification';
 import css from './style.less';
+import View from '../View';
 
 interface Props {
   errorTip?: string;
@@ -36,10 +37,10 @@ export default class ErrorBoundary extends React.PureComponent<Props> {
       return children;
     }
     return (
-      <div className={css.error}>
-        <div>{errorTip || `渲染错误`}</div>
-        <div>{error || errorInfo}</div>
-      </div>
+      <View className={css.error}>
+        <View>{errorTip || `渲染错误`}</View>
+        <View>{error || errorInfo}</View>
+      </View>
     );
   }
 }

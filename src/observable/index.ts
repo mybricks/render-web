@@ -86,6 +86,40 @@ export function hijackReactcreateElement() {
   }
 }
 
+export function observer(baseComponent) {
+  function observerComponent(props) {
+    const ref = useRef<Reaction | null>(null);
+    const [, setState] = useState([]);
+
+    const update = useCallback(() => {
+      setState([]);
+    }, []);
+
+    useMemo(() => {
+      if (!ref.current) {
+        ref.current = new Reaction(update);
+      }
+    }, []);
+
+    useEffect(() => {
+      return () => {
+        ref.current?.destroy();
+        ref.current = null;
+      };
+    }, []);
+
+    let render;
+
+    ref.current?.track(() => {
+      render = baseComponent(props);
+    });
+
+    return render;
+  }
+
+  return observerComponent;
+}
+
 export function observable<T extends object>(obj: T): T {
   if (!isObject(obj)) {
     return {} as any;
