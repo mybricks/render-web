@@ -1,8 +1,6 @@
 import React from 'react';
-import Notification from '../Notification';
-import css from './style.less';
-import View from '../View';
-
+// import css from './style.less';
+const css = {};
 interface Props {
   errorTip?: string;
   children?: any;
@@ -22,7 +20,6 @@ export default class ErrorBoundary extends React.PureComponent<Props> {
 
   componentDidCatch(error, errorInfo) {
     console.error(error, errorInfo);
-    Notification.error(error);
     this.setState({
       error: error?.stack || error?.message || error?.toString?.(),
       errorInfo:
@@ -37,10 +34,10 @@ export default class ErrorBoundary extends React.PureComponent<Props> {
       return children;
     }
     return (
-      <View className={css.error}>
-        <View>{errorTip || `渲染错误`}</View>
-        <View>{error || errorInfo}</View>
-      </View>
+      <view className={css.error}>
+        <view>{errorTip || `渲染错误`}</view>
+        <view>{error || errorInfo}</view>
+      </view>
     );
   }
 }

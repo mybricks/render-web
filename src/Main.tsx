@@ -19,9 +19,8 @@ import executor from './executor';
 import RenderSlot from './RenderSlot';
 import {compareVersion} from './utils';
 import {setLoggerSilent} from './logger';
-import Notification from './Notification';
 import ErrorBoundary from './ErrorBoundary';
-import {observable as defaultObservable, hijackReactcreateElement} from './observable';
+import {observable as defaultObservable} from './observable';
 
 /** 遍历组件库，处理成comDefs所需的格式 */
 const regAry = (comAray, comDefs) => {
@@ -34,22 +33,13 @@ const regAry = (comAray, comDefs) => {
   })
 }
 
-export default function Main({json, opts}: { json, opts: { env, events, comDefs, comInstance, observable, ref, platform } }) {
+export default function Main({json, opts}: { json, opts: { env, events, comDefs, comInstance, observable, ref } }) {
   
   const comInstance = useMemo(() => {
     return opts.comInstance || {}
   }, []);
   
   const comDefs = useMemo(() => {
-    
-    // 仅在 web 平台下使用内置 observable
-    // if(opts.platform === 'web') {
-    //   if (!opts.observable) {
-    //     /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
-    //     hijackReactcreateElement();
-    //   }
-    // }
-
     let comDefs: null | {[key: string]: any} = null;
 
     /** 外部传入组件信息 */
@@ -115,8 +105,6 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
     if (!!opts?.env?.silent) {
       setLoggerSilent();
     }
-    // 仅在 web 平台下可以启用 Notification
-    Notification.init(opts?.env?.showErrorNotification && opts.platform === "web");
     return Object.assign({
       runtime: {},
       i18n(text: any) {
@@ -132,7 +120,6 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
   const onError = useMemo(() => {
     return (e) => {
       console.error(e);
-      Notification.error(e);
     };
   }, []);
   // logger
@@ -141,7 +128,6 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       ...console,
       error: (e) => {
         console.error(e);
-        Notification.error(e);
       },
     };
   }, []);
@@ -171,7 +157,6 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
       return [context, refs]
     } catch (ex: any) {
       console.error(ex);
-      Notification.error(`导出的JSON.script执行异常: ${ex?.stack || ex?.message || ex?.toString?.()}`);
       throw new Error(`导出的JSON.script执行异常.`)
     }
   }, [])
