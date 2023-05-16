@@ -13,7 +13,7 @@ import React, {
   useLayoutEffect
 } from 'react';
 
-import coreLib from '@mybricks/comlib-core';
+// import coreLib from '@mybricks/comlib-core';
 
 import executor from './executor';
 import RenderSlot from './RenderSlot';
@@ -61,7 +61,7 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
     }
 
     /** 插入核心组件库(fn,var等) */
-    comLibs.push(coreLib)
+    // comLibs.push(coreLib)
     comLibs.forEach(lib => {
       const comAray = lib.comAray;
       if (comAray && Array.isArray(comAray)) {
