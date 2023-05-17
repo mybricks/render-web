@@ -723,7 +723,7 @@ export default function init(opts, {observable}) {
   }
 
   function getSlotProps(comId, slotId, scope) {
-    const key = comId + '-' + slotId
+    const key = comId + '-' + slotId + (scope ? `-${scope.id}` : '')
 
     let rtn = _Props[key]
     if (!rtn) {

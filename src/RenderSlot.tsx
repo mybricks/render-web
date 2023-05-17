@@ -115,7 +115,7 @@ function RenderCom({
 
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
-      const props = getContext(id, slotId)
+      const props = getContext(id, slotId, scope)
 
       const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
