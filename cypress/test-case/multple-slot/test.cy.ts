@@ -1,11 +1,12 @@
-import renderTestPage from "../utils"
+import setUp from "../utils"
 import json from './json.json'
 
 describe('多插槽数据传递', () => {
+  beforeEach(() => {
+    setUp(json)
+  })
+
   it('点击按钮后，多插槽数据会变化', () => {
-    // it函数的回调不能是异步函数，异步函数只能放在cy.then里面
-      const page = renderTestPage(json)
-      cy.mount(page)
 
       cy.contains('1-1')
       cy.contains('1-2')

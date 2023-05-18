@@ -1,11 +1,11 @@
-import renderTestPage from "../utils"
+import setUp from "../utils"
 import json from './json.json'
 
 describe('测试表单容器内的下拉框', () => {
+  beforeEach(() => {
+    setUp(json)
+  })
   it('表单容器下拉框动态数据源测试', () => {
-    // it函数的回调不能是异步函数，异步函数只能放在cy.then里面
-      const page = renderTestPage(json)
-      cy.mount(page)
 
       cy.get('.ant-select-selection-search > input').eq(0).click()
       cy.contains('选项1').should('be.visible')

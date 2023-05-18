@@ -1,11 +1,11 @@
-import renderTestPage from "../utils"
+import setUp from "../utils"
 import json from './json.json'
 
 describe('折叠面板+点击添加功能', () => {
+  beforeEach(() => {
+    setUp(json)
+  })
   it('能正确添加折叠面板', () => {
-    // it函数的回调不能是异步函数，异步函数只能放在cy.then里面
-      const page = renderTestPage(json)
-      cy.mount(page)
 
       // 每次点击添加，都应该增加一项
       cy.contains('折叠面板1').click()

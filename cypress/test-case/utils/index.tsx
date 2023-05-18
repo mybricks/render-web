@@ -47,4 +47,9 @@ function renderTestPage(json) {
   return <Main json={getJSONFromRXUIFile(json.content)} opts={options}/>
 }
 
-export default renderTestPage
+const setUp = (json) => {
+  const page = renderTestPage(json)
+  cy.mount(page)
+}
+
+export default setUp
