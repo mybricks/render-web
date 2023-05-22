@@ -142,7 +142,7 @@ export default function init(opts, {observable}) {
         } else {
           const ary = frameKey.split('-')
           if (ary.length >= 2) {
-            const slotProps = getSlotProps(ary[0], ary[1])
+            const slotProps = getSlotProps(ary[0], ary[1], curScope, notifyAll)
 
             if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
               slotProps.pushTodo((curScope) => {
@@ -722,10 +722,15 @@ export default function init(opts, {observable}) {
     }
   }
 
-  function getSlotProps(comId, slotId, scope) {
-    const key = comId + '-' + slotId + (scope ? `-${scope.id}` : '')
+  function getSlotProps(comId, slotId, scope, notifyAll?) {
+    let key = comId + '-' + slotId + (scope ? `-${scope.id}` : '')
 
     let rtn = _Props[key]
+
+    if (notifyAll && !rtn) {
+      rtn =  _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
+    }
+
     if (!rtn) {
       const foundCom = searchComInSlot(UIRoot, comId)
       const slotDef = foundCom.slots[slotId]
