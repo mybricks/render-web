@@ -78,3 +78,12 @@ export function uuid(len=5, radix=8) {
 
   return uuid.join('');
 }
+
+/**
+ * 将驼峰式命名的字符串转换为连字符分隔的字符串。
+ * @param {string} str - 驼峰式命名的字符串。
+ * @returns {string} - 转换为连字符分隔的字符串。
+ */
+export function convertCamelToHyphen(str) {
+  return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
+}

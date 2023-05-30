@@ -9,7 +9,7 @@
 
 import React, {memo, useMemo} from "react";
 
-import {isNumber, uuid} from "./utils";
+import {isNumber, uuid, convertCamelToHyphen} from "./utils";
 
 import css from "./RenderSlot.less";
 import ErrorBoundary from "./ErrorBoundary";
@@ -110,6 +110,33 @@ function RenderCom({
     _outputs: _myOutputs,
     _notifyBindings: _myNotifyBindings
   } = props
+
+  useMemo(() => {
+    const { styleAry } = style
+
+    if (Array.isArray(styleAry)) {
+      const tagId = `${id}-style`
+
+      if (!document.getElementById(tagId)) {
+        const styleTag = document.createElement('style')
+        let innerText = ''
+
+        styleTag.id = tagId
+        styleAry.forEach(({css, selector}) => {
+          if (selector === ':root') {
+            selector = '> *:first-child'
+          }
+          innerText = innerText + `
+            #${id} ${selector} {
+              ${Object.keys(css).map(key => `${convertCamelToHyphen(key)}: ${css[key]};`).join('\n')}
+            }
+          `
+        })
+        styleTag.innerHTML = innerText
+        document.head.appendChild(styleTag)
+      }
+    }
+  }, [])
 
   const comDef = getComDef(def)
 
@@ -247,7 +274,7 @@ function RenderCom({
 
   // --- 2023.2.21 兼容小程序
   jsx = jsx ? (
-    <div key={id} style={{
+    <div id={id} key={id} style={{
       display: style.display,
       // overflow: "hidden",
       position: style.position || "relative",
