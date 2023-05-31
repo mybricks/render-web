@@ -182,6 +182,11 @@ export default function init(opts, {observable}) {
 
     let storeScopeId
     let curScope = scope
+
+    if (!curScope && com.parentComId && com.frameId) {
+      curScope = _Props[`${com.parentComId}-${com.frameId}`]?.curScope
+    }
+
     while (curScope) {
       const key = curScope.id + '-' + comId
 
