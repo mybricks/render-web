@@ -142,7 +142,7 @@ export default function init(opts, {observable}) {
         } else {
           const ary = frameKey.split('-')
           if (ary.length >= 2) {
-            const slotProps = getSlotProps(ary[0], ary[1], curScope, notifyAll)
+            const slotProps = getSlotProps(ary[0], ary[1], null, notifyAll)
 
             if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
               slotProps.pushTodo((curScope) => {
