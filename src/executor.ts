@@ -162,6 +162,21 @@ export default function init(opts, {observable}) {
           }
         }
       } else {
+        const ary = inReg.frameKey.split('-')
+
+        if (ary.length >= 2 && !nextScope) {
+          const slotProps = getSlotProps(ary[0], ary[1], null, false)
+          if (slotProps?.type === 'scope' && !slotProps?.curScope) {
+            slotProps.pushTodo((curScope) => {
+              if (curScope !== nextScope) {
+                nextScope = curScope
+              }
+
+              exeCon(inReg, nextScope)
+            })
+            return
+          }
+        }
         exeCon(inReg, nextScope)
       }
     })
@@ -809,7 +824,9 @@ export default function init(opts, {observable}) {
 
           if (Array.isArray(Cur.todo)) {
             Cur.todo.forEach(fn => {
-              fn(scope)
+              setTimeout(() => {
+                fn(scope)
+              })
             })
             Cur.todo = void 0//执行完成清空
           }
