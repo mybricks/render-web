@@ -758,7 +758,16 @@ export default function init(opts, {observable}) {
       //const _outputRegs = {}
       const _inputRegs = {}
 
-      const Cur = {scope, todo: void 0}//保存当前scope，在renderSlot中调用run方法会被更新
+      let todo = void 0
+
+      if (scope) {
+        const errorPorps = _Props[comId + '-' + slotId]
+        if (errorPorps) {
+          todo = errorPorps.todo
+        }
+      }
+
+      const Cur = {scope, todo}//保存当前scope，在renderSlot中调用run方法会被更新
 
       const _inputs = new Proxy({}, {
         get(target, name) {
@@ -838,6 +847,9 @@ export default function init(opts, {observable}) {
         outputs,
         get curScope() {
           return Cur.scope
+        },
+        get todo() {
+          return Cur.todo
         },
         pushTodo(fn) {
           if (!Cur.todo) {
