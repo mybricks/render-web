@@ -338,7 +338,7 @@ export default function init(opts, {observable}) {
           }
         },
         get(target, name, receiver) {
-          return function (val, _myScope, fromCon) {
+          const exe = function (val, _myScope, fromCon) {
             const notifyAll = typeof _myScope === 'boolean' && _myScope//变量组件的特殊处理
 
             const args = arguments
@@ -438,6 +438,12 @@ export default function init(opts, {observable}) {
               }
             }
           }
+
+          exe.getConnections = () => {
+            return Cons[comId + '-' + name] || []
+          }
+
+          return exe
         }
       })
     }
@@ -779,7 +785,7 @@ export default function init(opts, {observable}) {
 
       const inputs = new Proxy({}, {
         get(target, name) {
-          return function (val, curScope) {//set data
+          const exe = function (val, curScope) {//set data
             const key = comId + '-' + slotId + '-' + name
             const cons = Cons[key]
             _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
@@ -794,6 +800,12 @@ export default function init(opts, {observable}) {
               // })
             }
           }
+
+          exe.getConnections = () => {
+            return Cons[comId + '-' + slotId + '-' + name] || []
+          }
+
+          return exe
         }
       })
 
