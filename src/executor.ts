@@ -18,7 +18,8 @@ export default function init(opts, {observable}) {
     env,
     ref,
     onError,
-    logger
+    logger,
+    scenesOperate
   } = opts
 
   const {
@@ -72,7 +73,8 @@ export default function init(opts, {observable}) {
           let myScope
           //if (!curScope) {
           myScope = {
-            id: nextScope?.id || uuid(10, 16),
+            // id: nextScope?.id || uuid(10, 16),
+            id: uuid(10, 16),
             frameId: proxyDesc.frameId,
             parent: nextScope,
             proxyComProps: comProps//current proxied component instance
@@ -485,6 +487,10 @@ export default function init(opts, {observable}) {
     })
 
     function _notifyBindings(val) {
+      if (com.global) {
+        scenesOperate?._notifyBindings(val, com)
+        return 
+      }
       const { bindingsTo } = com.model
       if (bindingsTo) {
         for (let comId in bindingsTo) {
@@ -586,6 +592,12 @@ export default function init(opts, {observable}) {
         if (jsCom) {
           const props = getComProps(comId, scope)
           const comDef = getComDef(def)
+          if (jsCom.global) {
+            const globalProps = scenesOperate?.getGlobalComProps(comId)
+            if (globalProps) {
+              props.data = globalProps.data
+            }
+          }
           const scopeId = scope?.id
           // const myId = (scope ? scope.id + '-' : '') + comId
           const myId = (scopeId ? scopeId + '-' : '') + comId
@@ -845,7 +857,7 @@ export default function init(opts, {observable}) {
 
           if (Array.isArray(Cur.todo)) {
             Cur.todo.forEach(fn => {
-              setTimeout(() => {
+              Promise.resolve().then(() => {
                 fn(scope)
               })
             })
@@ -912,28 +924,19 @@ export default function init(opts, {observable}) {
     const cons = Cons[idPre + '-' + pinId]
     if (cons) {
       exeCons(cons, val, scope)
+    } else if (frameId !== ROOT_FRAME_KEY) {
+      scenesOperate?.open({
+        frameId,
+        todo: {
+          pinId,
+          value: val
+        },
+        parentScope: scope.proxyComProps
+      })
     }
   }
 
-  if (typeof ref === 'function') {
-    ref({
-      run() {
-        exeForFrame({frameId: ROOT_FRAME_KEY})
-      },
-      inputs: new Proxy({}, {
-        get(target, pinId) {
-          return function (val) {
-            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,}, val)
-          }
-        }
-      }),
-      outputs(id, fn) {
-        _frameOutput[id] = fn;
-      }
-    })
-  }
-
-  return {
+  const rst = {
     get(comId: string, _slotId: string, scope: { id: string }, _ioProxy) {
       let slotId, curScope, ioProxy
       for (let i = 0; i < arguments.length; i++) {
@@ -963,4 +966,25 @@ export default function init(opts, {observable}) {
       }
     }
   }
+
+  if (typeof ref === 'function') {
+    ref({
+      run() {
+        exeForFrame({frameId: ROOT_FRAME_KEY})
+      },
+      inputs: new Proxy({}, {
+        get(target, pinId) {
+          return function (val) {
+            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,}, val)
+          }
+        }
+      }),
+      outputs(id, fn) {
+        _frameOutput[id] = fn;
+      },
+      get: rst.get
+    })
+  }
+
+  return rst
 }

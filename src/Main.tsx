@@ -34,7 +34,7 @@ const regAry = (comAray, comDefs) => {
   })
 }
 
-export default function Main({json, opts}: { json, opts: { env, events, comDefs, observable, ref } }) {
+export default function Main({json, opts, style = {}}: { json, opts: { env, events, comDefs, observable, ref }, style? }) {
   const comDefs = useMemo(() => {
     if (!opts.observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
@@ -152,7 +152,8 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
           }
         },
         onError,
-        logger
+        logger,
+        scenesOperate: opts.scenesOperate
       }, {//////TODO goon
         observable: opts.observable || defaultObservable
       })
@@ -173,6 +174,8 @@ export default function Main({json, opts}: { json, opts: { env, events, comDefs,
     <ErrorBoundary errorTip={`页面渲染错误`}>
       <RenderSlot
         env={env}
+        style={style}
+        _env={opts._env}
         slot={slot}
         getComDef={getComDef}
         getContext={context.get}

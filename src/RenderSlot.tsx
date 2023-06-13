@@ -17,6 +17,7 @@ import ErrorBoundary from "./ErrorBoundary";
 export default function RenderSlot({
                                      scope,
                                      slot,
+                                     style: propsStyle = {},
                                      params,
                                      inputs,
                                      outputs,
@@ -25,6 +26,7 @@ export default function RenderSlot({
                                      wrapper,
                                      template,
                                      env,
+                                     _env,
                                      getComDef,
                                      getContext,
                                      __rxui_child__,
@@ -52,6 +54,7 @@ export default function RenderSlot({
                         scope={scope}
                         props={props}
                         env={env}
+                        _env={_env}
                         template={template}
                         onError={onError}
                         logger={logger}
@@ -80,7 +83,7 @@ export default function RenderSlot({
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
-      <div className={calSlotClasses(slotStyle)} style={calSlotStyles(slotStyle, !!paramsStyle)}>
+      <div className={calSlotClasses(slotStyle)} style={{...calSlotStyles(slotStyle, !!paramsStyle), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
@@ -93,6 +96,7 @@ function RenderCom({
                      scope,
                      template,
                      env,
+                     _env,
                      getComDef,
                      getContext,
                      __rxui_child__,
@@ -136,6 +140,8 @@ function RenderCom({
         document.head.appendChild(styleTag)
       }
     }
+    // TODO
+    Reflect.deleteProperty(style, 'styleAry')
   }, [])
 
   const comDef = getComDef(def)
@@ -160,7 +166,7 @@ function RenderCom({
                                params={params}
                                style={style}
                                onError={onError}
-                               logger={logger} env={env} scope={scope} getComDef={getComDef} getContext={getContext}
+                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} getContext={getContext}
                                __rxui_child__={__rxui_child__}/>
           } else {
             return (
@@ -214,7 +220,8 @@ function RenderCom({
       otherStyle.right = isNumber(style.right) ? style.right + 'px' :  style.right;
     } else if (style.left) {
       otherStyle.left = isNumber(style.left) ? style.left + 'px' :  style.left;
-    } else if (style.position === 'fixed') {
+    }
+    if (style.position === 'fixed') {
       // --- 2023.3.22 只有固定布局才需要通过设置zIndex达到置顶效果，自由布局不需要设置zIndex，否则永远在最上层
       otherStyle.zIndex = 1000;
     }
@@ -227,6 +234,7 @@ function RenderCom({
   //   <comDef.runtime
   //     id={id}
   //     env={env}
+  //     _env={_env}
   //     data={data}
   //     style={style}
   //     inputs={myInputs}
@@ -247,6 +255,7 @@ function RenderCom({
   let jsx = comDef.runtime({
     id,
     env,
+    _env,
     data,
     name,
     title,
@@ -301,6 +310,7 @@ const SlotRender = memo(({
                            params,
                            scope,
                            env,
+                           _env,
                            style,
                            getComDef,
                            getContext,
@@ -386,6 +396,7 @@ const SlotRender = memo(({
     <RenderSlot
       scope={curScope}
       env={env}
+      _env={_env}
       slot={slot}
       params={params}
       wrapper={wrapFn}
