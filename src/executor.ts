@@ -743,21 +743,25 @@ export default function init(opts, {observable}) {
   }
 
   function searchComInSlot(slot, comId) {
+    let result
     if (slot.comAry) {
-      return slot.comAry.find(com => {
+      slot.comAry.find(com => {
         if (com.id === comId) {
+          result = com
           return com
         }
         if (com.slots) {
           for (let id in com.slots) {
-            const found = searchComInSlot(com.slots[id], comId)
-            if (found) {
-              return found
+            result = searchComInSlot(com.slots[id], comId)
+            if (result) {
+              return result
             }
           }
         }
       })
     }
+  
+    return result
   }
 
   function getSlotProps(comId, slotId, scope, notifyAll?) {
@@ -771,7 +775,7 @@ export default function init(opts, {observable}) {
 
     if (!rtn) {
       const foundCom = searchComInSlot(UIRoot, comId)
-      const slotDef = foundCom.slots[slotId]
+      const slotDef = foundCom?.slots[slotId]
 
       //const _outputRegs = {}
       const _inputRegs = {}

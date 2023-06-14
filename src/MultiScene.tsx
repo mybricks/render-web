@@ -138,22 +138,22 @@ export default function MultiScene ({json, opts}) {
       })
     }
 
-    return json.scenes.map((json) => {
+    return json.scenes.map((json, index) => {
       const { id } = json
       Object.assign(json.coms, coms)
       Object.assign(json.cons, cons)
       Object.assign(json.pinRels, pinRels)
       
-      return scenesMap[id].show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)}/>
+      return scenesMap[id].show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} style={!index ? {} : {position: 'absolute', top: 0, left: 0}}/>
     })
   }, [count])
 
   return scenes
 }
 
-function Scene({json, opts}) {
+function Scene({json, opts, style = {}}) {
   return (
-    <Main json={json} opts={opts} style={{position: 'absolute'}}/>
+    <Main json={json} opts={opts} style={style}/>
   )
 }
 
