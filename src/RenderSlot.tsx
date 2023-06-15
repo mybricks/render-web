@@ -121,7 +121,9 @@ function RenderCom({
     if (Array.isArray(styleAry)) {
       const tagId = `${id}-style`
 
-      if (!document.getElementById(tagId)) {
+      const root = document.getElementById('_mybricks-geo-webview_')?.shadowRoot
+
+      if (!(root || document).getElementById(tagId)) {
         const styleTag = document.createElement('style')
         let innerText = ''
 
@@ -137,7 +139,11 @@ function RenderCom({
           `
         })
         styleTag.innerHTML = innerText
-        document.head.appendChild(styleTag)
+        if (root) {
+          root.appendChild(styleTag)
+        } else {
+          document.head.appendChild(styleTag)
+        }
       }
     }
     // TODO
