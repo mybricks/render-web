@@ -548,6 +548,15 @@ export default function init(opts, {observable}) {
     return rtn
   }
 
+  function getSlotValue(key, scope) {
+    let val = _slotValue[`${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
+    if (!val && scope?.parent) {
+      val = getSlotValue(key, scope.parent)
+    }
+
+    return val
+  }
+
   function exeInputForCom(inReg, val, scope, outputRels?) {
     const {comId, def, pinId, pinType, frameKey, finishPinParentKey} = inReg
 
@@ -627,7 +636,8 @@ export default function init(opts, {observable}) {
                   if (PinValueProxies) {
                     const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
                     if (pinValueProxy) {
-                      val = _slotValue[`${frameKey}-${pinValueProxy.pinId}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
+                      // val = _slotValue[`${frameKey}-${pinValueProxy.pinId}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
+                      val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, scope)
                     }
                   }
                   props.outputs[name](val, scope, inReg)
