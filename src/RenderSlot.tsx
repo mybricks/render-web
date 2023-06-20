@@ -121,7 +121,7 @@ function RenderCom({
     if (Array.isArray(styleAry)) {
       const tagId = `${id}-style`
 
-      const root = document.getElementById('_mybricks-geo-webview_')?.shadowRoot
+      const root = env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot
 
       if (!(root || document).getElementById(tagId)) {
         const styleTag = document.createElement('style')
