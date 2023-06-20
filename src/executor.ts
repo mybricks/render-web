@@ -844,7 +844,7 @@ export default function init(opts, {observable}) {
         }
       })
 
-      let runExed
+      let runExed = {}
 
       rtn = _Props[key] = {
         type: slotDef?.type,
@@ -864,8 +864,10 @@ export default function init(opts, {observable}) {
           //   }
           // }
 
-          if (!runExed) {
-            runExed = true//only once
+          const scopeId = scope?.id || 'none'
+
+          if (!runExed[scopeId]) {
+            runExed[scopeId] = true//only once
             exeForFrame({comId, frameId: slotId, scope})
           }
 

@@ -1,6 +1,18 @@
 # Changelog
 
-这里将记录所有正式版本的变更记录，哪怕只是修改了一行样式。
+在此处将完整记录所有正式版本的变更日志，无论是微调一行样式还是进行重大改动。
+
+## 1.1.49 (2023-06-20)
+
+### Bug Fixes
+
+* 循环列表场景，autorun组件是否执行，根据当前作用域进行判断
+  ``` javascript
+  // 旧
+  let runExed -> if (!runExed) -> runExed = true
+  // 新
+  let runExed = {} -> if (!runExed[scopeId]) -> runExed[scopeId] = true
+  ```
 
 ## 1.1.48 (2023-06-20)
 
