@@ -378,8 +378,6 @@ const SlotRender = memo(({
     curScope = scope
   }
 
-  props.run(curScope)//传递scope
-
   let wrapFn
   if (params) {
     const ivs = params.inputValues
@@ -396,6 +394,8 @@ const SlotRender = memo(({
     }
     //})
   }
+
+  props.run(curScope)//传递scope
 
   return (
     // <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
