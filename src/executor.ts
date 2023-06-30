@@ -638,6 +638,9 @@ export default function init(opts, {observable}) {
                     if (pinValueProxy) {
                       // val = _slotValue[`${frameKey}-${pinValueProxy.pinId}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
                       val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, scope)
+                      if (typeof val === 'undefined') {
+                        val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, null)
+                      }
                     }
                   }
                   props.outputs[name](val, scope, inReg)
