@@ -937,10 +937,11 @@ export default function init(opts, {observable}) {
 
   function exeInputForFrame(opts, val, scope?) {
     const {frameId, comId, pinId} = opts
-
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
-
     const cons = Cons[idPre + '-' + pinId]
+
+    _slotValue[`${frameId}-${pinId}`] = val
+
     if (cons) {
       exeCons(cons, val, scope)
     } else if (frameId !== ROOT_FRAME_KEY) {
