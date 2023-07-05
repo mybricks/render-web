@@ -16,7 +16,8 @@ export default function MultiScene ({json, opts}) {
         [json.id]: {
           show: index === 0,
           todo: [],
-          json
+          json,
+          disableAutoRun: !!index
         }
       }
     }, {}),
@@ -38,9 +39,11 @@ export default function MultiScene ({json, opts}) {
 
   const options = useCallback((id) => {
     const scenes = scenesMap[id]
+    const { disableAutoRun } = scenes
 
     return {
       ...opts,
+      disableAutoRun,
       ref: opts.ref((_refs) => {
         scenes._refs = _refs
         const todo = scenes.todo
@@ -69,6 +72,12 @@ export default function MultiScene ({json, opts}) {
         })
 
         scenes.todo = []
+
+        if (disableAutoRun) {
+          Promise.resolve().then(() => {
+            _refs.run()
+          })
+        }
       }),
       _env: {
         loadCSSLazy() {},

@@ -167,7 +167,9 @@ export default function Main({json, opts, style = {}}: { json, opts: { env, even
   }, [])
 
   useLayoutEffect(() => {
-    refs.run()
+    if (!opts.disableAutoRun) {
+      refs.run()
+    }
   }, [])
 
   return (
