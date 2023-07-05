@@ -493,7 +493,7 @@ function calSlotStyles(style, hasParamsStyle) {
 }
 
 function calSlotClasses(slotStyle) {
-  const rtn = [css.slot]
+  const rtn = [css.slot, 'slot']
 
   const style = slotStyle
   if (style) {
