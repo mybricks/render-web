@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 
-import React, {memo, useMemo} from "react";
+import React, {memo, useEffect, useMemo} from "react";
 
 import {isNumber, uuid, convertCamelToHyphen} from "./utils";
 
@@ -396,6 +396,12 @@ const SlotRender = memo(({
   }
 
   props.run(curScope)//传递scope
+
+  useEffect(() => {
+    return () => {
+      props.destroy()
+    }
+  }, [])
 
   return (
     // <div className={calSlotClasses(style)} style={calSlotStyles(style)}>

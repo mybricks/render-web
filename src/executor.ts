@@ -883,6 +883,9 @@ export default function init(opts, {observable}) {
             Cur.todo = void 0//执行完成清空
           }
         },
+        destroy() {
+          Reflect.deleteProperty(_Props, key)
+        },
         //_outputRegs,
         _inputs,
         _inputRegs,
