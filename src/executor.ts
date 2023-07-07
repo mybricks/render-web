@@ -328,6 +328,22 @@ export default function init(opts, {observable}) {
       }
     })
 
+    const _inputsCallable = new Proxy({}, {
+      get(target, name) {
+        return function (val) {
+          const proxyDesc = PinProxies[comId + '-' + name]
+
+          if (proxyDesc) {
+            scenesOperate?.inputs({
+              ...proxyDesc,
+              value: val,
+              parentScope: rtn
+            })
+          }
+        }
+      }
+    })
+
     const outputs = function (ioProxy?: { inputs, outputs }) {
       return new Proxy({}, {
         ownKeys(target) {
@@ -525,6 +541,7 @@ export default function init(opts, {observable}) {
       addInputTodo,
       inputs: inputs(),
       inputsCallable,
+      _inputsCallable,
       outputs: outputs(),
       _inputs,
       _outputs,
@@ -621,6 +638,7 @@ export default function init(opts, {observable}) {
               inputs: props.inputs,
               outputs: props.outputs,
               _notifyBindings: props._notifyBindings,
+              _inputsCallable: props._inputsCallable,
               logger,
               onError
             })
@@ -930,6 +948,7 @@ export default function init(opts, {observable}) {
             data: props.data,
             inputs: props.inputs,
             outputs: props.outputs,
+            _inputsCallable: props._inputsCallable,
             logger,
             onError
           })

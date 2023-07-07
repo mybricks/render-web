@@ -43,6 +43,17 @@ export default function MultiScene ({json, opts}) {
 
     return {
       ...opts,
+      env: {
+        ...opts.env,
+        openScene: (sceneId, params, openType) => {
+          const scenes = scenesMap[sceneId]
+
+          if (!scenes.show) {
+            scenes.show = true
+            setCount((count) => count+1)
+          }
+        }
+      },
       disableAutoRun,
       ref: opts.ref((_refs) => {
         scenes._refs = _refs
@@ -102,6 +113,15 @@ export default function MultiScene ({json, opts}) {
   
             setCount((count) => count+1)
           }
+        },
+        inputs({frameId, parentScope, value, pinId}) {
+          const scenes = scenesMap[frameId]
+
+          scenes.parentScope = parentScope
+          scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+            pinId,
+            value
+          }})
         },
         _notifyBindings(val, com) {
           const { bindingsTo } = com.model
