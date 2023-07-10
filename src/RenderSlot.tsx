@@ -83,7 +83,7 @@ export default function RenderSlot({
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
-      <div className={calSlotClasses(slotStyle)} style={{...calSlotStyles(slotStyle, !!paramsStyle), ...propsStyle}}>
+      <div data-isslot='1' className={calSlotClasses(slotStyle)} style={{...calSlotStyles(slotStyle, !!paramsStyle), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
