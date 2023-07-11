@@ -458,6 +458,11 @@ function calSlotStyles(style, hasParamsStyle) {
     paddingRight,
     paddingBottom,
     background,
+    backgroundColor,
+    backgroundImage,
+    backgroundPosition,
+    backgroundRepeat,
+    backgroundSize,
     ...otherStyle
   } = style;
   let slotStyle = {
@@ -466,29 +471,36 @@ function calSlotStyles(style, hasParamsStyle) {
     paddingRight: paddingRight || 0,
     paddingBottom: paddingBottom || 0,
     //height: style.customHeight || '100%'
+    backgroundColor,
+    backgroundImage,
+    backgroundPosition,
+    backgroundRepeat,
+    backgroundSize,
   } as any
   // 兼容旧的style
-  const isOldBackground = typeof background === 'object'
-  if (isOldBackground) {
-    const {
-      background: bg,
-      backgroundImage,
-      backgroundColor,
-      backgroundRepeat,
-      backgroundSize
-    } = background;
-
-    slotStyle.backgroundRepeat = backgroundRepeat
-    slotStyle.backgroundSize = backgroundSize
-
-    if (bg) {
-      slotStyle.background = bg
+  if (background) {
+    const isOldBackground = typeof background === 'object'
+    if (isOldBackground) {
+      const {
+        background: bg,
+        backgroundImage,
+        backgroundColor,
+        backgroundRepeat,
+        backgroundSize
+      } = background;
+  
+      slotStyle.backgroundRepeat = backgroundRepeat
+      slotStyle.backgroundSize = backgroundSize
+  
+      if (bg) {
+        slotStyle.background = bg
+      } else {
+        slotStyle.backgroundImage = backgroundImage
+        slotStyle.backgroundColor = backgroundColor
+      }
     } else {
-      slotStyle.backgroundImage = backgroundImage
-      slotStyle.backgroundColor = backgroundColor
+      slotStyle.background = background
     }
-  } else {
-    slotStyle.background = background
   }
 
   if (hasParamsStyle) {
