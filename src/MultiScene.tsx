@@ -46,6 +46,7 @@ export default function MultiScene ({json, opts}) {
       env: {
         ...opts.env,
         openScene: (sceneId, params, openType) => {
+          console.log(`打开场景 -> ${sceneId}`)
           const scenes = scenesMap[sceneId]
 
           if (!scenes.show) {
@@ -56,6 +57,7 @@ export default function MultiScene ({json, opts}) {
       },
       disableAutoRun,
       ref: opts.ref((_refs) => {
+        console.log(`场景注册_refs -> ${id}`)
         scenes._refs = _refs
         const todo = scenes.todo
         const { inputs, outputs } = _refs
@@ -71,18 +73,26 @@ export default function MultiScene ({json, opts}) {
           })
         })
 
-        todo.forEach(({type, todo}) => {
-          if (type === 'inputs') {
-            Promise.resolve().then(() => {
-              inputs[todo.pinId](todo.value)
+        if (todo.length) {
+          todo.forEach(({type, todo}) => {
+            if (type === 'inputs') {
+              Promise.resolve().then(() => {
+                inputs[todo.pinId](todo.value)
+              })
+            } else if (type === 'globalVar') {
+              const { comId, value, bindings } = todo
+              _notifyBindings(_refs, comId, bindings, value)
+            }
+          })
+  
+          scenes.todo = []
+        } else {
+          Promise.resolve().then(() => {
+            scenes.json.inputs?.forEach?.(({id}) => {
+              inputs[id](void 0)
             })
-          } else if (type === 'globalVar') {
-            const { comId, value, bindings } = todo
-            _notifyBindings(_refs, comId, bindings, value)
-          }
-        })
-
-        scenes.todo = []
+          })
+        }
 
         if (disableAutoRun) {
           Promise.resolve().then(() => {
@@ -115,13 +125,21 @@ export default function MultiScene ({json, opts}) {
           }
         },
         inputs({frameId, parentScope, value, pinId}) {
+          console.log('场景触发inputs: ', {
+            frameId, parentScope, value, pinId
+          })
           const scenes = scenesMap[frameId]
 
           scenes.parentScope = parentScope
-          scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-            pinId,
-            value
-          }})
+
+          if (scenes._refs) {
+            scenes._refs.inputs[pinId](value)
+          } else {
+            scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+              pinId,
+              value
+            }})
+          }
         },
         _notifyBindings(val, com) {
           const { bindingsTo } = com.model
