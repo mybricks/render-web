@@ -86,7 +86,7 @@ export default function MultiScene ({json, opts}) {
           })
   
           scenes.todo = []
-        } else {
+        } else if (!disableAutoRun) {
           Promise.resolve().then(() => {
             scenes.json.inputs?.forEach?.(({id}) => {
               inputs[id](void 0)
