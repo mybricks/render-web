@@ -34,6 +34,8 @@ const regAry = (comAray, comDefs) => {
   })
 }
 
+const canvasType = window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
+
 export default function Main({json, opts, style = {}}: { json, opts: { env, events, comDefs, observable, ref }, style? }) {
   const comDefs = useMemo(() => {
     if (!opts.observable) {
@@ -112,7 +114,10 @@ export default function Main({json, opts, style = {}}: { json, opts: { env, even
       i18n(text: any) {
         return text
       },
-      canvasElement: document.body
+      canvasElement: document.body,
+      canvas: {
+        type: canvasType
+      }
     }, opts.env)
   }, [])
 
