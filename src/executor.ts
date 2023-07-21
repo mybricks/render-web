@@ -82,6 +82,7 @@ export default function init(opts, {observable}) {
           //}
 
           exeInputForFrame(proxyDesc, val, myScope)
+          exeForFrame({frameId: proxyDesc.frameId})
           return
         }
       }
