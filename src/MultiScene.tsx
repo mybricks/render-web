@@ -296,7 +296,7 @@ export default function MultiScene ({json, opts}) {
             scenes.show = false
             scenes.todo = []
             scenes._refs = null
-            scenes.parentScope = null
+            // scenes.parentScope = null
             setCount((count) => count+1)
           }
         }
