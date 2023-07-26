@@ -87,3 +87,29 @@ export function uuid(len=5, radix=8) {
 export function convertCamelToHyphen(str) {
   return str.replace(/([a-z])([A-Z])/g, '$1-$2').toLowerCase();
 }
+
+const toFixed = function toFixed(number, precision) {
+  var multiplier = Math.pow(10, precision + 1);
+  var wholeNumber = Math.floor(number * multiplier);
+  return Math.round(wholeNumber / 10) * 10 / multiplier;
+};
+
+const createPxReplacer = function createPxReplacer(perRatio, minPixelValue, unitPrecision, unit) {
+  return function (origin, $1) {
+    var pixels = parseFloat($1);
+
+    if (!$1 || pixels <= minPixelValue) {
+      return origin;
+    } else {
+      return "".concat(toFixed(pixels / perRatio, unitPrecision)).concat(unit);
+    }
+  };
+};
+
+const remReplace = createPxReplacer(12, 0, 5, 'rem');
+
+const REG_PX = /"[^"]+"|'[^']+'|url\([^)]+\)|(\d*\.?\d+)px/g;
+
+export const pxToRem = (value) => {
+  return value.replace(REG_PX, remReplace);
+}

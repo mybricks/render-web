@@ -34,11 +34,50 @@ const regAry = (comAray, comDefs) => {
   })
 }
 
+let count = 1
+
 export default function Main({json, opts, style = {}}: { json, opts: { env, events, comDefs, observable, ref }, style? }) {
+  //环境变量，此处可以定义连接器、多语言等实现
+  const env = useMemo(() => {
+    if (count === 1) {
+      count = 2
+      const pxToRem = opts.env?.pxToRem
+      const rootDom = document.documentElement
+
+      if (pxToRem) {
+        const { enableAdaptive = false, landscapeWidth = 1440 } = pxToRem
+        if (enableAdaptive) {
+          function calculateFontSize() {
+            rootDom.style.fontSize = (rootDom.clientWidth / (landscapeWidth / 12)) + 'px'
+          }
+          calculateFontSize()
+          window.addEventListener('resize', calculateFontSize)
+        }
+      } else {
+        rootDom.style.fontSize = '12px';
+      }
+    }
+
+    if (!!opts?.env?.silent) {
+      setLoggerSilent();
+    }
+    Notification.init(opts?.env?.showErrorNotification);
+    return Object.assign({
+      runtime: {},
+      i18n(text: any) {
+        return text
+      },
+      canvasElement: document.body,
+      canvas: {
+        type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
+      }
+    }, opts.env)
+  }, [])
+  
   const comDefs = useMemo(() => {
     if (!opts.observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
-      hijackReactcreateElement();
+      hijackReactcreateElement({pxToRem: env.pxToRem});
     }
 
     let comDefs: null | {[key: string]: any} = null;
@@ -99,24 +138,6 @@ export default function Main({json, opts, style = {}}: { json, opts: { env, even
       }
     }
     return rtn
-  }, [])
-
-  //环境变量，此处可以定义连接器、多语言等实现
-  const env = useMemo(() => {
-    if (!!opts?.env?.silent) {
-      setLoggerSilent();
-    }
-    Notification.init(opts?.env?.showErrorNotification);
-    return Object.assign({
-      runtime: {},
-      i18n(text: any) {
-        return text
-      },
-      canvasElement: document.body,
-      canvas: {
-        type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
-      }
-    }, opts.env)
   }, [])
 
   const {slot} = json;

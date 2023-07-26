@@ -12,7 +12,7 @@ import {
   globalTaskEmitter,
   globalReactionStack
 } from "./global";
-import { isObject } from "../utils";
+import { isObject, pxToRem } from "../utils";
 import baseHandlers from "./handles";
 
 const globalKey = "__render-web-createElement__";
@@ -21,13 +21,25 @@ let createElement;
 /**
  * 劫持 React.createElement 函数
  */
-export function hijackReactcreateElement() {
+export function hijackReactcreateElement(props) {
+  const { pxToRem: configPxToRem } = props
   if (!React[globalKey]) {
     React[globalKey] = true;
     createElement = React.createElement;
 
     React.createElement = function(...params) {
       let [type, props, ...other] = params;
+
+      if (configPxToRem && props?.style) {
+        const style = props.style
+        Object.keys(style).forEach((key) => {
+          const value = style[key]
+
+          if (typeof value === 'string' && value.indexOf('px') !== -1) {
+            style[key] = pxToRem(value)
+          }
+        })
+      }
 
       if (typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent && props) {
         let useRxui = props.__rxui_child__ || type.__rxui__;

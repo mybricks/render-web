@@ -9,7 +9,7 @@
 
 import React, {memo, useEffect, useMemo} from "react";
 
-import {isNumber, uuid, convertCamelToHyphen} from "./utils";
+import {isNumber, uuid, pxToRem, convertCamelToHyphen} from "./utils";
 
 import css from "./RenderSlot.less";
 import ErrorBoundary from "./ErrorBoundary";
@@ -117,6 +117,7 @@ function RenderCom({
 
   useMemo(() => {
     const { styleAry } = style
+    const { pxToRem: configPxToRem } = env
 
     if (Array.isArray(styleAry)) {
       const tagId = `${id}-style`
@@ -134,7 +135,13 @@ function RenderCom({
           }
           innerText = innerText + `
             #${id} ${selector} {
-              ${Object.keys(css).map(key => `${convertCamelToHyphen(key)}: ${css[key]};`).join('\n')}
+              ${Object.keys(css).map(key => {
+                let value = css[key]
+                if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+                  value = pxToRem(value)
+                }
+                return `${convertCamelToHyphen(key)}: ${value};`
+              }).join('\n')}
             }
           `
         })
