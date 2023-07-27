@@ -147,16 +147,27 @@ export default function MultiScene ({json, opts}) {
             },
             scenesOperate: {
               open({todo, frameId, parentScope}) {
-                console.log('fx scenesOperate.open')
-                const scenes = scenesMap[frameId]
-      
-                if (!scenes.show) {
-                  scenes.show = true
-                  scenes.todo = scenes.todo.concat({type: 'inputs', todo})
-                  scenes.parentScope = parentScope
-        
-                  setCount((count) => count+1)
+                console.log('fx scenesOperate.open', {
+                  todo,
+                  frameId,
+                  parentScope
+                })
+                const fxFrame = fxFramesMap[frameId]
+
+                if (fxFrame?._refs) {
+                  fxFrame.parentScope = parentScope
+                  fxFrame._refs.inputs[todo.pinId](todo.value)
+                  fxFrame._refs.run()
                 }
+                // const scenes = scenesMap[frameId]
+      
+                // if (!scenes.show) {
+                //   scenes.show = true
+                //   scenes.todo = scenes.todo.concat({type: 'inputs', todo})
+                //   scenes.parentScope = parentScope
+        
+                //   setCount((count) => count+1)
+                // }
               },
               inputs({frameId, parentScope, value, pinId}) {
                 console.log('fx 场景触发inputs: ', {
