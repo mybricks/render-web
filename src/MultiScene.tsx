@@ -213,6 +213,18 @@ export default function MultiScene ({json, opts}) {
             }
           }
 
+          let coms = global.comsReg
+          let cons = global.consReg
+          let pinRels = global.pinRels
+
+          Object.keys(coms).forEach((key) => {
+            coms[key].global = true
+          })
+
+          Object.assign(fxFrame.coms, coms)
+          Object.assign(fxFrame.cons, cons)
+          Object.assign(fxFrame.pinRels, pinRels)
+
           fxFramesJsx.push(<Main key={id} json={{...fxFrame, rtType: 'js'}} opts={options}/>)
         })
       }
