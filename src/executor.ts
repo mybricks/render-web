@@ -24,12 +24,12 @@ export default function init(opts, {observable}) {
 
   const {
     slot: UIRoot,
-    coms: Coms,
-    comsAutoRun: ComsAutoRun,
-    cons: Cons,
-    pinRels: PinRels,
-    pinProxies: PinProxies,
-    pinValueProxies: PinValueProxies
+    coms: Coms = {},
+    comsAutoRun: ComsAutoRun = {},
+    cons: Cons = [],
+    pinRels: PinRels = {},
+    pinProxies: PinProxies = {},
+    pinValueProxies: PinValueProxies = {}
   } = json
 
   const _Env = env

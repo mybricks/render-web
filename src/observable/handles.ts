@@ -58,7 +58,7 @@ function set (target, key, value) {
 
   if (runTask) {
     globalTaskEmitter.runTask({ target, key });
-    globalTaskEmitter.deleteTask(rawToProxy.get(preValue));
+    // globalTaskEmitter.deleteTask(rawToProxy.get(preValue));
   }
 
   return true;
