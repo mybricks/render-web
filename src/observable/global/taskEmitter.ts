@@ -24,15 +24,15 @@ class TaskEmitter {
 
     this.taskMap.delete(target);
 
-    for (let key of task.keys()) {
-      this.deleteTask(rawToProxy.get(target[key]));
+    // for (let key of task.keys()) {
+    //   this.deleteTask(rawToProxy.get(target[key]));
 
-      const reactions = task.get(key);
+    //   const reactions = task.get(key);
 
-      reactions?.forEach?.((reaction) => {
-        this.deleteReaction(reaction);
-      });
-    }
+    //   reactions?.forEach?.((reaction) => {
+    //     this.deleteReaction(reaction);
+    //   });
+    // }
   }
 
   deleteReaction(reaction) {
