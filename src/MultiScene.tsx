@@ -65,6 +65,7 @@ export default function MultiScene ({json, opts}) {
             env: {
               ...opts.env,
               canvas: {
+                id,
                 type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
                 open: (sceneId, params, openType) => {
                   // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
@@ -275,6 +276,7 @@ export default function MultiScene ({json, opts}) {
       env: {
         ...opts.env,
         canvas: {
+          id,
           type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
           open: (sceneId, params, openType) => {
             // console.log(`打开场景 -> ${sceneId}`)
