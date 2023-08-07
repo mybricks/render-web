@@ -22,6 +22,7 @@ import {setLoggerSilent} from './logger';
 import Notification from './Notification';
 import ErrorBoundary from './ErrorBoundary';
 import {observable as defaultObservable, hijackReactcreateElement} from './observable';
+import {T_RenderOptions} from "./types";
 
 /** 遍历组件库，处理成comDefs所需的格式 */
 const regAry = (comAray, comDefs) => {
@@ -36,7 +37,7 @@ const regAry = (comAray, comDefs) => {
 
 let count = 1
 
-export default function Main({json, opts, style = {}}: { json, opts: { env, events, comDefs, observable, ref }, style? }) {
+export default function Main({json, opts, style = {}}: { json, opts: T_RenderOptions, style? }) {
   //环境变量，此处可以定义连接器、多语言等实现
   const env = useMemo(() => {
     if (count === 1) {
@@ -176,10 +177,11 @@ export default function Main({json, opts, style = {}}: { json, opts: { env, even
           }
         },
         onError,
+        debugLogger: opts.debugLogger,
         logger,
         scenesOperate: opts.scenesOperate
       }, {//////TODO goon
-        observable: opts.observable || defaultObservable
+        observable: opts.observable || defaultObservable//传递获取响应式的方法
       })
 
       return [context, refs]

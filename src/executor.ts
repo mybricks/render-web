@@ -11,7 +11,7 @@ import {uuid} from "./utils";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
-export default function init(opts, {observable}) {
+export default function executor(opts, {observable}) {
   const {
     json,
     getComDef,
@@ -19,6 +19,7 @@ export default function init(opts, {observable}) {
     ref,
     onError,
     logger,
+    debugLogger,
     scenesOperate
   } = opts
 
@@ -47,7 +48,7 @@ export default function init(opts, {observable}) {
 
   Object.keys(Cons).forEach((key) => {
     const cons = Cons[key]
-    const { startPinParentKey } = cons[0]
+    const {startPinParentKey} = cons[0]
 
     if (startPinParentKey) {
       _nextConsPinKeyMap[startPinParentKey] = key
@@ -58,12 +59,62 @@ export default function init(opts, {observable}) {
 
   const _slotValue = {}
 
+  function _logOutputVal(type: 'com' | 'frame',
+                         content:
+                           {
+                             com,
+                             pinHostId,
+                             val,
+                             comDef,
+                             fromCon?,
+                             notifyAll?
+                           }//com
+                           |
+                           {
+                             comId,
+                             frameId,
+                             pinHostId,
+                             val,
+                             sceneId
+                           }//frame
+  ) {
+    if (type === 'com') {
+      const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
+      if (debugLogger) {//存在外部的debugLogger
+        debugLogger('com', 'output', {id: com.id, pinHostId, val, fromCon, notifyAll})
+      } else {
+        logOutputVal(com.title, comDef, pinHostId, val)
+      }
+    } else if (type === 'frame') {
+      const {comId, frameId, pinHostId, val,sceneId} = content
+      if (debugLogger) {//存在外部的debugLogger
+        debugLogger('frame', 'output', {comId, frameId, pinHostId, val,sceneId})
+      }
+    }
+  }
+
+  function _logInputVal(content: {
+    com,
+    pinHostId,
+    val,
+    frameKey,
+    finishPinParentKey,
+    comDef
+  }) {
+    const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
+    if (debugLogger) {//存在外部的debugLogger
+      debugLogger('com', 'input', {id: com.id, pinHostId, val, frameKey, finishPinParentKey})
+    } else {
+      logInputVal(com.title, comDef, pinHostId, val)
+    }
+  }
+
   function exeCons(cons, val, curScope, fromCon?, notifyAll?) {
     function exeCon(inReg, nextScope) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
         _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
-        if (fromCon&&fromCon.finishPinParentKey !== inReg.startPinParentKey) {
+        if (fromCon && fromCon.finishPinParentKey !== inReg.startPinParentKey) {
           return
         }
 
@@ -186,7 +237,11 @@ export default function init(opts, {observable}) {
   }
 
   function getComProps(comId,
-                       scope?: { id: string, frameId: string, parent },
+                       scope?: {
+                         id: string,
+                         frameId: string,
+                         parent
+                       },
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
     const com = Coms[comId]
@@ -256,7 +311,10 @@ export default function init(opts, {observable}) {
       ary.push({val, fromCon, fromScope})
     }
 
-    const inputs = function (ioProxy?: { inputs, outputs }) {
+    const inputs = function (ioProxy?: {
+      inputs,
+      outputs
+    }) {
       return new Proxy({}, {
         ownKeys(target) {
           return com.inputs
@@ -345,7 +403,10 @@ export default function init(opts, {observable}) {
       }
     })
 
-    const outputs = function (ioProxy?: { inputs, outputs }) {
+    const outputs = function (ioProxy?: {
+      inputs,
+      outputs
+    }) {
       return new Proxy({}, {
         ownKeys(target) {
           return com.outputs
@@ -375,7 +436,9 @@ export default function init(opts, {observable}) {
             }
 
             const comDef = getComDef(def)
-            logOutputVal(com.title, comDef, name, val)
+
+            //logOutputVal(com.title, comDef, name, val)
+            _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
 
             const evts = model.outputEvents
             let cons
@@ -384,7 +447,7 @@ export default function init(opts, {observable}) {
               if (eAry && Array.isArray(eAry)) {
                 const activeEvt = eAry.find(e => e.active)
                 if (activeEvt) {
-                  const { type } = activeEvt
+                  const {type} = activeEvt
 
 
                   switch (type) {
@@ -487,7 +550,8 @@ export default function init(opts, {observable}) {
         return function (val) {
           const cons = Cons[comId + '-' + name]
           if (cons) {
-            logOutputVal(com.title, def, name, val)
+            //logOutputVal(com.title, def, name, val)
+            _logOutputVal('com', {com, pinHostId: name, val, comDef: def})
 
             exeCons(cons, val, scope)
 
@@ -506,9 +570,9 @@ export default function init(opts, {observable}) {
     function _notifyBindings(val) {
       if (com.global) {
         scenesOperate?._notifyBindings(val, com)
-        return 
+        return
       }
-      const { bindingsTo } = com.model
+      const {bindingsTo} = com.model
       if (bindingsTo) {
         for (let comId in bindingsTo) {
           const com = getComProps(comId)
@@ -533,6 +597,7 @@ export default function init(opts, {observable}) {
     }
 
     const rtn = {
+      id: com.id,
       title: com.title,
       frameId: com.frameId,
       parentComId: com.parentComId,
@@ -596,7 +661,9 @@ export default function init(opts, {observable}) {
     } else if (pinType === 'config') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
-      logInputVal(props.title, comDef, pinId, val);
+      //logInputVal(props.title, comDef, pinId, val);
+      _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef})
+
       /**
        * 配置项类型，根据extBinding值操作
        * 例如：extBinding：data.text
@@ -628,7 +695,9 @@ export default function init(opts, {observable}) {
           const scopeId = scope?.id
           // const myId = (scope ? scope.id + '-' : '') + comId
           const myId = (scopeId ? scopeId + '-' : '') + comId
-          logInputVal(props.title, comDef, pinId, val)
+          //logInputVal(props.title, comDef, pinId, val)
+
+          _logInputVal({com: jsCom, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef})
 
           if (!_exedJSCom[myId]) {
             _exedJSCom[myId] = true
@@ -645,8 +714,8 @@ export default function init(opts, {observable}) {
             })
           }
 
-          const { realId, realVal, isReady, isMultipleInput } = transformInputId(inReg, val, props)
-          
+          const {realId, realVal, isReady, isMultipleInput} = transformInputId(inReg, val, props)
+
           // 当前pin为 多输入并且输入都已到达 或者 非多输入
           if ((isMultipleInput && isReady) || !isMultipleInput) {
             props._inputRegs[realId](realVal, new Proxy({}, {//relOutputs
@@ -677,9 +746,16 @@ export default function init(opts, {observable}) {
       } else {//ui
         const props = getComProps(comId, scope)
         const comDef = getComDef(def)
-        logInputVal(props.title, comDef, pinId, val)
+        //logInputVal(props.title, comDef, pinId, val)
 
-        const { realId, realVal, isReady, isMultipleInput } = transformInputId(inReg, val, props)
+        // if(pinId === 'getFieldsValue'){
+        //   debugger
+        // }
+
+        _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef})
+
+
+        const {realId, realVal, isReady, isMultipleInput} = transformInputId(inReg, val, props)
         const fn = props._inputRegs[realId]
 
         // 当前pin为 多输入并且输入都已到达 或者 非多输入
@@ -693,7 +769,7 @@ export default function init(opts, {observable}) {
                 get(target, name) {
                   return function (val) {
                     props.outputs[name](val, scope, inReg)//with current scope
-  
+
                     // const rels = _PinRels[id + '-' + pinId]
                     // if (rels) {
                     //   rels.forEach(relId => {
@@ -704,7 +780,7 @@ export default function init(opts, {observable}) {
                 }
               })
             }
-  
+
             fn(realVal, nowRels)//invoke the input,with current scope
           } else {
             props.addInputTodo(realId, realVal, inReg, scope)
@@ -725,7 +801,7 @@ export default function init(opts, {observable}) {
    * 转换inputId,处理多输入配置
    */
   function transformInputId(inReg, val, props) {
-    const { pinId, comId } = inReg
+    const {pinId, comId} = inReg
     const pidx = pinId.indexOf('.')
 
     if (pidx !== -1) {
@@ -792,7 +868,7 @@ export default function init(opts, {observable}) {
         }
       })
     }
-  
+
     return result
   }
 
@@ -802,7 +878,7 @@ export default function init(opts, {observable}) {
     let rtn = _Props[key]
 
     if (notifyAll && !rtn) {
-      rtn =  _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
+      rtn = _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
     }
 
     if (!rtn) {
@@ -837,6 +913,8 @@ export default function init(opts, {observable}) {
             const key = comId + '-' + slotId + '-' + name
             const cons = Cons[key]
             _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
+
+            _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
 
             if (cons) {
               exeCons(cons, val, curScope || Cur.scope)
@@ -959,11 +1037,13 @@ export default function init(opts, {observable}) {
   }
 
   function exeInputForFrame(opts, val, scope?) {
-    const {frameId, comId, pinId} = opts
+    const {frameId, comId, pinId,sceneId} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
     const cons = Cons[idPre + '-' + pinId]
 
     _slotValue[`${frameId}-${pinId}`] = val
+
+    _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val,sceneId})
 
     if (cons) {
       exeCons(cons, val, scope)
@@ -980,7 +1060,9 @@ export default function init(opts, {observable}) {
   }
 
   const rst = {
-    get(comId: string, _slotId: string, scope: { id: string }, _ioProxy) {
+    get(comId: string, _slotId: string, scope: {
+      id: string
+    }, _ioProxy) {
       let slotId, curScope, ioProxy
       for (let i = 0; i < arguments.length; i++) {
         const arg = arguments[i]
@@ -1017,8 +1099,8 @@ export default function init(opts, {observable}) {
       },
       inputs: new Proxy({}, {
         get(target, pinId) {
-          return function (val) {
-            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,}, val)
+          return function (val,sceneId?) {
+            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,sceneId}, val)
           }
         }
       }),

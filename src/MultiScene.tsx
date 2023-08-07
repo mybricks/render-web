@@ -289,7 +289,7 @@ export default function MultiScene ({json, opts}) {
           todo.forEach(({type, todo}) => {
             if (type === 'inputs') {
               Promise.resolve().then(() => {
-                inputs[todo.pinId](todo.value)
+                inputs[todo.pinId](todo.value,id)
               })
             } else if (type === 'globalVar') {
               const { comId, value, bindings } = todo
