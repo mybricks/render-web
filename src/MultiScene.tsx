@@ -30,7 +30,8 @@ export default function MultiScene ({json, opts}) {
             todo: [],
             json,
             disableAutoRun: !!index,
-            useEntryAnimation: false
+            useEntryAnimation: false,
+            type: json.slot?.showType || json.type
           }
         }
       }, {}),
@@ -468,7 +469,7 @@ export default function MultiScene ({json, opts}) {
       Object.assign(json.pinRels, pinRels)
       const scene = scenesMap[id]
       
-      return scene.show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={!index ? {} : {position: 'absolute', top: 0, left: 0}}/>
+      return scene.show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0} : {}}/>
     })
   }, [count])
 
@@ -478,8 +479,6 @@ export default function MultiScene ({json, opts}) {
       {scenes}
     </>
   )
-
-  return scenes
 }
 
 function Scene({json, opts, style = {}, className = ''}) {
