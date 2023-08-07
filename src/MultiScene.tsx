@@ -67,9 +67,20 @@ export default function MultiScene ({json, opts}) {
                   // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
                   const scenes = scenesMap[sceneId]
         
-                  if (!scenes.show) {
-                    scenes.show = true
+                  if (openType) {
+                    Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+                      if (key === sceneId) {
+                        scenes.show = true
+                      } else {
+                        scenes.show = false
+                      }
+                    })
                     setCount((count) => count+1)
+                  } else {
+                    if (!scenes.show) {
+                      scenes.show = true
+                      setCount((count) => count+1)
+                    }
                   }
                 }
               },
@@ -256,9 +267,20 @@ export default function MultiScene ({json, opts}) {
             // console.log(`打开场景 -> ${sceneId}`)
             const scenes = scenesMap[sceneId]
   
-            if (!scenes.show) {
-              scenes.show = true
+            if (openType) {
+              Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+                if (key === sceneId) {
+                  scenes.show = true
+                } else {
+                  scenes.show = false
+                }
+              })
               setCount((count) => count+1)
+            } else {
+              if (!scenes.show) {
+                scenes.show = true
+                setCount((count) => count+1)
+              }
             }
           }
         },
