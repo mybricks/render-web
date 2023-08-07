@@ -113,3 +113,32 @@ const REG_PX = /"[^"]+"|'[^']+'|url\([^)]+\)|(\d*\.?\d+)px/g;
 export const pxToRem = (value) => {
   return value.replace(REG_PX, remReplace);
 }
+
+export const loadCSSLazy = (css, root) => {
+
+  // const root = env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot
+
+  const finalRoot = root || document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.head
+
+  css.use({ target: finalRoot });
+
+  // super();
+  // this.attachShadow({ mode: "open" });
+
+  // const divElement = document.createElement("div");
+
+  // divElement.textContent = "Text content.";
+
+  // this.shadowRoot.appendChild(divElement);
+
+  // customSquareStyles.use({ target: this.shadowRoot });
+
+  // // 你可以覆盖注入的样式
+  // const bgPurple = new CSSStyleSheet();
+  // const width = this.getAttribute("w");
+  // const height = this.getAttribute("h");
+
+  // bgPurple.replace(`div { width: ${width}px; height: ${height}px; }`);
+
+  // this.shadowRoot.adoptedStyleSheets = [bgPurple];
+}

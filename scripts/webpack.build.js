@@ -44,15 +44,38 @@ module.exports = {
           }
         ]
       },
+      // {
+      //   test: /\.css$/,
+      //   // exclude: /node_modules/,
+      //   use: ['style-loader', 'css-loader']
+      // },
+      // {
+      //   test: /^[^\.]+\.less$/i,
+      //   use: [
+      //     {loader: 'style-loader'},
+      //     {
+      //       loader: 'css-loader',
+      //       options: {
+      //         modules: {
+      //           localIdentName: '[local]-[hash:5]'
+      //         }
+      //       }
+      //     },
+      //     {loader: 'less-loader'}
+      //   ]
+      // }
       {
-        test: /\.css$/,
-        // exclude: /node_modules/,
-        use: ['style-loader', 'css-loader']
-      },
-      {
-        test: /^[^\.]+\.less$/i,
+        test: /\.lazy.less$/i,
         use: [
-          {loader: 'style-loader'},
+          {
+            loader: 'style-loader',
+            options: {
+              injectType: "lazyStyleTag",
+              insert: function insertIntoTarget(element, options) {
+                (options.target || document.head).appendChild(element)
+              },
+            },
+          },
           {
             loader: 'css-loader',
             options: {
@@ -61,9 +84,16 @@ module.exports = {
               }
             }
           },
-          {loader: 'less-loader'}
+          {
+            loader: 'less-loader',
+            options: {
+              lessOptions: {
+                javascriptEnabled: true,
+              }
+            }
+          }
         ]
-      }
+      },
     ]
   },
   optimization: {

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import css from "./style.less";
+import lazyCss from "./style.lazy.less";
+
+const css = lazyCss.locals;
 
 // 是否显示notification
 let showErrorNotification = false;

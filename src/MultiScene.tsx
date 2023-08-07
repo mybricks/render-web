@@ -6,7 +6,9 @@ import React, {
 
 import Main from './Main'
 
-import css from './MultiScene.less'
+import lazyCss from './MultiScene.lazy.less'
+
+const css = lazyCss.locals
 
 export default function MultiScene ({json, opts}) {
   const [count, setCount] = useState(0)

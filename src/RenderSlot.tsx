@@ -11,8 +11,10 @@ import React, {memo, useEffect, useMemo} from "react";
 
 import {isNumber, uuid, pxToRem, convertCamelToHyphen} from "./utils";
 
-import css from "./RenderSlot.less";
+import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
+
+const css = lazyCss.locals
 
 export default function RenderSlot({
                                      scope,

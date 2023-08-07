@@ -17,12 +17,16 @@ import coreLib from '@mybricks/comlib-core';
 
 import executor from './executor';
 import RenderSlot from './RenderSlot';
-import {compareVersion} from './utils';
+import {compareVersion, loadCSSLazy} from './utils';
 import {setLoggerSilent} from './logger';
 import Notification from './Notification';
 import ErrorBoundary from './ErrorBoundary';
 import {observable as defaultObservable, hijackReactcreateElement} from './observable';
 import {T_RenderOptions} from "./types";
+import RenderSlotLess from './RenderSlot.lazy.less';
+import MultiSceneLess from './MultiScene.lazy.less';
+import ErrorBoundaryLess from './ErrorBoundary/style.lazy.less';
+import NotificationLess from './Notification/style.lazy.less';
 
 /** 遍历组件库，处理成comDefs所需的格式 */
 const regAry = (comAray, comDefs) => {
@@ -163,6 +167,10 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
 
   //根据script生成context对象
   const [context, refs] = useMemo(() => {
+    loadCSSLazy(RenderSlotLess, env.shadowRoot)
+    loadCSSLazy(MultiSceneLess, env.shadowRoot)
+    loadCSSLazy(ErrorBoundaryLess, env.shadowRoot)
+    loadCSSLazy(NotificationLess, env.shadowRoot)
     try {
       let refs
       const context = executor({
