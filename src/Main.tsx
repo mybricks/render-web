@@ -37,7 +37,7 @@ const regAry = (comAray, comDefs) => {
 
 let count = 1
 
-export default function Main({json, opts, style = {}}: { json, opts: T_RenderOptions, style? }) {
+export default function Main({json, opts, style = {}, className = ''}: { json, opts: T_RenderOptions, style?, className? }) {
   //环境变量，此处可以定义连接器、多语言等实现
   const env = useMemo(() => {
     if (count === 1) {
@@ -211,9 +211,11 @@ export default function Main({json, opts, style = {}}: { json, opts: T_RenderOpt
         slot={slot}
         getComDef={getComDef}
         getContext={context.get}
+        className={className}
         __rxui_child__={!opts.observable}
         onError={onError}
         logger={logger}
+        root={true}
       />
     </ErrorBoundary>
   )

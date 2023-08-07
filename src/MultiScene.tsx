@@ -6,6 +6,8 @@ import React, {
 
 import Main from './Main'
 
+import css from './MultiScene.less'
+
 export default function MultiScene ({json, opts}) {
   const [count, setCount] = useState(0)
 
@@ -25,7 +27,8 @@ export default function MultiScene ({json, opts}) {
             show: index === 0,
             todo: [],
             json,
-            disableAutoRun: !!index
+            disableAutoRun: !!index,
+            useEntryAnimation: false
           }
         }
       }, {}),
@@ -70,6 +73,11 @@ export default function MultiScene ({json, opts}) {
                   if (openType) {
                     Object.entries(scenesMap).forEach(([key, scenes]: any) => {
                       if (key === sceneId) {
+                        if (openType === 'blank') {
+                          scenes.useEntryAnimation = true
+                        } else {
+                          scenes.useEntryAnimation = false
+                        }
                         scenes.show = true
                       } else {
                         scenes.show = false
@@ -78,6 +86,11 @@ export default function MultiScene ({json, opts}) {
                     setCount((count) => count+1)
                   } else {
                     if (!scenes.show) {
+                      if (openType === 'blank') {
+                        scenes.useEntryAnimation = true
+                      } else {
+                        scenes.useEntryAnimation = false
+                      }
                       scenes.show = true
                       setCount((count) => count+1)
                     }
@@ -270,6 +283,11 @@ export default function MultiScene ({json, opts}) {
             if (openType) {
               Object.entries(scenesMap).forEach(([key, scenes]: any) => {
                 if (key === sceneId) {
+                  if (openType === 'blank') {
+                    scenes.useEntryAnimation = true
+                  } else {
+                    scenes.useEntryAnimation = false
+                  }
                   scenes.show = true
                 } else {
                   scenes.show = false
@@ -278,6 +296,11 @@ export default function MultiScene ({json, opts}) {
               setCount((count) => count+1)
             } else {
               if (!scenes.show) {
+                if (openType === 'blank') {
+                  scenes.useEntryAnimation = true
+                } else {
+                  scenes.useEntryAnimation = false
+                }
                 scenes.show = true
                 setCount((count) => count+1)
               }
@@ -439,8 +462,9 @@ export default function MultiScene ({json, opts}) {
       Object.assign(json.coms, coms)
       Object.assign(json.cons, cons)
       Object.assign(json.pinRels, pinRels)
+      const scene = scenesMap[id]
       
-      return scenesMap[id].show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} style={!index ? {} : {position: 'absolute', top: 0, left: 0}}/>
+      return scene.show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={!index ? {} : {position: 'absolute', top: 0, left: 0}}/>
     })
   }, [count])
 
@@ -454,9 +478,9 @@ export default function MultiScene ({json, opts}) {
   return scenes
 }
 
-function Scene({json, opts, style = {}}) {
+function Scene({json, opts, style = {}, className = ''}) {
   return (
-    <Main json={json} opts={opts} style={style}/>
+    <Main json={json} opts={opts} style={style} className={className}/>
   )
 }
 
