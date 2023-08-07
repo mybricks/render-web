@@ -10,6 +10,13 @@ export default function MultiScene ({json, opts}) {
   const [count, setCount] = useState(0)
 
   const {scenesMap} = useMemo(() => {
+    if (opts.sceneId) {
+      const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
+      if (index !== -1) {
+        const scene = json.scenes.splice(index, 1)
+        json.scenes.unshift(...scene)
+      }
+    }
     return {
       scenesMap: json.scenes.reduce((acc, json, index) => {
         return {
@@ -24,7 +31,6 @@ export default function MultiScene ({json, opts}) {
       }, {}),
     }
   }, [])
-  
 
   useMemo(() => {
     if (opts.ref) {
@@ -58,7 +64,7 @@ export default function MultiScene ({json, opts}) {
               canvas: {
                 type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
                 open: (sceneId, params, openType) => {
-                  console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
+                  // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
                   const scenes = scenesMap[sceneId]
         
                   if (!scenes.show) {
@@ -69,7 +75,7 @@ export default function MultiScene ({json, opts}) {
               },
               // 这个在下版本去除
               openScene: (sceneId, params, openType) => {
-                console.log(`fx openScene 打开场景 -> ${sceneId}`)
+                // console.log(`fx openScene 打开场景 -> ${sceneId}`)
                 const scenes = scenesMap[sceneId]
       
                 if (!scenes.show) {
@@ -80,7 +86,7 @@ export default function MultiScene ({json, opts}) {
             },
             disableAutoRun: true,
             ref: opts.ref((_refs) => {
-              console.log(`fx 场景注册_refs -> ${id}`)
+              // console.log(`fx 场景注册_refs -> ${id}`)
 
               fxInfo._refs = _refs
               
@@ -136,7 +142,7 @@ export default function MultiScene ({json, opts}) {
               loadCSSLazy() {},
               currentScenes: {
                 close() {
-                  console.log('fx currentScenes.close')
+                  // console.log('fx currentScenes.close')
                   // scenes.show = false
                   // scenes.todo = []
                   // scenes._refs = null
@@ -147,11 +153,11 @@ export default function MultiScene ({json, opts}) {
             },
             scenesOperate: {
               open({todo, frameId, parentScope}) {
-                console.log('fx scenesOperate.open', {
-                  todo,
-                  frameId,
-                  parentScope
-                })
+                // console.log('fx scenesOperate.open', {
+                //   todo,
+                //   frameId,
+                //   parentScope
+                // })
                 const fxFrame = fxFramesMap[frameId]
 
                 if (fxFrame?._refs) {
@@ -170,9 +176,9 @@ export default function MultiScene ({json, opts}) {
                 // }
               },
               inputs({frameId, parentScope, value, pinId}) {
-                console.log('fx 场景触发inputs: ', {
-                  frameId, parentScope, value, pinId
-                })
+                // console.log('fx 场景触发inputs: ', {
+                //   frameId, parentScope, value, pinId
+                // })
                 const scenes = scenesMap[frameId]
       
                 scenes.parentScope = parentScope
@@ -247,7 +253,7 @@ export default function MultiScene ({json, opts}) {
         canvas: {
           type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
           open: (sceneId, params, openType) => {
-            console.log(`打开场景 -> ${sceneId}`)
+            // console.log(`打开场景 -> ${sceneId}`)
             const scenes = scenesMap[sceneId]
   
             if (!scenes.show) {
@@ -258,7 +264,7 @@ export default function MultiScene ({json, opts}) {
         },
         // 这个在下版本去除
         openScene: (sceneId, params, openType) => {
-          console.log(`打开场景 -> ${sceneId}`)
+          // console.log(`打开场景 -> ${sceneId}`)
           const scenes = scenesMap[sceneId]
 
           if (!scenes.show) {
@@ -269,7 +275,7 @@ export default function MultiScene ({json, opts}) {
       },
       disableAutoRun,
       ref: opts.ref((_refs) => {
-        console.log(`场景注册_refs -> ${id}`)
+        // console.log(`场景注册_refs -> ${id}`)
         scenes._refs = _refs
         const todo = scenes.todo
         const { inputs, outputs } = _refs
@@ -346,9 +352,9 @@ export default function MultiScene ({json, opts}) {
           }
         },
         inputs({frameId, parentScope, value, pinId}) {
-          console.log('场景触发inputs: ', {
-            frameId, parentScope, value, pinId
-          })
+          // console.log('场景触发inputs: ', {
+          //   frameId, parentScope, value, pinId
+          // })
           const scenes = scenesMap[frameId]
 
           scenes.parentScope = parentScope
