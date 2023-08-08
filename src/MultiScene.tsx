@@ -67,7 +67,7 @@ export default function MultiScene ({json, opts}) {
             ...opts,
             env: {
               ...opts.env,
-              canvas: {
+              canvas: Object.assign({
                 id,
                 type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
                 open: (sceneId, params, openType) => {
@@ -100,7 +100,7 @@ export default function MultiScene ({json, opts}) {
                     }
                   }
                 }
-              },
+              }, opts.env?.canvas),
               // 这个在下版本去除
               openScene: (sceneId, params, openType) => {
                 // console.log(`fx openScene 打开场景 -> ${sceneId}`)
@@ -223,7 +223,7 @@ export default function MultiScene ({json, opts}) {
       ...opts,
       env: {
         ...opts.env,
-        canvas: {
+        canvas: Object.assign({
           id,
           type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
           open: (sceneId, params, openType) => {
@@ -256,7 +256,7 @@ export default function MultiScene ({json, opts}) {
               }
             }
           }
-        },
+        }, opts.env?.canvas),
         // 这个在下版本去除
         openScene: (sceneId, params, openType) => {
           // console.log(`打开场景 -> ${sceneId}`)
