@@ -117,9 +117,7 @@ export default function MultiScene ({json, opts}) {
               // console.log(`fx 场景注册_refs -> ${id}`)
 
               fxInfo._refs = _refs
-              
-              // scenes._refs = _refs
-              // const todo = scenes.todo
+
               const { inputs, outputs } = _refs
 
               fxFrame.outputs.forEach((output) => {
@@ -127,55 +125,12 @@ export default function MultiScene ({json, opts}) {
                   fxInfo.parentScope?.outputs[output.id](value)
                 })
               })
-      
-              // scenes.json.outputs.forEach((output) => {
-              //   outputs(output.id, (value) => {
-              //     scenes.show = false
-              //     scenes.todo = []
-              //     scenes._refs = null
-              //     scenes.parentScope?.outputs[output.id](value)
-              //     scenes.parentScope = null
-              //     setCount((count) => count+1)
-              //   })
-              // })
-      
-              // if (todo.length) {
-              //   todo.forEach(({type, todo}) => {
-              //     if (type === 'inputs') {
-              //       Promise.resolve().then(() => {
-              //         inputs[todo.pinId](todo.value)
-              //       })
-              //     } else if (type === 'globalVar') {
-              //       const { comId, value, bindings } = todo
-              //       _notifyBindings(_refs, comId, bindings, value)
-              //     }
-              //   })
-        
-              //   scenes.todo = []
-              // } else if (!disableAutoRun) {
-              //   Promise.resolve().then(() => {
-              //     scenes.json.inputs?.forEach?.(({id}) => {
-              //       inputs[id](void 0)
-              //     })
-              //   })
-              // }
-      
-              // if (disableAutoRun) {
-              //   Promise.resolve().then(() => {
-              //     _refs.run()
-              //   })
-              // }
             }),
             _env: {
               loadCSSLazy() {},
               currentScenes: {
                 close() {
-                  // console.log('fx currentScenes.close')
-                  // scenes.show = false
-                  // scenes.todo = []
-                  // scenes._refs = null
-                  // scenes.parentScope = null
-                  // setCount((count) => count+1)
+
                 }
               }
             },
@@ -193,15 +148,6 @@ export default function MultiScene ({json, opts}) {
                   fxFrame._refs.inputs[todo.pinId](todo.value)
                   fxFrame._refs.run()
                 }
-                // const scenes = scenesMap[frameId]
-      
-                // if (!scenes.show) {
-                //   scenes.show = true
-                //   scenes.todo = scenes.todo.concat({type: 'inputs', todo})
-                //   scenes.parentScope = parentScope
-        
-                //   setCount((count) => count+1)
-                // }
               },
               inputs({frameId, parentScope, value, pinId}) {
                 // console.log('fx 场景触发inputs: ', {
@@ -272,7 +218,6 @@ export default function MultiScene ({json, opts}) {
 
   const options = useCallback((id) => {
     const scenes = scenesMap[id]
-    const { disableAutoRun } = scenes
 
     return {
       ...opts,
@@ -323,12 +268,15 @@ export default function MultiScene ({json, opts}) {
           }
         }
       },
-      disableAutoRun,
+      get disableAutoRun() {
+        return scenes.disableAutoRun
+      },
       ref: opts.ref((_refs) => {
         // console.log(`场景注册_refs -> ${id}`)
         scenes._refs = _refs
         const todo = scenes.todo
         const { inputs, outputs } = _refs
+        const disableAutoRun = scenes.disableAutoRun
 
         scenes.json.outputs.forEach((output) => {
           outputs(output.id, (value) => {
@@ -355,6 +303,7 @@ export default function MultiScene ({json, opts}) {
   
           scenes.todo = []
         } else if (!disableAutoRun) {
+          scenes.disableAutoRun = true
           Promise.resolve().then(() => {
             scenes.json.inputs?.forEach?.(({id}) => {
               inputs[id](void 0)
@@ -469,6 +418,7 @@ export default function MultiScene ({json, opts}) {
       Object.assign(json.pinRels, pinRels)
       const scene = scenesMap[id]
       
+      // @ts-ignore
       return scene.show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0} : {}}/>
     })
   }, [count])
