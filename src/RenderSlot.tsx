@@ -124,15 +124,13 @@ function RenderCom({
     const { pxToRem: configPxToRem } = env
 
     if (Array.isArray(styleAry)) {
-      const tagId = `${id}-style`
-
       const root = env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot
 
-      if (!(root || document).getElementById(tagId)) {
+      if (!(root || document).querySelector(`style[id="${id}"]`)) {
         const styleTag = document.createElement('style')
         let innerText = ''
 
-        styleTag.id = tagId
+        styleTag.id = id
         styleAry.forEach(({css, selector}) => {
           if (selector === ':root') {
             selector = '> *:first-child'
@@ -221,7 +219,7 @@ function RenderCom({
     }
   }, [])
 
-  const classes = getClasses({style})
+  const classes = getClasses({style, id})
   const sizeStyle = getSizeStyle({style})
   const marginStyle = getMarginStyle({style})
 
@@ -562,8 +560,8 @@ function calSlotClasses(slotStyle) {
   return rtn.join(' ')
 }
 
-function getClasses({style}) {
-  const classes = [css.com]
+function getClasses({style, id}) {
+  const classes = [id, css.com]
 
   if (style.flex === 1) {
     classes.push(css.flex)
