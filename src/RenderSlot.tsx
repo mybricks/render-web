@@ -87,7 +87,7 @@ export default function RenderSlot({
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
@@ -459,7 +459,7 @@ const SlotRender = memo(({
 
 //-----------------------------------------------------------------------
 
-function calSlotStyles(style, hasParamsStyle) {
+function calSlotStyles(style, hasParamsStyle, root) {
   // 兼容旧的style
   const {
     paddingLeft,
@@ -480,7 +480,7 @@ function calSlotStyles(style, hasParamsStyle) {
     paddingRight: paddingRight || 0,
     paddingBottom: paddingBottom || 0,
     //height: style.customHeight || '100%'
-    backgroundColor,
+    backgroundColor: backgroundColor || (root ? '#ffffff' : void 0),
     backgroundImage,
     backgroundPosition,
     backgroundRepeat,
