@@ -81,7 +81,7 @@ export default function executor(opts, {observable}) {
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('com', 'output', {id: com.id, pinHostId, val, fromCon, notifyAll})
+        debugLogger('com', 'output', {id: com.id, pinHostId, val, fromCon, notifyAll, comDef})
       } else {
         logOutputVal(com.title, comDef, pinHostId, val)
       }
@@ -103,7 +103,7 @@ export default function executor(opts, {observable}) {
   }) {
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
     if (debugLogger) {//存在外部的debugLogger
-      debugLogger('com', 'input', {id: com.id, pinHostId, val, frameKey, finishPinParentKey})
+      debugLogger('com', 'input', {id: com.id, pinHostId, val, frameKey, finishPinParentKey, comDef})
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
     }
