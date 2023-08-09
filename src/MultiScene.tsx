@@ -145,7 +145,7 @@ export default function MultiScene ({json, opts}) {
 
                 if (fxFrame?._refs) {
                   fxFrame.parentScope = parentScope
-                  fxFrame._refs.inputs[todo.pinId](todo.value)
+                  fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
                   fxFrame._refs.run()
                 }
               },
@@ -345,7 +345,7 @@ export default function MultiScene ({json, opts}) {
             const fxFrame = fxFramesMap[frameId]
             if (fxFrame?._refs) {
               fxFrame.parentScope = parentScope
-              fxFrame._refs.inputs[todo.pinId](todo.value)
+              fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
               fxFrame._refs.run()
             }
           }

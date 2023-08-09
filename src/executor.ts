@@ -1036,14 +1036,16 @@ export default function executor(opts, {observable}) {
     }
   }
 
-  function exeInputForFrame(opts, val, scope?) {
+  function exeInputForFrame(opts, val, scope = void 0, log = true) {
     const {frameId, comId, pinId,sceneId} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
     const cons = Cons[idPre + '-' + pinId]
 
     _slotValue[`${frameId}-${pinId}`] = val
 
-    _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val,sceneId})
+    if (log) {
+      _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val,sceneId})
+    }
 
     if (cons) {
       exeCons(cons, val, scope)
@@ -1099,8 +1101,8 @@ export default function executor(opts, {observable}) {
       },
       inputs: new Proxy({}, {
         get(target, pinId) {
-          return function (val,sceneId?) {
-            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,sceneId}, val)
+          return function (val,sceneId = void 0, log = true) {
+            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,sceneId}, val, void 0, log)
           }
         }
       }),
