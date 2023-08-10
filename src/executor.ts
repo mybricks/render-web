@@ -19,6 +19,7 @@ export default function executor(opts, {observable}) {
     ref,
     onError,
     logger,
+    debug,
     debugLogger,
     scenesOperate
   } = opts
@@ -184,6 +185,9 @@ export default function executor(opts, {observable}) {
     }
 
     cons.forEach(inReg => {
+      if (debug && inReg.isIgnored) {
+        return
+      }
       let nextScope = curScope
 
       if (notifyAll) {

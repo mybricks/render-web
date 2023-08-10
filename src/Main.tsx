@@ -185,6 +185,7 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
           }
         },
         onError,
+        debug: opts.debug,
         debugLogger: opts.debugLogger,
         logger,
         scenesOperate: opts.scenesOperate

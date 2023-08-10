@@ -1,4 +1,5 @@
 export type T_RenderOptions = {
+  debug?,
   sceneId?,
   events?,
   env?,
