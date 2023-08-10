@@ -222,6 +222,7 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
         getContext={context.get}
         className={className}
         __rxui_child__={!opts.observable}
+        createPortal={opts.createPortal || (() => {})}
         onError={onError}
         logger={logger}
         root={true}

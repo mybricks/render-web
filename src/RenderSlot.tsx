@@ -21,6 +21,7 @@ export default function RenderSlot({
                                      root,
                                      slot,
                                      style: propsStyle = {},
+                                     createPortal,
                                      className,
                                      params,
                                      inputs,
@@ -62,6 +63,7 @@ export default function RenderSlot({
                         template={template}
                         onError={onError}
                         logger={logger}
+                        createPortal={createPortal}
                         __rxui_child__={__rxui_child__}/>,
         name,
         inputs: props.inputsCallable,
@@ -100,6 +102,7 @@ function RenderCom({
                      scope,
                      template,
                      env,
+                     createPortal,
                      _env,
                      getComDef,
                      getContext,
@@ -181,6 +184,7 @@ function RenderCom({
                                params={params}
                                style={style}
                                onError={onError}
+                               createPortal={createPortal}
                                logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} getContext={getContext}
                                __rxui_child__={__rxui_child__}/>
           } else {
@@ -281,9 +285,7 @@ function RenderCom({
     _outputs: _myOutputs,
     _notifyBindings: _myNotifyBindings,
     slots: slotsProxy,
-    createPortal: e => {
-
-    },
+    createPortal,
     parentSlot,
     __rxui_child__,
     onError,
@@ -325,6 +327,7 @@ const SlotRender = memo(({
                            params,
                            scope,
                            env,
+                           createPortal,
                            _env,
                            style,
                            getComDef,
@@ -417,6 +420,7 @@ const SlotRender = memo(({
     <RenderSlot
       scope={curScope}
       env={env}
+      createPortal={createPortal}
       _env={_env}
       slot={slot}
       params={params}
