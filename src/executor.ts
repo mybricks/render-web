@@ -720,31 +720,35 @@ export default function executor(opts, {observable}) {
 
           const {realId, realVal, isReady, isMultipleInput} = transformInputId(inReg, val, props)
 
-          // 当前pin为 多输入并且输入都已到达 或者 非多输入
-          if ((isMultipleInput && isReady) || !isMultipleInput) {
-            props._inputRegs[realId](realVal, new Proxy({}, {//relOutputs
-              get(target, name) {
-                return function (val) {
-                  if (PinValueProxies) {
-                    const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
-                    if (pinValueProxy) {
-                      // val = _slotValue[`${frameKey}-${pinValueProxy.pinId}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
-                      val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, scope)
-                      if (typeof val === 'undefined') {
-                        val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, null)
+          const fn = props._inputRegs[realId]
+
+          if (typeof fn === 'function') {
+            // 当前pin为 多输入并且输入都已到达 或者 非多输入
+            if ((isMultipleInput && isReady) || !isMultipleInput) {
+              props._inputRegs[realId](realVal, new Proxy({}, {//relOutputs
+                get(target, name) {
+                  return function (val) {
+                    if (PinValueProxies) {
+                      const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
+                      if (pinValueProxy) {
+                        // val = _slotValue[`${frameKey}-${pinValueProxy.pinId}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
+                        val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, scope)
+                        if (typeof val === 'undefined') {
+                          val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, null)
+                        }
                       }
                     }
+                    props.outputs[name](val, scope, inReg)
+                    // const rels = _PinRels[id + '-' + pinId]
+                    // if (rels) {
+                    //   rels.forEach(relId => {
+                    //     props.outputs[relId](val)
+                    //   })
+                    // }
                   }
-                  props.outputs[name](val, scope, inReg)
-                  // const rels = _PinRels[id + '-' + pinId]
-                  // if (rels) {
-                  //   rels.forEach(relId => {
-                  //     props.outputs[relId](val)
-                  //   })
-                  // }
                 }
-              }
-            }))//invoke the input
+              }))//invoke the input
+            }
           }
         }
       } else {//ui
