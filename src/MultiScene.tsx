@@ -12,8 +12,9 @@ const css = lazyCss.locals
 
 export default function MultiScene ({json, opts}) {
   const [count, setCount] = useState(0)
+  const [popupIds, setPopupIds] = useState<any>([])
 
-  const {scenesMap} = useMemo(() => {
+  const {scenesMap, pageScenes, popupScenes} = useMemo(() => {
     if (opts.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
       if (index !== -1) {
@@ -21,6 +22,17 @@ export default function MultiScene ({json, opts}) {
         json.scenes.unshift(...scene)
       }
     }
+    const pageScenes: any = []
+    const popupScenes: any = []
+
+    json.scenes.forEach((scene) => {
+      if (scene.type === 'popup') {
+        popupScenes.push(scene)
+      } else {
+        pageScenes.push(scene)
+      }
+    })
+
     return {
       scenesMap: json.scenes.reduce((acc, json, index) => {
         return {
@@ -35,6 +47,8 @@ export default function MultiScene ({json, opts}) {
           }
         }
       }, {}),
+      pageScenes,
+      popupScenes
     }
   }, [])
 
@@ -83,11 +97,24 @@ export default function MultiScene ({json, opts}) {
                           scenes.useEntryAnimation = false
                         }
                         scenes.show = true
+                        if (scenes.type === 'popup') {
+                          setPopupIds((popupIds) => {
+                            return [...popupIds, sceneId]
+                          })
+                        } else {
+                          setCount((count) => count+1)
+                        }
                       } else {
                         scenes.show = false
+                        if (scenes.type === 'popup') {
+                          setPopupIds((popupIds) => {
+                            return popupIds.filter((id) => id !== scenes.json.id)
+                          })
+                        } else {
+                          setCount((count) => count+1)
+                        }
                       }
                     })
-                    setCount((count) => count+1)
                   } else {
                     if (!scenes.show) {
                       if (openType === 'blank') {
@@ -96,7 +123,13 @@ export default function MultiScene ({json, opts}) {
                         scenes.useEntryAnimation = false
                       }
                       scenes.show = true
-                      setCount((count) => count+1)
+                      if (scenes.type === 'popup') {
+                        setPopupIds((popupIds) => {
+                          return [...popupIds, sceneId]
+                        })
+                      } else {
+                        setCount((count) => count+1)
+                      }
                     }
                   }
                 }
@@ -108,7 +141,13 @@ export default function MultiScene ({json, opts}) {
       
                 if (!scenes.show) {
                   scenes.show = true
-                  setCount((count) => count+1)
+                  if (scenes.type === 'popup') {
+                    setPopupIds((popupIds) => {
+                      return [...popupIds, sceneId]
+                    })
+                  } else {
+                    setCount((count) => count+1)
+                  }
                 }
               }
             },
@@ -239,11 +278,24 @@ export default function MultiScene ({json, opts}) {
                     scenes.useEntryAnimation = false
                   }
                   scenes.show = true
+                  if (scenes.type === 'popup') {
+                    setPopupIds((popupIds) => {
+                      return [...popupIds, sceneId]
+                    })
+                  } else {
+                    setCount((count) => count+1)
+                  }
                 } else {
                   scenes.show = false
+                  if (scenes.type === 'popup') {
+                    setPopupIds((popupIds) => {
+                      return popupIds.filter((id) => id !== scenes.json.id)
+                    })
+                  } else {
+                    setCount((count) => count+1)
+                  }
                 }
               })
-              setCount((count) => count+1)
             } else {
               if (!scenes.show) {
                 if (openType === 'blank') {
@@ -252,7 +304,13 @@ export default function MultiScene ({json, opts}) {
                   scenes.useEntryAnimation = false
                 }
                 scenes.show = true
-                setCount((count) => count+1)
+                if (scenes.type === 'popup') {
+                  setPopupIds((popupIds) => {
+                    return [...popupIds, sceneId]
+                  })
+                } else {
+                  setCount((count) => count+1)
+                }
               }
             }
           }
@@ -264,7 +322,13 @@ export default function MultiScene ({json, opts}) {
 
           if (!scenes.show) {
             scenes.show = true
-            setCount((count) => count+1)
+            if (scenes.type === 'popup') {
+              setPopupIds((popupIds) => {
+                return [...popupIds, sceneId]
+              })
+            } else {
+              setCount((count) => count+1)
+            }
           }
         }
       },
@@ -285,7 +349,13 @@ export default function MultiScene ({json, opts}) {
             scenes._refs = null
             scenes.parentScope?.outputs[output.id](value)
             scenes.parentScope = null
-            setCount((count) => count+1)
+            if (scenes.type === 'popup') {
+              setPopupIds((popupIds) => {
+                return popupIds.filter((id) => id !== scenes.json.id)
+              })
+            } else {
+              setCount((count) => count+1)
+            }
           })
         })
 
@@ -325,7 +395,13 @@ export default function MultiScene ({json, opts}) {
             scenes.todo = []
             scenes._refs = null
             // scenes.parentScope = null
-            setCount((count) => count+1)
+            if (scenes.type === 'popup') {
+              setPopupIds((popupIds) => {
+                return popupIds.filter((id) => id !== scenes.json.id)
+              })
+            } else {
+              setCount((count) => count+1)
+            }
           }
         }
       },
@@ -339,7 +415,13 @@ export default function MultiScene ({json, opts}) {
               scenes.todo = scenes.todo.concat({type: 'inputs', todo})
               scenes.parentScope = parentScope
     
-              setCount((count) => count+1)
+              if (scenes.type === 'popup') {
+                setPopupIds((popupIds) => {
+                  return [...popupIds, frameId]
+                })
+              } else {
+                setCount((count) => count+1)
+              }
             }
           } else {
             const fxFrame = fxFramesMap[frameId]
@@ -411,7 +493,7 @@ export default function MultiScene ({json, opts}) {
       })
     }
 
-    return json.scenes.map((json, index) => {
+    return pageScenes.map((json, index) => {
       const { id } = json
       Object.assign(json.coms, coms)
       Object.assign(json.cons, cons)
@@ -423,10 +505,43 @@ export default function MultiScene ({json, opts}) {
     })
   }, [count])
 
+  const popups = useMemo(() => {
+    if (popupIds.length) {
+      const { global } = json
+      let coms = {}
+      let cons = {}
+      let pinRels = {}
+  
+      if (global) {
+        coms = global.comsReg
+        cons = global.consReg
+        pinRels = global.pinRels
+  
+        Object.keys(coms).forEach((key) => {
+          coms[key].global = true
+        })
+      }
+
+      return popupIds.map((sceneId) => {
+        const scene = scenesMap[sceneId]
+        const json = scene.json
+        const { id } = json
+        Object.assign(json.coms, coms)
+        Object.assign(json.cons, cons)
+        Object.assign(json.pinRels, pinRels)
+        
+        return <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} style={{position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'}}/>
+      })
+    }
+   
+    return null
+  }, [popupIds])
+
   return (
     <>
       {fxFramesJsx}
       {scenes}
+      {popups}
     </>
   )
 }
