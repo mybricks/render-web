@@ -20,6 +20,9 @@ export default function MultiScene ({json, opts}) {
       if (index !== -1) {
         const scene = json.scenes.splice(index, 1)
         json.scenes.unshift(...scene)
+        if (scene[0].type === 'popup') {
+          setPopupIds([scene[0].id])
+        }
       }
     }
     const pageScenes: any = []
