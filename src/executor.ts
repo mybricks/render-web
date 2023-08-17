@@ -637,7 +637,7 @@ export default function executor(opts, {observable}) {
 
   function getSlotValue(key, scope) {
     let val = _slotValue[`${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
-    if (!val && scope?.parent) {
+    if ((typeof val === 'undefined') && scope?.parent) {
       val = getSlotValue(key, scope.parent)
     }
 
