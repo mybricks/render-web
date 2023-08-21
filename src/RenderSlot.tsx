@@ -134,12 +134,12 @@ function RenderCom({
         let innerText = ''
 
         styleTag.id = id
-        styleAry.forEach(({css, selector}) => {
+        styleAry.forEach(({css, selector, global}) => {
           if (selector === ':root') {
             selector = '> *:first-child'
           }
           innerText = innerText + `
-            #${id} ${selector} {
+            ${global ? '' : `#${id} `}${selector} {
               ${Object.keys(css).map(key => {
                 let value = css[key]
                 if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {

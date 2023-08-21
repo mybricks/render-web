@@ -72,7 +72,7 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
       i18n(text: any) {
         return text
       },
-      canvasElement: document.body,
+      canvasElement: opts.debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.body) : document.body,
       canvas: {
         type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
       }
