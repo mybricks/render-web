@@ -13,8 +13,9 @@ const css = lazyCss.locals
 export default function MultiScene ({json, opts}) {
   const [count, setCount] = useState(0)
   const [popupIds, setPopupIds] = useState<any>([])
+  const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, pageScenes, popupScenes} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo} = useMemo(() => {
     if (opts.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
       if (index !== -1) {
@@ -26,15 +27,15 @@ export default function MultiScene ({json, opts}) {
       }
     }
     const pageScenes: any = []
-    const popupScenes: any = []
 
     json.scenes.forEach((scene) => {
       if (scene.type === 'popup') {
-        popupScenes.push(scene)
       } else {
         pageScenes.push(scene)
       }
     })
+
+    setPageScenes(pageScenes)
 
     return {
       scenesMap: json.scenes.reduce((acc, json, index) => {
@@ -50,8 +51,7 @@ export default function MultiScene ({json, opts}) {
           }
         }
       }, {}),
-      pageScenes,
-      popupScenes
+      scenesOperateInputsTodo: {}
     }
   }, [])
 
@@ -87,9 +87,45 @@ export default function MultiScene ({json, opts}) {
               canvas: Object.assign({
                 id,
                 type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-                open: (sceneId, params, openType) => {
+                open: async (sceneId, params, openType) => {
                   // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
-                  const scenes = scenesMap[sceneId]
+                  let scenes = scenesMap[sceneId]
+      
+                  if (!scenes) {
+                    if (typeof opts.scenesLoader !== 'function') {
+                      console.error(`缺少场景信息: ${sceneId}`)
+                      return
+                    }
+                    const json = await opts.scenesLoader({id: sceneId})
+      
+                    scenes = {
+                      disableAutoRun: false,
+                      json,
+                      show: false,
+                      parentScope: null,
+                      todo: [],
+                      type: json.slot?.showType || json.type,
+                      useEntryAnimation: false
+                    }
+      
+                    scenesMap[sceneId] = scenes
+                    if (json.type === 'popup') {
+                    } else {
+                      setPageScenes((pageScenes) => {
+                        return [...pageScenes, json]
+                      })
+                    }
+                    if (scenesOperateInputsTodo[sceneId]) {
+                      const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+                      scenes.parentScope = parentScope
+                      todo.forEach(({value, pinId, parentScope}) => {
+                        scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                          pinId,
+                          value
+                        }})
+                      })
+                    }
+                  }
         
                   if (openType) {
                     Object.entries(scenesMap).forEach(([key, scenes]: any) => {
@@ -137,22 +173,6 @@ export default function MultiScene ({json, opts}) {
                   }
                 }
               }, opts.env?.canvas),
-              // 这个在下版本去除
-              openScene: (sceneId, params, openType) => {
-                // console.log(`fx openScene 打开场景 -> ${sceneId}`)
-                const scenes = scenesMap[sceneId]
-      
-                if (!scenes.show) {
-                  scenes.show = true
-                  if (scenes.type === 'popup') {
-                    setPopupIds((popupIds) => {
-                      return [...popupIds, sceneId]
-                    })
-                  } else {
-                    setCount((count) => count+1)
-                  }
-                }
-              }
             },
             disableAutoRun: true,
             ref: opts.ref((_refs) => {
@@ -196,16 +216,26 @@ export default function MultiScene ({json, opts}) {
                 //   frameId, parentScope, value, pinId
                 // })
                 const scenes = scenesMap[frameId]
-      
-                scenes.parentScope = parentScope
-      
-                if (scenes._refs) {
-                  scenes._refs.inputs[pinId](value)
+                if (!scenes) {
+                  if (!scenesOperateInputsTodo[frameId]) {
+                    scenesOperateInputsTodo[frameId] = {
+                      parentScope,
+                      todo: [{value, pinId}]
+                    }
+                  } else {
+                    scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
+                  }
                 } else {
-                  scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                    pinId,
-                    value
-                  }})
+                  scenes.parentScope = parentScope
+      
+                  if (scenes._refs) {
+                    scenes._refs.inputs[pinId](value)
+                  } else {
+                    scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                      pinId,
+                      value
+                    }})
+                  }
                 }
               },
               _notifyBindings(val, com) {
@@ -268,9 +298,45 @@ export default function MultiScene ({json, opts}) {
         canvas: Object.assign({
           id,
           type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-          open: (sceneId, params, openType) => {
+          open: async (sceneId, params, openType) => {
             // console.log(`打开场景 -> ${sceneId}`)
-            const scenes = scenesMap[sceneId]
+            let scenes = scenesMap[sceneId]
+
+            if (!scenes) {
+              if (typeof opts.scenesLoader !== 'function') {
+                console.error(`缺少场景信息: ${sceneId}`)
+                return
+              }
+              const json = await opts.scenesLoader({id: sceneId})
+
+              scenes = {
+                disableAutoRun: false,
+                json,
+                show: false,
+                parentScope: null,
+                todo: [],
+                type: json.slot?.showType || json.type,
+                useEntryAnimation: false
+              }
+
+              scenesMap[sceneId] = scenes
+              if (json.type === 'popup') {
+              } else {
+                setPageScenes((pageScenes) => {
+                  return [...pageScenes, json]
+                })
+              }
+              if (scenesOperateInputsTodo[sceneId]) {
+                const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+                scenes.parentScope = parentScope
+                todo.forEach(({value, pinId, parentScope}) => {
+                  scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                    pinId,
+                    value
+                  }})
+                })
+              }
+            }
   
             if (openType) {
               Object.entries(scenesMap).forEach(([key, scenes]: any) => {
@@ -318,22 +384,6 @@ export default function MultiScene ({json, opts}) {
             }
           }
         }, opts.env?.canvas),
-        // 这个在下版本去除
-        openScene: (sceneId, params, openType) => {
-          // console.log(`打开场景 -> ${sceneId}`)
-          const scenes = scenesMap[sceneId]
-
-          if (!scenes.show) {
-            scenes.show = true
-            if (scenes.type === 'popup') {
-              setPopupIds((popupIds) => {
-                return [...popupIds, sceneId]
-              })
-            } else {
-              setCount((count) => count+1)
-            }
-          }
-        }
       },
       get disableAutoRun() {
         return scenes.disableAutoRun
@@ -440,16 +490,26 @@ export default function MultiScene ({json, opts}) {
           //   frameId, parentScope, value, pinId
           // })
           const scenes = scenesMap[frameId]
-
-          scenes.parentScope = parentScope
-
-          if (scenes._refs) {
-            scenes._refs.inputs[pinId](value)
+          if (!scenes) {
+            if (!scenesOperateInputsTodo[frameId]) {
+              scenesOperateInputsTodo[frameId] = {
+                parentScope,
+                todo: [{value, pinId}]
+              }
+            } else {
+              scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
+            }
           } else {
-            scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-              pinId,
-              value
-            }})
+            scenes.parentScope = parentScope
+
+            if (scenes._refs) {
+              scenes._refs.inputs[pinId](value)
+            } else {
+              scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                pinId,
+                value
+              }})
+            }
           }
         },
         _notifyBindings(val, com) {
@@ -481,6 +541,9 @@ export default function MultiScene ({json, opts}) {
   }, [])
 
   const scenes = useMemo(() => {
+    if (!pageScenes.length) {
+      return null
+    }
     const { global } = json
     let coms = {}
     let cons = {}
@@ -506,7 +569,7 @@ export default function MultiScene ({json, opts}) {
       // @ts-ignore
       return scene.show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}}/>
     })
-  }, [count])
+  }, [count, pageScenes])
 
   const popups = useMemo(() => {
     if (popupIds.length) {
