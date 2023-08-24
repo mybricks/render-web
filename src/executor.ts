@@ -156,7 +156,7 @@ export default function executor(opts, {observable}) {
 
         if (inReg.comId) {
           if (inReg.direction === 'inner-input') {
-            const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
+            const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
             if (proxyFn) {
               proxyFn(val)
             }
