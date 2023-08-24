@@ -128,7 +128,8 @@ function RenderCom({
 
     if (Array.isArray(styleAry)) {
       const root = env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot
-
+      console.log('styleAry: ', styleAry)
+      console.log('id: ', id)
       if (!(root || document).querySelector(`style[id="${id}"]`)) {
         const styleTag = document.createElement('style')
         let innerText = ''
@@ -139,7 +140,7 @@ function RenderCom({
             selector = '> *:first-child'
           }
           innerText = innerText + `
-            ${global ? '' : `#${id} `}${selector} {
+            ${global ? '' : `#${id} `}${selector.replace('.{id}', `.${id}`)} {
               ${Object.keys(css).map(key => {
                 let value = css[key]
                 if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
