@@ -138,7 +138,7 @@ function RenderCom({
             selector = '> *:first-child'
           }
           innerText = innerText + `
-            ${global ? '' : `#${id} `}${selector.replace(/\.\{id\}/g, `.${id}`)} {
+            ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
               ${Object.keys(css).map(key => {
                 let value = css[key]
                 if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
