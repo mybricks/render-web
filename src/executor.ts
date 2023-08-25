@@ -422,8 +422,16 @@ export default function executor(opts, {observable}) {
           }
         },
         get(target, name, receiver) {
-          const exe = function (val, _myScope, fromCon) {
+          const exe = function (val, _myScope, fromCon, isCurrent) { // isCurrent 当前全局变量
             const notifyAll = typeof _myScope === 'boolean' && _myScope//变量组件的特殊处理
+            if (com.global && notifyAll && !isCurrent) {
+              scenesOperate?.exeGlobalCom({
+                com,
+                value: val,
+                pinId: name
+              })
+              return
+            }
 
             const args = arguments
             const proxiedOutputs = ioProxy?.outputs
@@ -753,6 +761,9 @@ export default function executor(opts, {observable}) {
         }
       } else {//ui
         const props = getComProps(comId, scope)
+        if (!props) {
+          return
+        }
         const comDef = getComDef(def)
         //logInputVal(props.title, comDef, pinId, val)
 

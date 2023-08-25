@@ -261,6 +261,17 @@ export default function MultiScene ({json, opts}) {
               getGlobalComProps(comId) {
                 // 从主场景获取真实数据
                 return scenesMap[json.scenes[0].id]._refs.get(comId)
+              },
+              exeGlobalCom({ com, value, pinId }) {
+                Object.keys(scenesMap).forEach((key) => {
+                  const scenes = scenesMap[key]
+                  if (scenes.show && scenes._refs) {
+                    const globalCom = scenes._refs.get(com.id)
+                    if (globalCom) {
+                      globalCom.outputs[pinId](value, true, null, true)
+                    }
+                  }
+                })
               }
             }
           }
@@ -535,6 +546,17 @@ export default function MultiScene ({json, opts}) {
         getGlobalComProps(comId) {
           // 从主场景获取真实数据
           return scenesMap[json.scenes[0].id]._refs.get(comId)
+        },
+        exeGlobalCom({ com, value, pinId }) {
+          Object.keys(scenesMap).forEach((key) => {
+            const scenes = scenesMap[key]
+            if (scenes.show && scenes._refs) {
+              const globalCom = scenes._refs.get(com.id)
+              if (globalCom) {
+                globalCom.outputs[pinId](value, true, null, true)
+              }
+            }
+          })
         }
       }
     }
