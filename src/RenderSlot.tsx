@@ -123,8 +123,9 @@ function RenderCom({
   } = props
 
   useMemo(() => {
-    const { styleAry } = style
     const { pxToRem: configPxToRem } = env
+
+    const styleAry = getStyleAry({ env, def, style })
 
     if (Array.isArray(styleAry)) {
       const root = env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot
@@ -159,6 +160,7 @@ function RenderCom({
     }
     // TODO
     Reflect.deleteProperty(style, 'styleAry')
+    Reflect.deleteProperty(style, 'themesId')
   }, [])
 
   const comDef = getComDef(def)
@@ -626,4 +628,42 @@ function getMarginStyle({style}) {
   }
 
   return marginStyle
+}
+
+function getStyleAry ({ env, style, def }) {
+  const comThemes = env?.themes?.comThemes
+
+  if (!comThemes) {
+    return style.styleAry
+  }
+
+  let styleAry
+
+  const { themesId } = style
+  const { namespace } = def
+
+  if (!themesId) {
+    // 去找默认值
+    const comThemeAry = comThemes[namespace]
+    if (Array.isArray(comThemeAry)) {
+      const comTheme = comThemeAry.find(({ isDefault }) => isDefault)
+      if (comTheme) {
+        styleAry = comTheme.styleAry
+      }
+    }
+  } else if (themesId === '_defined') {
+    // 使用styleAry
+    styleAry = style.styleAry
+  } else {
+    // 去找相应的内容
+    const comThemeAry = comThemes[namespace]
+    if (Array.isArray(comThemeAry)) {
+      const comTheme = comThemeAry.find(({ id }) => id === themesId)
+      if (comTheme) {
+        styleAry = comTheme.styleAry
+      }
+    }
+  }
+
+  return styleAry
 }

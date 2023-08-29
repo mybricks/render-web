@@ -15,7 +15,7 @@ export default function MultiScene ({json, opts}) {
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, scenesOperateInputsTodo} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo, themes} = useMemo(() => {
     if (opts.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
       if (index !== -1) {
@@ -51,7 +51,8 @@ export default function MultiScene ({json, opts}) {
           }
         }
       }, {}),
-      scenesOperateInputsTodo: {}
+      scenesOperateInputsTodo: {},
+      themes: json.themes
     }
   }, [])
 
@@ -306,6 +307,7 @@ export default function MultiScene ({json, opts}) {
       ...opts,
       env: {
         ...opts.env,
+        themes,
         canvas: Object.assign({
           id,
           type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
