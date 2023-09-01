@@ -665,5 +665,10 @@ function getStyleAry ({ env, style, def }) {
     }
   }
 
+  // TODO: 兼容
+  if (!styleAry) {
+    return style.styleAry
+  }
+
   return styleAry
 }
