@@ -219,7 +219,7 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
         _env={opts._env}
         slot={slot}
         getComDef={getComDef}
-        getContext={context.get}
+        context={context}
         className={className}
         __rxui_child__={!opts.observable}
         createPortal={opts.createPortal || (() => {})}

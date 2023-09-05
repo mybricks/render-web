@@ -1110,6 +1110,9 @@ export default function executor(opts, {observable}) {
           return rtn
         }
       }
+    },
+    getComInfo(id) {
+      return Coms[id]
     }
   }
 
@@ -1128,7 +1131,8 @@ export default function executor(opts, {observable}) {
       outputs(id, fn) {
         _frameOutput[id] = fn;
       },
-      get: rst.get
+      get: rst.get,
+      getComInfo: rst.getComInfo
     })
   }
 

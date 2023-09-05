@@ -33,7 +33,7 @@ export default function RenderSlot({
                                      env,
                                      _env,
                                      getComDef,
-                                     getContext,
+                                     context,
                                      __rxui_child__,
                                      onError,
                                      logger
@@ -43,10 +43,17 @@ export default function RenderSlot({
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
     const {id, def, name}: Com = com
+    const comInfo = context.getComInfo(id)
+    const { hasPermission } = env
+    const permissions = comInfo?.model?.permissions
+
+    if (permissions && typeof hasPermission === 'function' && !hasPermission({key: permissions.id})) {
+      return
+    }
     const comDef = getComDef(def)
 
     if (comDef) {
-      const props = getContext(id, scope, {
+      const props = context.get(id, scope, {
         inputs, outputs, _inputs, _outputs
       })
 
@@ -55,7 +62,7 @@ export default function RenderSlot({
         id,
         jsx: <RenderCom key={comKey} com={com}
                         getComDef={getComDef}
-                        getContext={getContext}
+                        context={context}
                         scope={scope}
                         props={props}
                         env={env}
@@ -105,7 +112,7 @@ function RenderCom({
                      createPortal,
                      _env,
                      getComDef,
-                     getContext,
+                     context,
                      __rxui_child__,
                      onError,
                      logger
@@ -167,7 +174,7 @@ function RenderCom({
 
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
-      const props = getContext(id, slotId, scope)
+      const props = context.get(id, slotId, scope)
 
       const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
@@ -186,7 +193,7 @@ function RenderCom({
                                style={style}
                                onError={onError}
                                createPortal={createPortal}
-                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} getContext={getContext}
+                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
                                __rxui_child__={__rxui_child__}/>
           } else {
             return (
@@ -208,7 +215,7 @@ function RenderCom({
 
   const parentSlot = useMemo(() => {
     if (props.frameId && props.parentComId) {
-      const slotProps = getContext(props.parentComId, props.frameId, scope?.parent)
+      const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
       if (slotProps) {
         return {
           get _inputs() {
@@ -332,7 +339,7 @@ const SlotRender = memo(({
                            _env,
                            style,
                            getComDef,
-                           getContext,
+                           context,
                            onError,
                            logger,
                            __rxui_child__
@@ -428,7 +435,7 @@ const SlotRender = memo(({
       wrapper={wrapFn}
       template={params?.itemWrap}
       getComDef={getComDef}
-      getContext={getContext}
+      context={context}
       inputs={params?.inputs}
       outputs={params?.outputs}
       _inputs={params?._inputs}
