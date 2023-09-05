@@ -238,15 +238,26 @@ function RenderCom({
   const otherStyle: any = {}
 
   if (['fixed', 'absolute'].includes(style.position)) {
-    if (style.position === "fixed" && style.fixedY === "bottom") {
-      otherStyle.bottom = isNumber(style.bottom) ? style.bottom + 'px' :  style.bottom;
-    } else if (style.top) {
-      otherStyle.top = isNumber(style.top) ? style.top + 'px' :  style.top;
+    const { poXRef, poYRef, top, left, right, bottom } = style
+
+    if (poYRef === 'bottom') {
+      if (bottom || isNumber(bottom)) {
+        otherStyle.bottom = isNumber(bottom) ? bottom + 'px' : bottom
+      }
+    } else {
+      if (top || isNumber(top)) {
+        otherStyle.top = isNumber(top) ? top + 'px' : top
+      }
     }
-    if (style.position === "fixed" && style.fixedX === "right") {
-      otherStyle.right = isNumber(style.right) ? style.right + 'px' :  style.right;
-    } else if (style.left) {
-      otherStyle.left = isNumber(style.left) ? style.left + 'px' :  style.left;
+
+    if (poXRef === 'right') {
+      if (right || isNumber(right)) {
+        otherStyle.right = isNumber(right) ? right + 'px' : right
+      }
+    } else {
+      if (left || isNumber(left)) {
+        otherStyle.left = isNumber(left) ? left + 'px' : left
+      }
     }
     if (style.position === 'fixed') {
       // --- 2023.3.22 只有固定布局才需要通过设置zIndex达到置顶效果，自由布局不需要设置zIndex，否则永远在最上层
