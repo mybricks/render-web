@@ -314,9 +314,13 @@ export default function MultiScene ({json, opts}) {
         ...opts.env,
         themes,
         permissions,
-        hasPermission: typeof hasPermission === 'function' ? (id) => {
-          const permission = permissions.find((permission) => permission.id === id)
-          return hasPermission({ permission })
+        hasPermission: typeof hasPermission === 'function' ? (value) => {
+          // TODO 兼容老的组件用法
+          if (typeof value === 'string') {
+            const permission = permissions.find((permission) => permission.id === value)
+            return hasPermission({ permission })
+          }
+          return hasPermission(value)
         } : null,  
         canvas: Object.assign({
           id,
