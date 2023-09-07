@@ -15,7 +15,7 @@ export default function MultiScene ({json, opts}) {
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, scenesOperateInputsTodo, themes} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo, themes, permissions} = useMemo(() => {
     if (opts.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
       if (index !== -1) {
@@ -55,7 +55,8 @@ export default function MultiScene ({json, opts}) {
         }
       }, {}),
       scenesOperateInputsTodo: {},
-      themes: json.themes
+      themes: json.themes,
+      permissions: json.permissions || []
     }
   }, [])
 
@@ -305,12 +306,19 @@ export default function MultiScene ({json, opts}) {
 
   const options = useCallback((id) => {
     const scenes = scenesMap[id]
+    const hasPermission = opts.env.hasPermission
 
     return {
       ...opts,
       env: {
         ...opts.env,
         themes,
+        permissions,
+        hasPermission: typeof hasPermission === 'function' ? ({ key }) => {
+          const permission = permissions.find(({ id }) => id === key)
+  
+          return hasPermission({ permission })
+        } : null,  
         canvas: Object.assign({
           id,
           type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
