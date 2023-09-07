@@ -47,7 +47,7 @@ export default function RenderSlot({
     const { hasPermission } = env
     const permissions = comInfo?.model?.permissions
 
-    if (permissions && typeof hasPermission === 'function' && !hasPermission({key: permissions.id})) {
+    if (permissions && typeof hasPermission === 'function' && !hasPermission(permissions.id)) {
       return
     }
     const comDef = getComDef(def)
