@@ -166,13 +166,14 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
   }, []);
 
   //根据script生成context对象
-  const [context, refs] = useMemo(() => {
+  const [context, refs, activeTriggerInput] = useMemo(() => {
     loadCSSLazy(RenderSlotLess, env.shadowRoot)
     loadCSSLazy(MultiSceneLess, env.shadowRoot)
     loadCSSLazy(ErrorBoundaryLess, env.shadowRoot)
     loadCSSLazy(NotificationLess, env.shadowRoot)
     try {
       let refs
+      let activeTriggerInput = true
       const context = executor({
         json,
         getComDef,
@@ -180,8 +181,10 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
         env,
         ref(_refs) {
           refs = _refs
-          if (opts.ref) {
+          if (typeof opts.ref === 'function') {
             opts.ref(_refs)
+            // 如果被代理，那么inputs由外部处理
+            activeTriggerInput = false
           }
         },
         onError,
@@ -193,7 +196,7 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
         observable: opts.observable || defaultObservable//传递获取响应式的方法
       })
 
-      return [context, refs]
+      return [context, refs, activeTriggerInput]
     } catch (ex: any) {
       console.error(ex);
       Notification.error(`导出的JSON.script执行异常: ${ex?.stack || ex?.message || ex?.toString?.()}`);
@@ -203,6 +206,24 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
 
   useLayoutEffect(() => {
     if (!opts.disableAutoRun) {
+      if (activeTriggerInput) {
+        const { inputs } = refs
+        const jsonInputs = json.inputs
+        if (inputs && Array.isArray(jsonInputs)) {
+          jsonInputs.forEach((input) => {
+            const { id, mockData } = input
+            let value = void 0
+            if (opts.debug && typeof mockData !== 'undefined') {
+              try {
+                value = JSON.parse(decodeURIComponent(mockData))
+              } catch {
+                value = mockData
+              }
+            }
+            inputs[id](value)
+          })
+        }
+      }
       refs.run()
     }
   }, [])
