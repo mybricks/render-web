@@ -134,7 +134,7 @@ export default function executor(opts, {observable}) {
           //}
 
           exeInputForFrame(proxyDesc, val, myScope)
-          exeForFrame({frameId: proxyDesc.frameId})
+          exeForFrame({frameId: proxyDesc.frameId, scope: myScope})
           return
         }
       }
