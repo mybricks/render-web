@@ -455,8 +455,17 @@ export default function MultiScene ({json, opts}) {
         } else if (!disableAutoRun) {
           scenes.disableAutoRun = true
           Promise.resolve().then(() => {
-            scenes.json.inputs?.forEach?.(({id}) => {
-              inputs[id](void 0)
+            scenes.json.inputs?.forEach?.((input) => {
+              const { id, mockData } = input
+              let value = void 0
+              if (opts.debug && typeof mockData !== 'undefined') {
+                try {
+                  value = JSON.parse(decodeURIComponent(mockData))
+                } catch {
+                  value = mockData
+                }
+              }
+              inputs[id](value)
             })
           })
         }
