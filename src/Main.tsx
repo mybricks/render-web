@@ -149,6 +149,12 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
 
   // onError
   const onError = useMemo(() => {
+    const { debug, onError } = opts
+
+    if (debug && typeof onError === 'function') {
+      return onError
+    }
+
     return (e) => {
       console.error(e);
       Notification.error(e);
