@@ -20,7 +20,7 @@
   "author": "CheMingjun",
   "license": "ISC",
   "dependencies": {
-    "@mybricks/comlib-core": "0.0.26"
+    "@mybricks/comlib-core": "^0.0.27"
   },
   "devDependencies": {
     "@babel/core": "^7.18.9",

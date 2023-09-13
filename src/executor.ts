@@ -60,6 +60,8 @@ export default function executor(opts, {observable}) {
 
   const _slotValue = {}
 
+  const _fxRunExe = {}
+
   function _logOutputVal(type: 'com' | 'frame',
                          content:
                            {
@@ -123,18 +125,42 @@ export default function executor(opts, {observable}) {
 
           const comProps = getComProps(inReg.comId, nextScope)
           let myScope
-          //if (!curScope) {
-          myScope = {
-            // id: nextScope?.id || uuid(10, 16),
-            id: uuid(10, 16),
-            frameId: proxyDesc.frameId,
-            parent: nextScope,
-            proxyComProps: comProps//current proxied component instance
+
+          if (nextScope) {
+            if (nextScope.frameId === nextScope.proxyComProps.frameId) {
+              myScope = nextScope.parent
+            }
           }
-          //}
+
+          if (!myScope) {
+            //if (!curScope) {
+            myScope = {
+              // id: nextScope?.id || uuid(10, 16),
+              id: uuid(10, 16),
+              frameId: proxyDesc.frameId,
+              parent: nextScope,
+              proxyComProps: comProps//current proxied component instance
+            }
+            //}
+          }
+
+          let runExeForFrame = true
+
+          if (!_fxRunExe[proxyDesc.frameId]) {
+            _fxRunExe[proxyDesc.frameId] = true
+          } else {
+            runExeForFrame = false
+          }
 
           exeInputForFrame(proxyDesc, val, myScope)
-          exeForFrame({frameId: proxyDesc.frameId, scope: myScope})
+
+          if (runExeForFrame) {
+            exeForFrame({frameId: proxyDesc.frameId, scope: myScope})
+          }
+
+           _fxRunExe[proxyDesc.frameId] = false
+
+          // exeForFrame({frameId: proxyDesc.frameId, scope: myScope})
           return
         }
       }
@@ -1058,12 +1084,18 @@ export default function executor(opts, {observable}) {
   function exeInputForFrame(opts, val, scope = void 0, log = true) {
     const {frameId, comId, pinId,sceneId} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
-    const cons = Cons[idPre + '-' + pinId]
+    let cons = Cons[idPre + '-' + pinId]
 
     _slotValue[`${frameId}-${pinId}`] = val
 
     if (log) {
       _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val,sceneId})
+    }
+    if (!cons && scope) {
+      const idPre = scope.parent?.proxyComProps?.id
+      if (idPre) {
+        cons = Cons[idPre + '-' + pinId]
+      }
     }
 
     if (cons) {
