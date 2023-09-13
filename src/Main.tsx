@@ -47,19 +47,21 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
     if (count === 1) {
       count = 2
       const pxToRem = opts.env?.pxToRem
-      const rootDom = document.documentElement
 
       if (pxToRem) {
         const { enableAdaptive = false, landscapeWidth = 1440 } = pxToRem
+        const rootDom = document.documentElement
         if (enableAdaptive) {
           function calculateFontSize() {
             rootDom.style.fontSize = (rootDom.clientWidth / (landscapeWidth / 12)) + 'px'
           }
           calculateFontSize()
           window.addEventListener('resize', calculateFontSize)
+        } else {
+          rootDom.style.fontSize = '12px';
         }
       } else {
-        rootDom.style.fontSize = '12px';
+        // rootDom.style.fontSize = '12px';
       }
     }
 
@@ -82,7 +84,7 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
   const comDefs = useMemo(() => {
     if (!opts.observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
-      hijackReactcreateElement({pxToRem: env.pxToRem});
+      hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: env.pxToVw});
     }
 
     let comDefs: null | {[key: string]: any} = null;

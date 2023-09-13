@@ -9,7 +9,7 @@
 
 import React, {memo, useEffect, useMemo} from "react";
 
-import {isNumber, uuid, pxToRem, convertCamelToHyphen} from "./utils";
+import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen} from "./utils";
 
 import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
@@ -130,7 +130,7 @@ function RenderCom({
   } = props
 
   useMemo(() => {
-    const { pxToRem: configPxToRem } = env
+    const { pxToRem: configPxToRem, pxToVw: configPxToVw } = env
 
     const styleAry = getStyleAry({ env, def, style })
 
@@ -151,6 +151,8 @@ function RenderCom({
                 let value = css[key]
                 if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
                   value = pxToRem(value)
+                } else if (configPxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+                  value = pxToVw(value)
                 }
                 return `${convertCamelToHyphen(key)}: ${value};`
               }).join('\n')}

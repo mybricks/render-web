@@ -12,7 +12,7 @@ import {
   globalTaskEmitter,
   globalReactionStack
 } from "./global";
-import { isObject, pxToRem } from "../utils";
+import { isObject, pxToRem, pxToVw } from "../utils";
 import baseHandlers from "./handles";
 
 const globalKey = "__render-web-createElement__";
@@ -22,7 +22,7 @@ let createElement;
  * 劫持 React.createElement 函数
  */
 export function hijackReactcreateElement(props) {
-  const { pxToRem: configPxToRem } = props
+  const { pxToRem: configPxToRem, pxToVw: configPxToVw } = props
   if (!React[globalKey]) {
     React[globalKey] = true;
     createElement = React.createElement;
@@ -37,6 +37,15 @@ export function hijackReactcreateElement(props) {
 
           if (typeof value === 'string' && value.indexOf('px') !== -1) {
             style[key] = pxToRem(value)
+          }
+        })
+      } else if (configPxToVw && props?.style) {
+        const style = props.style
+        Object.keys(style).forEach((key) => {
+          const value = style[key]
+
+          if (typeof value === 'string' && value.indexOf('px') !== -1) {
+            style[key] = pxToVw(value)
           }
         })
       }

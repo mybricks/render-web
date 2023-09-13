@@ -107,11 +107,16 @@ const createPxReplacer = function createPxReplacer(perRatio, minPixelValue, unit
 };
 
 const remReplace = createPxReplacer(12, 0, 5, 'rem');
+const vwReplace = createPxReplacer(3.75, 0, 5, 'vw');
 
 const REG_PX = /"[^"]+"|'[^']+'|url\([^)]+\)|(\d*\.?\d+)px/g;
 
 export const pxToRem = (value) => {
   return value.replace(REG_PX, remReplace);
+}
+
+export const pxToVw = (value) => {
+  return value.replace(REG_PX, vwReplace);
 }
 
 export const loadCSSLazy = (css, root) => {
