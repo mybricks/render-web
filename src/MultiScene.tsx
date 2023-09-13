@@ -15,7 +15,7 @@ export default function MultiScene ({json, opts}) {
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, scenesOperateInputsTodo, themes, permissions} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap} = useMemo(() => {
     if (opts.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
       if (index !== -1) {
@@ -56,7 +56,8 @@ export default function MultiScene ({json, opts}) {
       }, {}),
       scenesOperateInputsTodo: {},
       themes: json.themes,
-      permissions: json.permissions || []
+      permissions: json.permissions || [],
+      globalVarMap: {}
     }
   }, [])
 
@@ -268,6 +269,7 @@ export default function MultiScene ({json, opts}) {
                 return scenesMap[json.scenes[0].id]._refs.get(comId)
               },
               exeGlobalCom({ com, value, pinId }) {
+                globalVarMap[com.id] = value
                 Object.keys(scenesMap).forEach((key) => {
                   const scenes = scenesMap[key]
                   if (scenes.show && scenes._refs) {
@@ -475,6 +477,13 @@ export default function MultiScene ({json, opts}) {
             _refs.run()
           })
         }
+
+        Object.entries(globalVarMap).forEach(([ key, value ]) => {
+          const globalCom = scenes._refs.get(key)
+          if (globalCom) {
+            globalCom.outputs['changed'](value, true, null, true)
+          }
+        })
       }),
       _env: {
         loadCSSLazy() {},
@@ -573,6 +582,7 @@ export default function MultiScene ({json, opts}) {
           return scenesMap[json.scenes[0].id]._refs.get(comId)
         },
         exeGlobalCom({ com, value, pinId }) {
+          globalVarMap[com.id] = value
           Object.keys(scenesMap).forEach((key) => {
             const scenes = scenesMap[key]
             if (scenes.show && scenes._refs) {
