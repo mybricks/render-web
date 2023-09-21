@@ -624,7 +624,7 @@ export default function MultiScene ({json, opts}) {
       const scene = scenesMap[id]
       
       // @ts-ignore
-      return scene.show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={opts.debug ? {position: 'absolute', top: 0, left: 0} : {}}/>
+      return scene.show && <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}}/>
     })
   }, [count, pageScenes])
 
