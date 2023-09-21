@@ -673,12 +673,16 @@ export default function executor(opts, {observable}) {
         props.style.display = 'none'
       } else if (pinId === 'showOrHide') {
         const sty = props.style
-        if (sty.display === 'none') {
-          sty.display = ''
-        } else {
-          sty.display = 'none'
-        }
 
+        if (typeof val === 'undefined') {
+          if (sty.display === 'none') {
+            sty.display = ''
+          } else {
+            sty.display = 'none'
+          }
+        } else {
+          sty.display = val ? '' : 'none'
+        }
       }
     } else if (pinType === 'config') {
       const props = getComProps(comId, scope);
