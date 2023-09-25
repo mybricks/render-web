@@ -145,19 +145,14 @@ function RenderCom({
           if (selector === ':root') {
             selector = '> *:first-child'
           }
-          innerText = innerText + `
-            ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
-              ${Object.keys(css).map(key => {
-                let value = css[key]
-                if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
-                  value = pxToRem(value)
-                } else if (configPxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
-                  value = pxToVw(value)
-                }
-                return `${convertCamelToHyphen(key)}: ${value};`
-              }).join('\n')}
-            }
-          `
+          if (Array.isArray(selector)) {
+            selector.forEach((selector) => {
+              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, configPxToVw})
+            })
+          } else {
+            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, configPxToVw})
+          }
+          
         })
         styleTag.innerHTML = innerText
         if (root) {
@@ -683,4 +678,20 @@ function getStyleAry ({ env, style, def }) {
   }
 
   return styleAry
+}
+
+function getStyleInnerText ({id, css, selector, global, configPxToRem, configPxToVw}) {
+  return `
+    ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+      ${Object.keys(css).map(key => {
+        let value = css[key]
+        if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+          value = pxToRem(value)
+        } else if (configPxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+          value = pxToVw(value)
+        }
+        return `${convertCamelToHyphen(key)}: ${value};`
+      }).join('\n')}
+    }
+  `
 }
