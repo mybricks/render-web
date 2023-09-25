@@ -885,7 +885,7 @@ export default function executor(opts, {observable}) {
 
   function searchComInSlot(slot, comId) {
     let result
-    if (slot.comAry) {
+    if (slot?.comAry) {
       slot.comAry.find(com => {
         if (com.id === comId) {
           result = com
