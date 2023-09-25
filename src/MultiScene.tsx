@@ -266,7 +266,7 @@ export default function MultiScene ({json, opts}) {
               },
               getGlobalComProps(comId) {
                 // 从主场景获取真实数据
-                return scenesMap[json.scenes[0].id]._refs.get(comId)
+                return scenesMap[json.scenes[0].id]._refs?.get(comId)
               },
               exeGlobalCom({ com, value, pinId }) {
                 globalVarMap[com.id] = value
@@ -579,7 +579,7 @@ export default function MultiScene ({json, opts}) {
         },
         getGlobalComProps(comId) {
           // 从主场景获取真实数据
-          return scenesMap[json.scenes[0].id]._refs.get(comId)
+          return scenesMap[json.scenes[0].id]._refs?.get(comId)
         },
         exeGlobalCom({ com, value, pinId }) {
           globalVarMap[com.id] = value
