@@ -11,3 +11,4 @@ tags/*
 package-lock.json
 yarn.lock
 screenshots/
+render-vue/dist/

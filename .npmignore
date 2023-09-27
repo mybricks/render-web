@@ -10,3 +10,4 @@ scripts/
 examples/
 package-lock.json
 cypress/
+render-vue/
