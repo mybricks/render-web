@@ -16,6 +16,10 @@ function get (target, key) {
 
   globalReactionStack.regist({ target, key });
 
+  if (result instanceof FormData) {
+    return result
+  }
+
   const observableResult = rawToProxy.get(result);
 
   if (isObject(result)) {
