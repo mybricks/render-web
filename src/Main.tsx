@@ -69,16 +69,35 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
       setLoggerSilent();
     }
     Notification.init(opts?.env?.showErrorNotification);
-    return Object.assign({
-      runtime: {},
-      i18n(text: any) {
-        return text
-      },
-      canvasElement: opts.debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body,
-      canvas: {
+
+    const { env } = opts
+    if (!env.runtime) {
+      env.runtime = {}
+    }
+    if (!env.i18n) {
+      env.i18n = (text) => text
+    }
+    if (!env.canvas) {
+      env.canvas = {
         type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
       }
-    }, opts.env)
+    }
+    if (!('canvasElement' in env)) {
+      env.canvasElement = opts.debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
+    }
+
+    return env
+
+    // return Object.assign({
+    //   runtime: {},
+    //   i18n(text: any) {
+    //     return text
+    //   },
+    //   canvasElement: opts.debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body,
+    //   canvas: {
+    //     type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
+    //   }
+    // }, opts.env)
   }, [])
   
   const comDefs = useMemo(() => {

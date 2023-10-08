@@ -86,100 +86,191 @@ export default function MultiScene ({json, opts}) {
           const { id } = fxFrame
           const fxInfo: any = {}
           fxFramesMap[id] = fxInfo
-          const options = {
-            ...opts,
-            env: {
-              ...opts.env,
-              canvas: Object.assign({
-                id,
-                type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-                open: async (sceneId, params, openType) => {
-                  // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
-                  let scenes = scenesMap[sceneId]
-      
-                  if (!scenes) {
-                    if (typeof opts.scenesLoader !== 'function') {
-                      console.error(`缺少场景信息: ${sceneId}`)
-                      return
-                    }
-                    const json = await opts.scenesLoader({id: sceneId})
-      
-                    scenes = {
-                      disableAutoRun: false,
-                      json,
-                      show: false,
-                      parentScope: null,
-                      todo: [],
-                      type: json.slot?.showType || json.type,
-                      useEntryAnimation: false
-                    }
-      
-                    scenesMap[sceneId] = scenes
-                    if (json.type === 'popup') {
+          const { env } = opts.env
+          env.canvas = Object.assign({
+            id,
+            type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
+            open: async (sceneId, params, openType) => {
+              // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
+              let scenes = scenesMap[sceneId]
+  
+              if (!scenes) {
+                if (typeof opts.scenesLoader !== 'function') {
+                  console.error(`缺少场景信息: ${sceneId}`)
+                  return
+                }
+                const json = await opts.scenesLoader({id: sceneId})
+  
+                scenes = {
+                  disableAutoRun: false,
+                  json,
+                  show: false,
+                  parentScope: null,
+                  todo: [],
+                  type: json.slot?.showType || json.type,
+                  useEntryAnimation: false
+                }
+  
+                scenesMap[sceneId] = scenes
+                if (json.type === 'popup') {
+                } else {
+                  setPageScenes((pageScenes) => {
+                    return [...pageScenes, json]
+                  })
+                }
+                if (scenesOperateInputsTodo[sceneId]) {
+                  const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+                  scenes.parentScope = parentScope
+                  todo.forEach(({value, pinId, parentScope}) => {
+                    scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                      pinId,
+                      value
+                    }})
+                  })
+                }
+              }
+    
+              if (openType) {
+                Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+                  if (key === sceneId) {
+                    if (openType === 'blank') {
+                      scenes.useEntryAnimation = true
                     } else {
-                      setPageScenes((pageScenes) => {
-                        return [...pageScenes, json]
-                      })
+                      scenes.useEntryAnimation = false
                     }
-                    if (scenesOperateInputsTodo[sceneId]) {
-                      const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-                      scenes.parentScope = parentScope
-                      todo.forEach(({value, pinId, parentScope}) => {
-                        scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                          pinId,
-                          value
-                        }})
+                    scenes.show = true
+                    if (scenes.type === 'popup') {
+                      setPopupIds((popupIds) => {
+                        return [...popupIds, sceneId]
                       })
+                    } else {
+                      setCount((count) => count+1)
+                    }
+                  } else {
+                    scenes.show = false
+                    if (scenes.type === 'popup') {
+                      setPopupIds((popupIds) => {
+                        return popupIds.filter((id) => id !== scenes.json.id)
+                      })
+                    } else {
+                      setCount((count) => count+1)
                     }
                   }
-        
-                  if (openType) {
-                    Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-                      if (key === sceneId) {
-                        if (openType === 'blank') {
-                          scenes.useEntryAnimation = true
-                        } else {
-                          scenes.useEntryAnimation = false
-                        }
-                        scenes.show = true
-                        if (scenes.type === 'popup') {
-                          setPopupIds((popupIds) => {
-                            return [...popupIds, sceneId]
-                          })
-                        } else {
-                          setCount((count) => count+1)
-                        }
-                      } else {
-                        scenes.show = false
-                        if (scenes.type === 'popup') {
-                          setPopupIds((popupIds) => {
-                            return popupIds.filter((id) => id !== scenes.json.id)
-                          })
-                        } else {
-                          setCount((count) => count+1)
-                        }
-                      }
+                })
+              } else {
+                if (!scenes.show) {
+                  if (openType === 'blank') {
+                    scenes.useEntryAnimation = true
+                  } else {
+                    scenes.useEntryAnimation = false
+                  }
+                  scenes.show = true
+                  if (scenes.type === 'popup') {
+                    setPopupIds((popupIds) => {
+                      return [...popupIds, sceneId]
                     })
                   } else {
-                    if (!scenes.show) {
-                      if (openType === 'blank') {
-                        scenes.useEntryAnimation = true
-                      } else {
-                        scenes.useEntryAnimation = false
-                      }
-                      scenes.show = true
-                      if (scenes.type === 'popup') {
-                        setPopupIds((popupIds) => {
-                          return [...popupIds, sceneId]
-                        })
-                      } else {
-                        setCount((count) => count+1)
-                      }
-                    }
+                    setCount((count) => count+1)
                   }
                 }
-              }, opts.env?.canvas),
-            },
+              }
+            }
+          }, opts.env?.canvas)
+          const options = {
+            ...opts,
+            env,
+            // env: {
+            //   ...opts.env,
+            //   canvas: Object.assign({
+            //     id,
+            //     type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
+            //     open: async (sceneId, params, openType) => {
+            //       // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
+            //       let scenes = scenesMap[sceneId]
+      
+            //       if (!scenes) {
+            //         if (typeof opts.scenesLoader !== 'function') {
+            //           console.error(`缺少场景信息: ${sceneId}`)
+            //           return
+            //         }
+            //         const json = await opts.scenesLoader({id: sceneId})
+      
+            //         scenes = {
+            //           disableAutoRun: false,
+            //           json,
+            //           show: false,
+            //           parentScope: null,
+            //           todo: [],
+            //           type: json.slot?.showType || json.type,
+            //           useEntryAnimation: false
+            //         }
+      
+            //         scenesMap[sceneId] = scenes
+            //         if (json.type === 'popup') {
+            //         } else {
+            //           setPageScenes((pageScenes) => {
+            //             return [...pageScenes, json]
+            //           })
+            //         }
+            //         if (scenesOperateInputsTodo[sceneId]) {
+            //           const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+            //           scenes.parentScope = parentScope
+            //           todo.forEach(({value, pinId, parentScope}) => {
+            //             scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+            //               pinId,
+            //               value
+            //             }})
+            //           })
+            //         }
+            //       }
+        
+            //       if (openType) {
+            //         Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+            //           if (key === sceneId) {
+            //             if (openType === 'blank') {
+            //               scenes.useEntryAnimation = true
+            //             } else {
+            //               scenes.useEntryAnimation = false
+            //             }
+            //             scenes.show = true
+            //             if (scenes.type === 'popup') {
+            //               setPopupIds((popupIds) => {
+            //                 return [...popupIds, sceneId]
+            //               })
+            //             } else {
+            //               setCount((count) => count+1)
+            //             }
+            //           } else {
+            //             scenes.show = false
+            //             if (scenes.type === 'popup') {
+            //               setPopupIds((popupIds) => {
+            //                 return popupIds.filter((id) => id !== scenes.json.id)
+            //               })
+            //             } else {
+            //               setCount((count) => count+1)
+            //             }
+            //           }
+            //         })
+            //       } else {
+            //         if (!scenes.show) {
+            //           if (openType === 'blank') {
+            //             scenes.useEntryAnimation = true
+            //           } else {
+            //             scenes.useEntryAnimation = false
+            //           }
+            //           scenes.show = true
+            //           if (scenes.type === 'popup') {
+            //             setPopupIds((popupIds) => {
+            //               return [...popupIds, sceneId]
+            //             })
+            //           } else {
+            //             setCount((count) => count+1)
+            //           }
+            //         }
+            //       }
+            //     }
+            //   }, opts.env?.canvas),
+            // },
             disableAutoRun: true,
             ref: opts.ref((_refs) => {
               // console.log(`fx 场景注册_refs -> ${id}`)
@@ -309,111 +400,212 @@ export default function MultiScene ({json, opts}) {
   const options = useCallback((id) => {
     const scenes = scenesMap[id]
     const hasPermission = opts.env.hasPermission
+    const { env } = opts
+    env.themes = themes
+    env.permissions = permissions
+    env.hasPermission = typeof hasPermission === 'function' ? (value) => {
+      // TODO 兼容老的组件用法
+      if (typeof value === 'string') {
+        const permission = permissions.find((permission) => permission.id === value)
+        return hasPermission({ permission })
+      }
+      return hasPermission(value)
+    } : null
+    env.canvas = Object.assign({
+      id,
+      type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
+      open: async (sceneId, params, openType) => {
+        // console.log(`打开场景 -> ${sceneId}`)
+        let scenes = scenesMap[sceneId]
+
+        if (!scenes) {
+          if (typeof opts.scenesLoader !== 'function') {
+            console.error(`缺少场景信息: ${sceneId}`)
+            return
+          }
+          const json = await opts.scenesLoader({id: sceneId})
+
+          scenes = {
+            disableAutoRun: false,
+            json,
+            show: false,
+            parentScope: null,
+            todo: [],
+            type: json.slot?.showType || json.type,
+            useEntryAnimation: false
+          }
+
+          scenesMap[sceneId] = scenes
+          if (json.type === 'popup') {
+          } else {
+            setPageScenes((pageScenes) => {
+              return [...pageScenes, json]
+            })
+          }
+          if (scenesOperateInputsTodo[sceneId]) {
+            const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+            scenes.parentScope = parentScope
+            todo.forEach(({value, pinId, parentScope}) => {
+              scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                pinId,
+                value
+              }})
+            })
+          }
+        }
+
+        if (openType) {
+          Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+            if (key === sceneId) {
+              if (openType === 'blank') {
+                scenes.useEntryAnimation = true
+              } else {
+                scenes.useEntryAnimation = false
+              }
+              scenes.show = true
+              if (scenes.type === 'popup') {
+                setPopupIds((popupIds) => {
+                  return [...popupIds, sceneId]
+                })
+              } else {
+                setCount((count) => count+1)
+              }
+            } else {
+              scenes.show = false
+              if (scenes.type === 'popup') {
+                setPopupIds((popupIds) => {
+                  return popupIds.filter((id) => id !== scenes.json.id)
+                })
+              } else {
+                setCount((count) => count+1)
+              }
+            }
+          })
+        } else {
+          if (!scenes.show) {
+            if (openType === 'blank') {
+              scenes.useEntryAnimation = true
+            } else {
+              scenes.useEntryAnimation = false
+            }
+            scenes.show = true
+            if (scenes.type === 'popup') {
+              setPopupIds((popupIds) => {
+                return [...popupIds, sceneId]
+              })
+            } else {
+              setCount((count) => count+1)
+            }
+          }
+        }
+      }
+    }, opts.env?.canvas)
 
     return {
       ...opts,
-      env: {
-        ...opts.env,
-        themes,
-        permissions,
-        hasPermission: typeof hasPermission === 'function' ? (value) => {
-          // TODO 兼容老的组件用法
-          if (typeof value === 'string') {
-            const permission = permissions.find((permission) => permission.id === value)
-            return hasPermission({ permission })
-          }
-          return hasPermission(value)
-        } : null,  
-        canvas: Object.assign({
-          id,
-          type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-          open: async (sceneId, params, openType) => {
-            // console.log(`打开场景 -> ${sceneId}`)
-            let scenes = scenesMap[sceneId]
+      // env: {
+      //   ...opts.env,
+      //   themes,
+      //   permissions,
+      //   hasPermission: typeof hasPermission === 'function' ? (value) => {
+      //     // TODO 兼容老的组件用法
+      //     if (typeof value === 'string') {
+      //       const permission = permissions.find((permission) => permission.id === value)
+      //       return hasPermission({ permission })
+      //     }
+      //     return hasPermission(value)
+      //   } : null,  
+      //   canvas: Object.assign({
+      //     id,
+      //     type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
+      //     open: async (sceneId, params, openType) => {
+      //       // console.log(`打开场景 -> ${sceneId}`)
+      //       let scenes = scenesMap[sceneId]
 
-            if (!scenes) {
-              if (typeof opts.scenesLoader !== 'function') {
-                console.error(`缺少场景信息: ${sceneId}`)
-                return
-              }
-              const json = await opts.scenesLoader({id: sceneId})
+      //       if (!scenes) {
+      //         if (typeof opts.scenesLoader !== 'function') {
+      //           console.error(`缺少场景信息: ${sceneId}`)
+      //           return
+      //         }
+      //         const json = await opts.scenesLoader({id: sceneId})
 
-              scenes = {
-                disableAutoRun: false,
-                json,
-                show: false,
-                parentScope: null,
-                todo: [],
-                type: json.slot?.showType || json.type,
-                useEntryAnimation: false
-              }
+      //         scenes = {
+      //           disableAutoRun: false,
+      //           json,
+      //           show: false,
+      //           parentScope: null,
+      //           todo: [],
+      //           type: json.slot?.showType || json.type,
+      //           useEntryAnimation: false
+      //         }
 
-              scenesMap[sceneId] = scenes
-              if (json.type === 'popup') {
-              } else {
-                setPageScenes((pageScenes) => {
-                  return [...pageScenes, json]
-                })
-              }
-              if (scenesOperateInputsTodo[sceneId]) {
-                const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-                scenes.parentScope = parentScope
-                todo.forEach(({value, pinId, parentScope}) => {
-                  scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                    pinId,
-                    value
-                  }})
-                })
-              }
-            }
+      //         scenesMap[sceneId] = scenes
+      //         if (json.type === 'popup') {
+      //         } else {
+      //           setPageScenes((pageScenes) => {
+      //             return [...pageScenes, json]
+      //           })
+      //         }
+      //         if (scenesOperateInputsTodo[sceneId]) {
+      //           const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+      //           scenes.parentScope = parentScope
+      //           todo.forEach(({value, pinId, parentScope}) => {
+      //             scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+      //               pinId,
+      //               value
+      //             }})
+      //           })
+      //         }
+      //       }
   
-            if (openType) {
-              Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-                if (key === sceneId) {
-                  if (openType === 'blank') {
-                    scenes.useEntryAnimation = true
-                  } else {
-                    scenes.useEntryAnimation = false
-                  }
-                  scenes.show = true
-                  if (scenes.type === 'popup') {
-                    setPopupIds((popupIds) => {
-                      return [...popupIds, sceneId]
-                    })
-                  } else {
-                    setCount((count) => count+1)
-                  }
-                } else {
-                  scenes.show = false
-                  if (scenes.type === 'popup') {
-                    setPopupIds((popupIds) => {
-                      return popupIds.filter((id) => id !== scenes.json.id)
-                    })
-                  } else {
-                    setCount((count) => count+1)
-                  }
-                }
-              })
-            } else {
-              if (!scenes.show) {
-                if (openType === 'blank') {
-                  scenes.useEntryAnimation = true
-                } else {
-                  scenes.useEntryAnimation = false
-                }
-                scenes.show = true
-                if (scenes.type === 'popup') {
-                  setPopupIds((popupIds) => {
-                    return [...popupIds, sceneId]
-                  })
-                } else {
-                  setCount((count) => count+1)
-                }
-              }
-            }
-          }
-        }, opts.env?.canvas),
-      },
+      //       if (openType) {
+      //         Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+      //           if (key === sceneId) {
+      //             if (openType === 'blank') {
+      //               scenes.useEntryAnimation = true
+      //             } else {
+      //               scenes.useEntryAnimation = false
+      //             }
+      //             scenes.show = true
+      //             if (scenes.type === 'popup') {
+      //               setPopupIds((popupIds) => {
+      //                 return [...popupIds, sceneId]
+      //               })
+      //             } else {
+      //               setCount((count) => count+1)
+      //             }
+      //           } else {
+      //             scenes.show = false
+      //             if (scenes.type === 'popup') {
+      //               setPopupIds((popupIds) => {
+      //                 return popupIds.filter((id) => id !== scenes.json.id)
+      //               })
+      //             } else {
+      //               setCount((count) => count+1)
+      //             }
+      //           }
+      //         })
+      //       } else {
+      //         if (!scenes.show) {
+      //           if (openType === 'blank') {
+      //             scenes.useEntryAnimation = true
+      //           } else {
+      //             scenes.useEntryAnimation = false
+      //           }
+      //           scenes.show = true
+      //           if (scenes.type === 'popup') {
+      //             setPopupIds((popupIds) => {
+      //               return [...popupIds, sceneId]
+      //             })
+      //           } else {
+      //             setCount((count) => count+1)
+      //           }
+      //         }
+      //       }
+      //     }
+      //   }, opts.env?.canvas),
+      // },
+      env,
       get disableAutoRun() {
         return scenes.disableAutoRun
       },
