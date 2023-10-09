@@ -1,14 +1,4 @@
-.git/
-.idea/
-.DS_Store
 node_modules
-_scripts/
-src/**/*.js
-index.js
-tags/*
-.history
-.vscode/
 package-lock.json
-yarn.lock
-screenshots/
-render-vue/dist/
+**/dist
+.DS_Store

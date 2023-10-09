@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "esModuleInterop": true,
+    "strict": true,
+    "jsx": "react",
+
+    "types": ["node"]
+  },
+  "include": [
+    "./src/**/*",
+
+    "./scripts/*"
+  ]
+}
