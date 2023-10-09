@@ -86,7 +86,7 @@ export default function MultiScene ({json, opts}) {
           const { id } = fxFrame
           const fxInfo: any = {}
           fxFramesMap[id] = fxInfo
-          const { env } = opts.env
+          const { env } = opts
           env.canvas = Object.assign({
             id,
             type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
