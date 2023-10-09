@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {log, logInputVal, logOutputVal} from './logger';
-import {uuid} from "./utils";
+import {uuid, dataSlim} from "./utils";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
@@ -82,14 +82,14 @@ export default function executor(opts, {observable}) {
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('com', 'output', {id: com.id, pinHostId, val, fromCon, notifyAll, comDef})
+        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef})
       } else {
         logOutputVal(com.title, comDef, pinHostId, val)
       }
     } else if (type === 'frame') {
       const {comId, frameId, pinHostId, val,sceneId} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('frame', 'output', {comId, frameId, pinHostId, val,sceneId})
+        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId})
       }
     }
   }
@@ -104,7 +104,7 @@ export default function executor(opts, {observable}) {
   }) {
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
     if (debugLogger) {//存在外部的debugLogger
-      debugLogger('com', 'input', {id: com.id, pinHostId, val, frameKey, finishPinParentKey, comDef})
+      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef})
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
     }
