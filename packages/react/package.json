@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.8.3",
+    "@types/react": "^18.2.27",
     "css-loader": "^6.8.1",
     "less-loader": "^11.1.3",
     "style-loader": "^3.3.3",

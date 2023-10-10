@@ -4,6 +4,7 @@
     "esModuleInterop": true,
     "strict": true,
     "jsx": "react",
+    "resolveJsonModule": true,
 
     "types": ["node"]
   },

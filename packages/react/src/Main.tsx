@@ -10,7 +10,8 @@
 import React, {
   useMemo,
   useCallback,
-  useLayoutEffect
+  useLayoutEffect,
+  useEffect,
 } from 'react';
 
 import coreLib from '@mybricks/comlib-core';
@@ -252,6 +253,30 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
         }
       }
       refs.run()
+    }
+  }, [])
+
+  // TODO:
+  useEffect(() => {
+    const intervalList = []
+    let originalSetInterval
+    const handle = opts.debug && setInterval.name !== 'mySetInterval'
+    if (handle) {
+      originalSetInterval = setInterval;
+      setInterval = function mySetInterval(...args) {
+        const id = originalSetInterval(...args);
+        intervalList.push(id);
+        return id
+      };
+    }
+   
+    return () => {
+      if (handle) {
+        setInterval = originalSetInterval
+        intervalList.forEach((intervalId) =>
+          clearInterval(intervalId)
+        )
+      }
     }
   }, [])
 
