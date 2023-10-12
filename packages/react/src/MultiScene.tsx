@@ -618,17 +618,22 @@ export default function MultiScene ({json, opts}) {
 
         scenes.json.outputs.forEach((output) => {
           outputs(output.id, (value) => {
-            scenes.show = false
-            scenes.todo = []
-            scenes._refs = null
-            scenes.parentScope?.outputs[output.id](value)
-            scenes.parentScope = null
-            if (scenes.type === 'popup') {
-              setPopupIds((popupIds) => {
-                return popupIds.filter((id) => id !== scenes.json.id)
-              })
+            // TODO: 临时，后续应该给场景一个回调
+            if (output.id === 'apply') {
+              scenes.parentScope?.outputs[output.id](value)
             } else {
-              setCount((count) => count+1)
+              scenes.show = false
+              scenes.todo = []
+              scenes._refs = null
+              scenes.parentScope?.outputs[output.id](value)
+              scenes.parentScope = null
+              if (scenes.type === 'popup') {
+                setPopupIds((popupIds) => {
+                  return popupIds.filter((id) => id !== scenes.json.id)
+                })
+              } else {
+                setCount((count) => count+1)
+              }
             }
           })
         })
