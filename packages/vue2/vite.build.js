@@ -6,7 +6,7 @@ export default defineConfig({
   build: {
     lib: {
       entry: path.resolve(__dirname, './src/index.ts'),
-      name: 'mybricks-render-vue2',
+      name: '_mybricks_render_web_vue2',
       fileName: 'index',
       output: path.resolve(__dirname, './dist')
     },
