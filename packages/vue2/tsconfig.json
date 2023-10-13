@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "esModuleInterop": true,
+    "strict": true,
+    "resolveJsonModule": true,
+    "moduleResolution": "node",
+  },
+  "include": [
+    "./src/**/*",
+  ]
+}
