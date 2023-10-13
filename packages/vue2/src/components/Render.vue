@@ -2,7 +2,7 @@
 import Main from "./Main.vue";
 import MultiScene from "./MultiScene.vue";
 
-console.log(`%c ${'@mybricks/render-web-vue'} %c@${'1.0.0'}`, `color:#FFF;background:#fa6400`, ``, ``);
+console.log(`%c ${'@mybricks/render-web-vue'} %c@${'0.0.1'}`, `color:#FFF;background:#fa6400`, ``, ``);
 
 export default {
   functional: true,

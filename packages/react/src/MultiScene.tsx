@@ -403,14 +403,29 @@ export default function MultiScene ({json, opts}) {
     const { env } = opts
     env.themes = themes
     env.permissions = permissions
-    env.hasPermission = typeof hasPermission === 'function' ? (value) => {
-      // TODO 兼容老的组件用法
-      if (typeof value === 'string') {
-        const permission = permissions.find((permission) => permission.id === value)
-        return hasPermission({ permission })
-      }
-      return hasPermission(value)
-    } : null
+    if (typeof hasPermission === 'function') {
+      Object.defineProperty(env, 'hasPermission', {
+        get: function() {
+          return (value) => {
+            // TODO 兼容老的组件用法
+            if (typeof value === 'string') {
+              const permission = permissions.find((permission) => permission.id === value)
+              return hasPermission({ permission })
+            }
+            return hasPermission(value)
+          }
+        }
+      })
+    }
+
+    // env.hasPermission = typeof hasPermission === 'function' ? (value) => {
+    //   // TODO 兼容老的组件用法
+    //   if (typeof value === 'string') {
+    //     const permission = permissions.find((permission) => permission.id === value)
+    //     return hasPermission({ permission })
+    //   }
+    //   return hasPermission(value)
+    // } : null
     env.canvas = Object.assign({
       id,
       type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
