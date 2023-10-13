@@ -151,25 +151,26 @@ export const loadCSSLazy = (css, root) => {
 const toString = Object.prototype.toString
 
 export function dataSlim(value) {
-  const valueType = toString.call(value)
-
-  if (valueType === '[object Array]') {
-    return [...value].slice(0, 20).map((value) => {
-      return dataSlim(value)
-    })
-  } else if (valueType === '[object Object]') {
-    const keys = Object.keys(value)
-    const resultValue = {...value}
-    keys.forEach((key, index) => {
-      if (index < 20) {
-        resultValue[key] = dataSlim(resultValue[key])
-      } else {
-        Reflect.deleteProperty(resultValue, key)
-      }
-    })
-
-    return resultValue
-  }
-
   return value
+  // const valueType = toString.call(value)
+
+  // if (valueType === '[object Array]') {
+  //   return [...value].slice(0, 20).map((value) => {
+  //     return dataSlim(value)
+  //   })
+  // } else if (valueType === '[object Object]') {
+  //   const keys = Object.keys(value)
+  //   const resultValue = {...value}
+  //   keys.forEach((key, index) => {
+  //     if (index < 20) {
+  //       resultValue[key] = dataSlim(resultValue[key])
+  //     } else {
+  //       Reflect.deleteProperty(resultValue, key)
+  //     }
+  //   })
+
+  //   return resultValue
+  // }
+
+  // return value
 }
