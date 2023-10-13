@@ -1,9 +1,9 @@
 import Vue from "vue";
 import App from "./App.vue";
 
-export function render(props) {
+export function render(json, opts) {
   return Vue.extend({
-    render: h => h(App, { props })
+    render: h => h(App, { props: { json, opts} })
   })
 }
 
