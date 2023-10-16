@@ -705,6 +705,8 @@ export default function executor(opts, {observable}) {
           sty.display = val ? '' : 'none'
         }
       }
+      const comDef = getComDef(def)
+      _logInputVal({com: props, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef})
     } else if (pinType === 'config') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
