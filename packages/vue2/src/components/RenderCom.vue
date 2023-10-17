@@ -21,6 +21,9 @@ export default {
     getComDef: {
       type: Function
     },
+    registSpm: {
+      type: Function
+    },
     context: {
       type: Object
     },
@@ -47,7 +50,8 @@ export default {
     SlotRender
   },
   created() {
-    const { _env, env, com, props, getComDef, onError, logger, context, scope } = this.$props
+    const { _env, env, com, props, getComDef, registSpm, onError, logger, context, scope } = this.$props
+
     const { pxToRem: configPxToRem, pxToVw: configPxToVw } = env
     const {id, def, name, slots = {}} = com
     const {
@@ -299,7 +303,8 @@ export default {
       id,
       env: {
         ...env,
-        pxToVw
+        pxToVw,
+        spm: registSpm ? registSpm?.(id, { title, namespace: def.namespace }) : null,
       },
       _env,
       data,

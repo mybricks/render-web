@@ -128,6 +128,7 @@ export default {
         env: opts.env,
         propsStyle,
         _env: opts._env,
+        registSpm: opts.registSpm,
         propsSlot: json.slot,
         getComDef: this.getComDef,
         context: this.context,

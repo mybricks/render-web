@@ -48,7 +48,7 @@ export default {
   },
   created() {
     let curScope
-    const { propsSlot: slot, scope, props, env, _env, getComDef, context, onError, logger, params } = this.$props
+    const { propsSlot: slot, scope, props, env, _env, getComDef, registSpm, context, onError, logger, params } = this.$props
 
     Object.assign(params, params.m)
 
@@ -95,6 +95,7 @@ export default {
       // wrapper={wrapFn}
       // template={params?.itemWrap}
       getComDef,
+      registSpm,
       context,
       inputs: params?.inputs,
       outputs: params?.outputs,

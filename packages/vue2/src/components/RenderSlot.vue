@@ -26,6 +26,9 @@ export default {
     getComDef: {
       type: Function
     },
+    registSpm: {
+      type: Function
+    },
     context: {
       type: Object
     },
@@ -65,7 +68,7 @@ export default {
   },
   computed: {
     comAry() {
-      const { env, _env, propsSlot, context, getComDef, onError, logger, scope, inputs, _inputs, outputs, _outputs } = this.$props
+      const { env, _env, propsSlot, context, getComDef, registSpm, onError, logger, scope, inputs, _inputs, outputs, _outputs } = this.$props
       const { comAry } = propsSlot
       const itemAry = []
 
@@ -93,6 +96,7 @@ export default {
               key: comKey,
               com,
               getComDef,
+              registSpm,
               context,
               scope,
               props,
