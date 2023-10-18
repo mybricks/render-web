@@ -309,6 +309,7 @@ function RenderCom({
   // --- 2023.2.21 兼容小程序
   jsx = jsx ? (
     <div id={id} key={id} style={{
+      ...style,
       display: style.display,
       // overflow: "hidden",
       position: style.position || "relative",
