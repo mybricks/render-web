@@ -309,7 +309,6 @@ function RenderCom({
   // --- 2023.2.21 兼容小程序
   jsx = jsx ? (
     <div id={id} key={id} style={{
-      ...style,
       display: style.display,
       // overflow: "hidden",
       position: style.position || "relative",
@@ -585,7 +584,7 @@ function getClasses({style, id}) {
 
 function getSizeStyle({style}) {
   const sizeStyle: any = {}
-  const {width, height} = style
+  const {width, height, maxWidth} = style
 
   if (!width) {
     sizeStyle.width = "100%"
@@ -599,6 +598,10 @@ function getSizeStyle({style}) {
     sizeStyle.height = height + "px"
   } else if (height) {
     sizeStyle.height = height
+  }
+
+  if (maxWidth) {
+    sizeStyle.maxWidth = maxWidth
   }
 
   return sizeStyle
