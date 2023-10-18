@@ -98,6 +98,45 @@ export function hijackReactcreateElement(props) {
   
           return createElement(type.__rxui__, props, ...other);
         }
+        
+        return createElement(type, props, ...other);
+      } else if (typeof type === 'object' && type.$$typeof === Symbol.for('react.forward_ref')) {
+        if (!type.__rxui__) {
+          const oriRender = type.render
+
+          function Render (props, ref2) {
+            const ref = useRef<Reaction | null>(null);
+            const [, setState] = useState([]);
+          
+            const update = useCallback(() => {
+              setState([]);
+            }, []);
+          
+            useMemo(() => {
+              if (!ref.current) {
+                ref.current = new Reaction(update);
+              }
+            }, []);
+          
+            useEffect(() => {
+              return () => {
+                ref.current?.destroy();
+                ref.current = null;
+              };
+            }, []);
+          
+            let render;
+          
+            ref.current?.track(() => {
+              render = oriRender(props, ref2);
+            });
+          
+            return render;
+          }
+  
+          type.render = Render
+          type.__rxui__ = true
+        }
 
         return createElement(type, props, ...other);
       } else {
