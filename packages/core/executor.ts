@@ -733,6 +733,13 @@ export default function executor(opts, {observable}) {
       if (def.rtType?.match(/^js/gi)) {//js
         const jsCom = Coms[comId]
         if (jsCom) {
+          const isVar = def.namespace === 'mybricks.core-comlib.var'
+          if (isVar) {
+            const com = Coms[comId]
+            if (com && com.parentComId && com.frameId) {
+              scope = _Props[`${com.parentComId}-${com.frameId}`]?.curScope || scope
+            }
+          }
           const props = getComProps(comId, scope)
           const comDef = getComDef(def)
           if (jsCom.global) {
