@@ -690,12 +690,12 @@ export default function MultiScene ({json, opts}) {
           })
         }
 
-        Object.entries(globalVarMap).forEach(([ key, value ]) => {
-          const globalCom = scenes._refs.get(key)
-          if (globalCom) {
-            globalCom.outputs['changed'](value, true, null, true)
-          }
-        })
+        // Object.entries(globalVarMap).forEach(([ key, value ]) => {
+        //   const globalCom = scenes._refs.get(key)
+        //   if (globalCom) {
+        //     globalCom.outputs['changed'](value, true, null, true)
+        //   }
+        // })
       }),
       _env: {
         loadCSSLazy() {},
