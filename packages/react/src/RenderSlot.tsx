@@ -190,6 +190,7 @@ function RenderCom({
                                style={style}
                                onError={onError}
                                createPortal={createPortal}
+                               parentComId={id}
                                logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
                                __rxui_child__={__rxui_child__}/>
           } else {
@@ -330,6 +331,7 @@ function RenderCom({
 
 const SlotRender = memo(({
                            slotId,
+                           parentComId,
                            props,
                            slot,
                            params,
@@ -388,7 +390,8 @@ const SlotRender = memo(({
 
     curScope = {
       id: nowScopeId,
-      frameId: slotId
+      frameId: slotId,
+      parentComId
     }
 
     if (scope) {
