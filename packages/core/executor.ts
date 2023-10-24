@@ -286,7 +286,7 @@ export default function executor(opts, {observable}) {
         } else {
           const parentComId = curScope.parentComId
           if (parentComId) {
-            if (parentComId === com.paramId) {
+            if ((parentComId === com.paramId) || (parentComId === com.parentComId)) {
               break
             }
           } else {
