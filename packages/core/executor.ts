@@ -135,7 +135,7 @@ export default function executor(opts, {observable}) {
 
           const isFrameOutput = inReg.def.namespace === 'mybricks.core-comlib.frame-output'
 
-          if (isFrameOutput) {
+          if (isFrameOutput && nextScope) {
             proxyDesc.frameId = nextScope.proxyComProps.id
             myScope = nextScope.parent
           }
@@ -1131,14 +1131,18 @@ export default function executor(opts, {observable}) {
     if (cons) {
       exeCons(cons, val, scope)
     } else if (frameId !== ROOT_FRAME_KEY) {
-      scenesOperate?.open({
-        frameId,
-        todo: {
-          pinId,
-          value: val
-        },
-        parentScope: scope.proxyComProps
-      })
+      if (json.id === frameId) {
+        _frameOutput[pinId](val)
+      } else {
+        scenesOperate?.open({
+          frameId,
+          todo: {
+            pinId,
+            value: val
+          },
+          parentScope: scope.proxyComProps
+        })
+      }
     }
   }
 
