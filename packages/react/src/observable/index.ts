@@ -27,123 +27,118 @@ export function hijackReactcreateElement(props) {
     React[globalKey] = true;
     createElement = React.createElement;
 
-    React.createElement = function(...params) {
-      let [type, props, ...other] = params;
-
-      if (configPxToRem && props?.style) {
+    React.createElement = function(...args) {
+      let [fn, props] = args;
+      if (props) {
         const style = props.style
-        Object.keys(style).forEach((key) => {
-          const value = style[key]
-
-          if (typeof value === 'string' && value.indexOf('px') !== -1) {
-            style[key] = pxToRem(value)
-          }
-        })
-      } else if (configPxToVw && props?.style) {
-        const style = props.style
-        Object.keys(style).forEach((key) => {
-          const value = style[key]
-
-          if (typeof value === 'string' && value.indexOf('px') !== -1) {
-            style[key] = pxToVw(value)
-          }
-        })
-      }
-
-      if (typeof type === "function" && type.prototype && !(type.prototype instanceof React.Component) && !type.prototype.isReactComponent && props) {
-        let useRxui = props.__rxui_child__ || type.__rxui__;
-
-        if (!useRxui) {
-          useRxui = !!Object.keys(props).find((key) => {
-            const value = props[key];
-    
-            return proxyToRaw.has(value);
-          });
-        }
-
-        if (useRxui) {
-          if (!type.__rxui__) {
-            function Render (props) {
-              const ref = useRef<Reaction | null>(null);
-              const [, setState] = useState([]);
-            
-              const update = useCallback(() => {
-                setState([]);
-              }, []);
-            
-              useMemo(() => {
-                if (!ref.current) {
-                  ref.current = new Reaction(update);
-                }
-              }, []);
-            
-              useEffect(() => {
-                return () => {
-                  ref.current?.destroy();
-                  ref.current = null;
-                };
-              }, []);
-            
-              let render;
-            
-              ref.current?.track(() => {
-                render = type(props);
-              });
-            
-              return render;
+        if (configPxToRem && style) {
+          Object.keys(style).forEach((key) => {
+            const value = style[key]
+  
+            if (typeof value === 'string' && value.indexOf('px') !== -1) {
+              style[key] = pxToRem(value)
             }
-    
-            type.__rxui__ = memo(Render);
-          }
+          })
+        } else if (configPxToVw && style) {
+          Object.keys(style).forEach((key) => {
+            const value = style[key]
   
-          return createElement(type.__rxui__, props, ...other);
-        }
-        
-        return createElement(type, props, ...other);
-      } else if (typeof type === 'object' && type.$$typeof === Symbol.for('react.forward_ref')) {
-        if (!type.__rxui__) {
-          const oriRender = type.render
-
-          function Render (props, ref2) {
-            const ref = useRef<Reaction | null>(null);
-            const [, setState] = useState([]);
-          
-            const update = useCallback(() => {
-              setState([]);
-            }, []);
-          
-            useMemo(() => {
-              if (!ref.current) {
-                ref.current = new Reaction(update);
-              }
-            }, []);
-          
-            useEffect(() => {
-              return () => {
-                ref.current?.destroy();
-                ref.current = null;
-              };
-            }, []);
-          
-            let render;
-          
-            ref.current?.track(() => {
-              render = oriRender(props, ref2);
-            });
-          
-            return render;
-          }
-  
-          type.render = Render
-          type.__rxui__ = true
+            if (typeof value === 'string' && value.indexOf('px') !== -1) {
+              style[key] = pxToVw(value)
+            }
+          })
         }
 
-        return createElement(type, props, ...other);
-      } else {
-        return createElement(type, props, ...other);
+        if (args.length > 0 && typeof fn === "function") {
+          if (!fn.prototype ||
+            !(fn.prototype instanceof React.Component) && fn.prototype.isReactComponent === void 0) {
+              const enCom = enhanceComponent(fn)
+              args.splice(0, 1, enCom)
+            }
+            return createElement(...args)
+        } else if (typeof fn === 'object' && fn.$$typeof === Symbol.for('react.forward_ref')) {
+          const enCom = enhanceComponent(fn, true)
+          args.splice(0, 1, enCom)
+
+          return createElement(...args);
+        } else {
+          return createElement(...args);
+        }
       }
+
+      return createElement(...args); 
     };
   }
+}
+
+const PROP_ENHANCED = `__enhanced__`
+
+function enhanceComponent(fn, isRefCom = false) {
+  let obFn = fn[PROP_ENHANCED]
+
+  if (!obFn) {
+    if (isRefCom) {
+      obFn = memo(fn)
+      obFn.render = enhance(fn.render, false)
+    } else {
+      obFn = enhance(fn)
+    }
+
+    try {
+      fn[PROP_ENHANCED] = obFn
+    } catch (ex) {
+
+    }
+  }
+
+  const props = Object.getOwnPropertyNames(fn)
+  props && props.forEach(prop => {
+    try {
+      if (!(isRefCom && prop === 'render')) {
+        obFn[prop] = fn[prop]
+      }
+    } catch (ex) {
+      console.error(ex)
+    }
+  })
+
+  return obFn
+}
+
+function enhance(component, memoIt = true) {
+  function hoc (props, refs) {
+    const ref = useRef<Reaction | null>(null);
+    const [, setState] = useState([]);
+  
+    const update = useCallback(() => {
+      setState([]);
+    }, []);
+  
+    useMemo(() => {
+      if (!ref.current) {
+        ref.current = new Reaction(update);
+      }
+    }, []);
+  
+    useEffect(() => {
+      return () => {
+        ref.current?.destroy();
+        ref.current = null;
+      };
+    }, []);
+  
+    let render;
+  
+    ref.current?.track(() => {
+      render = component(props, refs);
+    });
+  
+    return render;
+  }
+
+  hoc.displayName = component.displayName || component.name
+
+  return memoIt ? memo(hoc) : hoc
 }
 
 export function observable<T extends object>(obj: T): T {
