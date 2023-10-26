@@ -315,8 +315,12 @@ export default function executor(opts, {observable}) {
     const def = com.def
     const model = com.model
 
-    let nModel = opts ? JSON.parse(JSON.stringify(model)) : model
-    const obsModel = observable(nModel)
+    // let nModel = opts ? JSON.parse(JSON.stringify(model)) : model
+    // const obsModel = observable(nModel)
+
+    const modelData = JSON.parse(JSON.stringify(model.data))
+    const modelStyle = JSON.parse(JSON.stringify(model.style))
+    modelStyle.__model_style__ = true
 
     const inputRegs = {}
     const inputTodo = {}
@@ -651,8 +655,8 @@ export default function executor(opts, {observable}) {
       title: com.title,
       frameId: com.frameId,
       parentComId: com.parentComId,
-      data: obsModel.data,
-      style: obsModel.style,
+      data: observable(modelData),
+      style: observable(modelStyle),
       _inputRegs: inputRegs,
       addInputTodo,
       inputs: inputs(),

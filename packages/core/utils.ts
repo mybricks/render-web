@@ -148,7 +148,7 @@ export const loadCSSLazy = (css, root) => {
   // this.shadowRoot.adoptedStyleSheets = [bgPurple];
 }
 
-const toString = Object.prototype.toString
+// const toString = Object.prototype.toString
 
 export function dataSlim(value) {
   return value
