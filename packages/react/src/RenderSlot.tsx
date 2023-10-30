@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 
-import React, {memo, useEffect, useMemo} from "react";
+import React, {memo, useEffect, useMemo, useState} from "react";
 
 import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen} from "../../core/utils";
 
@@ -183,16 +183,18 @@ function RenderCom({
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {
-            return <SlotRender slotId={slotId}
-                               slot={slot}
-                               props={props}
-                               params={params}
-                               style={style}
-                               onError={onError}
-                               createPortal={createPortal}
-                               parentComId={id}
-                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
-                               __rxui_child__={__rxui_child__}/>
+            return <SlotRender
+                      key={params?.key}
+                      slotId={slotId}
+                      slot={slot}
+                      props={props}
+                      params={params}
+                      style={style}
+                      onError={onError}
+                      createPortal={createPortal}
+                      parentComId={id}
+                      logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
+                      __rxui_child__={__rxui_child__}/>
           } else {
             return (
               <div className={css.error}>
@@ -329,96 +331,78 @@ function RenderCom({
   return jsx
 }
 
-const SlotRender = memo(({
-                           slotId,
-                           parentComId,
-                           props,
-                           slot,
-                           params,
-                           scope,
-                           env,
-                           createPortal,
-                           _env,
-                           style,
-                           getComDef,
-                           context,
-                           onError,
-                           logger,
-                           __rxui_child__
-                         }) => {
-  // let curScope
-  // //if (params) {
-  // if (props.type==='scope') {//作用域插槽
-  //
-  //   let nowScopeId = uuid()
-  //   //console.log(nowScopeId)
-  //   // if (params.key) {
-  //   //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
-  //   // }
-  //   //
-  //   // if (typeof params.wrap === 'function' && !params.key) {
-  //   //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
-  //   //     nowScopeId = scope.id
-  //   //   }
-  //   // }
-  //
-  //   curScope = {
-  //     id: nowScopeId,
-  //     frameId: slotId
-  //   }
-  //
-  //   if (scope) {
-  //     curScope.parent = scope
-  //   }
-  // } else {
-  //   curScope = scope
-  // }
-
-  let curScope
-  if (slot?.type === 'scope') {
-    let nowScopeId = uuid(10, 16)
-    //console.log(nowScopeId)
-    // if (params.key) {
-    //   nowScopeId = params.key + (scope ? ('-' + scope.id) : '')//考虑父级scope
-    // }
-    //
-    // if (typeof params.wrap === 'function' && !params.key) {
-    //   if (scope) {//存在父作用域，例如 List中嵌套FormContainer
-    //     nowScopeId = scope.id
-    //   }
-    // }
-
-    curScope = {
-      id: nowScopeId,
-      frameId: slotId,
-      parentComId
-    }
-
-    if (scope) {
-      curScope.parent = scope
-    }
-  } else {
-    curScope = scope
-  }
-
-  let wrapFn
-  if (params) {
-    const ivs = params.inputValues
-    if (typeof ivs === 'object') {
-      //requestAnimationFrame(() => {
-      for (let pro in ivs) {
-        props.inputs[pro](ivs[pro], curScope)
+function SlotRender ({
+  slotId,
+  parentComId,
+  props,
+  slot,
+  params,
+  scope,
+  env,
+  createPortal,
+  _env,
+  style,
+  getComDef,
+  context,
+  onError,
+  logger,
+  __rxui_child__
+}) {
+  const [triggerInput, setTriggerInput] = useState(false)
+  const { wrapFn, curScope } = useMemo(() => {
+    let curScope
+    if (slot?.type === 'scope') {
+      let nowScopeId = uuid(10, 16)
+  
+      curScope = {
+        id: nowScopeId,
+        frameId: slotId,
+        parentComId
       }
-      //})
+  
+      if (scope) {
+        curScope.parent = scope
+      }
+    } else {
+      curScope = scope
     }
-
-    if (typeof params.wrap === 'function') {
-      wrapFn = params.wrap
+  
+    let wrapFn
+    if (params) {
+      const ivs = params.inputValues
+      if (typeof ivs === 'object') {
+        for (let pro in ivs) {
+          props.inputs[pro](ivs[pro], curScope)
+        }
+      }
+  
+      if (typeof params.wrap === 'function') {
+        wrapFn = params.wrap
+      }
     }
-    //})
-  }
+  
+    props.run(curScope)//传递scope
 
-  props.run(curScope)//传递scope
+    return {
+      wrapFn,
+      curScope
+    }
+  }, [])
+
+  useEffect(() => {
+    const paramsInputValues = params?.inputValues
+    if (paramsInputValues) {
+      if (!triggerInput) {
+        setTriggerInput(true)
+      } else {
+        if (typeof paramsInputValues === 'object') {
+          for (let pro in paramsInputValues) {
+            props.inputs[pro](paramsInputValues[pro], curScope)
+          }
+        }
+      }
+    }
+  }, [params?.inputValues])
 
   useEffect(() => {
     return () => {
@@ -427,7 +411,6 @@ const SlotRender = memo(({
   }, [])
 
   return (
-    // <div className={calSlotClasses(style)} style={calSlotStyles(style)}>
     <RenderSlot
       scope={curScope}
       env={env}
@@ -447,30 +430,8 @@ const SlotRender = memo(({
       logger={logger}
       __rxui_child__={__rxui_child__}
     />
-    // </div>
   )
-
-}, (prevProps, nextProps) => {
-  const preKey = prevProps.params?.key, nextKey = nextProps?.params?.key
-  if (preKey === void 0 && nextKey === void 0) {//对于没有key的情况，统一做刷新处理
-    return true
-  }
-
-  if (preKey !== nextKey) {//key 不同刷新
-    return false
-  }
-
-  // TODO
-  if (preKey !== void 0 && nextKey !== void 0 && preKey === nextKey) {
-    try {
-      if (JSON.stringify(prevProps.params?.inputValues) !== JSON.stringify(nextProps.params?.inputValues)) {
-        return false
-      }
-    } catch {}
-  }
-
-  return true
-})
+}
 
 //-----------------------------------------------------------------------
 
