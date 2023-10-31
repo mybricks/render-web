@@ -2,7 +2,7 @@
   "name": "@mybricks/render-web-vue2",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.mjs",
   "scripts": {
     "dev": "vite",
     "build": "vite build --config vite.build.js"
@@ -11,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@mybricks/comlib-core": "^0.0.28",
+    "@mybricks/comlib-core": "^0.0.29",
     "vue": "^2.7.14"
   },
   "devDependencies": {
