@@ -300,7 +300,6 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
         getComDef={getComDef}
         context={context}
         className={className}
-        __rxui_child__={!opts.observable}
         createPortal={opts.createPortal || (() => {})}
         onError={onError}
         logger={logger}

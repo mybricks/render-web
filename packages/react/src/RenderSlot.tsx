@@ -34,7 +34,6 @@ export default function RenderSlot({
                                      _env,
                                      getComDef,
                                      context,
-                                     __rxui_child__,
                                      onError,
                                      logger
                                    }) {
@@ -70,8 +69,7 @@ export default function RenderSlot({
                         template={template}
                         onError={onError}
                         logger={logger}
-                        createPortal={createPortal}
-                        __rxui_child__={__rxui_child__}/>,
+                        createPortal={createPortal}/>,
         name,
         inputs: props.inputsCallable,
         style: props.style
@@ -113,7 +111,6 @@ function RenderCom({
                      _env,
                      getComDef,
                      context,
-                     __rxui_child__,
                      onError,
                      logger
                    }) {
@@ -191,8 +188,7 @@ function RenderCom({
                                onError={onError}
                                createPortal={createPortal}
                                parentComId={id}
-                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
-                               __rxui_child__={__rxui_child__}/>
+                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}/>
           } else {
             return (
               <div className={css.error}>
@@ -257,31 +253,6 @@ function RenderCom({
     }
   }
 
-
-  // --- 2023.2.21 兼容小程序
-  
-  // let jsx = (
-  //   <comDef.runtime
-  //     id={id}
-  //     env={env}
-  //     _env={_env}
-  //     data={data}
-  //     style={style}
-  //     inputs={myInputs}
-  //     outputs={myOutputs}
-  //     _inputs={_myInputs}
-  //     _outputs={_myOutputs}
-  //     slots={slotsProxy}
-  //     createPortal={e => {
-
-  //     }}
-  //     parentSlot={parentSlot}
-  //     __rxui_child__={__rxui_child__}
-  //     onError={onError}
-  //     logger={logger}
-  //   />
-  // )
-
   let jsx = comDef.runtime({
     id,
     env,
@@ -298,7 +269,6 @@ function RenderCom({
     slots: slotsProxy,
     createPortal,
     parentSlot,
-    __rxui_child__,
     onError,
     logger,
   })
@@ -345,8 +315,7 @@ const SlotRender = memo(({
                            getComDef,
                            context,
                            onError,
-                           logger,
-                           __rxui_child__
+                           logger
                          }) => {
   // let curScope
   // //if (params) {
@@ -447,7 +416,6 @@ const SlotRender = memo(({
       _outputs={params?._outputs}
       onError={onError}
       logger={logger}
-      __rxui_child__={__rxui_child__}
     />
     // </div>
   )
