@@ -90,6 +90,8 @@ export default function executor(opts, {observable}) {
       const {comId, frameId, pinHostId, val,sceneId} = content
       if (debugLogger) {//存在外部的debugLogger
         debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId})
+      } else {
+        logOutputVal(frameId, {}, pinHostId, val)
       }
     }
   }
