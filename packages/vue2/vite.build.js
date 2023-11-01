@@ -8,7 +8,6 @@ export default defineConfig({
       entry: path.resolve(__dirname, './src/index.ts'),
       name: '_mybricks_render_web_vue2',
       fileName: 'index',
-      output: path.resolve(__dirname, './dist')
     },
     outDir: path.resolve(__dirname, './dist'),
     rollupOptions: {
@@ -18,8 +17,7 @@ export default defineConfig({
           vue: 'Vue'
         }
       }
-    },
-    // cssCodeSplit: false
+    }
   },
   plugins: [vue()]
 })
