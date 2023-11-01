@@ -15,7 +15,7 @@ import React, {
 } from 'react';
 
 import coreLib from '@mybricks/comlib-core';
-
+import { render } from './index'
 import executor from '../../core/executor'
 import RenderSlot from './RenderSlot';
 import {compareVersion, loadCSSLazy} from '../../core/utils';
@@ -85,6 +85,12 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
     }
     if (!('canvasElement' in env)) {
       env.canvasElement = opts.debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
+    }
+
+    if (!opts.env.renderCom) {
+      opts.env.renderCom = (json, options) => {
+        return render(json, { ...options, env })
+      }
     }
 
     return env
