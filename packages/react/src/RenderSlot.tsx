@@ -351,7 +351,7 @@ function SlotRender ({
   __rxui_child__
 }) {
   const [triggerInput, setTriggerInput] = useState(false)
-  const { wrapFn, curScope } = useMemo(() => {
+  const { curScope } = useMemo(() => {
     let curScope
     if (slot?.type === 'scope') {
       let nowScopeId = uuid(10, 16)
@@ -369,7 +369,6 @@ function SlotRender ({
       curScope = scope
     }
   
-    let wrapFn
     if (params) {
       const ivs = params.inputValues
       if (typeof ivs === 'object') {
@@ -377,16 +376,11 @@ function SlotRender ({
           props.inputs[pro](ivs[pro], curScope)
         }
       }
-  
-      if (typeof params.wrap === 'function') {
-        wrapFn = params.wrap
-      }
     }
   
     props.run(curScope)//传递scope
 
     return {
-      wrapFn,
       curScope
     }
   }, [])
@@ -420,7 +414,7 @@ function SlotRender ({
       _env={_env}
       slot={slot}
       params={params}
-      wrapper={wrapFn}
+      wrapper={params?.wrap}
       template={params?.itemWrap}
       getComDef={getComDef}
       context={context}
