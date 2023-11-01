@@ -111,7 +111,7 @@ function enhance(component, memoIt = true) {
     const [, setState] = useState([]);
   
     const update = useCallback(() => {
-      setState([]);
+      Promise.resolve([]).then(setState);
     }, []);
   
     useMemo(() => {
