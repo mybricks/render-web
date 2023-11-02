@@ -190,8 +190,7 @@ function RenderCom({
                       onError={onError}
                       createPortal={createPortal}
                       parentComId={id}
-                      logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
-                      __rxui_child__={__rxui_child__}/>
+                      logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}/>
           } else {
             return (
               <div className={css.error}>
@@ -318,8 +317,7 @@ function SlotRender ({
   getComDef,
   context,
   onError,
-  logger,
-  __rxui_child__
+  logger
 }) {
   const [triggerInput, setTriggerInput] = useState(false)
   const { curScope } = useMemo(() => {
