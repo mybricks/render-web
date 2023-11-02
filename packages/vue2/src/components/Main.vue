@@ -51,6 +51,12 @@ export default {
 
     this.comDefs = comDefs
 
+    if (!opts.env.renderCom) {
+      opts.env.renderCom = (json, options) => {
+        return render(json, { ...options, env })
+      }
+    }
+
     try {
       let refs
       let activeTriggerInput = true

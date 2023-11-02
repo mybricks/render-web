@@ -40,11 +40,16 @@ export default function MultiScene ({json, opts}) {
 
     setPageScenes(pageScenes)
 
-    const { definedComs } = json
+    const { modules, definedComs } = json
 
     if (!opts.env.getDefinedComJSON) {
       opts.env.getDefinedComJSON = (definedId: string) => {
         return definedComs[definedId].json
+      }
+    }
+    if (!opts.env.getModuleJSON) {
+      opts.env.getModuleJSON = (moduleId: string) => {
+        return modules[moduleId].json
       }
     }
 
