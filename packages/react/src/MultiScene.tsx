@@ -277,15 +277,23 @@ export default function MultiScene ({json, opts}) {
               return scenesMap[json.scenes[0].id]._refs?.get(comId)
             },
             exeGlobalCom({ com, value, pinId }) {
-              globalVarMap[com.id] = value
+              const globalComId = com.id
+              globalVarMap[globalComId] = value
               Object.keys(scenesMap).forEach((key) => {
                 const scenes = scenesMap[key]
                 if (scenes.show && scenes._refs) {
-                  const globalCom = scenes._refs.get(com.id)
+                  const globalCom = scenes._refs.get(globalComId)
                   if (globalCom) {
                     globalCom.outputs[pinId](value, true, null, true)
                   }
                 }
+              })
+              const refsMap = env._context.getRefsMap()
+              Object.entries(refsMap).forEach(([id, refs]: any) => {
+                const globalCom = refs.get(globalComId)
+                  if (globalCom) {
+                    globalCom.outputs[pinId](value, true, null, true)
+                  }
               })
             }
           }
@@ -631,15 +639,23 @@ export default function MultiScene ({json, opts}) {
         return scenesMap[json.scenes[0].id]._refs?.get(comId)
       },
       exeGlobalCom({ com, value, pinId }) {
-        globalVarMap[com.id] = value
+        const globalComId = com.id
+        globalVarMap[globalComId] = value
         Object.keys(scenesMap).forEach((key) => {
           const scenes = scenesMap[key]
           if (scenes.show && scenes._refs) {
-            const globalCom = scenes._refs.get(com.id)
+            const globalCom = scenes._refs.get(globalComId)
             if (globalCom) {
               globalCom.outputs[pinId](value, true, null, true)
             }
           }
+        })
+        const refsMap = env._context.getRefsMap()
+        Object.entries(refsMap).forEach(([id, refs]: any) => {
+          const globalCom = refs.get(globalComId)
+            if (globalCom) {
+              globalCom.outputs[pinId](value, true, null, true)
+            }
         })
       }
     }
