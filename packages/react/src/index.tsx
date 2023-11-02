@@ -39,7 +39,7 @@ export function render(json, opts: T_RenderOptions = {}) {
       return <MultiScene json={json} opts={opts as any}/>
     }
     return (
-      <Main json={json} opts={opts as any}/>
+      <Main json={json} opts={opts as any} root={json.type === 'module' ? false : true}/>
     )
   }
 }
