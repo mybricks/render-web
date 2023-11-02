@@ -21,8 +21,9 @@ export default function executor(opts, {observable}) {
     logger,
     debug,
     debugLogger,
-    scenesOperate
   } = opts
+
+  const scenesOperate = opts.scenesOperate || env.scenesOperate
 
   const {
     slot: UIRoot,
