@@ -80,7 +80,30 @@ export default {
     }
     if (!opts.env.getModuleJSON) {
       opts.env.getModuleJSON = (moduleId) => {
-        return modules[moduleId].json
+        const moduleJson = modules?.[moduleId]?.json
+        if (!moduleJson) {
+          return moduleJson
+        }
+        const { global } = json
+        let coms = {}
+        let cons = {}
+        let pinRels = {}
+
+        if (global) {
+          coms = global.comsReg
+          cons = global.consReg
+          pinRels = global.pinRels
+
+          Object.keys(coms).forEach((key) => {
+            coms[key].global = true
+          })
+        }
+
+        Object.assign(moduleJson.coms, coms)
+        Object.assign(moduleJson.cons, cons)
+        Object.assign(moduleJson.pinRels, pinRels)
+
+        return moduleJson
       }
     }
 
@@ -312,14 +335,22 @@ export default {
                 return scenesMap[json.scenes[0].id]._refs.get(comId)
               },
               exeGlobalCom({ com, value, pinId }) {
-                this.globalVarMap[com.id] = value
+                const globalComId = com.id
+                this.globalVarMap[globalComId] = value
                 Object.keys(scenesMap).forEach((key) => {
                   const scenes = scenesMap[key]
                   if (scenes.show && scenes._refs) {
-                    const globalCom = scenes._refs.get(com.id)
+                    const globalCom = scenes._refs.get(globalComId)
                     if (globalCom) {
                       globalCom.outputs[pinId](value, true, null, true)
                     }
+                  }
+                })
+                const refsMap = opts.env._context.getRefsMap()
+                Object.entries(refsMap).forEach(([id, refs]: any) => {
+                  const globalCom = refs.get(globalComId)
+                  if (globalCom) {
+                    globalCom.outputs[pinId](value, true, null, true)
                   }
                 })
               }
@@ -734,14 +765,22 @@ export default {
             return scenesMap[json.scenes[0].id]._refs.get(comId)
           },
           exeGlobalCom({ com, value, pinId }) {
-            that.globalVarMap[com.id] = value
+            const globalComId = com.id
+            that.globalVarMap[globalComId] = value
             Object.keys(scenesMap).forEach((key) => {
               const scenes = scenesMap[key]
               if (scenes.show && scenes._refs) {
-                const globalCom = scenes._refs.get(com.id)
+                const globalCom = scenes._refs.get(globalComId)
                 if (globalCom) {
                   globalCom.outputs[pinId](value, true, null, true)
                 }
+              }
+            })
+            const refsMap = opts.env._context.getRefsMap()
+            Object.entries(refsMap).forEach(([id, refs]: any) => {
+              const globalCom = refs.get(globalComId)
+              if (globalCom) {
+                globalCom.outputs[pinId](value, true, null, true)
               }
             })
           }

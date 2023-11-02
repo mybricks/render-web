@@ -32,7 +32,8 @@ export default function executor(opts, {observable}) {
     cons: Cons = [],
     pinRels: PinRels = {},
     pinProxies: PinProxies = {},
-    pinValueProxies: PinValueProxies = {}
+    pinValueProxies: PinValueProxies = {},
+    type: JsonType
   } = json
 
   const _Env = env
@@ -1190,7 +1191,7 @@ export default function executor(opts, {observable}) {
   }
 
   if (typeof ref === 'function') {
-    ref({
+    const refs = {
       run() {
         exeForFrame({frameId: ROOT_FRAME_KEY})
       },
@@ -1209,7 +1210,11 @@ export default function executor(opts, {observable}) {
       },
       get: rst.get,
       getComInfo: rst.getComInfo
-    })
+    }
+    if (env._context && JsonType === 'module') {
+      env._context.setRefs(json.id, refs)
+    }
+    ref(refs)
   }
 
   return rst

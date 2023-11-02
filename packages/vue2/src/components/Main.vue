@@ -24,6 +24,9 @@ export default {
     },
     className: {
       type: String
+    },
+    root: {
+      type: Boolean
     }
   },
   created() {
@@ -128,7 +131,7 @@ export default {
       }
     },
     props() {
-      const { json, opts, propsStyle, className } = this.$props
+      const { json, opts, propsStyle, className, root = true } = this.$props
 
       return {
         env: opts.env,
@@ -141,7 +144,7 @@ export default {
         className,
         onError: this.onError,
         logger: this.logger,
-        root: true,
+        root,
           // __rxui_child__={!opts.observable}
           // createPortal={opts.createPortal || (() => {})}
       }

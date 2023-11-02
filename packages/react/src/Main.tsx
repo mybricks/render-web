@@ -42,7 +42,7 @@ const regAry = (comAray, comDefs) => {
 
 let count = 1
 
-export default function Main({json, opts, style = {}, className = ''}: { json, opts: T_RenderOptions, style?, className? }) {
+export default function Main({json, opts, style = {}, className = '', root = true}: { json, opts: T_RenderOptions, style?, className?, root: boolean }) {
   //环境变量，此处可以定义连接器、多语言等实现
   const env = useMemo(() => {
     if (count === 1) {
@@ -303,7 +303,7 @@ export default function Main({json, opts, style = {}, className = ''}: { json, o
         createPortal={opts.createPortal || (() => {})}
         onError={onError}
         logger={logger}
-        root={true}
+        root={root}
       />
     </ErrorBoundary>
   )
