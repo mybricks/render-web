@@ -18,7 +18,9 @@ console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`,
 
 
 export function render(json, opts: T_RenderOptions = {}) {
-  if (Array.isArray(json.scenes)) {
+  if (!json) {
+    return null
+  } else if (Array.isArray(json.scenes)) {
     return <MultiScene json={json} opts={opts as any}/>
   }
   return (

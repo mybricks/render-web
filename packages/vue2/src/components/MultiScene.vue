@@ -71,6 +71,19 @@ export default {
 
     this.setPageScenes(pageScenes)
 
+    const { modules, definedComs } = json
+
+    if (!opts.env.getDefinedComJSON) {
+      opts.env.getDefinedComJSON = (definedId) => {
+        return definedComs[definedId].json
+      }
+    }
+    if (!opts.env.getModuleJSON) {
+      opts.env.getModuleJSON = (moduleId) => {
+        return modules[moduleId].json
+      }
+    }
+
     this.scenesMap = json.scenes.reduce((acc, json, index) => {
       return {
         ...acc,
