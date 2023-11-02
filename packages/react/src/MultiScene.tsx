@@ -48,7 +48,10 @@ export default function MultiScene ({json, opts}) {
       }
     }
     opts.env.getModuleJSON = (moduleId: string) => {
-      const moduleJson = modules[moduleId].json
+      const moduleJson = modules?.[moduleId]?.json
+      if (!moduleJson) {
+        return moduleJson
+      }
       const { global } = json
       let coms = {}
       let cons = {}
