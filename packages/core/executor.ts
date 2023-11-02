@@ -106,7 +106,7 @@ export default function executor(opts, {observable}) {
   }) {
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
     if (debugLogger) {//存在外部的debugLogger
-      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef})
+      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id})
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
     }
