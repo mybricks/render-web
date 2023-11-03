@@ -19,7 +19,7 @@ class Context {
 export default {
   functional: true,
   render (h, { props }) {
-    const { json } = props
+    const { json, opts } = props
     if (!json) {
       return null
     }
