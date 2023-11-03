@@ -5,9 +5,9 @@ import MultiScene from "./MultiScene.vue";
 console.log(`%c ${'@mybricks/render-web-vue'} %c@${'0.0.1'}`, `color:#FFF;background:#fa6400`, ``, ``);
 
 class Context {
-  private _refsMap: any = {}
+  _refsMap = {}
 
-  setRefs(id: string, refs: any) {
+  setRefs(id, refs) {
     this._refsMap[id] = refs
   }
 
