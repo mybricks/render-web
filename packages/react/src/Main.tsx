@@ -87,8 +87,8 @@ export default function Main({json, opts, style = {}, className = '', root = tru
       env.canvasElement = opts.debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
     }
 
-    if (!opts.env.renderCom) {
-      opts.env.renderCom = (json, options) => {
+    if (!opts.env.renderModule) {
+      opts.env.renderModule = (json, options) => {
         return render(json, { ...options, env })
       }
     }
