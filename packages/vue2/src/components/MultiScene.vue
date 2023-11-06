@@ -149,6 +149,93 @@ export default {
           const { id } = fxFrame
           const fxInfo = {}
           fxFramesMap[id] = fxInfo
+          const scenesOperate = {
+            open({todo, frameId, parentScope}) {
+              // console.log('fx scenesOperate.open', {
+              //   todo,
+              //   frameId,
+              //   parentScope
+              // })
+              const fxFrame = fxFramesMap[frameId]
+
+              if (fxFrame?._refs) {
+                fxFrame.parentScope = parentScope
+                fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
+                fxFrame._refs.run()
+              }
+            },
+            inputs({frameId, parentScope, value, pinId}) {
+              // console.log('fx 场景触发inputs: ', {
+              //   frameId, parentScope, value, pinId
+              // })
+              const scenes = scenesMap[frameId]
+              if (!scenes) {
+                if (!scenesOperateInputsTodo[frameId]) {
+                  scenesOperateInputsTodo[frameId] = {
+                    parentScope,
+                    todo: [{value, pinId}]
+                  }
+                } else {
+                  scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
+                }
+              } else {
+                scenes.parentScope = parentScope
+    
+                if (scenes._refs) {
+                  scenes._refs.inputs[pinId](value)
+                } else {
+                  scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                    pinId,
+                    value
+                  }})
+                }
+              }
+            },
+            _notifyBindings(val, com) {
+              const { bindingsTo } = com.model
+              if (bindingsTo) {
+                for (let comId in bindingsTo) {
+                  for (let i in scenesMap) {
+                    const scenes = scenesMap[i]
+                    const com = scenes.json.coms[comId]
+                    
+                    if (com) {
+                      if (scenes._refs) {
+                        this._notifyBindings(scenes._refs, comId, bindingsTo[comId], val)
+                      } else {
+                        const bindings = bindingsTo[comId]
+                        scenes.todo = scenes.todo.concat({type: 'globalVar', todo: {comId, bindings, value: val}})
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            getGlobalComProps(comId) {
+              // 从主场景获取真实数据
+              return scenesMap[json.scenes[0].id]._refs.get(comId)
+            },
+            exeGlobalCom({ com, value, pinId }) {
+              const globalComId = com.id
+              this.globalVarMap[globalComId] = value
+              Object.keys(scenesMap).forEach((key) => {
+                const scenes = scenesMap[key]
+                if (scenes.show && scenes._refs) {
+                  const globalCom = scenes._refs.get(globalComId)
+                  if (globalCom) {
+                    globalCom.outputs[pinId](value, true, null, true)
+                  }
+                }
+              })
+              const refsMap = opts.env._context.getRefsMap()
+              Object.entries(refsMap).forEach(([id, refs]) => {
+                const globalCom = refs.get(globalComId)
+                if (globalCom) {
+                  globalCom.outputs[pinId](value, true, null, true)
+                }
+              })
+            }
+          }
           const options = {
             ...opts,
             env: {
@@ -268,93 +355,7 @@ export default {
                 }
               }
             },
-            scenesOperate: {
-              open({todo, frameId, parentScope}) {
-                // console.log('fx scenesOperate.open', {
-                //   todo,
-                //   frameId,
-                //   parentScope
-                // })
-                const fxFrame = fxFramesMap[frameId]
-
-                if (fxFrame?._refs) {
-                  fxFrame.parentScope = parentScope
-                  fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
-                  fxFrame._refs.run()
-                }
-              },
-              inputs({frameId, parentScope, value, pinId}) {
-                // console.log('fx 场景触发inputs: ', {
-                //   frameId, parentScope, value, pinId
-                // })
-                const scenes = scenesMap[frameId]
-                if (!scenes) {
-                  if (!scenesOperateInputsTodo[frameId]) {
-                    scenesOperateInputsTodo[frameId] = {
-                      parentScope,
-                      todo: [{value, pinId}]
-                    }
-                  } else {
-                    scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
-                  }
-                } else {
-                  scenes.parentScope = parentScope
-      
-                  if (scenes._refs) {
-                    scenes._refs.inputs[pinId](value)
-                  } else {
-                    scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                      pinId,
-                      value
-                    }})
-                  }
-                }
-              },
-              _notifyBindings(val, com) {
-                const { bindingsTo } = com.model
-                if (bindingsTo) {
-                  for (let comId in bindingsTo) {
-                    for (let i in scenesMap) {
-                      const scenes = scenesMap[i]
-                      const com = scenes.json.coms[comId]
-                      
-                      if (com) {
-                        if (scenes._refs) {
-                          this._notifyBindings(scenes._refs, comId, bindingsTo[comId], val)
-                        } else {
-                          const bindings = bindingsTo[comId]
-                          scenes.todo = scenes.todo.concat({type: 'globalVar', todo: {comId, bindings, value: val}})
-                        }
-                      }
-                    }
-                  }
-                }
-              },
-              getGlobalComProps(comId) {
-                // 从主场景获取真实数据
-                return scenesMap[json.scenes[0].id]._refs.get(comId)
-              },
-              exeGlobalCom({ com, value, pinId }) {
-                const globalComId = com.id
-                this.globalVarMap[globalComId] = value
-                Object.keys(scenesMap).forEach((key) => {
-                  const scenes = scenesMap[key]
-                  if (scenes.show && scenes._refs) {
-                    const globalCom = scenes._refs.get(globalComId)
-                    if (globalCom) {
-                      globalCom.outputs[pinId](value, true, null, true)
-                    }
-                  }
-                })
-                const refsMap = opts.env._context.getRefsMap()
-                Object.entries(refsMap).forEach(([id, refs]: any) => {
-                  const globalCom = refs.get(globalComId)
-                  if (globalCom) {
-                    globalCom.outputs[pinId](value, true, null, true)
-                  }
-                })
-              }
-            }
+            scenesOperate
           }
 
           let coms = global.comsReg
@@ -485,6 +486,106 @@ export default {
 
       const scenes = scenesMap[id]
       const hasPermission = opts.env.hasPermission
+      const scenesOperate = {
+        open({todo, frameId, parentScope}) {
+          const scenes = scenesMap[frameId]
+
+          if (scenes) {
+            if (!scenes.show) {
+              scenes.show = true
+              scenes.todo = scenes.todo.concat({type: 'inputs', todo})
+              scenes.parentScope = parentScope
+    
+              if (scenes.type === 'popup') {
+                // setPopupIds((popupIds) => {
+                //   return [...popupIds, frameId]
+                // })
+                that.setPopupIds([...that.popupIds, frameId])
+              } else {
+                setCount((count) => count+1)
+              }
+            }
+          } else {
+            const fxFrame = fxFramesMap[frameId]
+            if (fxFrame?._refs) {
+              fxFrame.parentScope = parentScope
+              fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
+              fxFrame._refs.run()
+            }
+          }
+        },
+        inputs({frameId, parentScope, value, pinId}) {
+          // console.log('场景触发inputs: ', {
+          //   frameId, parentScope, value, pinId
+          // })
+          const scenes = scenesMap[frameId]
+          if (!scenes) {
+            if (!scenesOperateInputsTodo[frameId]) {
+              scenesOperateInputsTodo[frameId] = {
+                parentScope,
+                todo: [{value, pinId}]
+              }
+            } else {
+              scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
+            }
+          } else {
+            scenes.parentScope = parentScope
+
+            if (scenes._refs) {
+              scenes._refs.inputs[pinId](value)
+            } else {
+              scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                pinId,
+                value
+              }})
+            }
+          }
+        },
+        _notifyBindings(val, com) {
+          const { bindingsTo } = com.model
+          if (bindingsTo) {
+            for (let comId in bindingsTo) {
+              for (let i in scenesMap) {
+                const scenes = scenesMap[i]
+                const com = scenes.json.coms[comId]
+                
+                if (com) {
+                  if (scenes._refs) {
+                    this._notifyBindings(scenes._refs, comId, bindingsTo[comId], val)
+                  } else {
+                    const bindings = bindingsTo[comId]
+                    scenes.todo = scenes.todo.concat({type: 'globalVar', todo: {comId, bindings, value: val}})
+                  }
+                }
+              }
+            }
+          }
+        },
+        getGlobalComProps(comId) {
+          // 从主场景获取真实数据
+          return scenesMap[json.scenes[0].id]._refs.get(comId)
+        },
+        exeGlobalCom({ com, value, pinId }) {
+          const globalComId = com.id
+          that.globalVarMap[globalComId] = value
+          Object.keys(scenesMap).forEach((key) => {
+            const scenes = scenesMap[key]
+            if (scenes.show && scenes._refs) {
+              const globalCom = scenes._refs.get(globalComId)
+              if (globalCom) {
+                globalCom.outputs[pinId](value, true, null, true)
+              }
+            }
+          })
+          const refsMap = opts.env._context.getRefsMap()
+          Object.entries(refsMap).forEach(([id, refs]) => {
+            const globalCom = refs.get(globalComId)
+            if (globalCom) {
+              globalCom.outputs[pinId](value, true, null, true)
+            }
+          })
+        }
+      }
 
       return {
         ...opts,
@@ -685,106 +786,7 @@ export default {
             }
           }
         },
-        scenesOperate: {
-          open({todo, frameId, parentScope}) {
-            const scenes = scenesMap[frameId]
-
-            if (scenes) {
-              if (!scenes.show) {
-                scenes.show = true
-                scenes.todo = scenes.todo.concat({type: 'inputs', todo})
-                scenes.parentScope = parentScope
-      
-                if (scenes.type === 'popup') {
-                  // setPopupIds((popupIds) => {
-                  //   return [...popupIds, frameId]
-                  // })
-                  that.setPopupIds([...that.popupIds, frameId])
-                } else {
-                  setCount((count) => count+1)
-                }
-              }
-            } else {
-              const fxFrame = fxFramesMap[frameId]
-              if (fxFrame?._refs) {
-                fxFrame.parentScope = parentScope
-                fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
-                fxFrame._refs.run()
-              }
-            }
-          },
-          inputs({frameId, parentScope, value, pinId}) {
-            // console.log('场景触发inputs: ', {
-            //   frameId, parentScope, value, pinId
-            // })
-            const scenes = scenesMap[frameId]
-            if (!scenes) {
-              if (!scenesOperateInputsTodo[frameId]) {
-                scenesOperateInputsTodo[frameId] = {
-                  parentScope,
-                  todo: [{value, pinId}]
-                }
-              } else {
-                scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
-              }
-            } else {
-              scenes.parentScope = parentScope
-
-              if (scenes._refs) {
-                scenes._refs.inputs[pinId](value)
-              } else {
-                scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                  pinId,
-                  value
-                }})
-              }
-            }
-          },
-          _notifyBindings(val, com) {
-            const { bindingsTo } = com.model
-            if (bindingsTo) {
-              for (let comId in bindingsTo) {
-                for (let i in scenesMap) {
-                  const scenes = scenesMap[i]
-                  const com = scenes.json.coms[comId]
-                  
-                  if (com) {
-                    if (scenes._refs) {
-                      this._notifyBindings(scenes._refs, comId, bindingsTo[comId], val)
-                    } else {
-                      const bindings = bindingsTo[comId]
-                      scenes.todo = scenes.todo.concat({type: 'globalVar', todo: {comId, bindings, value: val}})
-                    }
-                  }
-                }
-              }
-            }
-          },
-          getGlobalComProps(comId) {
-            // 从主场景获取真实数据
-            return scenesMap[json.scenes[0].id]._refs.get(comId)
-          },
-          exeGlobalCom({ com, value, pinId }) {
-            const globalComId = com.id
-            that.globalVarMap[globalComId] = value
-            Object.keys(scenesMap).forEach((key) => {
-              const scenes = scenesMap[key]
-              if (scenes.show && scenes._refs) {
-                const globalCom = scenes._refs.get(globalComId)
-                if (globalCom) {
-                  globalCom.outputs[pinId](value, true, null, true)
-                }
-              }
-            })
-            const refsMap = opts.env._context.getRefsMap()
-            Object.entries(refsMap).forEach(([id, refs]: any) => {
-              const globalCom = refs.get(globalComId)
-              if (globalCom) {
-                globalCom.outputs[pinId](value, true, null, true)
-              }
-            })
-          }
-        }
+        scenesOperate
       }
     },
     _notifyBindings(_refs, comId, bindings, value) {

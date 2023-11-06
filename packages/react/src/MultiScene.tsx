@@ -211,7 +211,7 @@ export default function MultiScene ({json, opts}) {
             }
           }, opts.env?.canvas)
           const scenesOperate = {
-            open({todo, frameId, parentScope}) {
+            open({todo, frameId, parentScope, comProps}) {
               // console.log('fx scenesOperate.open', {
               //   todo,
               //   frameId,
@@ -221,6 +221,12 @@ export default function MultiScene ({json, opts}) {
 
               if (fxFrame?._refs) {
                 fxFrame.parentScope = parentScope
+                const configs = comProps?.data?.configs
+                if (configs) {
+                  Object.entries(configs).forEach(([key, value]) => {
+                    fxFrame._refs.inputs[key](value, void 0, false)
+                  })
+                }
                 fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
                 fxFrame._refs.run()
               }
@@ -561,7 +567,7 @@ export default function MultiScene ({json, opts}) {
     }, opts.env?.canvas)
 
     const scenesOperate = {
-      open({todo, frameId, parentScope}) {
+      open({todo, frameId, parentScope, comProps}) {
         const scenes = scenesMap[frameId]
 
         if (scenes) {
@@ -582,6 +588,12 @@ export default function MultiScene ({json, opts}) {
           const fxFrame = fxFramesMap[frameId]
           if (fxFrame?._refs) {
             fxFrame.parentScope = parentScope
+            const configs = comProps?.data?.configs
+            if (configs) {
+              Object.entries(configs).forEach(([key, value]) => {
+                fxFrame._refs.inputs[key](value, void 0, false)
+              })
+            }
             fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
             fxFrame._refs.run()
           }

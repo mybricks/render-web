@@ -84,7 +84,7 @@ export default function executor(opts, {observable}) {
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef})
+        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id})
       } else {
         logOutputVal(com.title, comDef, pinHostId, val)
       }
@@ -108,7 +108,7 @@ export default function executor(opts, {observable}) {
   }) {
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
     if (debugLogger) {//存在外部的debugLogger
-      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef})
+      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id})
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
     }
@@ -143,8 +143,23 @@ export default function executor(opts, {observable}) {
             proxyDesc.frameId = nextScope.proxyComProps.id
             myScope = nextScope.parent
           }
+          const isFn = inReg.def.namespace === 'mybricks.core-comlib.fn'
 
-          exeInputForFrame(proxyDesc, val, myScope)
+          if (isFn) {
+            const { configs } = comProps.data
+            if (configs) {
+              Object.entries(configs).forEach(([key, value]) => {
+                const { frameId, comId, pinId } = proxyDesc
+                const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
+                const cons = Cons[idPre + '-' + key]
+                if (cons) {
+                  exeCons(cons, value, myScope)
+                }
+              })
+            }
+          }
+
+          exeInputForFrame({ options: proxyDesc, value: val, scope: myScope, comProps })
 
           if (!isFrameOutput) {
             exeForFrame({frameId: proxyDesc.frameId, scope: myScope})
@@ -1125,29 +1140,30 @@ export default function executor(opts, {observable}) {
     }
   }
 
-  function exeInputForFrame(opts, val, scope = void 0, log = true) {
-    const {frameId, comId, pinId,sceneId} = opts
+  function exeInputForFrame({ options, value, scope = void 0, log = true, comProps }) {
+    const {frameId, comId, pinId,sceneId} = options
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
     const cons = Cons[idPre + '-' + pinId]
 
-    _slotValue[`${frameId}-${pinId}`] = val
+    _slotValue[`${frameId}-${pinId}`] = value
 
     if (log) {
-      _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val,sceneId})
+      _logOutputVal('frame', {comId, frameId, pinHostId: pinId, value,sceneId})
     }
 
     if (cons) {
-      exeCons(cons, val, scope)
+      exeCons(cons, value, scope)
     } else if (frameId !== ROOT_FRAME_KEY) {
       if (json.id === frameId) {
-        _frameOutput[pinId](val)
+        _frameOutput[pinId](value)
       } else {
         scenesOperate?.open({
           frameId,
           todo: {
             pinId,
-            value: val
+            value: value
           },
+          comProps,
           parentScope: scope.proxyComProps
         })
       }
@@ -1201,7 +1217,7 @@ export default function executor(opts, {observable}) {
             if (Object.prototype.toString.call(pinId) === '[object Symbol]') {
               return
             }
-            exeInputForFrame({frameId: ROOT_FRAME_KEY, pinId,sceneId}, val, void 0, log)
+            exeInputForFrame({ options: {frameId: ROOT_FRAME_KEY, pinId,sceneId }, value: val, scope: void 0, log })
           }
         }
       }),
