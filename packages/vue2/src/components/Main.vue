@@ -60,6 +60,12 @@ export default {
       }
     }
 
+    if (!opts.env.renderModule) {
+      opts.env.renderModule = (json, options) => {
+        return render(json, { ...options, env })
+      }
+    }
+
     try {
       let refs
       let activeTriggerInput = true
