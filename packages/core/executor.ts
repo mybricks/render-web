@@ -91,7 +91,7 @@ export default function executor(opts, {observable}) {
     } else if (type === 'frame') {
       const {comId, frameId, pinHostId, val,sceneId} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId})
+        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id})
       }
     }
   }
@@ -1146,7 +1146,7 @@ export default function executor(opts, {observable}) {
     _slotValue[`${frameId}-${pinId}`] = value
 
     if (log) {
-      _logOutputVal('frame', {comId, frameId, pinHostId: pinId, value,sceneId})
+      _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val: value,sceneId})
     }
 
     if (cons) {
