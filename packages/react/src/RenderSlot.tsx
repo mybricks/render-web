@@ -319,7 +319,7 @@ function SlotRender ({
   onError,
   logger
 }) {
-  const [triggerInput, setTriggerInput] = useState(false)
+  const [ preInputValues, setPreInputValues] = useState(null)
   const { curScope } = useMemo(() => {
     let curScope
     if (slot?.type === 'scope') {
@@ -357,13 +357,11 @@ function SlotRender ({
   useEffect(() => {
     const paramsInputValues = params?.inputValues
     if (paramsInputValues) {
-      if (!triggerInput) {
-        setTriggerInput(true)
-      } else {
-        if (typeof paramsInputValues === 'object') {
-          for (let pro in paramsInputValues) {
-            props.inputs[pro](paramsInputValues[pro], curScope)
-          }
+      if (!preInputValues) {
+        setPreInputValues(paramsInputValues)
+      } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues) !== JSON.stringify(paramsInputValues))) {
+        for (let pro in paramsInputValues) {
+          props.inputs[pro](paramsInputValues[pro], curScope)
         }
       }
     }
