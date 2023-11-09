@@ -277,6 +277,9 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     }
    
     return () => {
+      if (typeof opts.debug === "function") {
+        opts.env._context?._pendingContext?.close()
+      }
       if (handle) {
         setInterval = originalSetInterval
         intervalList.forEach((intervalId) =>

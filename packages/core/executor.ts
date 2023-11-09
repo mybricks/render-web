@@ -23,6 +23,8 @@ export default function executor(opts, {observable}) {
     debugLogger,
   } = opts
 
+  const _context = env._context
+
   const scenesOperate = opts.scenesOperate || env.scenesOperate
 
   const {
@@ -79,21 +81,20 @@ export default function executor(opts, {observable}) {
                              pinHostId,
                              val,
                              sceneId
-                           }//frame
+                           },//frame
+                           isBreakpoint
   ) {
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id})
+        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id}, isBreakpoint)
       } else {
         logOutputVal(com.title, comDef, pinHostId, val)
       }
     } else if (type === 'frame') {
       const {comId, frameId, pinHostId, val,sceneId} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId})
-      } else {
-        logOutputVal(frameId, {}, pinHostId, val)
+        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id}, isBreakpoint)
       }
     }
   }
@@ -105,16 +106,16 @@ export default function executor(opts, {observable}) {
     frameKey,
     finishPinParentKey,
     comDef
-  }) {
+  }, isBreakpoint) {
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
     if (debugLogger) {//存在外部的debugLogger
-      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id})
+      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id}, isBreakpoint)
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
     }
   }
 
-  function exeCons(cons, val, curScope, fromCon?, notifyAll?) {
+  function exeCons(logProps, cons, val, curScope, fromCon?, notifyAll?) {
     function exeCon(inReg, nextScope) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
@@ -153,7 +154,7 @@ export default function executor(opts, {observable}) {
                 const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
                 const cons = Cons[idPre + '-' + key]
                 if (cons) {
-                  exeCons(cons, value, myScope)
+                  exeCons(null, cons, value, myScope)
                 }
               })
             }
@@ -192,7 +193,7 @@ export default function executor(opts, {observable}) {
           } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
             const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
             if (cons) {
-              exeCons(cons, val)
+              exeCons(null, cons, val)
             }
           }
         } else {
@@ -213,9 +214,19 @@ export default function executor(opts, {observable}) {
       }
     }
 
-    cons.forEach(inReg => {
+    cons.forEach(async (inReg: any) => {
       if (debug && inReg.isIgnored) {
         return
+      }
+      if (debug && JsonType !== 'module' &&_context.hasBreakpoint(inReg)) {
+        
+        await _context.wait(inReg, () => {
+          if (logProps) {
+            _logOutputVal(...logProps, true)
+          }
+        })
+      } else { 
+        _logOutputVal(...logProps)
       }
       let nextScope = curScope
 
@@ -505,7 +516,7 @@ export default function executor(opts, {observable}) {
             const comDef = getComDef(def)
 
             //logOutputVal(com.title, comDef, name, val)
-            _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
+            // _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
 
             const evts = model.outputEvents
             let cons
@@ -580,10 +591,10 @@ export default function executor(opts, {observable}) {
             cons = cons || Cons[comId + '-' + name]
             if (cons?.length) {
               if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
-                exeCons(cons, val, myScope, fromCon)
+                exeCons(['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, myScope, fromCon)
               } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
                 //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-                exeCons(cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
+                exeCons(['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
               }
             }
           }
@@ -624,9 +635,9 @@ export default function executor(opts, {observable}) {
           const cons = Cons[comId + '-' + name]
           if (cons) {
             //logOutputVal(com.title, def, name, val)
-            _logOutputVal('com', {com, pinHostId: name, val, comDef: def})
+            // _logOutputVal('com', {com, pinHostId: name, val, comDef: def})
 
-            exeCons(cons, val, scope)
+            exeCons(['com', {com, pinHostId: name, val, comDef: def}], cons, val, scope)
 
             // cons.forEach(inReg => {
             //   if (inReg.type === 'com') {
@@ -884,7 +895,7 @@ export default function executor(opts, {observable}) {
     if (finishPinParentKey) {
       const cons = Cons[_nextConsPinKeyMap[finishPinParentKey]]
       if (cons && !PinRels[`${comId}-${pinId}`]) {
-        exeCons(cons, void 0)
+        exeCons(null, cons, void 0)
       }
     }
   }
@@ -1015,10 +1026,10 @@ export default function executor(opts, {observable}) {
             const cons = Cons[key]
             _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
 
-            _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
+            // _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
 
             if (cons) {
-              exeCons(cons, val, curScope || Cur.scope)
+              exeCons(['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope || Cur.scope)
 
               // cons.forEach(inReg => {
               //   if (inReg.type === 'com') {
@@ -1148,11 +1159,11 @@ export default function executor(opts, {observable}) {
     _slotValue[`${frameId}-${pinId}`] = value
 
     if (log) {
-      _logOutputVal('frame', {comId, frameId, pinHostId: pinId, value,sceneId})
+      // _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val: value,sceneId})
     }
 
     if (cons) {
-      exeCons(cons, value, scope)
+      exeCons(['frame', {comId, frameId, pinHostId: pinId, val: value,sceneId}],cons, value, scope)
     } else if (frameId !== ROOT_FRAME_KEY) {
       if (json.id === frameId) {
         _frameOutput[pinId](value)
@@ -1227,8 +1238,8 @@ export default function executor(opts, {observable}) {
       get: rst.get,
       getComInfo: rst.getComInfo
     }
-    if (env._context && JsonType === 'module') {
-      env._context.setRefs(json.id, refs)
+    if (_context && JsonType === 'module') {
+      _context.setRefs(json.id, refs)
     }
     ref(refs)
   }

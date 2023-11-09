@@ -1,7 +1,8 @@
 import React, {
   useMemo,
   useState,
-  useCallback
+  useCallback,
+  useEffect
 } from 'react'
 
 import Main from './Main'
