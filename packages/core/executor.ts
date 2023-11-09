@@ -219,10 +219,12 @@ export default function executor(opts, {observable}) {
         return
       }
       if (debug && JsonType !== 'module' &&_context.hasBreakpoint(inReg)) {
-        if (logProps) {
-          _logOutputVal(...logProps, true)
-        }
-        await _context.wait(inReg)
+        
+        await _context.wait(inReg, () => {
+          if (logProps) {
+            _logOutputVal(...logProps, true)
+          }
+        })
       } else { 
         _logOutputVal(...logProps)
       }

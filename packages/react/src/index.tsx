@@ -13,15 +13,18 @@ import Main from "./Main";
 import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import {T_RenderOptions} from "./types";
+import Pendding from "./pending";
 
 console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`, ``, ``);
 
 class Context {
-
+  private opts: any
   constructor(opts: any) {
+    this.opts = opts;
     const { debug } = opts;
 
     if (typeof debug === "function") {
+      this._pendingContext = new Pendding();
       opts.debugLogger = debug({
         resume: () => {
           this.next();
@@ -47,6 +50,8 @@ class Context {
     return this._refsMap
   }
 
+  private _pendingContext: any = null;
+
   private _pending = false
   private _ignoreWait = false
   private _waitCount = 0
@@ -59,13 +64,24 @@ class Context {
     return !this._ignoreWait && (this._pending || connection.isBreakpoint)
   }
 
-  wait(connection: any) {
+  wait(connection: any, cb: any) {
     return new Promise((resolve: any) => {
       if (this._ignoreWait) {
         resolve()
       } else {
+        const waiting = this._waitBreakpointIds.length > 0
+
+        if (!waiting) {
+          cb()
+        }
+
+        this._pendingContext.open(this.opts.env.canvasElement)
         this._pending = true;
         if (connection.isBreakpoint) {
+          if (waiting) {
+            const lastId = this._waitBreakpointIds[0]
+            this._waitIdToResolvesMap[lastId].push(cb)
+          }
           const id = (this._waitCount ++) + connection.id
           this._waitBreakpointIds.unshift(id)
           this._waitIdToResolvesMap[id] = [resolve]
@@ -90,6 +106,7 @@ class Context {
 
       if (!this._waitBreakpointIds.length) {
         this._pending = false
+        this._pendingContext.close()
       }
     }
   }

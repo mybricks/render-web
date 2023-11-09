@@ -9,20 +9,12 @@ import Main from './Main'
 
 import lazyCss from './MultiScene.lazy.less'
 
-import Pendding from './pending';
-
 const css = lazyCss.locals
 
 export default function MultiScene ({json, opts}) {
   const [count, setCount] = useState(0)
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
-
-  useEffect(() => {
-    if (opts.debug && !opts.env.pendding) {
-      opts.env.pendding = new Pendding(opts.env.canvasElement)
-    }
-  }, [])
 
   const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap} = useMemo(() => {
     if (opts.sceneId) {
