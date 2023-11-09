@@ -12,17 +12,6 @@ import {uuid, dataSlim} from "./utils";
 const ROOT_FRAME_KEY = '_rootFrame_'
 
 export default function executor(opts, {observable}) {
-  let resolves: any = []
-  function nextConection() {
-    resolves.forEach((r: any) => r())
-    resolves = []
-  }
-  function pendding() {
-    return new Promise((resolve) => {
-      resolves.push(resolve)
-    })
-  }
-
   const {
     json,
     getComDef,
@@ -34,21 +23,7 @@ export default function executor(opts, {observable}) {
     debugLogger,
   } = opts
 
-
-  let isBreakpoint = false;
-  let ignoreAll = false;
-  let debugAction = {}
-
-  if (typeof debug === 'function') {
-    debugAction = debug({
-      resume: (...args) => {
-        nextConection();
-      },
-      ignoreAll: (bool: boolean) => {
-        ignoreAll = bool;
-      }
-    })
-  }
+  const _context = env._context
 
   const scenesOperate = opts.scenesOperate || env.scenesOperate
 
@@ -111,15 +86,15 @@ export default function executor(opts, {observable}) {
   ) {
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
-      if (debugAction.log) {//存在外部的debugLogger
-        debugAction.log('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id}, isBreakpoint)
+      if (debugLogger) {//存在外部的debugLogger
+        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id}, isBreakpoint)
       } else {
         logOutputVal(com.title, comDef, pinHostId, val)
       }
     } else if (type === 'frame') {
       const {comId, frameId, pinHostId, val,sceneId} = content
-      if (debugAction.log) {//存在外部的debugLogger
-        debugAction.log('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id}, isBreakpoint)
+      if (debugLogger) {//存在外部的debugLogger
+        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id}, isBreakpoint)
       }
     }
   }
@@ -133,8 +108,8 @@ export default function executor(opts, {observable}) {
     comDef
   }, isBreakpoint) {
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
-    if (debugAction.log) {//存在外部的debugLogger
-      debugAction.log('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id}, isBreakpoint)
+    if (debugLogger) {//存在外部的debugLogger
+      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id}, isBreakpoint)
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
     }
@@ -243,21 +218,14 @@ export default function executor(opts, {observable}) {
       if (debug && inReg.isIgnored) {
         return
       }
-      if (debug && inReg.isBreakpoint && !ignoreAll && !isBreakpoint) {
-        isBreakpoint = true
-        env.pendding?.open()
-      }
-      if (isBreakpoint) {
+      if (debug && JsonType !== 'module' &&_context.hasBreakpoint(inReg)) {
         if (logProps) {
           _logOutputVal(...logProps, true)
         }
-        await pendding()
-        env.pendding?.close()
-        isBreakpoint = false
-      } else {
+        await _context.wait(inReg)
+      } else { 
         _logOutputVal(...logProps)
       }
-
       let nextScope = curScope
 
       if (notifyAll) {
@@ -1268,8 +1236,8 @@ export default function executor(opts, {observable}) {
       get: rst.get,
       getComInfo: rst.getComInfo
     }
-    if (env._context && JsonType === 'module') {
-      env._context.setRefs(json.id, refs)
+    if (_context && JsonType === 'module') {
+      _context.setRefs(json.id, refs)
     }
     ref(refs)
   }
