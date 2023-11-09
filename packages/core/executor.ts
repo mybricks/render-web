@@ -9,7 +9,7 @@
 import {log, logInputVal, logOutputVal} from './logger';
 import {uuid, dataSlim} from "./utils";
 
-// import Pendding from "./pending";
+import Pendding from "./pending";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
@@ -36,9 +36,7 @@ export default function executor(opts, {observable}) {
     debugLogger,
   } = opts
 
-  // const pendding2 = new Pendding(env.canvasElement)
-
-  // console.log("pendding2: ", pendding2)
+  const pendding2 = new Pendding(env.canvasElement)
 
 
   let isBreakpoint = false;
@@ -116,7 +114,6 @@ export default function executor(opts, {observable}) {
                            isBreakpoint
   ) {
     if (type === 'com') {
-      console.log(isBreakpoint, 'isBreakpoint')
       const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
       if (debugAction.log) {//存在外部的debugLogger
         debugAction.log('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id}, isBreakpoint)
@@ -252,16 +249,14 @@ export default function executor(opts, {observable}) {
       }
       if (debug && inReg.isBreakpoint && !ignoreAll && !isBreakpoint) {
         isBreakpoint = true
-        // pendding2.open();
+        pendding2.open();
       }
-      // console.log(logProps, 'logPropslogPropslogProps')
       if (isBreakpoint) {
         if (logProps) {
           _logOutputVal(...logProps, true)
         }
-        // debugAction.onBreak(inReg.id)
         await pendding()
-        // pendding2.close();
+        pendding2.close();
         isBreakpoint = false
       } else {
         _logOutputVal(...logProps)
