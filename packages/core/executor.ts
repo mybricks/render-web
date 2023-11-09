@@ -9,8 +9,6 @@
 import {log, logInputVal, logOutputVal} from './logger';
 import {uuid, dataSlim} from "./utils";
 
-import Pendding from "./pending";
-
 const ROOT_FRAME_KEY = '_rootFrame_'
 
 export default function executor(opts, {observable}) {
@@ -36,8 +34,6 @@ export default function executor(opts, {observable}) {
     debugLogger,
   } = opts
 
-  const pendding2 = new Pendding(env.canvasElement)
-
 
   let isBreakpoint = false;
   let ignoreAll = false;
@@ -45,7 +41,7 @@ export default function executor(opts, {observable}) {
 
   if (typeof debug === 'function') {
     debugAction = debug({
-      resume: () => {
+      resume: (...args) => {
         nextConection();
       },
       ignoreAll: (bool: boolean) => {
@@ -249,14 +245,14 @@ export default function executor(opts, {observable}) {
       }
       if (debug && inReg.isBreakpoint && !ignoreAll && !isBreakpoint) {
         isBreakpoint = true
-        pendding2.open();
+        env.pendding?.open()
       }
       if (isBreakpoint) {
         if (logProps) {
           _logOutputVal(...logProps, true)
         }
         await pendding()
-        pendding2.close();
+        env.pendding?.close()
         isBreakpoint = false
       } else {
         _logOutputVal(...logProps)
