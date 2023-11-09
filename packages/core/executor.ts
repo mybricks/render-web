@@ -12,6 +12,18 @@ import {uuid, dataSlim} from "./utils";
 const ROOT_FRAME_KEY = '_rootFrame_'
 
 export default function executor(opts, {observable}) {
+
+  let resolves: any = []
+  function nextConection() {
+    resolves.forEach((r: any) => r())
+    resolves = []
+  }
+  function pendding() {
+    return new Promise((resolve) => {
+      resolves.push(resolve)
+    })
+  }
+
   const {
     json,
     getComDef,
@@ -22,6 +34,25 @@ export default function executor(opts, {observable}) {
     debug,
     debugLogger,
   } = opts
+
+  let isBreakpoint = false;
+  let ignoreAll = false;
+  let debugAction = {}
+
+  if (typeof debug === 'function') {
+    debugAction = debug({
+      resume: () => {
+        nextConection();
+      },
+      ignoreAll: (bool: boolean) => {
+        ignoreAll = bool;
+      }
+    })
+    console.log("debugAction: ", debugAction)
+  }
+
+
+
 
   const scenesOperate = opts.scenesOperate || env.scenesOperate
 
@@ -83,15 +114,15 @@ export default function executor(opts, {observable}) {
   ) {
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
-      if (debugLogger) {//存在外部的debugLogger
-        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id})
+      if (debugAction.log) {//存在外部的debugLogger
+        debugAction.log('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id})
       } else {
         logOutputVal(com.title, comDef, pinHostId, val)
       }
     } else if (type === 'frame') {
       const {comId, frameId, pinHostId, val,sceneId} = content
-      if (debugLogger) {//存在外部的debugLogger
-        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id})
+      if (debugAction.log) {//存在外部的debugLogger
+        debugAction.log('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id})
       }
     }
   }
@@ -211,10 +242,19 @@ export default function executor(opts, {observable}) {
       }
     }
 
-    cons.forEach(inReg => {
+    cons.forEach(async (inReg: any) => {
       if (debug && inReg.isIgnored) {
         return
       }
+      if (debug && inReg.isBreakpoint && !ignoreAll) {
+        isBreakpoint = true
+      }
+      if (isBreakpoint) {
+        debugAction.onBreak(inReg.id)
+        await pendding()
+        isBreakpoint = false
+      }
+
       let nextScope = curScope
 
       if (notifyAll) {
