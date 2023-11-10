@@ -222,6 +222,7 @@ export default function executor(opts, {observable}) {
         
         await _context.wait(inReg, () => {
           if (logProps) {
+            logProps[1].conId = inReg.id
             _logOutputVal(...logProps, true)
           }
         })
