@@ -101,9 +101,9 @@ class Context {
     } else {
       const id = this._waitBreakpointIds.pop()
       const resolves = this._waitIdToResolvesMap[id]
-  
-      resolves.forEach((resolve: any) => resolve())
-
+      if (resolves) {
+        resolves.forEach((resolve: any) => resolve())
+      }
       if (!this._waitBreakpointIds.length) {
         this._pending = false
         this._pendingContext.close()

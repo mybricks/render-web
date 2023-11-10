@@ -85,16 +85,16 @@ export default function executor(opts, {observable}) {
                            isBreakpoint
   ) {
     if (type === 'com') {
-      const {com, pinHostId, val, fromCon, notifyAll, comDef} = content
+      const {com, pinHostId, val, fromCon, notifyAll, comDef, conId} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id}, isBreakpoint)
+        debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id, conId}, isBreakpoint)
       } else {
         logOutputVal(com.title, comDef, pinHostId, val)
       }
     } else if (type === 'frame') {
-      const {comId, frameId, pinHostId, val,sceneId} = content
+      const {comId, frameId, pinHostId, val,sceneId, conId} = content
       if (debugLogger) {//存在外部的debugLogger
-        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id}, isBreakpoint)
+        debugLogger('frame', 'output', {comId, frameId, pinHostId, val: dataSlim(val),sceneId: sceneId || json.id, conId}, isBreakpoint)
       }
     }
   }
@@ -107,9 +107,9 @@ export default function executor(opts, {observable}) {
     finishPinParentKey,
     comDef
   }, isBreakpoint) {
-    const {com, pinHostId, val, frameKey, finishPinParentKey, comDef} = content
+    const {com, pinHostId, val, frameKey, finishPinParentKey, comDef, conId} = content
     if (debugLogger) {//存在外部的debugLogger
-      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id}, isBreakpoint)
+      debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id, conId}, isBreakpoint)
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
     }
