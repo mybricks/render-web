@@ -24,9 +24,7 @@ class Context {
     const { debug } = opts;
 
     if (typeof debug === "function") {
-      const that = this
-      this._pendingContext = new DebuggerPanel({ resume: () => that.next() });
-      opts.debugLogger = debug({
+      const { log, onResume } = debug({
         resume: () => {
           this.next();
         },
@@ -37,7 +35,9 @@ class Context {
             this.next(true)
           }
         }
-      }).log
+      })
+      this._pendingContext = new DebuggerPanel({ resume: onResume });
+      opts.debugLogger = log
     }
   }
 
