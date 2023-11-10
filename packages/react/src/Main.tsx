@@ -28,6 +28,7 @@ import RenderSlotLess from './RenderSlot.lazy.less';
 import MultiSceneLess from './MultiScene.lazy.less';
 import ErrorBoundaryLess from './ErrorBoundary/style.lazy.less';
 import NotificationLess from './Notification/style.lazy.less';
+import DebuggerLess from './Debugger/style.lazy.less';
 
 /** 遍历组件库，处理成comDefs所需的格式 */
 const regAry = (comAray, comDefs) => {
@@ -205,6 +206,9 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     loadCSSLazy(MultiSceneLess, env.shadowRoot)
     loadCSSLazy(ErrorBoundaryLess, env.shadowRoot)
     loadCSSLazy(NotificationLess, env.shadowRoot)
+    if (typeof opts.debug === "function") {
+      loadCSSLazy(DebuggerLess, env.shadowRoot)
+    }
     try {
       let refs
       let activeTriggerInput = true
@@ -277,10 +281,10 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     }
    
     return () => {
-      if (typeof opts.debug === "function") {
-        opts.env._context?._pendingContext?.close()
-      }
       if (handle) {
+        if (typeof opts.debug === "function") {
+          opts.env._context?._pendingContext?.destroy()
+        }
         setInterval = originalSetInterval
         intervalList.forEach((intervalId) =>
           clearInterval(intervalId)

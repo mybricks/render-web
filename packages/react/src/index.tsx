@@ -13,7 +13,7 @@ import Main from "./Main";
 import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import {T_RenderOptions} from "./types";
-import Pendding from "./pending";
+import { DebuggerPanel } from "./Debugger"
 
 console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`, ``, ``);
 
@@ -24,7 +24,8 @@ class Context {
     const { debug } = opts;
 
     if (typeof debug === "function") {
-      this._pendingContext = new Pendding();
+      const that = this
+      this._pendingContext = new DebuggerPanel({ resume: () => that.next() });
       opts.debugLogger = debug({
         resume: () => {
           this.next();
