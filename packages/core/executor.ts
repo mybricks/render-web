@@ -111,6 +111,7 @@ export default function executor(opts, {observable}) {
   }, isBreakpoint) {
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef, conId} = content
     if (debugLogger) {//存在外部的debugLogger
+      console.log(content, 'content')
       debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id, conId}, isBreakpoint)
     } else {
       logInputVal(com.title, comDef, pinHostId, val)
@@ -852,12 +853,12 @@ export default function executor(opts, {observable}) {
         }
       }
       const comDef = getComDef(def)
-      _logInputVal({com: props, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef})
+      _logInputVal({com: props, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
     } else if (pinType === 'config') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
       //logInputVal(props.title, comDef, pinId, val);
-      _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef})
+      _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
       /**
        * 配置项类型，根据extBinding值操作
@@ -878,7 +879,7 @@ export default function executor(opts, {observable}) {
     } else if (pinType === 'timer') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
-      _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef})
+      _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
       const timerWaitInfo = _timerPinWait[timerPinInputId]
       if (timerWaitInfo) {
         const { todo } = timerWaitInfo
@@ -907,7 +908,7 @@ export default function executor(opts, {observable}) {
           const myId = (scopeId ? scopeId + '-' : '') + comId
           //logInputVal(props.title, comDef, pinId, val)
 
-          _logInputVal({com: jsCom, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef})
+          _logInputVal({com: jsCom, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
           if (!_exedJSCom[myId]) {
             _exedJSCom[myId] = true
@@ -959,7 +960,7 @@ export default function executor(opts, {observable}) {
         //   debugger
         // }
 
-        _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef})
+        _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
 
         const fn = props._inputRegs[pinId]
