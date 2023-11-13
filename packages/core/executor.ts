@@ -60,7 +60,9 @@ export default function executor(opts, {observable}) {
     }
   })
 
-  const _valueBarrier = {}
+  const _valueBarrier: any = {}
+
+  const _timerPinWait: any = {}
 
   const _slotValue = {}
 
@@ -116,7 +118,7 @@ export default function executor(opts, {observable}) {
   }
 
   function exeCons(logProps, cons, val, curScope, fromCon?, notifyAll?) {
-    function exeCon(inReg, nextScope) {
+    function exeCon(inReg, nextScope, val) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
         _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
@@ -215,6 +217,8 @@ export default function executor(opts, {observable}) {
     }
 
     cons.forEach(async (inReg: any) => {
+      const { comId, pinId, pinType, timerPinInputId } = inReg;
+      const component = Coms[comId]
       if (debug && inReg.isIgnored) {
         return
       }
@@ -229,54 +233,154 @@ export default function executor(opts, {observable}) {
       } else { 
         _logOutputVal(...logProps)
       }
-      let nextScope = curScope
+      // 这里需要劫持所有东西，所以说多输入这里也需要劫持
+      function next({ pinId, value }: any) {
+        let nextScope = curScope
+        const finalInReg = pinId ? {...inReg, pinId} : inReg
 
-      if (notifyAll) {
-        const frameKey = inReg.frameKey
-        if (!frameKey) {
-          throw new Error(`数据异常，请检查toJSON结果.`)
-        }
-        if (frameKey === ROOT_FRAME_KEY) {//root作用域
-          exeCon(inReg, {})
+        if (notifyAll) {
+          const frameKey = finalInReg.frameKey
+          if (!frameKey) {
+            throw new Error(`数据异常，请检查toJSON结果.`)
+          }
+          if (frameKey === ROOT_FRAME_KEY) {//root作用域
+            exeCon(finalInReg, {}, value)
+          } else {
+            const ary = frameKey.split('-')
+            if (ary.length >= 2) {
+              const slotProps = getSlotProps(ary[0], ary[1], null, notifyAll)
+
+              if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
+                slotProps.pushTodo((curScope) => {
+                  if (curScope !== nextScope) {
+                    nextScope = curScope
+                  }
+
+                  exeCon(finalInReg, nextScope, value)
+                })
+              } else {
+                if (slotProps.curScope !== nextScope) {
+                  nextScope = slotProps.curScope
+                }
+
+                exeCon(finalInReg, nextScope, value)
+              }
+            }
+          }
         } else {
-          const ary = frameKey.split('-')
-          if (ary.length >= 2) {
-            const slotProps = getSlotProps(ary[0], ary[1], null, notifyAll)
+          const ary = finalInReg.frameKey.split('-')
 
-            if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
+          if (ary.length >= 2 && !nextScope) {
+            const slotProps = getSlotProps(ary[0], ary[1], null, false)
+            if (slotProps?.type === 'scope' && !slotProps?.curScope) {
               slotProps.pushTodo((curScope) => {
                 if (curScope !== nextScope) {
                   nextScope = curScope
                 }
 
-                exeCon(inReg, nextScope)
+                exeCon(finalInReg, nextScope, value)
               })
-            } else {
-              if (slotProps.curScope !== nextScope) {
-                nextScope = slotProps.curScope
-              }
-
-              exeCon(inReg, nextScope)
+              return
             }
           }
+          exeCon(finalInReg, nextScope, value)
         }
+      }
+
+      // 这里需要等待多输入和timer
+      if (pinType === "timer") {
+        // 这里不存在多输入，直接执行即可
+        next({value: val})
       } else {
-        const ary = inReg.frameKey.split('-')
+        const { isReady, isMultipleInput, pinId: realPinId, value: realValue, cb } = transformInputId({ pinId, value: val, component })
 
-        if (ary.length >= 2 && !nextScope) {
-          const slotProps = getSlotProps(ary[0], ary[1], null, false)
-          if (slotProps?.type === 'scope' && !slotProps?.curScope) {
-            slotProps.pushTodo((curScope) => {
-              if (curScope !== nextScope) {
-                nextScope = curScope
+        if (isReady) {
+          const nextProps = {
+            pinId: isMultipleInput ? realPinId : null,
+            value: realValue
+          }
+          // 可以触发
+          if (timerPinInputId) {
+            const timerWaitInfo = _timerPinWait[timerPinInputId]
+            if (timerWaitInfo) {
+              const { ready, todo } = timerWaitInfo
+              if (ready) {
+                let hasSameFn = false
+                Object.entries(todo).forEach(([key, todoFn]: any) => {
+                  if (key === realPinId) {
+                    next(nextProps)
+                    hasSameFn = true
+                  } else {
+                    todoFn()
+                  }
+                })
+                if (!hasSameFn) {
+                  next(nextProps)
+                }
+                cb?.()
+                Reflect.deleteProperty(_timerPinWait, timerPinInputId)
+              } else {
+                todo[realPinId] = () => {
+                  cb?.()
+                  next(nextProps)
+                }
               }
-
-              exeCon(inReg, nextScope)
-            })
-            return
+            } else {
+              _timerPinWait[timerPinInputId] = {
+                ready: false,
+                todo: {
+                  [realPinId]: () => {
+                    cb?.()
+                    next(nextProps)
+                  }
+                }
+              }
+            }
+          } else {
+            cb?.()
+            next(nextProps)
           }
         }
-        exeCon(inReg, nextScope)
+      }
+
+      function transformInputId({ pinId, value, component }: any) {
+        let finalPinId = pinId;
+        let finalValue = value;
+        let isReady = true;
+        const pidx = pinId.indexOf('.')
+        if (component && pidx !== -1) {
+          // 多输入
+          const { inputs } = component
+          finalPinId = pinId.substring(0, pidx)
+          const paramId = pinId.substring(pidx + 1)
+          let barrier = _valueBarrier[comId]
+          if (!barrier) {
+            barrier = _valueBarrier[comId] = {}
+          }
+          barrier[paramId] = val
+          const regExp = new RegExp(`${finalPinId}.`)
+          const allPins: string[] = inputs.filter((pin: string) => {
+            return !!pin.match(regExp)
+          })
+
+          if (Object.keys(barrier).length === allPins.length) {
+            // 多输入全部到达
+            finalValue = barrier
+          } else {
+            isReady = false
+          }
+        }
+        let isMultipleInput = finalPinId !== pinId
+
+        return {
+          pinId: finalPinId,
+          value: finalValue,
+          isReady,
+          isMultipleInput,
+          cb: isMultipleInput ? () => {
+            Reflect.deleteProperty(_valueBarrier, comId)
+          } : null
+        }
       }
     })
   }
@@ -726,7 +830,7 @@ export default function executor(opts, {observable}) {
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
-    const {comId, def, pinId, pinType, frameKey, finishPinParentKey} = inReg
+    const {comId, def, pinId, pinType, frameKey, finishPinParentKey, timerPinInputId} = inReg
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
@@ -771,6 +875,18 @@ export default function executor(opts, {observable}) {
           nowObj[nkey] = val;
         }
       })
+    } else if (pinType === 'timer') {
+      const timerWaitInfo = _timerPinWait[timerPinInputId]
+      if (timerWaitInfo) {
+        const { todo } = timerWaitInfo
+        Object.entries(todo).forEach(([_, fn]: any) => fn())
+        Reflect.deleteProperty(_timerPinWait, timerPinInputId)
+      } else {
+        _timerPinWait[timerPinInputId] = {
+          ready: true,
+          todo: {}
+        }
+      }
     } else {
       if (def.rtType?.match(/^js/gi)) {//js
         const jsCom = Coms[comId]
@@ -805,40 +921,27 @@ export default function executor(opts, {observable}) {
             })
           }
 
-          const {realId, realVal, isReady, isMultipleInput} = transformInputId(inReg, val, props)
-
-          const fn = props._inputRegs[realId]
-
+          const fn = props._inputRegs[pinId]
           if (typeof fn === 'function') {
-            // 当前pin为 多输入并且输入都已到达 或者 非多输入
-            if ((isMultipleInput && isReady) || !isMultipleInput) {
-              props._inputRegs[realId](realVal, new Proxy({}, {//relOutputs
-                get(target, name) {
-                  return function (val) {
-                    if (Object.prototype.toString.call(name) === '[object Symbol]') {
-                      return
-                    }
-                    if (PinValueProxies) {
-                      const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
-                      if (pinValueProxy) {
-                        // val = _slotValue[`${frameKey}-${pinValueProxy.pinId}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
-                        val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, scope)
-                        if (typeof val === 'undefined') {
-                          val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, null)
-                        }
+            fn(val, new Proxy({}, {//relOutputs
+              get(target, name) {
+                return function (val: any) {
+                  if (Object.prototype.toString.call(name) === '[object Symbol]') {
+                    return
+                  }
+                  if (PinValueProxies) {
+                    const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
+                    if (pinValueProxy) {
+                      val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, scope)
+                      if (typeof val === 'undefined') {
+                        val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, null)
                       }
                     }
-                    props.outputs[name](val, scope, inReg)
-                    // const rels = _PinRels[id + '-' + pinId]
-                    // if (rels) {
-                    //   rels.forEach(relId => {
-                    //     props.outputs[relId](val)
-                    //   })
-                    // }
                   }
+                  props.outputs[name](val, scope, inReg)
                 }
-              }))//invoke the input
-            }
+              }
+            }))
           }
         }
       } else {//ui
@@ -856,39 +959,27 @@ export default function executor(opts, {observable}) {
         _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef})
 
 
-        const {realId, realVal, isReady, isMultipleInput} = transformInputId(inReg, val, props)
-        const fn = props._inputRegs[realId]
-
-        // 当前pin为 多输入并且输入都已到达 或者 非多输入
-        if ((isMultipleInput && isReady) || !isMultipleInput) {
-          if (typeof fn === 'function') {
-            let nowRels
-            if (outputRels) {
-              nowRels = outputRels
-            } else {
-              nowRels = new Proxy({}, {//relOutputs
-                get(target, name) {
-                  return function (val) {
-                    if (Object.prototype.toString.call(name) === '[object Symbol]') {
-                      return
-                    }
-                    props.outputs[name](val, scope, inReg)//with current scope
-
-                    // const rels = _PinRels[id + '-' + pinId]
-                    // if (rels) {
-                    //   rels.forEach(relId => {
-                    //     props.outputs[relId](val)
-                    //   })
-                    // }
-                  }
-                }
-              })
-            }
-
-            fn(realVal, nowRels)//invoke the input,with current scope
+        const fn = props._inputRegs[pinId]
+        if (typeof fn === 'function') {
+          let nowRels
+          if (outputRels) {
+            nowRels = outputRels
           } else {
-            props.addInputTodo(realId, realVal, inReg, scope)
+            nowRels = new Proxy({}, {//relOutputs
+              get(target, name) {
+                return function (val) {
+                  if (Object.prototype.toString.call(name) === '[object Symbol]') {
+                    return
+                  }
+                  props.outputs[name](val, scope, inReg)//with current scope
+                }
+              }
+            })
           }
+
+          fn(val, nowRels)
+        } else {
+          props.addInputTodo(pinId, val, inReg, scope)
         }
       }
     }
@@ -898,59 +989,6 @@ export default function executor(opts, {observable}) {
       if (cons && !PinRels[`${comId}-${pinId}`]) {
         exeCons(null, cons, void 0)
       }
-    }
-  }
-
-  /**
-   * 转换inputId,处理多输入配置
-   */
-  function transformInputId(inReg, val, props) {
-    const {pinId, comId} = inReg
-    const pidx = pinId.indexOf('.')
-
-    if (pidx !== -1) {
-      let realId = pinId.substring(0, pidx)
-      const paramId = pinId.substring(pidx + 1)
-
-      let barrier = _valueBarrier[comId]
-      if (!barrier) {
-        barrier = _valueBarrier[comId] = {}
-      }
-
-      barrier[paramId] = val
-
-      const regExp = new RegExp(`${realId}.`)
-      const allPins: string[] = Object.keys(props.inputs).filter((pin) => {
-        return !!pin.match(regExp)
-      })
-
-      if (Object.keys(barrier).length === allPins.length) {
-
-        delete _valueBarrier[comId]
-
-        return {
-          isMultipleInput: true,
-          isReady: true,
-          realId,
-          realVal: barrier
-        }
-      } else {
-        return {
-          isMultipleInput: true,
-          isReady: false
-        }
-      }
-    }
-
-    return {
-      // 是否多输入
-      isMultipleInput: false,
-      // 多输入是否可执行
-      isReady: true,
-      // 最终调用的pinId
-      realId: pinId,
-      // 最终传递的值
-      realVal: val
     }
   }
 
