@@ -876,6 +876,9 @@ export default function executor(opts, {observable}) {
         }
       })
     } else if (pinType === 'timer') {
+      const props = getComProps(comId, scope);
+      const comDef = getComDef(def);
+      _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef})
       const timerWaitInfo = _timerPinWait[timerPinInputId]
       if (timerWaitInfo) {
         const { todo } = timerWaitInfo
