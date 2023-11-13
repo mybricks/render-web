@@ -897,7 +897,13 @@ export default function executor(opts, {observable}) {
           const myId = (scopeId ? scopeId + '-' : '') + comId
           //logInputVal(props.title, comDef, pinId, val)
 
-          _logInputVal({com: jsCom, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
+          if (jsCom.inputs.find((inputId) => inputId === pinId)) {
+            _logInputVal({com: jsCom, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
+          } else {
+            Object.entries(val).forEach(([key, value]) => {
+              _logInputVal({com: jsCom, val: value, pinHostId: `${pinId}.${key}`, frameKey, finishPinParentKey, comDef, conId: inReg.id})
+            })
+          }
 
           if (!_exedJSCom[myId]) {
             _exedJSCom[myId] = true
@@ -943,11 +949,6 @@ export default function executor(opts, {observable}) {
           return
         }
         const comDef = getComDef(def)
-        //logInputVal(props.title, comDef, pinId, val)
-
-        // if(pinId === 'getFieldsValue'){
-        //   debugger
-        // }
 
         _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
