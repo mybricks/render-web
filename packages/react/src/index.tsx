@@ -13,7 +13,7 @@ import Main from "./Main";
 import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import {T_RenderOptions} from "./types";
-import Pendding from "./pending";
+import { DebuggerPanel } from "./Debugger"
 
 console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`, ``, ``);
 
@@ -24,8 +24,7 @@ class Context {
     const { debug } = opts;
 
     if (typeof debug === "function") {
-      this._pendingContext = new Pendding();
-      opts.debugLogger = debug({
+      const { log, onResume } = debug({
         resume: () => {
           this.next();
         },
@@ -36,7 +35,9 @@ class Context {
             this.next(true)
           }
         }
-      }).log
+      })
+      this._pendingContext = new DebuggerPanel({ resume: onResume });
+      opts.debugLogger = log
     }
   }
 
@@ -101,9 +102,9 @@ class Context {
     } else {
       const id = this._waitBreakpointIds.pop()
       const resolves = this._waitIdToResolvesMap[id]
-  
-      resolves.forEach((resolve: any) => resolve())
-
+      if (resolves) {
+        resolves.forEach((resolve: any) => resolve())
+      }
       if (!this._waitBreakpointIds.length) {
         this._pending = false
         this._pendingContext.close()
