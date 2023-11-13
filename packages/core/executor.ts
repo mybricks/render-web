@@ -620,9 +620,6 @@ export default function executor(opts, {observable}) {
 
             const comDef = getComDef(def)
 
-            //logOutputVal(com.title, comDef, name, val)
-            // _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
-
             const evts = model.outputEvents
             let cons
             if (evts) {
@@ -701,6 +698,8 @@ export default function executor(opts, {observable}) {
                 //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
                 exeCons(['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
               }
+            } else {
+              _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
             }
           }
 
@@ -739,18 +738,9 @@ export default function executor(opts, {observable}) {
           }
           const cons = Cons[comId + '-' + name]
           if (cons) {
-            //logOutputVal(com.title, def, name, val)
-            // _logOutputVal('com', {com, pinHostId: name, val, comDef: def})
-
             exeCons(['com', {com, pinHostId: name, val, comDef: def}], cons, val, scope)
-
-            // cons.forEach(inReg => {
-            //   if (inReg.type === 'com') {
-            //     exeInputForCom(inReg, val, scope)
-            //   } else {
-            //     throw new Error(`尚未实现`)
-            //   }
-            // })
+          } else {
+            _logOutputVal('com', {com, pinHostId: name, val, comDef: def})
           }
         }
       }
@@ -1068,16 +1058,10 @@ export default function executor(opts, {observable}) {
             const cons = Cons[key]
             _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
 
-            // _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
-
             if (cons) {
               exeCons(['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope || Cur.scope)
-
-              // cons.forEach(inReg => {
-              //   if (inReg.type === 'com') {
-              //     exeInputForCom(inReg, val, curScope || Cur.scope)
-              //   }
-              // })
+            } else {
+              _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
             }
           }
 
@@ -1200,25 +1184,26 @@ export default function executor(opts, {observable}) {
 
     _slotValue[`${frameId}-${pinId}`] = value
 
-    if (log) {
-      // _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val: value,sceneId})
-    }
-
     if (cons) {
       exeCons(['frame', {comId, frameId, pinHostId: pinId, val: value,sceneId}],cons, value, scope)
-    } else if (frameId !== ROOT_FRAME_KEY) {
-      if (json.id === frameId) {
-        _frameOutput[pinId](value)
-      } else {
-        scenesOperate?.open({
-          frameId,
-          todo: {
-            pinId,
-            value: value
-          },
-          comProps,
-          parentScope: scope.proxyComProps
-        })
+    } else {
+      if (log) {
+        _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val: value,sceneId})
+      }
+      if (frameId !== ROOT_FRAME_KEY) {
+        if (json.id === frameId) {
+          _frameOutput[pinId](value)
+        } else {
+          scenesOperate?.open({
+            frameId,
+            todo: {
+              pinId,
+              value: value
+            },
+            comProps,
+            parentScope: scope.proxyComProps
+          })
+        }
       }
     }
   }
