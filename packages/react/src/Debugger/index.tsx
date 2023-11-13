@@ -10,7 +10,7 @@ export default function Debugger({ resume }: any) {
   return (
     <div className={css.debugger}>
       <div className={css.titlebar}>
-        <div>已在调试程序中暂停</div>
+        <div>已在交互视图中暂停</div>
         <div className={css.resume} onClick={resume}>{resumeIcon}</div>
       </div>
     </div>
