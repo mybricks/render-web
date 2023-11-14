@@ -222,9 +222,9 @@ export default function executor(opts, {observable}) {
       if (debug && inReg.isIgnored) {
         return
       }
-      if (debug && JsonType !== 'module' &&_context.hasBreakpoint(inReg)) {
+      if (debug && JsonType !== 'module' && _context.debuggerPanel?.hasBreakpoint(inReg)) {
         
-        await _context.wait(inReg, () => {
+        await _context.debuggerPanel?.wait(inReg, () => {
           if (logProps) {
             logProps[1].conId = inReg.id
             _logOutputVal(...logProps, true)

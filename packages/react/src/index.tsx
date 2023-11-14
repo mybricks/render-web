@@ -20,28 +20,31 @@ console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`,
 
 class Context {
   private opts: any
+  private debuggerPanel: any
   constructor(opts: any) {
-    if (!opts.observable) {
+    const { env, debug, observable } = opts
+    if (!observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
-      hijackReactcreateElement({pxToRem: opts.env.pxToRem, pxToVw: opts.env.pxToVw});
+      hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: env.pxToVw});
     }
     this.opts = opts;
-    const { debug } = opts;
 
     if (typeof debug === "function") {
+      const debuggerPanel = new DebuggerPanel({ env });
       const { log, onResume } = debug({
         resume: () => {
-          this.next();
+          debuggerPanel.next();
         },
         ignoreAll: (bool: boolean) => {
-          this._ignoreWait = bool
+          debuggerPanel.setIgnoreWait(bool)
           if (bool) {
             // 忽略调试，全部执行完
-            this.next(true)
+            debuggerPanel.next(true)
           }
         }
       })
-      this._pendingContext = new DebuggerPanel({ resume: onResume });
+      debuggerPanel.setResume(onResume)
+      this.debuggerPanel = debuggerPanel
       opts.debugLogger = log
     }
   }
@@ -54,67 +57,6 @@ class Context {
 
   getRefsMap() {
     return this._refsMap
-  }
-
-  private _pendingContext: any = null;
-
-  private _pending = false
-  private _ignoreWait = false
-  private _waitCount = 0
-  // 断点 unshift 入 pop 出
-  private _waitBreakpointIds: any = []
-  // 下一步
-  private _waitIdToResolvesMap: any = {}
-
-  hasBreakpoint(connection: any) {
-    return !this._ignoreWait && (this._pending || connection.isBreakpoint)
-  }
-
-  wait(connection: any, cb: any) {
-    return new Promise((resolve: any) => {
-      if (this._ignoreWait) {
-        resolve()
-      } else {
-        const waiting = this._waitBreakpointIds.length > 0
-
-        if (!waiting) {
-          cb()
-        }
-
-        this._pendingContext.open(this.opts.env.canvasElement)
-        this._pending = true;
-        if (connection.isBreakpoint) {
-          if (waiting) {
-            const lastId = this._waitBreakpointIds[0]
-            this._waitIdToResolvesMap[lastId].push(cb)
-          }
-          const id = (this._waitCount ++) + connection.id
-          this._waitBreakpointIds.unshift(id)
-          this._waitIdToResolvesMap[id] = [resolve]
-        } else {
-          const id = this._waitBreakpointIds[0]
-          this._waitIdToResolvesMap[id].push(resolve)
-        }
-      }
-    })
-  }
-
-  next(nextAll = false) {
-    if (nextAll) {
-      while (this._waitBreakpointIds.length) {
-        this.next()
-      }
-    } else {
-      const id = this._waitBreakpointIds.pop()
-      const resolves = this._waitIdToResolvesMap[id]
-      if (resolves) {
-        resolves.forEach((resolve: any) => resolve())
-      }
-      if (!this._waitBreakpointIds.length) {
-        this._pending = false
-        this._pendingContext.close()
-      }
-    }
   }
 }
 
