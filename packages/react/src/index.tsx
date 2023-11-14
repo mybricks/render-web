@@ -14,12 +14,17 @@ import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import {T_RenderOptions} from "./types";
 import { DebuggerPanel } from "./Debugger"
+import { hijackReactcreateElement } from "./observable"
 
 console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`, ``, ``);
 
 class Context {
   private opts: any
   constructor(opts: any) {
+    if (!opts.observable) {
+      /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
+      hijackReactcreateElement({pxToRem: opts.env.pxToRem, pxToVw: opts.env.pxToVw});
+    }
     this.opts = opts;
     const { debug } = opts;
 
