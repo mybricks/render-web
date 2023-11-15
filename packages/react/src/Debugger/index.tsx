@@ -1,5 +1,5 @@
 import React from "react"
-import { createRoot } from "react-dom"
+import ReactDOM from "react-dom"
 import lazyCss from './style.lazy.less';
 
 const css: any = lazyCss.locals;
@@ -22,6 +22,8 @@ export class DebuggerPanel {
   canvas: any
   root: any
   env: any
+
+  isReact18 = !!ReactDOM.createRoot
 
   resume = () => {}
 
@@ -47,9 +49,13 @@ export class DebuggerPanel {
       div.style.zIndex = '100000';
       div.style.visibility = 'visible';
       canvas.appendChild(div);
-      const root = createRoot(div);
-      root.render(<Debugger resume={this.resume}/>);
-      this.root = root;
+      if (this.isReact18) {
+        const root = ReactDOM.createRoot(div);
+        root.render(<Debugger resume={this.resume}/>);
+        this.root = root;
+      } else {
+        ReactDOM.render(<Debugger resume={this.resume}/>, div)
+      }
     } else {
       this.dom.style.visibility = 'visible';
     }
@@ -62,7 +68,11 @@ export class DebuggerPanel {
   destroy() {
     if (this.dom) {
       requestAnimationFrame(() => {
-        this.root.unmount()
+        if (this.isReact18) {
+          this.root.unmount()
+        } else {
+          ReactDOM.unmountComponentAtNode(this.dom);
+        }
         this.root = null
         this.canvas.removeChild(this.dom)
         this.canvas = null
