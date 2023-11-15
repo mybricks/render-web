@@ -14,33 +14,143 @@ import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import {T_RenderOptions} from "./types";
 import { DebuggerPanel } from "./Debugger"
+import { hijackReactcreateElement } from "./observable"
+import { loadCSSLazy } from "../../core/utils"
+import RenderSlotLess from './RenderSlot.lazy.less';
+import MultiSceneLess from './MultiScene.lazy.less';
+import ErrorBoundaryLess from './ErrorBoundary/style.lazy.less';
+import NotificationLess from './Notification/style.lazy.less';
+import DebuggerLess from './Debugger/style.lazy.less';
+import {setLoggerSilent} from '../../core/logger';
+import Notification from './Notification';
+// @ts-ignore
+import coreLib from '@mybricks/comlib-core';
 
 console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`, ``, ``);
 
 class Context {
   private opts: any
+  private debuggerPanel: any
+  
+  comDefs: any
+  onError: any
+  logger: any
   constructor(opts: any) {
+    const { env, debug, observable } = opts
+    if (!observable) {
+      /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
+      hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: env.pxToVw});
+    }
     this.opts = opts;
-    const { debug } = opts;
 
     if (typeof debug === "function") {
+      const debuggerPanel = new DebuggerPanel({ env });
       const { log, onResume } = debug({
         resume: () => {
-          this.next();
+          debuggerPanel.next();
         },
         ignoreAll: (bool: boolean) => {
-          this._ignoreWait = bool
+          debuggerPanel.setIgnoreWait(bool)
           if (bool) {
             // 忽略调试，全部执行完
-            this.next(true)
+            debuggerPanel.next(true)
           }
         }
       })
-      this._pendingContext = new DebuggerPanel({ resume: onResume });
+      debuggerPanel.setResume(onResume)
+      this.debuggerPanel = debuggerPanel
       opts.debugLogger = log
+    }
+
+    this.initOther()
+    this.initCss()
+    this.initComdefs()
+  }
+
+  // 初始化其它信息
+  initOther() {
+    const { env, debug, onError } = this.opts
+    if (!!env.silent) {
+      setLoggerSilent();
+    }
+    Notification.init(env.showErrorNotification);
+
+    if (debug && typeof onError === 'function') {
+      return this.onError = onError
+    } else {
+      this.onError = (e: any) => {
+        console.error(e);
+        Notification.error(e);
+      }
+    }
+
+    this.logger = {
+      ...console,
+      error: (e: any) => {
+        console.error(e);
+        Notification.error(e);
+      },
     }
   }
 
+  // 初始化样式
+  initCss() {
+    const shadowRoot = this.opts.env.shadowRoot
+    loadCSSLazy(RenderSlotLess, shadowRoot)
+    loadCSSLazy(MultiSceneLess, shadowRoot)
+    loadCSSLazy(ErrorBoundaryLess, shadowRoot)
+    loadCSSLazy(NotificationLess, shadowRoot)
+    if (typeof this.opts.debug === "function") {
+      loadCSSLazy(DebuggerLess, shadowRoot)
+    }
+  }
+
+  // 初始化组件信息
+  initComdefs() {
+    const regAry = (comAray: any, comDefs: any) => {
+      comAray.forEach((comDef: any) => {
+        if (comDef.comAray) {
+          regAry(comDef.comAray, comDefs);
+        } else {
+          comDefs[`${comDef.namespace}-${comDef.version}`] = comDef;
+        }
+      })
+    }
+    // const 
+    let finalComDefs: null | {[key: string]: any} = null;
+    const { comDefs } = this.opts;
+
+    /** 外部传入组件信息 */
+    if (comDefs) {
+      finalComDefs = {};
+      Object.assign(finalComDefs, comDefs);
+    }
+
+    /** 默认从window上查找组件库 */
+    let comLibs = [...((window as any)["__comlibs_edit_"] || []), ...((window as any)["__comlibs_rt_"] || [])];
+
+    if (!finalComDefs) {
+      if (!comLibs.length) {
+        /** 没有外部传入切window上没有组件库 */
+        throw new Error(`组件库为空，请检查是否通过<script src="组件库地址"></script>加载或通过comDefs传入了组件库运行时.`)
+      } else {
+        finalComDefs = {}
+      }
+    }
+
+    /** 插入核心组件库(fn,var等) */
+    comLibs.push(coreLib)
+    comLibs.forEach(lib => {
+      const comAray = lib.comAray;
+      if (comAray && Array.isArray(comAray)) {
+        regAry(comAray, finalComDefs);
+      }
+    })
+
+    this.comDefs = finalComDefs;
+  }
+
+  // 模块相关
   private _refsMap: any = {}
 
   setRefs(id: string, refs: any) {
@@ -50,70 +160,9 @@ class Context {
   getRefsMap() {
     return this._refsMap
   }
-
-  private _pendingContext: any = null;
-
-  private _pending = false
-  private _ignoreWait = false
-  private _waitCount = 0
-  // 断点 unshift 入 pop 出
-  private _waitBreakpointIds: any = []
-  // 下一步
-  private _waitIdToResolvesMap: any = {}
-
-  hasBreakpoint(connection: any) {
-    return !this._ignoreWait && (this._pending || connection.isBreakpoint)
-  }
-
-  wait(connection: any, cb: any) {
-    return new Promise((resolve: any) => {
-      if (this._ignoreWait) {
-        resolve()
-      } else {
-        const waiting = this._waitBreakpointIds.length > 0
-
-        if (!waiting) {
-          cb()
-        }
-
-        this._pendingContext.open(this.opts.env.canvasElement)
-        this._pending = true;
-        if (connection.isBreakpoint) {
-          if (waiting) {
-            const lastId = this._waitBreakpointIds[0]
-            this._waitIdToResolvesMap[lastId].push(cb)
-          }
-          const id = (this._waitCount ++) + connection.id
-          this._waitBreakpointIds.unshift(id)
-          this._waitIdToResolvesMap[id] = [resolve]
-        } else {
-          const id = this._waitBreakpointIds[0]
-          this._waitIdToResolvesMap[id].push(resolve)
-        }
-      }
-    })
-  }
-
-  next(nextAll = false) {
-    if (nextAll) {
-      while (this._waitBreakpointIds.length) {
-        this.next()
-      }
-    } else {
-      const id = this._waitBreakpointIds.pop()
-      const resolves = this._waitIdToResolvesMap[id]
-      if (resolves) {
-        resolves.forEach((resolve: any) => resolve())
-      }
-      if (!this._waitBreakpointIds.length) {
-        this._pending = false
-        this._pendingContext.close()
-      }
-    }
-  }
 }
 
-export function render(json, opts: T_RenderOptions = {}) {
+export function render(json: any, opts: T_RenderOptions = {}) {
   if (!json) {
     return null
   } else {

@@ -222,9 +222,9 @@ export default function executor(opts, {observable}) {
       if (debug && inReg.isIgnored) {
         return
       }
-      if (debug && JsonType !== 'module' &&_context.hasBreakpoint(inReg)) {
+      if (debug && JsonType !== 'module' && _context.debuggerPanel?.hasBreakpoint(inReg)) {
         
-        await _context.wait(inReg, () => {
+        await _context.debuggerPanel?.wait(inReg, () => {
           if (logProps) {
             logProps[1].conId = inReg.id
             _logOutputVal(...logProps, true)
@@ -248,8 +248,7 @@ export default function executor(opts, {observable}) {
           } else {
             const ary = frameKey.split('-')
             if (ary.length >= 2) {
-              const slotProps = getSlotProps(ary[0], ary[1], null, notifyAll)
-
+              const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
               if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
                 slotProps.pushTodo((curScope) => {
                   if (curScope !== nextScope) {
@@ -301,7 +300,8 @@ export default function executor(opts, {observable}) {
           }
           // 可以触发
           if (timerPinInputId) {
-            const timerWaitInfo = _timerPinWait[timerPinInputId]
+            const timerKey = curScope ? timerPinInputId + '-' + curScope.id : timerPinInputId
+            const timerWaitInfo = _timerPinWait[timerKey]
             if (timerWaitInfo) {
               const { ready, todo } = timerWaitInfo
               if (ready) {
@@ -318,7 +318,7 @@ export default function executor(opts, {observable}) {
                   next(nextProps)
                 }
                 cb?.()
-                Reflect.deleteProperty(_timerPinWait, timerPinInputId)
+                Reflect.deleteProperty(_timerPinWait, timerKey)
               } else {
                 todo[realPinId] = () => {
                   cb?.()
@@ -326,7 +326,7 @@ export default function executor(opts, {observable}) {
                 }
               }
             } else {
-              _timerPinWait[timerPinInputId] = {
+              _timerPinWait[timerKey] = {
                 ready: false,
                 todo: {
                   [realPinId]: () => {
@@ -869,13 +869,14 @@ export default function executor(opts, {observable}) {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
       _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
-      const timerWaitInfo = _timerPinWait[timerPinInputId]
+      const timerKey = scope ? timerPinInputId + '-' + scope.id : timerPinInputId
+      const timerWaitInfo = _timerPinWait[timerKey]
       if (timerWaitInfo) {
         const { todo } = timerWaitInfo
         Object.entries(todo).forEach(([_, fn]: any) => fn())
-        Reflect.deleteProperty(_timerPinWait, timerPinInputId)
+        Reflect.deleteProperty(_timerPinWait, timerKey)
       } else {
-        _timerPinWait[timerPinInputId] = {
+        _timerPinWait[timerKey] = {
           ready: true,
           todo: {}
         }
@@ -897,7 +898,13 @@ export default function executor(opts, {observable}) {
           const myId = (scopeId ? scopeId + '-' : '') + comId
           //logInputVal(props.title, comDef, pinId, val)
 
-          _logInputVal({com: jsCom, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
+          if (jsCom.inputs.find((inputId) => inputId === pinId)) {
+            _logInputVal({com: jsCom, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
+          } else {
+            Object.entries(val).forEach(([key, value]) => {
+              _logInputVal({com: jsCom, val: value, pinHostId: `${pinId}.${key}`, frameKey, finishPinParentKey, comDef, conId: inReg.id})
+            })
+          }
 
           if (!_exedJSCom[myId]) {
             _exedJSCom[myId] = true
@@ -943,11 +950,6 @@ export default function executor(opts, {observable}) {
           return
         }
         const comDef = getComDef(def)
-        //logInputVal(props.title, comDef, pinId, val)
-
-        // if(pinId === 'getFieldsValue'){
-        //   debugger
-        // }
 
         _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
