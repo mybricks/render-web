@@ -447,7 +447,7 @@ export default function MultiScene ({json, opts}) {
                 },
                 getGlobalComProps(comId) {
                   // 从主场景获取真实数据
-                  return scenesMap[json.scenes[0].id]._refs?.get(comId)
+                  return scenesMap[json.scenes[0].id]._refs?.get({comId})
                 },
                 exeGlobalCom({ com, value, pinId }) {
                   const globalComId = com.id
@@ -455,7 +455,7 @@ export default function MultiScene ({json, opts}) {
                   Object.keys(scenesMap).forEach((key) => {
                     const scenes = scenesMap[key]
                     if (scenes.show && scenes._refs) {
-                      const globalCom = scenes._refs.get(globalComId)
+                      const globalCom = scenes._refs.get({comId: globalComId})
                       if (globalCom) {
                         globalCom.outputs[pinId](value, true, null, true)
                       }
@@ -463,7 +463,7 @@ export default function MultiScene ({json, opts}) {
                   })
                   const refsMap = env._context.getRefsMap()
                   Object.entries(refsMap).forEach(([id, refs]: any) => {
-                    const globalCom = refs.get(globalComId)
+                    const globalCom = refs.get({comId: globalComId})
                       if (globalCom) {
                         globalCom.outputs[pinId](value, true, null, true)
                       }
@@ -571,7 +571,7 @@ export default function MultiScene ({json, opts}) {
       },
       getGlobalComProps(comId) {
         // 从主场景获取真实数据
-        return scenesMap[json.scenes[0].id]._refs?.get(comId)
+        return scenesMap[json.scenes[0].id]._refs?.get({comId})
       },
       exeGlobalCom({ com, value, pinId }) {
         const globalComId = com.id
@@ -579,7 +579,7 @@ export default function MultiScene ({json, opts}) {
         Object.keys(scenesMap).forEach((key) => {
           const scenes = scenesMap[key]
           if (scenes.show && scenes._refs) {
-            const globalCom = scenes._refs.get(globalComId)
+            const globalCom = scenes._refs.get({comId: globalComId})
             if (globalCom) {
               globalCom.outputs[pinId](value, true, null, true)
             }
@@ -587,7 +587,7 @@ export default function MultiScene ({json, opts}) {
         })
         const refsMap = env._context.getRefsMap()
         Object.entries(refsMap).forEach(([id, refs]: any) => {
-          const globalCom = refs.get(globalComId)
+          const globalCom = refs.get({comId: globalComId})
             if (globalCom) {
               globalCom.outputs[pinId](value, true, null, true)
             }
@@ -885,7 +885,7 @@ function Scene({json, opts, style = {}, className = ''}) {
 }
 
 function _notifyBindings(_refs, comId, bindings, value) {
-  const com = _refs.get(comId)
+  const com = _refs.get({comId})
   if (com) {
     if (Array.isArray(bindings)) {
       bindings.forEach((binding) => {

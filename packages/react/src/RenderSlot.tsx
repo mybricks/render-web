@@ -52,9 +52,9 @@ export default function RenderSlot({
     const comDef = getComDef(def)
 
     if (comDef) {
-      const props = context.get(id, scope, {
+      const props = context.get({comId: id, scope, _ioProxy: {
         inputs, outputs, _inputs, _outputs
-      })
+      }})
 
       const comKey = (scope ? scope.id : '') + idx//考虑到scope变化的情况，驱动组件强制刷新
       itemAry.push({
@@ -127,6 +127,9 @@ function RenderCom({
   } = props
 
   useMemo(() => {
+    if (!props._todo) {
+      props._todo = []
+    }
     const { pxToRem: configPxToRem, pxToVw: configPxToVw } = env
 
     const styleAry = getStyleAry({ env, def, style })
@@ -168,21 +171,37 @@ function RenderCom({
 
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
-      const props = context.get(id, slotId, scope)
+      // const props = context.get({comId: id, slotId, scope})
 
-      const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
+      // const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
-      if (!props) {
-        throw new Error(`${errorStringPrefix} 获取context失败.`)
-      }
+      // if (!props) {
+      //   throw new Error(`${errorStringPrefix} 获取context失败.`)
+      // }
+
+      // props._todo = []
+      // props._slotProps = {}
+
+      // const { _todo, _slotProps } = {} 
+      const { _todo } = props
 
       return {
+        slotProps: null,
+        id: slotId,
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {
             return <SlotRender slotId={slotId}
                                slot={slot}
-                               props={props}
+                               //  props={props}
+                               setProps={(slotProps) => {
+                                props._slotProps = slotProps
+                                const { _todo } = props
+                                while (_todo.length) {
+                                  const { type, id, value } = _todo.shift()
+                                  slotProps[type][id](value)
+                                }
+                               }}
                                params={params}
                                style={style}
                                onError={onError}
@@ -192,7 +211,7 @@ function RenderCom({
           } else {
             return (
               <div className={css.error}>
-                {errorStringPrefix} 未找到.
+                {`组件(namespace=${def.namespace}）的插槽(id=${slotId})`} 未找到.
               </div>
             )
           }
@@ -200,16 +219,53 @@ function RenderCom({
         get size() {
           return !!slots[slotId]?.comAry?.length
         },
-        _inputs: props._inputs,
-        inputs: props.inputs,
-        outputs: props.outputs
+        _inputs: new Proxy({}, {
+          get(_, id) {
+            return (value) => {
+              if (!props._slotProps) {
+                _todo.push({type: "_inputs", id, value})
+              } else {
+                props._slotProps._inputs[id](value)
+              }
+            }
+          }
+        }),
+        inputs: new Proxy({}, {
+          get(_, id) {
+            return (value) => {
+              if (!props._slotProps) {
+                _todo.push({type: "inputs", id, value})
+              } else {
+                props._slotProps.inputs[id](value)
+              }
+            }
+          }
+        }),
+        outputs: new Proxy({}, {
+          get(_, id) {
+            return (value) => {
+              if (!props._slotProps) {
+                _todo.push({type: "outputs", id, value})
+              } else {
+                props._slotProps.outputs[id](value)
+              }
+            }
+          }
+        }),
+        
+        // _inputs: props._inputs,
+        // inputs: props.inputs,
+        // outputs: props.outputs
       }
     }
   })
 
   const parentSlot = useMemo(() => {
     if (props.frameId && props.parentComId) {
-      const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
+      // console.log('parentSlot context.get: ')
+      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope})
+      // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent})
+      // const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
       if (slotProps) {
         return {
           get _inputs() {
@@ -304,7 +360,8 @@ function RenderCom({
 const SlotRender = memo(({
                            slotId,
                            parentComId,
-                           props,
+                           //  props,
+                           setProps,
                            slot,
                            params,
                            scope,
@@ -372,6 +429,10 @@ const SlotRender = memo(({
     curScope = scope
   }
 
+  // const props = context.get(parentComId, slotId, curScope)
+  const props = context.get({comId: parentComId, slotId, scope: curScope})
+  setProps(props)
+
   let wrapFn
   if (params) {
     const ivs = params.inputValues
@@ -389,7 +450,7 @@ const SlotRender = memo(({
     //})
   }
 
-  props.run(curScope)//传递scope
+  props.run()//传递scope
 
   useEffect(() => {
     return () => {

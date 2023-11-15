@@ -217,7 +217,7 @@ export default function executor(opts, {observable}) {
     }
 
     cons.forEach(async (inReg: any) => {
-      const { comId, pinId, pinType, timerPinInputId } = inReg;
+      const { comId, pinId, pinType, timerPinInputId, frameKey } = inReg;
       const component = Coms[comId]
       if (debug && inReg.isIgnored) {
         return
@@ -230,11 +230,11 @@ export default function executor(opts, {observable}) {
             _logOutputVal(...logProps, true)
           }
         })
-      } else { 
+      } else {
         _logOutputVal(...logProps)
       }
       // 这里需要劫持所有东西，所以说多输入这里也需要劫持
-      function next({ pinId, value }: any) {
+      function next({ pinId, value, curScope }: any) {
         let nextScope = curScope
         const finalInReg = pinId ? {...inReg, pinId} : inReg
 
@@ -249,26 +249,17 @@ export default function executor(opts, {observable}) {
             const ary = frameKey.split('-')
             if (ary.length >= 2) {
               const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
-              if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
+              if (!slotProps.curScope) {
                 slotProps.pushTodo((curScope) => {
-                  if (curScope !== nextScope) {
-                    nextScope = curScope
-                  }
-
-                  exeCon(finalInReg, nextScope, value)
+                  exeCon(finalInReg, curScope, value)
                 })
               } else {
-                if (slotProps.curScope !== nextScope) {
-                  nextScope = slotProps.curScope
-                }
-
-                exeCon(finalInReg, nextScope, value)
+                exeCon(finalInReg, slotProps.curScope, value)
               }
             }
           }
         } else {
           const ary = finalInReg.frameKey.split('-')
-
           if (ary.length >= 2 && !nextScope) {
             const slotProps = getSlotProps(ary[0], ary[1], null, false)
             if (slotProps?.type === 'scope' && !slotProps?.curScope) {
@@ -285,22 +276,20 @@ export default function executor(opts, {observable}) {
           exeCon(finalInReg, nextScope, value)
         }
       }
-
-      // 这里需要等待多输入和timer
-      if (pinType === "timer") {
-        // 这里不存在多输入，直接执行即可
-        next({value: val})
-      } else {
-        const { isReady, isMultipleInput, pinId: realPinId, value: realValue, cb } = transformInputId({ pinId, value: val, component })
+      function callNext({ pinId, value, component, curScope }: any) {
+        const { isReady, isMultipleInput, pinId: realPinId, value: realValue, cb } = transformInputId({ pinId, value, component, curScope })
 
         if (isReady) {
           const nextProps = {
             pinId: isMultipleInput ? realPinId : null,
-            value: realValue
+            value: realValue,
+            curScope
           }
           // 可以触发
           if (timerPinInputId) {
-            const timerKey = curScope ? timerPinInputId + '-' + curScope.id : timerPinInputId
+            // debugger
+            // const timerKey = curScope ? timerPinInputId + '-' + curScope.id : timerPinInputId
+            const timerKey = timerPinInputId + '-' + frameKey + (curScope?.id ? `-${curScope.id}` : '')
             const timerWaitInfo = _timerPinWait[timerKey]
             if (timerWaitInfo) {
               const { ready, todo } = timerWaitInfo
@@ -343,19 +332,42 @@ export default function executor(opts, {observable}) {
         }
       }
 
-      function transformInputId({ pinId, value, component }: any) {
+      // 这里需要等待多输入和timer
+      if (pinType === "timer") {
+        // 这里不存在多输入，直接执行即可
+        next({value: val, curScope})
+      } else {
+        if (notifyAll) {
+          const frameKey = inReg.frameKey
+          if (frameKey === ROOT_FRAME_KEY) {
+            callNext({ pinId, value: val, component, curScope})
+          } else {
+            const [comId, slotId] = frameKey.split('-')
+            const frameProps = _Props[`${comId}-${slotId}`]
+            Object.entries(frameProps).forEach(([key, slot]: any) => {
+              callNext({ pinId, value: val, component, curScope: slot.curScope})
+            })
+          }
+          
+        } else {
+          callNext({ pinId, value: val, component, curScope})
+        }
+      }
+
+      function transformInputId({ pinId, value, component, curScope }: any) {
         let finalPinId = pinId;
         let finalValue = value;
         let isReady = true;
         const pidx = pinId.indexOf('.')
+        const valueBarrierKey = comId + `${curScope ? `-${curScope.id}` : ''}`
         if (component && pidx !== -1) {
           // 多输入
           const { inputs } = component
           finalPinId = pinId.substring(0, pidx)
           const paramId = pinId.substring(pidx + 1)
-          let barrier = _valueBarrier[comId]
+          let barrier = _valueBarrier[valueBarrierKey]
           if (!barrier) {
-            barrier = _valueBarrier[comId] = {}
+            barrier = _valueBarrier[valueBarrierKey] = {}
           }
           barrier[paramId] = val
           const regExp = new RegExp(`${finalPinId}.`)
@@ -378,7 +390,7 @@ export default function executor(opts, {observable}) {
           isReady,
           isMultipleInput,
           cb: isMultipleInput ? () => {
-            Reflect.deleteProperty(_valueBarrier, comId)
+            Reflect.deleteProperty(_valueBarrier, valueBarrierKey)
           } : null
         }
       }
@@ -439,13 +451,6 @@ export default function executor(opts, {observable}) {
     if (found) {
       return found
     }
-
-    // if (ioProxy) {
-    //   console.log(comId, scope)
-    // }
-
-    //--------------------------------------------------------
-
 
     const def = com.def
     const model = com.model
@@ -869,7 +874,7 @@ export default function executor(opts, {observable}) {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
       _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
-      const timerKey = scope ? timerPinInputId + '-' + scope.id : timerPinInputId
+      const timerKey = timerPinInputId + '-' + frameKey + (scope?.id ? `-${scope.id}` : '')
       const timerWaitInfo = _timerPinWait[timerKey]
       if (timerWaitInfo) {
         const { todo } = timerWaitInfo
@@ -1010,12 +1015,28 @@ export default function executor(opts, {observable}) {
   }
 
   function getSlotProps(comId, slotId, scope, notifyAll?) {
-    let key = comId + '-' + slotId + (scope ? `-${scope.id}` : '')
 
-    let rtn = _Props[key]
+    const slotKey = `${comId}-${slotId}`
+    let frameProps = _Props[slotKey]
+    if (!frameProps) {
+      frameProps = _Props[slotKey] = {}
+    }
+
+    // let key = comId + '-' + slotId + (scope ? `-${scope.id}` : '')
+
+    let key = scope ? scope.id : "slot"
+
+    // let rtn = _Props[key]
+
+    // if (notifyAll && !rtn) {
+    //   rtn = _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
+    // }
+
+    let rtn = frameProps[key]
 
     if (notifyAll && !rtn) {
-      rtn = _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
+      console.log("不应该再走到这儿了: ", { comId, slotId, scope, notifyAll })
+      // rtn = _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
     }
 
     if (!rtn) {
@@ -1089,10 +1110,10 @@ export default function executor(opts, {observable}) {
 
       let runExed = {}
 
-      rtn = _Props[key] = {
+      rtn = frameProps[key] = {
         type: slotDef?.type,
-        run(scope) {
-          Cur.scope = scope//更新当前scope
+        run() {
+          // Cur.scope = scope//更新当前scope
 
           // for(let cid in Cons){
           //   const cons = Cons[cid]
@@ -1124,7 +1145,8 @@ export default function executor(opts, {observable}) {
           }
         },
         destroy() {
-          Reflect.deleteProperty(_Props, key)
+          // Reflect.deleteProperty(_Props, key)
+          Reflect.deleteProperty(frameProps, key)
         },
         //_outputRegs,
         _inputs,
@@ -1211,29 +1233,16 @@ export default function executor(opts, {observable}) {
   }
 
   const rst = {
-    get(comId: string, _slotId: string, scope: {
-      id: string
-    }, _ioProxy) {
-      let slotId, curScope, ioProxy
-      for (let i = 0; i < arguments.length; i++) {
-        const arg = arguments[i]
-        if (i > 0 && typeof arg === 'string') {
-          slotId = arg
-        }
-
-        if (typeof arg === 'object') {
-          if (arg.inputs || arg.outputs || arg._inputs || arg._outputs) {//ioProxy
-            ioProxy = arg
-          } else if (arg.id || arg.parent) {//scope
-            curScope = arg
-          }
-        }
+    get({comId, slotId, scope, _ioProxy}) {
+      let ioProxy
+      if (_ioProxy && (_ioProxy.inputs || _ioProxy.outputs || _ioProxy._inputs || _ioProxy._outputs)) {
+        ioProxy = _ioProxy
       }
 
       if (slotId) {
-        return getSlotProps(comId, slotId, curScope)
+        return getSlotProps(comId, slotId, scope)
       } else {
-        const rtn = getComProps(comId, curScope)
+        const rtn = getComProps(comId, scope)
         if (ioProxy) {
           return rtn.clone(ioProxy)
         } else {
