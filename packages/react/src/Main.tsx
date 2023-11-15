@@ -186,7 +186,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     return () => {
       if (handle) {
         if (typeof opts.debug === "function") {
-          opts.env._context?._pendingContext?.destroy()
+          opts.env._context?.debuggerPanel?.destroy()
         }
         setInterval = originalSetInterval
         intervalList.forEach((intervalId) =>
