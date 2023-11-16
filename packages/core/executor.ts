@@ -11,6 +11,11 @@ import {uuid, dataSlim} from "./utils";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
+/**
+ * TODO:
+ * 1. fromCon 是什么？能不能干掉
+ */
+
 export default function executor(opts, {observable}) {
   const {
     json,
@@ -60,11 +65,22 @@ export default function executor(opts, {observable}) {
     }
   })
 
+  // 多输入
   const _valueBarrier: any = {}
 
+  // 等待的pin
   const _timerPinWait: any = {}
 
+  // 当前输入项
   const _slotValue = {}
+  
+  const _variableRelationship: any = {}
+
+  /** 全局保存变量值, 在每次变量输出时存储值，变量为内置组件，知道其内部实现 */
+  const _var: any = {}
+
+  /** 变量和作用域的关系 */
+  const _varSlotMap = {}
 
   function _logOutputVal(type: 'com' | 'frame',
                          content:
@@ -117,7 +133,8 @@ export default function executor(opts, {observable}) {
     }
   }
 
-  function exeCons(logProps, cons, val, curScope, fromCon?, notifyAll?) {
+  // logProps, cons, val, curScope, fromCon?, notifyAll?
+  function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom}) {
     function exeCon(inReg, nextScope, val) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
@@ -156,7 +173,7 @@ export default function executor(opts, {observable}) {
                 const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
                 const cons = Cons[idPre + '-' + key]
                 if (cons) {
-                  exeCons(null, cons, value, myScope)
+                  exeCons({logProps: null, cons, val: value, curScope: myScope})
                 }
               })
             }
@@ -195,7 +212,7 @@ export default function executor(opts, {observable}) {
           } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
             const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
             if (cons) {
-              exeCons(null, cons, val)
+              exeCons({logProps: null, cons, val})
             }
           }
         } else {
@@ -246,33 +263,34 @@ export default function executor(opts, {observable}) {
           if (frameKey === ROOT_FRAME_KEY) {//root作用域
             exeCon(finalInReg, {}, value)
           } else {
-            const ary = frameKey.split('-')
-            if (ary.length >= 2) {
-              const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
-              if (!slotProps.curScope) {
-                slotProps.pushTodo((curScope) => {
-                  exeCon(finalInReg, curScope, value)
-                })
-              } else {
-                exeCon(finalInReg, slotProps.curScope, value)
-              }
-            }
+            // const ary = frameKey.split('-')
+            // if (ary.length >= 2) {
+            //   const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
+            //   if (!slotProps.curScope) {
+            //     slotProps.pushTodo((curScope) => {
+            //       exeCon(finalInReg, curScope, value)
+            //     })
+            //   } else {
+            //     exeCon(finalInReg, slotProps.curScope, value)
+            //   }
+            // }
+            exeCon(finalInReg, curScope, value)
           }
         } else {
-          const ary = finalInReg.frameKey.split('-')
-          if (ary.length >= 2 && !nextScope) {
-            const slotProps = getSlotProps(ary[0], ary[1], null, false)
-            if (slotProps?.type === 'scope' && !slotProps?.curScope) {
-              slotProps.pushTodo((curScope) => {
-                if (curScope !== nextScope) {
-                  nextScope = curScope
-                }
+          // const ary = finalInReg.frameKey.split('-')
+          // if (ary.length >= 2 && !nextScope) {
+          //   const slotProps = getSlotProps(ary[0], ary[1], null, false)
+          //   if (slotProps?.type === 'scope' && !slotProps?.curScope) {
+          //     slotProps.pushTodo((curScope) => {
+          //       if (curScope !== nextScope) {
+          //         nextScope = curScope
+          //       }
 
-                exeCon(finalInReg, nextScope, value)
-              })
-              return
-            }
-          }
+          //       exeCon(finalInReg, nextScope, value)
+          //     })
+          //     return
+          //   }
+          // }
           exeCon(finalInReg, nextScope, value)
         }
       }
@@ -343,12 +361,37 @@ export default function executor(opts, {observable}) {
             callNext({ pinId, value: val, component, curScope})
           } else {
             const [comId, slotId] = frameKey.split('-')
-            const frameProps = _Props[`${comId}-${slotId}`]
-            Object.entries(frameProps).forEach(([key, slot]: any) => {
-              callNext({ pinId, value: val, component, curScope: slot.curScope})
-            })
+
+            if (!_variableRelationship[frameKey]) {
+              const frameToComIdMap: any = _variableRelationship[frameKey] = {}
+              frameToComIdMap[fromCom.id] = {
+                [inReg.id]: inReg,
+              }
+            } else {
+              const frameToComIdMap: any = _variableRelationship[frameKey]
+              const consMap = frameToComIdMap[fromCom.id]
+              if (!consMap) {
+                frameToComIdMap[fromCom.id] = {
+                  [inReg.id]: inReg,
+                }
+              } else {
+                consMap[inReg.id] = inReg
+              }
+            }
+
+            if (fromCom.parentComId) {
+              /** 监听到作用域内变量更新，仅监听当前作用域 */
+              callNext({ pinId, value: val, component, curScope})
+            } else {
+              /** 监听到非作用域变量，更新所有作用域 */
+              const frameProps = _Props[`${comId}-${slotId}`]
+              if (frameProps) {
+                Object.entries(frameProps).forEach(([key, slot]: any) => {
+                  callNext({ pinId, value: val, component, curScope: slot.curScope})
+                })
+              }
+            } 
           }
-          
         } else {
           callNext({ pinId, value: val, component, curScope})
         }
@@ -600,13 +643,26 @@ export default function executor(opts, {observable}) {
               return
             }
             const notifyAll = typeof _myScope === 'boolean' && _myScope//变量组件的特殊处理
-            if (com.global && notifyAll && !isCurrent) {
-              scenesOperate?.exeGlobalCom({
-                com,
-                value: val,
-                pinId: name
-              })
-              return
+
+            if (notifyAll) {
+              if (com.parentComId) {
+                const key = `${com.parentComId}-${com.frameId}`
+                if (!_varSlotMap[key]) {
+                  _varSlotMap[key] = {[comId]: true}
+                } else {
+                  _varSlotMap[key][comId] = true
+                }
+              }
+              _var[`${com.id}${scope?.id ? `-${scope.id}` : ''}`] = val
+
+              if (com.global && !isCurrent) {
+                scenesOperate?.exeGlobalCom({
+                  com,
+                  value: val,
+                  pinId: name
+                })
+                return
+              }
             }
 
             const args = arguments
@@ -698,10 +754,10 @@ export default function executor(opts, {observable}) {
             cons = cons || Cons[comId + '-' + name]
             if (cons?.length) {
               if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
-                exeCons(['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, myScope, fromCon)
+                exeCons({logProps: ['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, curScope: myScope, fromCon, fromCom: com})
               } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
                 //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-                exeCons(['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
+                exeCons({logProps: ['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, curScope: myScope || scope, fromCon, notifyAll, fromCom: com})
               }
             } else {
               _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
@@ -743,7 +799,7 @@ export default function executor(opts, {observable}) {
           }
           const cons = Cons[comId + '-' + name]
           if (cons) {
-            exeCons(['com', {com, pinHostId: name, val, comDef: def}], cons, val, scope)
+            exeCons({logProps: ['com', {com, pinHostId: name, val, comDef: def}], cons, val, curScope: scope})
           } else {
             _logOutputVal('com', {com, pinHostId: name, val, comDef: def})
           }
@@ -987,7 +1043,7 @@ export default function executor(opts, {observable}) {
     if (finishPinParentKey) {
       const cons = Cons[_nextConsPinKeyMap[finishPinParentKey]]
       if (cons && !PinRels[`${comId}-${pinId}`]) {
-        exeCons(null, cons, void 0)
+        exeCons({logProps: null, cons, val: void 0})
       }
     }
   }
@@ -1082,7 +1138,7 @@ export default function executor(opts, {observable}) {
             _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
 
             if (cons) {
-              exeCons(['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope || Cur.scope)
+              exeCons({logProps: ['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope: curScope || Cur.scope})
             } else {
               _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
             }
@@ -1143,8 +1199,40 @@ export default function executor(opts, {observable}) {
             })
             Cur.todo = void 0//执行完成清空
           }
+
+          Promise.resolve().then(() => {
+            if (scope) {
+              const frameKey = `${comId}-${slotId}`;
+              const frameToComIdMap = _variableRelationship[frameKey]
+              if (frameToComIdMap) {
+                Object.entries(frameToComIdMap).forEach(([comId, consMap]) => {
+                  const fromCom = Coms[comId]
+                  if (!fromCom.parentComId) {
+                    const cons = Object.entries(consMap).map(([key, con]) => {
+                      return con
+                    })
+                    if (cons.length) {
+                      exeCons({logProps: null, cons, val: _var[comId], curScope: scope, notifyAll: true, fromCom: Coms[comId]})
+                    }
+                  } else {
+                    console.log(444, fromCom, "fromCom")
+                  }
+                })
+              }
+            }
+          })
         },
         destroy() {
+          if (scope) {
+            const frameKey = `${scope.parentComId}-${scope.frameId}`
+            const slotMap = _varSlotMap[frameKey]
+            if (slotMap) {
+              Object.keys(slotMap).forEach((key) => {
+                Reflect.deleteProperty(_var, `${key}-${scope.id}`)
+              })
+            }
+          }
+
           // Reflect.deleteProperty(_Props, key)
           Reflect.deleteProperty(frameProps, key)
         },
@@ -1209,7 +1297,7 @@ export default function executor(opts, {observable}) {
     _slotValue[`${frameId}-${pinId}`] = value
 
     if (cons) {
-      exeCons(['frame', {comId, frameId, pinHostId: pinId, val: value,sceneId}],cons, value, scope)
+      exeCons({logProps: ['frame', {comId, frameId, pinHostId: pinId, val: value,sceneId}], cons, val: value, curScope: scope})
     } else {
       if (log) {
         _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val: value,sceneId})

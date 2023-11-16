@@ -186,8 +186,6 @@ function RenderCom({
       const { _todo } = props
 
       return {
-        slotProps: null,
-        id: slotId,
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
           const slot = slots[slotId]
           if (slot) {

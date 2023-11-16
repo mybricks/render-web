@@ -193,8 +193,6 @@ class Context {
 }
 
 export function render(json: any, opts: T_RenderOptions = {}) {
-  // json.scenes[0].cons['u_HjE5w-output0'][0].frameKey = '_rootFrame_'
-  console.log("render json: ", JSON.parse(JSON.stringify(json)))
   if (!json) {
     return null
   } else {
