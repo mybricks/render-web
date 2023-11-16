@@ -6,6 +6,8 @@ import React, {
 } from 'react'
 
 import Main from './Main'
+import executor from '../../core/executor'
+import {observable as defaultObservable} from './observable';
 
 import lazyCss from './MultiScene.lazy.less'
 
@@ -110,7 +112,7 @@ export default function MultiScene ({json, opts}) {
     }
   }, [])
 
-  const {fxFramesJsx, fxToJsonMap, currentFxFrameIdsMap } = useMemo<any>(() => {
+  const { fxFramesJsx, fxToJsonMap, currentFxFrameIdsMap } = useMemo<any>(() => {
     const fxFramesJsx: any = []
     const fxToJsonMap = {}
     const { global } = json
@@ -287,95 +289,95 @@ export default function MultiScene ({json, opts}) {
               currentFxFrameIdsMap[parentScope.id] = {}
               const { id } = fxtojson
               const { env } = opts
-              env.canvas = Object.assign({
-                id,
-                type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-                open: async (sceneId, params, openType) => {
-                  // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
-                  let scenes = scenesMap[sceneId]
+              // env.canvas = Object.assign({
+              //   id,
+              //   type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
+              //   open: async (sceneId, params, openType) => {
+              //     // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
+              //     let scenes = scenesMap[sceneId]
       
-                  if (!scenes) {
-                    if (typeof opts.scenesLoader !== 'function') {
-                      console.error(`缺少场景信息: ${sceneId}`)
-                      return
-                    }
-                    const json = await opts.scenesLoader({id: sceneId})
+              //     if (!scenes) {
+              //       if (typeof opts.scenesLoader !== 'function') {
+              //         console.error(`缺少场景信息: ${sceneId}`)
+              //         return
+              //       }
+              //       const json = await opts.scenesLoader({id: sceneId})
       
-                    scenes = {
-                      disableAutoRun: false,
-                      json,
-                      show: false,
-                      parentScope: null,
-                      todo: [],
-                      type: json.slot?.showType || json.type,
-                      useEntryAnimation: false
-                    }
+              //       scenes = {
+              //         disableAutoRun: false,
+              //         json,
+              //         show: false,
+              //         parentScope: null,
+              //         todo: [],
+              //         type: json.slot?.showType || json.type,
+              //         useEntryAnimation: false
+              //       }
       
-                    scenesMap[sceneId] = scenes
-                    if (json.type === 'popup') {
-                    } else {
-                      setPageScenes((pageScenes) => {
-                        return [...pageScenes, json]
-                      })
-                    }
-                    if (scenesOperateInputsTodo[sceneId]) {
-                      const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-                      scenes.parentScope = parentScope
-                      todo.forEach(({value, pinId, parentScope}) => {
-                        scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                          pinId,
-                          value
-                        }})
-                      })
-                    }
-                  }
+              //       scenesMap[sceneId] = scenes
+              //       if (json.type === 'popup') {
+              //       } else {
+              //         setPageScenes((pageScenes) => {
+              //           return [...pageScenes, json]
+              //         })
+              //       }
+              //       if (scenesOperateInputsTodo[sceneId]) {
+              //         const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+              //         scenes.parentScope = parentScope
+              //         todo.forEach(({value, pinId, parentScope}) => {
+              //           scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+              //             pinId,
+              //             value
+              //           }})
+              //         })
+              //       }
+              //     }
         
-                  if (openType) {
-                    Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-                      if (key === sceneId) {
-                        if (openType === 'blank') {
-                          scenes.useEntryAnimation = true
-                        } else {
-                          scenes.useEntryAnimation = false
-                        }
-                        scenes.show = true
-                        if (scenes.type === 'popup') {
-                          setPopupIds((popupIds) => {
-                            return [...popupIds, sceneId]
-                          })
-                        } else {
-                          setCount((count) => count+1)
-                        }
-                      } else {
-                        scenes.show = false
-                        if (scenes.type === 'popup') {
-                          setPopupIds((popupIds) => {
-                            return popupIds.filter((id) => id !== scenes.json.id)
-                          })
-                        } else {
-                          setCount((count) => count+1)
-                        }
-                      }
-                    })
-                  } else {
-                    if (!scenes.show) {
-                      if (openType === 'blank') {
-                        scenes.useEntryAnimation = true
-                      } else {
-                        scenes.useEntryAnimation = false
-                      }
-                      scenes.show = true
-                      if (scenes.type === 'popup') {
-                        setPopupIds((popupIds) => {
-                          return [...popupIds, sceneId]
-                        })
-                      } else {
-                        setCount((count) => count+1)
-                      }
-                    }
-                  }
-                }
-              }, opts.env?.canvas)
+              //     if (openType) {
+              //       Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+              //         if (key === sceneId) {
+              //           if (openType === 'blank') {
+              //             scenes.useEntryAnimation = true
+              //           } else {
+              //             scenes.useEntryAnimation = false
+              //           }
+              //           scenes.show = true
+              //           if (scenes.type === 'popup') {
+              //             setPopupIds((popupIds) => {
+              //               return [...popupIds, sceneId]
+              //             })
+              //           } else {
+              //             setCount((count) => count+1)
+              //           }
+              //         } else {
+              //           scenes.show = false
+              //           if (scenes.type === 'popup') {
+              //             setPopupIds((popupIds) => {
+              //               return popupIds.filter((id) => id !== scenes.json.id)
+              //             })
+              //           } else {
+              //             setCount((count) => count+1)
+              //           }
+              //         }
+              //       })
+              //     } else {
+              //       if (!scenes.show) {
+              //         if (openType === 'blank') {
+              //           scenes.useEntryAnimation = true
+              //         } else {
+              //           scenes.useEntryAnimation = false
+              //         }
+              //         scenes.show = true
+              //         if (scenes.type === 'popup') {
+              //           setPopupIds((popupIds) => {
+              //             return [...popupIds, sceneId]
+              //           })
+              //         } else {
+              //           setCount((count) => count+1)
+              //         }
+              //       }
+              //     }
+              //   }
+              // }, opts.env?.canvas)
               const scenesOperate = {
                 open({todo, frameId, parentScope, comProps}) {
                   // console.log('fx scenesOperate.open', {
@@ -383,19 +385,279 @@ export default function MultiScene ({json, opts}) {
                   //   frameId,
                   //   parentScope
                   // })
+                  const fxtojson = fxToJsonMap[frameId]
+                  if (fxtojson) {
+                    if (!currentFxFrameIdsMap[parentScope.id]) {
+                      currentFxFrameIdsMap[parentScope.id] = {}
+                      // const { id } = fxtojson
+                      const { env } = opts
+                      // env.canvas = Object.assign({
+                      //   id,
+                      //   type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
+                      //   open: async (sceneId, params, openType) => {
+                      //     // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
+                      //     let scenes = scenesMap[sceneId]
+              
+                      //     if (!scenes) {
+                      //       if (typeof opts.scenesLoader !== 'function') {
+                      //         console.error(`缺少场景信息: ${sceneId}`)
+                      //         return
+                      //       }
+                      //       const json = await opts.scenesLoader({id: sceneId})
+              
+                      //       scenes = {
+                      //         disableAutoRun: false,
+                      //         json,
+                      //         show: false,
+                      //         parentScope: null,
+                      //         todo: [],
+                      //         type: json.slot?.showType || json.type,
+                      //         useEntryAnimation: false
+                      //       }
+              
+                      //       scenesMap[sceneId] = scenes
+                      //       if (json.type === 'popup') {
+                      //       } else {
+                      //         setPageScenes((pageScenes) => {
+                      //           return [...pageScenes, json]
+                      //         })
+                      //       }
+                      //       if (scenesOperateInputsTodo[sceneId]) {
+                      //         const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+                      //         scenes.parentScope = parentScope
+                      //         todo.forEach(({value, pinId, parentScope}) => {
+                      //           scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                      //             pinId,
+                      //             value
+                      //           }})
+                      //         })
+                      //       }
+                      //     }
+                
+                      //     if (openType) {
+                      //       Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+                      //         if (key === sceneId) {
+                      //           if (openType === 'blank') {
+                      //             scenes.useEntryAnimation = true
+                      //           } else {
+                      //             scenes.useEntryAnimation = false
+                      //           }
+                      //           scenes.show = true
+                      //           if (scenes.type === 'popup') {
+                      //             setPopupIds((popupIds) => {
+                      //               return [...popupIds, sceneId]
+                      //             })
+                      //           } else {
+                      //             setCount((count) => count+1)
+                      //           }
+                      //         } else {
+                      //           scenes.show = false
+                      //           if (scenes.type === 'popup') {
+                      //             setPopupIds((popupIds) => {
+                      //               return popupIds.filter((id) => id !== scenes.json.id)
+                      //             })
+                      //           } else {
+                      //             setCount((count) => count+1)
+                      //           }
+                      //         }
+                      //       })
+                      //     } else {
+                      //       if (!scenes.show) {
+                      //         if (openType === 'blank') {
+                      //           scenes.useEntryAnimation = true
+                      //         } else {
+                      //           scenes.useEntryAnimation = false
+                      //         }
+                      //         scenes.show = true
+                      //         if (scenes.type === 'popup') {
+                      //           setPopupIds((popupIds) => {
+                      //             return [...popupIds, sceneId]
+                      //           })
+                      //         } else {
+                      //           setCount((count) => count+1)
+                      //         }
+                      //       }
+                      //     }
+                      //   }
+                      // }, opts.env?.canvas)
+                      const scenesOperate = {
+                        open({todo, frameId, parentScope, comProps}) {
+                          // console.log('fx scenesOperate.open', {
+                          //   todo,
+                          //   frameId,
+                          //   parentScope
+                          // })
 
-                  const fxFrame = currentFxFrameIdsMap[parentScope.id]
-                  
-                  if (fxFrame?._refs) {
-                    currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
-                    const configs = comProps?.data?.configs
-                    if (configs) {
-                      Object.entries(configs).forEach(([key, value]) => {
-                        fxFrame._refs.inputs[key](value, void 0, false)
+                          const fxFrame = currentFxFrameIdsMap[parentScope.id]
+                          
+                          if (fxFrame?._refs) {
+                            currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
+                            const configs = comProps?.data?.configs
+                            if (configs) {
+                              Object.entries(configs).forEach(([key, value]) => {
+                                fxFrame._refs.inputs[key](value, void 0, false)
+                              })
+                            }
+                            fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
+                            fxFrame._refs.run()
+                          }
+                        },
+                        inputs({frameId, parentScope, value, pinId}) {
+                          // console.log('fx 场景触发inputs: ', {
+                          //   frameId, parentScope, value, pinId
+                          // })
+                          const scenes = scenesMap[frameId]
+                          if (!scenes) {
+                            if (!scenesOperateInputsTodo[frameId]) {
+                              scenesOperateInputsTodo[frameId] = {
+                                parentScope,
+                                todo: [{value, pinId}]
+                              }
+                            } else {
+                              scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
+                            }
+                          } else {
+                            scenes.parentScope = parentScope
+                
+                            if (scenes._refs) {
+                              scenes._refs.inputs[pinId](value)
+                            } else {
+                              scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+                                pinId,
+                                value
+                              }})
+                            }
+                          }
+                        },
+                        _notifyBindings(val, com) {
+                          const { bindingsTo } = com.model
+                          if (bindingsTo) {
+                            for (let comId in bindingsTo) {
+                              for (let i in scenesMap) {
+                                const scenes = scenesMap[i]
+                                const com = scenes.json.coms[comId]
+                                
+                                if (com) {
+                                  if (scenes._refs) {
+                                    _notifyBindings(scenes._refs, comId, bindingsTo[comId], val)
+                                  } else {
+                                    const bindings = bindingsTo[comId]
+                                    scenes.todo = scenes.todo.concat({type: 'globalVar', todo: {comId, bindings, value: val}})
+                                  }
+                                }
+                              }
+                            }
+                          }
+                        },
+                        getGlobalComProps(comId) {
+                          // 从主场景获取真实数据
+                          return scenesMap[json.scenes[0].id]._refs?.get({comId})
+                        },
+                        exeGlobalCom({ com, value, pinId }) {
+                          const globalComId = com.id
+                          globalVarMap[globalComId] = value
+                          Object.keys(scenesMap).forEach((key) => {
+                            const scenes = scenesMap[key]
+                            if (scenes.show && scenes._refs) {
+                              const globalCom = scenes._refs.get({comId: globalComId})
+                              if (globalCom) {
+                                globalCom.outputs[pinId](value, true, null, true)
+                              }
+                            }
+                          })
+                          const refsMap = env._context.getRefsMap()
+                          Object.entries(refsMap).forEach(([id, refs]: any) => {
+                            const globalCom = refs.get({comId: globalComId})
+                              if (globalCom) {
+                                globalCom.outputs[pinId](value, true, null, true)
+                              }
+                          })
+                        }
+                      }
+                      // env.scenesOperate = scenesOperate
+                      // const options = {
+                      //   ...opts,
+                      //   env,
+                      //   disableAutoRun: true,
+                      //   ref: opts.ref((_refs) => {
+                      //     currentFxFrameIdsMap[parentScope.id]._refs = _refs
+                      //     currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
+                      //     const { inputs, outputs } = _refs
+          
+                      //     fxtojson.outputs.forEach((output) => {
+                      //       outputs(output.id, (value) => {
+                      //         currentFxFrameIdsMap[parentScope.id].parentScope?.outputs[output.id](value)
+                      //       })
+                      //     })
+
+                      //     const configs = comProps?.data?.configs
+                      //     if (configs) {
+                      //       Object.entries(configs).forEach(([key, value]) => {
+                      //         _refs.inputs[key](value, void 0, false)
+                      //       })
+                      //     }
+                      //     _refs.inputs[todo.pinId](todo.value, void 0, false)
+                      //     _refs.run()
+                      //   }),
+                      //   _env: {
+                      //     loadCSSLazy() {},
+                      //     currentScenes: {
+                      //       close() {
+          
+                      //       }
+                      //     }
+                      //   },
+                      //   scenesOperate
+                      // }
+                      // console.log(opts.env, "opts.env")
+                      // fxFramesJsx.push({key: parentScope.id, json: fxtojson, opts: options})
+                      // setCount((count) => count+1)
+                      const { _context } = env
+                      executor({
+                        json: fxtojson,
+                        getComDef: (def) => _context.getComDef(def),
+                        events: opts.events,
+                        env,
+                        ref(_refs) {
+                          currentFxFrameIdsMap[parentScope.id]._refs = _refs
+                          currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
+                          const { inputs, outputs } = _refs
+          
+                          fxtojson.outputs.forEach((output) => {
+                            outputs(output.id, (value) => {
+                              currentFxFrameIdsMap[parentScope.id].parentScope?.outputs[output.id](value)
+                            })
+                          })
+
+                          const configs = comProps?.data?.configs
+                          if (configs) {
+                            Object.entries(configs).forEach(([key, value]) => {
+                              _refs.inputs[key](value, void 0, false)
+                            })
+                          }
+                          _refs.inputs[todo.pinId](todo.value, void 0, false)
+                          _refs.run()
+                        },
+                        onError: _context.onError,
+                        debug: opts.debug,
+                        debugLogger: opts.debugLogger,
+                        logger: _context.logger,
+                        scenesOperate
+                      }, {//////TODO goon
+                        observable: opts.observable || defaultObservable//传递获取响应式的方法
                       })
+                    } else {
+                      const { _refs } = currentFxFrameIdsMap[parentScope.id]
+                      currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
+                      const configs = comProps?.data?.configs
+                      if (configs) {
+                        Object.entries(configs).forEach(([key, value]) => {
+                          _refs.inputs[key](value, void 0, false)
+                        })
+                      }
+                      _refs.inputs[todo.pinId](todo.value, void 0, false)
+                      _refs.run()
                     }
-                    fxFrame._refs.inputs[todo.pinId](todo.value, void 0, false)
-                    fxFrame._refs.run()
                   }
                 },
                 inputs({frameId, parentScope, value, pinId}) {
@@ -470,12 +732,48 @@ export default function MultiScene ({json, opts}) {
                   })
                 }
               }
-              env.scenesOperate = scenesOperate
-              const options = {
-                ...opts,
+              // env.scenesOperate = scenesOperate
+              // const options = {
+              //   ...opts,
+              //   env,
+              //   disableAutoRun: true,
+              //   ref: opts.ref((_refs) => {
+              //     currentFxFrameIdsMap[parentScope.id]._refs = _refs
+              //     currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
+              //     const { inputs, outputs } = _refs
+  
+              //     fxtojson.outputs.forEach((output) => {
+              //       outputs(output.id, (value) => {
+              //         currentFxFrameIdsMap[parentScope.id].parentScope?.outputs[output.id](value)
+              //       })
+              //     })
+
+              //     const configs = comProps?.data?.configs
+              //     if (configs) {
+              //       Object.entries(configs).forEach(([key, value]) => {
+              //         _refs.inputs[key](value, void 0, false)
+              //       })
+              //     }
+              //     _refs.inputs[todo.pinId](todo.value, void 0, false)
+              //     _refs.run()
+              //   }),
+              //   _env: {
+              //     loadCSSLazy() {},
+              //     currentScenes: {
+              //       close() {
+  
+              //       }
+              //     }
+              //   },
+              //   scenesOperate
+              // }
+              const { _context } = env
+              executor({
+                json: fxtojson,
+                getComDef: (def) => _context.getComDef(def),
+                events: opts.events,
                 env,
-                disableAutoRun: true,
-                ref: opts.ref((_refs) => {
+                ref(_refs) {
                   currentFxFrameIdsMap[parentScope.id]._refs = _refs
                   currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
                   const { inputs, outputs } = _refs
@@ -494,19 +792,17 @@ export default function MultiScene ({json, opts}) {
                   }
                   _refs.inputs[todo.pinId](todo.value, void 0, false)
                   _refs.run()
-                }),
-                _env: {
-                  loadCSSLazy() {},
-                  currentScenes: {
-                    close() {
-  
-                    }
-                  }
                 },
+                onError: _context.onError,
+                debug: opts.debug,
+                debugLogger: opts.debugLogger,
+                logger: _context.logger,
                 scenesOperate
-              }
-              fxFramesJsx.push({key: parentScope.id, json: fxtojson, opts: options})
-              setCount((count) => count+1)
+              }, {//////TODO goon
+                observable: opts.observable || defaultObservable//传递获取响应式的方法
+              })
+              // fxFramesJsx.push({key: parentScope.id, json: fxtojson, opts: options})
+              // setCount((count) => count+1)
             } else {
               const { _refs } = currentFxFrameIdsMap[parentScope.id]
               currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
@@ -800,11 +1096,11 @@ export default function MultiScene ({json, opts}) {
     }
   }, [])
 
-  const fx = useMemo(() => {
-    return fxFramesJsx.map(({ key, json, opts }) => {
-      return <Main key={key} json={json} opts={opts}/>
-    })
-  }, [count])
+  // const fx = useMemo(() => {
+  //   return fxFramesJsx.map(({ key, json, opts }) => {
+  //     return <Main key={key} json={json} opts={opts}/>
+  //   })
+  // }, [count])
 
   const scenes = useMemo(() => {
     if (!pageScenes.length) {
@@ -871,7 +1167,7 @@ export default function MultiScene ({json, opts}) {
 
   return (
     <>
-      {fx}
+      {/* {fx} */}
       {scenes}
       {popups}
     </>
