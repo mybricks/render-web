@@ -127,9 +127,10 @@ function RenderCom({
   } = props
 
   useMemo(() => {
-    if (!props._todo) {
-      props._todo = []
-    }
+    // if (!props._todo) {
+    //   props._todo = {}
+    //   props._slotProps = {}
+    // }
     const { pxToRem: configPxToRem, pxToVw: configPxToVw } = env
 
     const styleAry = getStyleAry({ env, def, style })
@@ -171,19 +172,13 @@ function RenderCom({
 
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
-      // const props = context.get({comId: id, slotId, scope})
+      const props = context.get({comId: id, slotId, scope})
 
       // const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
       // if (!props) {
       //   throw new Error(`${errorStringPrefix} 获取context失败.`)
       // }
-
-      // props._todo = []
-      // props._slotProps = {}
-
-      // const { _todo, _slotProps } = {} 
-      const { _todo } = props
 
       return {
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
@@ -192,14 +187,15 @@ function RenderCom({
             return <SlotRender slotId={slotId}
                                slot={slot}
                                //  props={props}
-                               setProps={(slotProps) => {
-                                props._slotProps = slotProps
-                                const { _todo } = props
-                                while (_todo.length) {
-                                  const { type, id, value } = _todo.shift()
-                                  slotProps[type][id](value)
-                                }
-                               }}
+                              //  parentProps={props}
+                              //  setProps={(slotProps) => {
+                              //   props._slotProps[slotId] = slotProps
+                              //   const _todo = props._todo[slotId]
+                              //   while (_todo.length) {
+                              //     const { type, id, value } = _todo.shift()
+                              //     slotProps[type][id](value)
+                              //   }
+                              //  }}
                                params={params}
                                style={style}
                                onError={onError}
@@ -217,51 +213,64 @@ function RenderCom({
         get size() {
           return !!slots[slotId]?.comAry?.length
         },
-        _inputs: new Proxy({}, {
-          get(_, id) {
-            return (value) => {
-              if (!props._slotProps) {
-                _todo.push({type: "_inputs", id, value})
-              } else {
-                props._slotProps._inputs[id](value)
-              }
-            }
-          }
-        }),
-        inputs: new Proxy({}, {
-          get(_, id) {
-            return (value) => {
-              if (!props._slotProps) {
-                _todo.push({type: "inputs", id, value})
-              } else {
-                props._slotProps.inputs[id](value)
-              }
-            }
-          }
-        }),
-        outputs: new Proxy({}, {
-          get(_, id) {
-            return (value) => {
-              if (!props._slotProps) {
-                _todo.push({type: "outputs", id, value})
-              } else {
-                props._slotProps.outputs[id](value)
-              }
-            }
-          }
-        }),
+        // _inputs: new Proxy({}, {
+        //   get(_, id) {
+        //     return (value) => {
+        //       if (!props._slotProps[slotId]) {
+        //         if (!props._todo[slotId]) {
+        //           props._todo[slotId] = [{type: "_inputs", id, value}]
+        //         } else {
+        //           props._todo[slotId].push({type: "_inputs", id, value})
+        //         }
+        //       } else {
+        //         props._slotProps[slotId]._inputs[id](value)
+        //       }
+        //     }
+        //   }
+        // }),
+        // inputs: new Proxy({}, {
+        //   get(_, id) {
+        //     return (value) => {
+        //       if (!props._slotProps[slotId]) {
+        //         if (!props._todo[slotId]) {
+        //           props._todo[slotId] = [{type: "inputs", id, value}]
+        //         } else {
+        //           props._todo[slotId].push({type: "inputs", id, value})
+        //         }
+        //       } else {
+        //         props._slotProps[slotId].inputs[id](value)
+        //       }
+        //     }
+        //   }
+        // }),
+        // outputs: new Proxy({}, {
+        //   get(_, id) {
+        //     return (value) => {
+        //       if (!props._slotProps[slotId]) {
+        //         if (!props._todo[slotId]) {
+        //           props._todo[slotId] = [{type: "outputs", id, value}]
+        //         } else {
+        //           props._todo[slotId].push({type: "outputs", id, value})
+        //         }
+        //       } else {
+        //         props._slotProps[slotId].outputs[id](value)
+        //       }
+        //     }
+        //   }
+        // }),
         
-        // _inputs: props._inputs,
-        // inputs: props.inputs,
-        // outputs: props.outputs
+        _inputs: props._inputs,
+        inputs: props.inputs,
+        outputs: props.outputs
       }
     }
   })
 
   const parentSlot = useMemo(() => {
     if (props.frameId && props.parentComId) {
-      // console.log('parentSlot context.get: ')
-      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope})
+      // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope})
+      // 取slot就行
+      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: null})
       // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent})
       // const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
       if (slotProps) {
@@ -359,7 +368,8 @@ const SlotRender = memo(({
                            slotId,
                            parentComId,
                            //  props,
-                           setProps,
+                          //  parentProps,
+                          //  setProps,
                            slot,
                            params,
                            scope,
@@ -429,7 +439,7 @@ const SlotRender = memo(({
 
   // const props = context.get(parentComId, slotId, curScope)
   const props = context.get({comId: parentComId, slotId, scope: curScope})
-  setProps(props)
+  // setProps(props)
 
   let wrapFn
   if (params) {
@@ -452,6 +462,8 @@ const SlotRender = memo(({
 
   useEffect(() => {
     return () => {
+      // Reflect.deleteProperty(parentProps._slotProps, slotId)
+      // Reflect.deleteProperty(parentProps._todo, slotId)
       props.destroy()
     }
   }, [])

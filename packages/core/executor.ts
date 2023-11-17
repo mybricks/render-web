@@ -205,7 +205,9 @@ export default function executor(opts, {observable}) {
 
         if (inReg.comId) {
           if (inReg.direction === 'inner-input') {
-            const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+            // const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+            // TODO
+            const proxyFn = _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
             if (proxyFn) {
               proxyFn(val)
             }
@@ -1158,7 +1160,9 @@ export default function executor(opts, {observable}) {
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
               return
             }
+            // TODO: 
             _frameOutputProxy[key + '-' + name] = fn
+            _frameOutputProxy[slotKey + '-' + name] = fn
             //_outputRegs[name] = fn
           }
         }
@@ -1200,8 +1204,14 @@ export default function executor(opts, {observable}) {
             Cur.todo = void 0//执行完成清空
           }
 
-          Promise.resolve().then(() => {
-            if (scope) {
+          if (scope && key !== 'slot') {
+            const frameKey = `${scope.parentComId}-${scope.frameId}`
+            const defaultSlotProps = _Props[frameKey]?.slot
+            if (defaultSlotProps) {
+              defaultSlotProps.setCurScope(scope)
+            }
+
+            Promise.resolve().then(() => {
               const frameKey = `${comId}-${slotId}`;
               const frameToComIdMap = _variableRelationship[frameKey]
               if (frameToComIdMap) {
@@ -1214,13 +1224,11 @@ export default function executor(opts, {observable}) {
                     if (cons.length) {
                       exeCons({logProps: null, cons, val: _var[comId], curScope: scope, notifyAll: true, fromCom: Coms[comId]})
                     }
-                  } else {
-                    console.log(444, fromCom, "fromCom")
                   }
                 })
               }
-            }
-          })
+            })
+          }
         },
         destroy() {
           if (scope) {
@@ -1243,6 +1251,9 @@ export default function executor(opts, {observable}) {
         outputs,
         get curScope() {
           return Cur.scope
+        },
+        setCurScope(scope) {
+          Cur.scope = scope
         },
         get todo() {
           return Cur.todo
