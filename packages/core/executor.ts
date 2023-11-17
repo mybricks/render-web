@@ -246,11 +246,11 @@ export default function executor(opts, {observable}) {
         await _context.debuggerPanel?.wait(inReg, () => {
           if (logProps) {
             logProps[1].conId = inReg.id
-            _logOutputVal(...logProps, true)
+            logProps && _logOutputVal(...logProps, true)
           }
         })
       } else {
-        _logOutputVal(...logProps)
+        logProps && _logOutputVal(...logProps)
       }
       // 这里需要劫持所有东西，所以说多输入这里也需要劫持
       function next({ pinId, value, curScope }: any) {
