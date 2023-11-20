@@ -238,6 +238,13 @@ export default function executor(opts, {observable}) {
     cons.forEach(async (inReg: any) => {
       const { comId, pinId, pinType, timerPinInputId, frameKey } = inReg;
       const component = Coms[comId]
+
+      if (fromCon) {
+        if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels///TODO
+          return
+        }
+      }
+
       if (debug && inReg.isIgnored) {
         return
       }
