@@ -27,7 +27,7 @@ let count = 1
 
 export default function Main({json, opts, style = {}, className = '', root = true}: { json, opts: T_RenderOptions, style?, className?, root: boolean }) {
   //环境变量，此处可以定义连接器、多语言等实现
-  const { env, comDefs, onError, logger, slot } = useMemo(() => {
+  const { env, comDefs, onError, logger, slot, getComDef } = useMemo(() => {
     if (count === 1) {
       count = 2
       const pxToRem = opts.env?.pxToRem
@@ -78,36 +78,9 @@ export default function Main({json, opts, style = {}, className = '', root = tru
       comDefs: _context.comDefs,
       onError: _context.onError,
       logger: _context.logger,
+      getComDef: (def) => _context.getComDef(def),
       slot: json.slot
     }
-  }, [])
-
-  const getComDef = useCallback((def) => {
-    const rtn = comDefs[def.namespace + '-' + def.version]
-    if (!rtn) {
-      const ary = []
-      for (let ns in comDefs) {
-        if (ns.startsWith(def.namespace + '-')) {
-          ary.push(comDefs[ns])
-        }
-      }
-
-      if (ary && ary.length > 0) {
-        ary.sort((a, b) => {
-          return compareVersion(a.version, b.version)
-        })
-
-        const rtn0 = ary[0]
-        console.warn(`【Mybricks】组件${def.namespace + '@' + def.version}未找到，使用${rtn0.namespace}@${rtn0.version}代替.`)
-
-        return rtn0
-      } else {
-        console.log(comDefs)
-
-        throw new Error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
-      }
-    }
-    return rtn
   }, [])
 
   //根据script生成context对象
@@ -218,4 +191,3 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     </ErrorBoundary>
   )
 }
-

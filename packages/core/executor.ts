@@ -11,6 +11,11 @@ import {uuid, dataSlim} from "./utils";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
+/**
+ * TODO:
+ * 1. fromCon 是什么？能不能干掉
+ */
+
 export default function executor(opts, {observable}) {
   const {
     json,
@@ -60,11 +65,22 @@ export default function executor(opts, {observable}) {
     }
   })
 
+  // 多输入
   const _valueBarrier: any = {}
 
+  // 等待的pin
   const _timerPinWait: any = {}
 
+  // 当前输入项
   const _slotValue = {}
+  
+  const _variableRelationship: any = {}
+
+  /** 全局保存变量值, 在每次变量输出时存储值，变量为内置组件，知道其内部实现 */
+  const _var: any = {}
+
+  /** 变量和作用域的关系 */
+  const _varSlotMap = {}
 
   function _logOutputVal(type: 'com' | 'frame',
                          content:
@@ -117,7 +133,8 @@ export default function executor(opts, {observable}) {
     }
   }
 
-  function exeCons(logProps, cons, val, curScope, fromCon?, notifyAll?) {
+  // logProps, cons, val, curScope, fromCon?, notifyAll?
+  function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom, isAutoRun}) {
     function exeCon(inReg, nextScope, val) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
@@ -156,7 +173,7 @@ export default function executor(opts, {observable}) {
                 const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
                 const cons = Cons[idPre + '-' + key]
                 if (cons) {
-                  exeCons(null, cons, value, myScope)
+                  exeCons({logProps: null, cons, val: value, curScope: myScope})
                 }
               })
             }
@@ -188,14 +205,16 @@ export default function executor(opts, {observable}) {
 
         if (inReg.comId) {
           if (inReg.direction === 'inner-input') {
-            const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+            // const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+            // TODO
+            const proxyFn = _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
             if (proxyFn) {
               proxyFn(val)
             }
           } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
             const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
             if (cons) {
-              exeCons(null, cons, val)
+              exeCons({logProps: null, cons, val})
             }
           }
         } else {
@@ -217,8 +236,15 @@ export default function executor(opts, {observable}) {
     }
 
     cons.forEach(async (inReg: any) => {
-      const { comId, pinId, pinType, timerPinInputId } = inReg;
+      const { comId, pinId, pinType, timerPinInputId, frameKey } = inReg;
       const component = Coms[comId]
+
+      if (fromCon) {
+        if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels///TODO
+          return
+        }
+      }
+
       if (debug && inReg.isIgnored) {
         return
       }
@@ -227,14 +253,14 @@ export default function executor(opts, {observable}) {
         await _context.debuggerPanel?.wait(inReg, () => {
           if (logProps) {
             logProps[1].conId = inReg.id
-            _logOutputVal(...logProps, true)
+            logProps && _logOutputVal(...logProps, true)
           }
         })
-      } else { 
-        _logOutputVal(...logProps)
+      } else {
+        logProps && _logOutputVal(...logProps)
       }
       // 这里需要劫持所有东西，所以说多输入这里也需要劫持
-      function next({ pinId, value }: any) {
+      function next({ pinId, value, curScope }: any) {
         let nextScope = curScope
         const finalInReg = pinId ? {...inReg, pinId} : inReg
 
@@ -246,61 +272,51 @@ export default function executor(opts, {observable}) {
           if (frameKey === ROOT_FRAME_KEY) {//root作用域
             exeCon(finalInReg, {}, value)
           } else {
-            const ary = frameKey.split('-')
-            if (ary.length >= 2) {
-              const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
-              if (!slotProps.curScope) {//存在尚未执行的作用域插槽的情况，例如页面卡片中变量的赋值、驱动表单容器中同一变量的监听
-                slotProps.pushTodo((curScope) => {
-                  if (curScope !== nextScope) {
-                    nextScope = curScope
-                  }
-
-                  exeCon(finalInReg, nextScope, value)
-                })
-              } else {
-                if (slotProps.curScope !== nextScope) {
-                  nextScope = slotProps.curScope
-                }
-
-                exeCon(finalInReg, nextScope, value)
-              }
-            }
+            // const ary = frameKey.split('-')
+            // if (ary.length >= 2) {
+            //   const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
+            //   if (!slotProps.curScope) {
+            //     slotProps.pushTodo((curScope) => {
+            //       exeCon(finalInReg, curScope, value)
+            //     })
+            //   } else {
+            //     exeCon(finalInReg, slotProps.curScope, value)
+            //   }
+            // }
+            exeCon(finalInReg, curScope, value)
           }
         } else {
-          const ary = finalInReg.frameKey.split('-')
+          // const ary = finalInReg.frameKey.split('-')
+          // if (ary.length >= 2 && !nextScope) {
+          //   const slotProps = getSlotProps(ary[0], ary[1], null, false)
+          //   if (slotProps?.type === 'scope' && !slotProps?.curScope) {
+          //     slotProps.pushTodo((curScope) => {
+          //       if (curScope !== nextScope) {
+          //         nextScope = curScope
+          //       }
 
-          if (ary.length >= 2 && !nextScope) {
-            const slotProps = getSlotProps(ary[0], ary[1], null, false)
-            if (slotProps?.type === 'scope' && !slotProps?.curScope) {
-              slotProps.pushTodo((curScope) => {
-                if (curScope !== nextScope) {
-                  nextScope = curScope
-                }
-
-                exeCon(finalInReg, nextScope, value)
-              })
-              return
-            }
-          }
+          //       exeCon(finalInReg, nextScope, value)
+          //     })
+          //     return
+          //   }
+          // }
           exeCon(finalInReg, nextScope, value)
         }
       }
-
-      // 这里需要等待多输入和timer
-      if (pinType === "timer") {
-        // 这里不存在多输入，直接执行即可
-        next({value: val})
-      } else {
-        const { isReady, isMultipleInput, pinId: realPinId, value: realValue, cb } = transformInputId({ pinId, value: val, component })
+      function callNext({ pinId, value, component, curScope }: any) {
+        const { isReady, isMultipleInput, pinId: realPinId, value: realValue, cb } = transformInputId({ pinId, value, component, curScope })
 
         if (isReady) {
           const nextProps = {
             pinId: isMultipleInput ? realPinId : null,
-            value: realValue
+            value: realValue,
+            curScope
           }
           // 可以触发
           if (timerPinInputId) {
-            const timerKey = curScope ? timerPinInputId + '-' + curScope.id : timerPinInputId
+            // debugger
+            // const timerKey = curScope ? timerPinInputId + '-' + curScope.id : timerPinInputId
+            const timerKey = timerPinInputId + '-' + frameKey + (curScope?.id ? `-${curScope.id}` : '')
             const timerWaitInfo = _timerPinWait[timerKey]
             if (timerWaitInfo) {
               const { ready, todo } = timerWaitInfo
@@ -343,19 +359,70 @@ export default function executor(opts, {observable}) {
         }
       }
 
-      function transformInputId({ pinId, value, component }: any) {
+      // 这里需要等待多输入和timer
+      if (pinType === "timer") {
+        // 这里不存在多输入，直接执行即可
+        next({value: val, curScope})
+      } else {
+        if (notifyAll) {
+          const frameKey = inReg.frameKey
+          if (frameKey === ROOT_FRAME_KEY || isAutoRun) { // 插槽内对变量的监听在插槽第一次渲染时默认触发一次
+            callNext({ pinId, value: val, component, curScope})
+          } else {
+            const [comId, slotId] = frameKey.split('-')
+
+            if (!_variableRelationship[frameKey]) {
+              const frameToComIdMap: any = _variableRelationship[frameKey] = {}
+              frameToComIdMap[fromCom.id] = {
+                [inReg.id]: inReg,
+              }
+            } else {
+              const frameToComIdMap: any = _variableRelationship[frameKey]
+              const consMap = frameToComIdMap[fromCom.id]
+              if (!consMap) {
+                frameToComIdMap[fromCom.id] = {
+                  [inReg.id]: inReg,
+                }
+              } else {
+                consMap[inReg.id] = inReg
+              }
+            }
+
+            if (fromCom.parentComId) {
+              /** 监听到作用域内变量更新，仅监听当前作用域 */
+              callNext({ pinId, value: val, component, curScope})
+            } else {
+              /** 监听到非作用域变量，更新所有作用域 */
+              const frameProps = _Props[`${comId}-${slotId}`]
+              if (frameProps) {
+                Object.entries(frameProps).forEach(([key, slot]: any) => {
+                  if (key === 'slot') { // slot是兼容老用法，或它不是一个作用域插槽
+                    return
+                  }
+                  callNext({ pinId, value: val, component, curScope: slot.curScope})
+                })
+              }
+            } 
+          }
+        } else {
+          callNext({ pinId, value: val, component, curScope})
+        }
+      }
+
+      function transformInputId({ pinId, value, component, curScope }: any) {
         let finalPinId = pinId;
         let finalValue = value;
         let isReady = true;
         const pidx = pinId.indexOf('.')
+        const valueBarrierKey = comId + `${curScope ? `-${curScope.id}` : ''}`
         if (component && pidx !== -1) {
           // 多输入
           const { inputs } = component
           finalPinId = pinId.substring(0, pidx)
           const paramId = pinId.substring(pidx + 1)
-          let barrier = _valueBarrier[comId]
+          let barrier = _valueBarrier[valueBarrierKey]
           if (!barrier) {
-            barrier = _valueBarrier[comId] = {}
+            barrier = _valueBarrier[valueBarrierKey] = {}
           }
           barrier[paramId] = val
           const regExp = new RegExp(`${finalPinId}.`)
@@ -378,7 +445,7 @@ export default function executor(opts, {observable}) {
           isReady,
           isMultipleInput,
           cb: isMultipleInput ? () => {
-            Reflect.deleteProperty(_valueBarrier, comId)
+            Reflect.deleteProperty(_valueBarrier, valueBarrierKey)
           } : null
         }
       }
@@ -439,13 +506,6 @@ export default function executor(opts, {observable}) {
     if (found) {
       return found
     }
-
-    // if (ioProxy) {
-    //   console.log(comId, scope)
-    // }
-
-    //--------------------------------------------------------
-
 
     const def = com.def
     const model = com.model
@@ -595,13 +655,26 @@ export default function executor(opts, {observable}) {
               return
             }
             const notifyAll = typeof _myScope === 'boolean' && _myScope//变量组件的特殊处理
-            if (com.global && notifyAll && !isCurrent) {
-              scenesOperate?.exeGlobalCom({
-                com,
-                value: val,
-                pinId: name
-              })
-              return
+
+            if (notifyAll) {
+              if (com.parentComId) {
+                const key = `${com.parentComId}-${com.frameId}`
+                if (!_varSlotMap[key]) {
+                  _varSlotMap[key] = {[comId]: true}
+                } else {
+                  _varSlotMap[key][comId] = true
+                }
+              }
+              _var[`${com.id}${scope?.id ? `-${scope.id}` : ''}`] = val
+
+              if (com.global && !isCurrent) {
+                scenesOperate?.exeGlobalCom({
+                  com,
+                  value: val,
+                  pinId: name
+                })
+                return
+              }
             }
 
             const args = arguments
@@ -692,11 +765,11 @@ export default function executor(opts, {observable}) {
 
             cons = cons || Cons[comId + '-' + name]
             if (cons?.length) {
-              if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
-                exeCons(['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, myScope, fromCon)
+              if (args.length >= 3 && typeof isCurrent === 'undefined') {//明确参数的个数，属于 ->in(com)->out
+                exeCons({logProps: ['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, curScope: myScope, fromCon, fromCom: com})
               } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
                 //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
-                exeCons(['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, myScope || scope, fromCon, notifyAll)//检查frameScope
+                exeCons({logProps: ['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, curScope: myScope || scope, fromCon, notifyAll, fromCom: com})
               }
             } else {
               _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
@@ -738,7 +811,7 @@ export default function executor(opts, {observable}) {
           }
           const cons = Cons[comId + '-' + name]
           if (cons) {
-            exeCons(['com', {com, pinHostId: name, val, comDef: def}], cons, val, scope)
+            exeCons({logProps: ['com', {com, pinHostId: name, val, comDef: def}], cons, val, curScope: scope})
           } else {
             _logOutputVal('com', {com, pinHostId: name, val, comDef: def})
           }
@@ -869,7 +942,7 @@ export default function executor(opts, {observable}) {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
       _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
-      const timerKey = scope ? timerPinInputId + '-' + scope.id : timerPinInputId
+      const timerKey = timerPinInputId + '-' + frameKey + (scope?.id ? `-${scope.id}` : '')
       const timerWaitInfo = _timerPinWait[timerKey]
       if (timerWaitInfo) {
         const { todo } = timerWaitInfo
@@ -982,7 +1055,7 @@ export default function executor(opts, {observable}) {
     if (finishPinParentKey) {
       const cons = Cons[_nextConsPinKeyMap[finishPinParentKey]]
       if (cons && !PinRels[`${comId}-${pinId}`]) {
-        exeCons(null, cons, void 0)
+        exeCons({logProps: null, cons, val: void 0})
       }
     }
   }
@@ -1010,12 +1083,28 @@ export default function executor(opts, {observable}) {
   }
 
   function getSlotProps(comId, slotId, scope, notifyAll?) {
-    let key = comId + '-' + slotId + (scope ? `-${scope.id}` : '')
 
-    let rtn = _Props[key]
+    const slotKey = `${comId}-${slotId}`
+    let frameProps = _Props[slotKey]
+    if (!frameProps) {
+      frameProps = _Props[slotKey] = {}
+    }
+
+    // let key = comId + '-' + slotId + (scope ? `-${scope.id}` : '')
+
+    let key = scope ? scope.id : "slot"
+
+    // let rtn = _Props[key]
+
+    // if (notifyAll && !rtn) {
+    //   rtn = _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
+    // }
+
+    let rtn = frameProps[key]
 
     if (notifyAll && !rtn) {
-      rtn = _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
+      console.log("不应该再走到这儿了: ", { comId, slotId, scope, notifyAll })
+      // rtn = _Props[Object.keys(_Props).find((propsKey) => propsKey.startsWith(key)) as string]
     }
 
     if (!rtn) {
@@ -1061,7 +1150,7 @@ export default function executor(opts, {observable}) {
             _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
 
             if (cons) {
-              exeCons(['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope || Cur.scope)
+              exeCons({logProps: ['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope: curScope || Cur.scope})
             } else {
               _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
             }
@@ -1081,7 +1170,9 @@ export default function executor(opts, {observable}) {
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
               return
             }
+            // TODO: 
             _frameOutputProxy[key + '-' + name] = fn
+            _frameOutputProxy[slotKey + '-' + name] = fn
             //_outputRegs[name] = fn
           }
         }
@@ -1089,10 +1180,10 @@ export default function executor(opts, {observable}) {
 
       let runExed = {}
 
-      rtn = _Props[key] = {
+      rtn = frameProps[key] = {
         type: slotDef?.type,
-        run(scope) {
-          Cur.scope = scope//更新当前scope
+        run() {
+          // Cur.scope = scope//更新当前scope
 
           // for(let cid in Cons){
           //   const cons = Cons[cid]
@@ -1122,9 +1213,47 @@ export default function executor(opts, {observable}) {
             })
             Cur.todo = void 0//执行完成清空
           }
+
+          if (scope && key !== 'slot') {
+            const frameKey = `${scope.parentComId}-${scope.frameId}`
+            const defaultSlotProps = _Props[frameKey]?.slot
+            if (defaultSlotProps) {
+              defaultSlotProps.setCurScope(scope)
+            }
+
+            Promise.resolve().then(() => {
+              const frameKey = `${comId}-${slotId}`;
+              const frameToComIdMap = _variableRelationship[frameKey]
+              if (frameToComIdMap) {
+                Object.entries(frameToComIdMap).forEach(([comId, consMap]) => {
+                  const fromCom = Coms[comId]
+                  if (!fromCom.parentComId) {
+                    const cons = Object.entries(consMap).map(([key, con]) => {
+                      return con
+                    })
+                    if (cons.length) {
+                      // isAutoRun 标识这是默认触发当前作用域内的变量
+                      exeCons({logProps: null, cons, val: _var[comId], curScope: scope, notifyAll: true, fromCom: Coms[comId], isAutoRun: true})
+                    }
+                  }
+                })
+              }
+            })
+          }
         },
         destroy() {
-          Reflect.deleteProperty(_Props, key)
+          if (scope) {
+            const frameKey = `${scope.parentComId}-${scope.frameId}`
+            const slotMap = _varSlotMap[frameKey]
+            if (slotMap) {
+              Object.keys(slotMap).forEach((key) => {
+                Reflect.deleteProperty(_var, `${key}-${scope.id}`)
+              })
+            }
+          }
+
+          // Reflect.deleteProperty(_Props, key)
+          Reflect.deleteProperty(frameProps, key)
         },
         //_outputRegs,
         _inputs,
@@ -1133,6 +1262,9 @@ export default function executor(opts, {observable}) {
         outputs,
         get curScope() {
           return Cur.scope
+        },
+        setCurScope(scope) {
+          Cur.scope = scope
         },
         get todo() {
           return Cur.todo
@@ -1187,7 +1319,7 @@ export default function executor(opts, {observable}) {
     _slotValue[`${frameId}-${pinId}`] = value
 
     if (cons) {
-      exeCons(['frame', {comId, frameId, pinHostId: pinId, val: value,sceneId}],cons, value, scope)
+      exeCons({logProps: ['frame', {comId, frameId, pinHostId: pinId, val: value,sceneId}], cons, val: value, curScope: scope})
     } else {
       if (log) {
         _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val: value,sceneId})
@@ -1211,29 +1343,16 @@ export default function executor(opts, {observable}) {
   }
 
   const rst = {
-    get(comId: string, _slotId: string, scope: {
-      id: string
-    }, _ioProxy) {
-      let slotId, curScope, ioProxy
-      for (let i = 0; i < arguments.length; i++) {
-        const arg = arguments[i]
-        if (i > 0 && typeof arg === 'string') {
-          slotId = arg
-        }
-
-        if (typeof arg === 'object') {
-          if (arg.inputs || arg.outputs || arg._inputs || arg._outputs) {//ioProxy
-            ioProxy = arg
-          } else if (arg.id || arg.parent) {//scope
-            curScope = arg
-          }
-        }
+    get({comId, slotId, scope, _ioProxy}) {
+      let ioProxy
+      if (_ioProxy && (_ioProxy.inputs || _ioProxy.outputs || _ioProxy._inputs || _ioProxy._outputs)) {
+        ioProxy = _ioProxy
       }
 
       if (slotId) {
-        return getSlotProps(comId, slotId, curScope)
+        return getSlotProps(comId, slotId, scope)
       } else {
-        const rtn = getComProps(comId, curScope)
+        const rtn = getComProps(comId, scope)
         if (ioProxy) {
           return rtn.clone(ioProxy)
         } else {

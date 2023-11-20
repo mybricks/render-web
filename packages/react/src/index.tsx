@@ -23,6 +23,7 @@ import NotificationLess from './Notification/style.lazy.less';
 import DebuggerLess from './Debugger/style.lazy.less';
 import {setLoggerSilent} from '../../core/logger';
 import Notification from './Notification';
+import {compareVersion} from '../../core/utils';
 // @ts-ignore
 import coreLib from '@mybricks/comlib-core';
 
@@ -148,6 +149,35 @@ class Context {
     })
 
     this.comDefs = finalComDefs;
+  }
+
+  getComDef(def: { namespace: string, version: string }) {
+    const { comDefs } = this
+    const rtn = comDefs[def.namespace + '-' + def.version]
+    if (!rtn) {
+      const ary = []
+      for (let ns in comDefs) {
+        if (ns.startsWith(def.namespace + '-')) {
+          ary.push(comDefs[ns])
+        }
+      }
+
+      if (ary && ary.length > 0) {
+        ary.sort((a, b) => {
+          return compareVersion(a.version, b.version)
+        })
+
+        const rtn0 = ary[0]
+        console.warn(`【Mybricks】组件${def.namespace + '@' + def.version}未找到，使用${rtn0.namespace}@${rtn0.version}代替.`)
+
+        return rtn0
+      } else {
+        console.log(comDefs)
+
+        throw new Error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
+      }
+    }
+    return rtn
   }
 
   // 模块相关
