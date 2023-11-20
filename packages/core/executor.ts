@@ -134,7 +134,7 @@ export default function executor(opts, {observable}) {
   }
 
   // logProps, cons, val, curScope, fromCon?, notifyAll?
-  function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom}) {
+  function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom, isAutoRun}) {
     function exeCon(inReg, nextScope, val) {
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
@@ -359,7 +359,7 @@ export default function executor(opts, {observable}) {
       } else {
         if (notifyAll) {
           const frameKey = inReg.frameKey
-          if (frameKey === ROOT_FRAME_KEY) {
+          if (frameKey === ROOT_FRAME_KEY || isAutoRun) { // 插槽内对变量的监听在插槽第一次渲染时默认触发一次
             callNext({ pinId, value: val, component, curScope})
           } else {
             const [comId, slotId] = frameKey.split('-')
@@ -389,6 +389,9 @@ export default function executor(opts, {observable}) {
               const frameProps = _Props[`${comId}-${slotId}`]
               if (frameProps) {
                 Object.entries(frameProps).forEach(([key, slot]: any) => {
+                  if (key === 'slot') { // slot是兼容老用法，或它不是一个作用域插槽
+                    return
+                  }
                   callNext({ pinId, value: val, component, curScope: slot.curScope})
                 })
               }
@@ -755,7 +758,7 @@ export default function executor(opts, {observable}) {
 
             cons = cons || Cons[comId + '-' + name]
             if (cons?.length) {
-              if (args.length >= 3) {//明确参数的个数，属于 ->in(com)->out
+              if (args.length >= 3 && typeof isCurrent === 'undefined') {//明确参数的个数，属于 ->in(com)->out
                 exeCons({logProps: ['com', {com, pinHostId: name, val, fromCon, notifyAll, comDef}], cons, val, curScope: myScope, fromCon, fromCom: com})
               } else {//组件直接调用output（例如JS计算），严格来讲需要通过rels实现，为方便开发者，此处做兼容处理
                 //myScope为空而scope不为空的情况，例如在某作用域插槽中的JS计算组件
@@ -1222,7 +1225,8 @@ export default function executor(opts, {observable}) {
                       return con
                     })
                     if (cons.length) {
-                      exeCons({logProps: null, cons, val: _var[comId], curScope: scope, notifyAll: true, fromCom: Coms[comId]})
+                      // isAutoRun 标识这是默认触发当前作用域内的变量
+                      exeCons({logProps: null, cons, val: _var[comId], curScope: scope, notifyAll: true, fromCom: Coms[comId], isAutoRun: true})
                     }
                   }
                 })
