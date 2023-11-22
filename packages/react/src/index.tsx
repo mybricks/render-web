@@ -77,7 +77,7 @@ class Context {
     Notification.init(env.showErrorNotification);
 
     if (debug && typeof onError === 'function') {
-      return this.onError = onError
+      this.onError = onError
     } else {
       this.onError = (e: any) => {
         console.error(e);
