@@ -286,21 +286,27 @@ export default function executor(opts, {observable}) {
             exeCon(finalInReg, curScope, value)
           }
         } else {
-          // const ary = finalInReg.frameKey.split('-')
-          // if (ary.length >= 2 && !nextScope) {
-          //   const slotProps = getSlotProps(ary[0], ary[1], null, false)
-          //   if (slotProps?.type === 'scope' && !slotProps?.curScope) {
-          //     slotProps.pushTodo((curScope) => {
-          //       if (curScope !== nextScope) {
-          //         nextScope = curScope
-          //       }
+          const ary = finalInReg.frameKey.split('-')
+          if (ary.length >= 2 && !nextScope) {
+            // 如果是作用域内却没有scope信息
+            const slotProps = getSlotProps(ary[0], ary[1], null, false)
 
-          //       exeCon(finalInReg, nextScope, value)
-          //     })
-          //     return
-          //   }
-          // }
-          exeCon(finalInReg, nextScope, value)
+            if (slotProps?.type === 'scope') {
+              // 作用域插槽
+              if (!slotProps.curScope) {
+                // 还没完成渲染
+                slotProps.pushTodo((curScope) => {
+                  exeCon(finalInReg, curScope, value)
+                })
+              } else {
+                exeCon(finalInReg, slotProps.curScope, value)
+              }
+            } else {
+              exeCon(finalInReg, nextScope, value)
+            }
+          } else {
+            exeCon(finalInReg, nextScope, value)
+          }
         }
       }
       function callNext({ pinId, value, component, curScope }: any) {
@@ -473,7 +479,8 @@ export default function executor(opts, {observable}) {
     let curScope = scope
 
     if (!curScope && com.parentComId && com.frameId) {
-      curScope = _Props[`${com.parentComId}-${com.frameId}`]?.curScope
+      // curScope = _Props[`${com.parentComId}-${com.frameId}`]?.curScope
+      curScope = _Props[`${com.parentComId}-${com.frameId}`]?.slot?.curScope
     }
 
     while (curScope) {
@@ -1219,6 +1226,15 @@ export default function executor(opts, {observable}) {
             const defaultSlotProps = _Props[frameKey]?.slot
             if (defaultSlotProps) {
               defaultSlotProps.setCurScope(scope)
+              const todo = defaultSlotProps.todo
+              if (todo) {
+                defaultSlotProps.clearTodo(void 0)
+                todo.forEach(fn => {
+                  Promise.resolve().then(() => {
+                    fn(scope)
+                  })
+                })
+              }
             }
 
             Promise.resolve().then(() => {
@@ -1268,6 +1284,9 @@ export default function executor(opts, {observable}) {
         },
         get todo() {
           return Cur.todo
+        },
+        clearTodo() {
+          Cur.todo = void 0;
         },
         pushTodo(fn) {
           if (!Cur.todo) {
