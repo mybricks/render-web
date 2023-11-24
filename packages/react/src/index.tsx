@@ -200,10 +200,67 @@ export function render(json: any, opts: T_RenderOptions = {}) {
       opts.env._context = new Context(opts)
     }
     if (Array.isArray(json.scenes)) {
+      transformJSON(json);
       return <MultiScene json={json} opts={opts as any}/>
     }
     return (
       <Main json={json} opts={opts as any} root={json.type === 'module' ? false : true}/>
     )
+  }
+}
+
+/** 
+ * 提前处理全局变量、全局FX相关数据，渲染时不再需要关心，
+ * 这段逻辑有没有可能再生成tojson的时候调一下，渲染时能够更轻
+ * 向外暴露 transformJSON 函数？
+ */
+function transformJSON (json: any) {
+  const { global, modules, scenes } = json
+
+  if (global) {
+    const { comsReg, consReg, pinRels, fxFrames } = global
+    if (comsReg) {
+      Object.keys(comsReg).forEach((key) => {
+        comsReg[key].global = true
+      })
+    }
+    if (Array.isArray(fxFrames)) {
+      fxFrames.forEach((fxFrame) => {
+        if (comsReg) {
+          Object.assign(fxFrame.coms, comsReg)
+        }
+        if (consReg) {
+          Object.assign(fxFrame.cons, consReg)
+        }
+        if (pinRels) {
+          Object.assign(fxFrame.pinRels, pinRels)
+        }
+      })
+    }
+    if (modules) {
+      Object.entries(modules).forEach(([key, module]: any) => {
+        const { json } = module
+        if (comsReg) {
+          Object.assign(json.coms, comsReg)
+        }
+        if (consReg) {
+          Object.assign(json.cons, consReg)
+        }
+        if (pinRels) {
+          Object.assign(json.pinRels, pinRels)
+        }
+      })
+    }
+    scenes.forEach((scene: any) => {
+      if (comsReg) {
+        Object.assign(scene.coms, comsReg)
+      }
+      if (consReg) {
+        Object.assign(scene.cons, consReg)
+      }
+      if (pinRels) {
+        Object.assign(scene.pinRels, pinRels)
+      }
+    })
   }
 }

@@ -1,8 +1,7 @@
 import React, {
   useMemo,
   useState,
-  useCallback,
-  useEffect
+  useCallback
 } from 'react'
 
 import Main from './Main'
@@ -51,30 +50,7 @@ export default function MultiScene ({json, opts}) {
       }
     }
     opts.env.getModuleJSON = (moduleId: string) => {
-      const moduleJson = modules?.[moduleId]?.json
-      if (!moduleJson) {
-        return moduleJson
-      }
-      const { global } = json
-      let coms = {}
-      let cons = {}
-      let pinRels = {}
-
-      if (global) {
-        coms = global.comsReg
-        cons = global.consReg
-        pinRels = global.pinRels
-
-        Object.keys(coms).forEach((key) => {
-          coms[key].global = true
-        })
-      }
-
-      Object.assign(moduleJson.coms, coms)
-      Object.assign(moduleJson.cons, cons)
-      Object.assign(moduleJson.pinRels, pinRels)
-
-      return moduleJson
+      return modules?.[moduleId]?.json
     }
 
     return {
@@ -112,34 +88,19 @@ export default function MultiScene ({json, opts}) {
     }
   }, [])
 
-  const { fxFramesJsx, fxToJsonMap, currentFxFrameIdsMap } = useMemo<any>(() => {
-    const fxFramesJsx: any = []
-    const fxToJsonMap = {}
+  const { fxToJsonMap, currentFxFrameIdsMap } = useMemo<any>(() => {
+    const fxToJsonMap: any = {}
     const { global } = json
     if (global) {
       const { fxFrames } = global
       if (Array.isArray(fxFrames)) {
         fxFrames.forEach((fxFrame) => {
-          const { id } = fxFrame
-          let coms = global.comsReg
-          let cons = global.consReg
-          let pinRels = global.pinRels
-
-          Object.keys(coms).forEach((key) => {
-            coms[key].global = true
-          })
-
-          Object.assign(fxFrame.coms, coms)
-          Object.assign(fxFrame.cons, cons)
-          Object.assign(fxFrame.pinRels, pinRels)
-
-          fxToJsonMap[id] = {...fxFrame, rtType: 'js'}
+          fxToJsonMap[fxFrame.id] = fxFrame
         })
       }
     }
 
     return {
-      fxFramesJsx,
       fxToJsonMap,
       currentFxFrameIdsMap: {}
     }
@@ -1096,67 +1057,24 @@ export default function MultiScene ({json, opts}) {
     }
   }, [])
 
-  // const fx = useMemo(() => {
-  //   return fxFramesJsx.map(({ key, json, opts }) => {
-  //     return <Main key={key} json={json} opts={opts}/>
-  //   })
-  // }, [count])
-
   const scenes = useMemo(() => {
     if (!pageScenes.length) {
       return null
     }
-    const { global } = json
-    let coms = {}
-    let cons = {}
-    let pinRels = {}
-
-    if (global) {
-      coms = global.comsReg
-      cons = global.consReg
-      pinRels = global.pinRels
-
-      Object.keys(coms).forEach((key) => {
-        coms[key].global = true
-      })
-    }
-
-    return pageScenes.map((json, index) => {
+    return pageScenes.map((json) => {
       const { id } = json
-      Object.assign(json.coms, coms)
-      Object.assign(json.cons, cons)
-      Object.assign(json.pinRels, pinRels)
       const scene = scenesMap[id]
       
-      // @ts-ignore
       return scene.show && <Scene key={id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}}/>
     })
   }, [count, pageScenes])
 
   const popups = useMemo(() => {
     if (popupIds.length) {
-      const { global } = json
-      let coms = {}
-      let cons = {}
-      let pinRels = {}
-  
-      if (global) {
-        coms = global.comsReg
-        cons = global.consReg
-        pinRels = global.pinRels
-  
-        Object.keys(coms).forEach((key) => {
-          coms[key].global = true
-        })
-      }
-
       return popupIds.map((sceneId) => {
         const scene = scenesMap[sceneId]
         const json = scene.json
         const { id } = json
-        Object.assign(json.coms, coms)
-        Object.assign(json.cons, cons)
-        Object.assign(json.pinRels, pinRels)
         
         return <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} style={{position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'}}/>
       })
@@ -1167,7 +1085,6 @@ export default function MultiScene ({json, opts}) {
 
   return (
     <>
-      {/* {fx} */}
       {scenes}
       {popups}
     </>

@@ -169,10 +169,6 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     }
   }, [])
 
-  if (json.rtType === 'js') {
-    return <></>
-  }
-
   return (
     <ErrorBoundary errorTip={`页面渲染错误`}>
       <RenderSlot
