@@ -11,10 +11,11 @@ export default defineConfig({
     },
     outDir: path.resolve(__dirname, './dist'),
     rollupOptions: {
-      external: ['vue'],
+      external: ['vue', 'react'],
       output: {
         globals: {
-          vue: 'Vue'
+          vue: 'Vue',
+          react: 'React'
         }
       }
     }
