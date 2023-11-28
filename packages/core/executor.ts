@@ -402,10 +402,19 @@ export default function executor(opts, {observable}) {
               const frameProps = _Props[`${comId}-${slotId}`]
               if (frameProps) {
                 Object.entries(frameProps).forEach(([key, slot]: any) => {
-                  if (key === 'slot') { // slot是兼容老用法，或它不是一个作用域插槽
-                    return
+                  if (slot?.type === 'scope') {
+                    // 作用域插槽
+                    if (!slot.curScope) {
+                      // 还没完成渲染
+                      slot.pushTodo((curScope: any) => {
+                        callNext({ pinId, value: val, component, curScope})
+                      })
+                    } else {
+                      callNext({ pinId, value: val, component, curScope: slot.curScope})
+                    }
+                  } else {
+                    callNext({ pinId, value: val, component, curScope: slot.curScope})
                   }
-                  callNext({ pinId, value: val, component, curScope: slot.curScope})
                 })
               }
             } 
@@ -1012,9 +1021,10 @@ export default function executor(opts, {observable}) {
                   if (PinValueProxies) {
                     const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
                     if (pinValueProxy) {
-                      val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, scope)
+                      const frameId = pinValueProxy.frameId
+                      val = getSlotValue(`${frameId === json.id ? ROOT_FRAME_KEY : frameKey}-${pinValueProxy.pinId}`, scope)
                       if (typeof val === 'undefined') {
-                        val = getSlotValue(`${frameKey}-${pinValueProxy.pinId}`, null)
+                        val = getSlotValue(`${frameId === json.id ? ROOT_FRAME_KEY : frameKey}-${pinValueProxy.pinId}`, null)
                       }
                     }
                   }
@@ -1189,7 +1199,12 @@ export default function executor(opts, {observable}) {
 
       rtn = frameProps[key] = {
         type: slotDef?.type,
-        run() {
+        run(newScope) {
+          let scope = Cur.scope
+          if (newScope && scope !== newScope) {
+            Cur.scope = newScope
+            scope = newScope
+          }
           // Cur.scope = scope//更新当前scope
 
           // for(let cid in Cons){
@@ -1222,24 +1237,9 @@ export default function executor(opts, {observable}) {
           }
 
           if (scope && key !== 'slot') {
-            const frameKey = `${scope.parentComId}-${scope.frameId}`
-            const defaultSlotProps = _Props[frameKey]?.slot
-            if (defaultSlotProps) {
-              defaultSlotProps.setCurScope(scope)
-              const todo = defaultSlotProps.todo
-              if (todo) {
-                defaultSlotProps.clearTodo(void 0)
-                todo.forEach(fn => {
-                  Promise.resolve().then(() => {
-                    fn(scope)
-                  })
-                })
-              }
-            }
-
+            const frameKey = `${comId}-${slotId}`;
+            const frameToComIdMap = _variableRelationship[frameKey]
             Promise.resolve().then(() => {
-              const frameKey = `${comId}-${slotId}`;
-              const frameToComIdMap = _variableRelationship[frameKey]
               if (frameToComIdMap) {
                 Object.entries(frameToComIdMap).forEach(([comId, consMap]) => {
                   const fromCom = Coms[comId]
@@ -1284,9 +1284,6 @@ export default function executor(opts, {observable}) {
         },
         get todo() {
           return Cur.todo
-        },
-        clearTodo() {
-          Cur.todo = void 0;
         },
         pushTodo(fn) {
           if (!Cur.todo) {
@@ -1334,7 +1331,6 @@ export default function executor(opts, {observable}) {
     const {frameId, comId, pinId,sceneId} = options
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
     const cons = Cons[idPre + '-' + pinId]
-
     _slotValue[`${frameId}-${pinId}`] = value
 
     if (cons) {

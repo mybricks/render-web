@@ -27,7 +27,7 @@ let count = 1
 
 export default function Main({json, opts, style = {}, className = '', root = true}: { json, opts: T_RenderOptions, style?, className?, root: boolean }) {
   //环境变量，此处可以定义连接器、多语言等实现
-  const { env, comDefs, onError, logger, slot, getComDef } = useMemo(() => {
+  const { env, onError, logger, slot, getComDef } = useMemo(() => {
     if (count === 1) {
       count = 2
       const pxToRem = opts.env?.pxToRem
@@ -49,7 +49,10 @@ export default function Main({json, opts, style = {}, className = '', root = tru
       }
     }
 
-    const { env } = opts
+    const { env, debug } = opts
+    if (debug) {
+      style.minHeight = 800
+    }
     if (!env.runtime) {
       env.runtime = {}
     }
@@ -62,7 +65,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
       }
     }
     if (!('canvasElement' in env)) {
-      env.canvasElement = opts.debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
+      env.canvasElement = debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
     }
 
     if (!opts.env.renderModule) {
@@ -75,7 +78,6 @@ export default function Main({json, opts, style = {}, className = '', root = tru
 
     return {
       env,
-      comDefs: _context.comDefs,
       onError: _context.onError,
       logger: _context.logger,
       getComDef: (def) => _context.getComDef(def),

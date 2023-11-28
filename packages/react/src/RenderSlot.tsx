@@ -172,7 +172,24 @@ function RenderCom({
 
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
-      const props = context.get({comId: id, slotId, scope: null})
+      // const props = context.get({comId: id, slotId, scope: null})
+
+      let currentScope;
+
+      // const slot = slots[slotId]
+
+      // if (slot?.type === 'scope') {
+        if (scope) {
+          currentScope = {
+            id: scope.id + '-' + scope.frameId,
+            frameId: slotId,
+            parentComId: id,
+            parent: scope
+          }
+        }
+      // }
+
+      const props = context.get({comId: id, slotId, scope: currentScope})
 
       // const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
@@ -186,6 +203,8 @@ function RenderCom({
           if (slot) {
             return <SlotRender 
                                key={params?.key}
+                               props={props}
+                               currentScope={currentScope}
                                slotId={slotId}
                                slot={slot}
                                params={params}
@@ -359,6 +378,8 @@ function RenderCom({
 function SlotRender ({
   slotId,
   parentComId,
+  props,
+  currentScope,
   slot,
   params,
   scope,
@@ -372,41 +393,41 @@ function SlotRender ({
   logger
 }) {
   const [ preInputValues, setPreInputValues] = useState(null)
-  const { curScope, props } = useMemo(() => {
-    let curScope
-    if (slot?.type === 'scope') {
-      let nowScopeId = uuid(10, 16)
-  
-      curScope = {
-        id: nowScopeId,
-        frameId: slotId,
-        parentComId
+  const { curScope, curProps } = useMemo(() => {
+
+    let finalScope = currentScope
+    let finalProps= props
+    let hasNewScope = false
+
+    if (!finalScope) {
+      if (slot?.type === 'scope') {
+        finalScope = {
+          id: uuid(10, 16),
+          frameId: slotId,
+          parentComId
+        }
+
+        hasNewScope = true
+
+        // finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
       }
-  
-      if (scope) {
-        curScope.parent = scope
-      }
-    } else {
-      curScope = scope
     }
 
-    const props = context.get({comId: parentComId, slotId, scope: curScope})
   
     if (params) {
       const ivs = params.inputValues
       if (typeof ivs === 'object') {
+        if (hasNewScope) {
+          finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
+        }
         for (let pro in ivs) {
-          props.inputs[pro](ivs[pro], curScope)
+          finalProps.inputs[pro](ivs[pro], finalScope)
         }
       }
     }
-  
-    props.run()
+    finalProps.run(finalScope)
 
-    return {
-      curScope,
-      props
-    }
+    return { curScope: finalScope, curProps: finalProps }
   }, [])
 
   useEffect(() => {
@@ -416,16 +437,16 @@ function SlotRender ({
         setPreInputValues(paramsInputValues)
       } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues) !== JSON.stringify(paramsInputValues))) {
         for (let pro in paramsInputValues) {
-          props.inputs[pro](paramsInputValues[pro], curScope)
+          curProps.inputs[pro](paramsInputValues[pro], curScope)
         }
-        props.run()
+        curProps.run()
       }
     }
   }, [params?.inputValues])
 
   useEffect(() => {
     return () => {
-      props.destroy()
+      curProps.destroy()
     }
   }, [])
 
