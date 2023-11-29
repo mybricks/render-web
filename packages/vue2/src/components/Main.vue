@@ -4,7 +4,7 @@
 
 <script>
 import Vue from 'vue'
-import coreLib from '@mybricks/comlib-core'
+import coreLib from '@mybricks/comlib-core/fn'
 import executor from '../../../core/executor'
 import RenderSlot from './RenderSlot.vue'
 
