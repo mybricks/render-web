@@ -281,7 +281,7 @@ function RenderCom({
     if (props.frameId && props.parentComId) {
       // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope})
       // 取slot就行
-      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope})
+      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent ? scope : null})
       // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent})
       // const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
       if (slotProps) {
