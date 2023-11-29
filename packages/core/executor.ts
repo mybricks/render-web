@@ -373,7 +373,7 @@ export default function executor(opts, {observable}) {
         if (notifyAll) {
           const frameKey = inReg.frameKey
           if (frameKey === ROOT_FRAME_KEY || isAutoRun) { // 插槽内对变量的监听在插槽第一次渲染时默认触发一次
-            callNext({ pinId, value: val, component, curScope})
+            callNext({ pinId, value: val, component, curScope: null})
           } else {
             const [comId, slotId] = frameKey.split('-')
 
