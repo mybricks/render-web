@@ -281,7 +281,8 @@ function RenderCom({
     if (props.frameId && props.parentComId) {
       // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope})
       // 取slot就行
-      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent ? scope : null})
+      let finalScope = scope?.parentScope || scope
+      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: finalScope?.parent ? finalScope : null})
       // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent})
       // const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
       if (slotProps) {
@@ -394,9 +395,8 @@ function SlotRender ({
 }) {
   const [ preInputValues, setPreInputValues] = useState(null)
   const { curScope, curProps } = useMemo(() => {
-
     let finalScope = currentScope
-    let finalProps= props
+    let finalProps = props
     let hasNewScope = false
 
     if (!finalScope) {
@@ -418,6 +418,9 @@ function SlotRender ({
       const ivs = params.inputValues
       if (typeof ivs === 'object') {
         if (hasNewScope) {
+          finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
+        } else {
+          finalScope = {...finalScope, id: finalScope.id + '-' + uuid(10, 16), parentScope: finalScope}
           finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
         }
         for (let pro in ivs) {
