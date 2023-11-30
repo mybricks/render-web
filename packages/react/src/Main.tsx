@@ -51,7 +51,9 @@ export default function Main({json, opts, style = {}, className = '', root = tru
 
     const { env, debug } = opts
     if (debug) {
-      style.minHeight = 800
+      if (json.type !== "module") {
+        style.minHeight = 800
+      }
     }
     if (!env.runtime) {
       env.runtime = {}
