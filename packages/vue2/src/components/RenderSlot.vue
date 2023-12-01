@@ -84,9 +84,9 @@ export default {
         const comDef = getComDef(def)
 
         if (comDef) {
-          const props = context.get(id, scope, {
+          const props = context.get({comId: id, scope, _ioProxy: {
             inputs, outputs, _inputs, _outputs
-          })
+          }})
 
           const comKey = (scope ? scope.id : '') + idx//考虑到scope变化的情况，驱动组件强制刷新
 

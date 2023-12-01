@@ -113,7 +113,7 @@ export default {
 
     if (com.slots) {
       Object.entries(com.slots).forEach(([slotId, slot]) => {
-        const props = context.get(id, slotId, scope)
+        const props = context.get({comId: id, slotId, scope})
 
         propsSlots[slotId] = {
           get size() {
@@ -135,91 +135,17 @@ export default {
           scope,
           getComDef,
           context
-          // __rxui_child__
         })
       })
     }
 
-    // if (Array.isArray(comDef.slots)) {
-    //   comDef.slots.forEach(({ id: slotId }) => {
-    //     const slot = slots[slotId]
-
-    //     if (slot) {
-    //       const props = context.get(id, slotId, scope)
-    //       templateSlots.push({
-    //         slotId,
-    //         propsSlot: slot,
-    //         // params 入参数 { inputValues }
-    //         props,
-    //         propsStyle: style,
-    //         onError,
-    //         // createPortal
-    //         logger,
-    //         env,
-    //         _env,
-    //         scope,
-    //         getComDef,
-    //         context
-    //         // __rxui_child__
-    //       })
-    //     }
-       
-    //   })
-    // }
-
     this.templateSlots = templateSlots
-
-    // TODO: Slot
-    // const slotsProxy = new Proxy(slots, {
-    //   get(target, slotId) {
-    //     if (Object.prototype.toString.call(slotId) === '[object Symbol]') {
-    //       return () => {}
-    //     }
-    //     const props = context.get(id, slotId, scope)
-    //     const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
-
-    //     if (!props) {
-    //       throw new Error(`${errorStringPrefix} 获取context失败.`)
-    //     }
-    //     临时注释
-
-    //     return {
-    //       render(params) {
-    //         const slot = slots[slotId]
-    //         if (slot) {
-    //           return <SlotRender slotId={slotId}
-    //             slot={slot}
-    //             props={props}
-    //             params={params}
-    //             style={style}
-    //             onError={onError}
-    //             createPortal={createPortal}
-    //             logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
-    //             __rxui_child__={__rxui_child__}/>
-    //         } else {
-    //           return (
-    //             <div className={css.error}>
-    //               {errorStringPrefix} 未找到.
-    //             </div>
-    //           )
-    //         }
-    //       },
-    //       get size() {
-    //         return !!slots[slotId]?.comAry?.length
-    //       },
-    //       _inputs: props._inputs,
-    //       inputs: props.inputs,
-    //       outputs: props.outputs
-    //     }
-    //     return {}
-    //   }
-    // })
 
     // TODO: Slot
     let parentSlot
 
     if (props.frameId && props.parentComId) {
-      const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
+      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent})
       if (slotProps) {
         parentSlot = {
           get _inputs() {
@@ -478,50 +404,6 @@ export default {
       return marginStyle
     },
     getSlotProps() {
-      // const slotsProxy = new Proxy(slots, {
-      //   get(target, slotId) {
-      //     if (Object.prototype.toString.call(slotId) === '[object Symbol]') {
-      //       return () => {}
-      //     }
-      //     const props = context.get(id, slotId, scope)
-      //     const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
-
-      //     if (!props) {
-      //       throw new Error(`${errorStringPrefix} 获取context失败.`)
-      //     }
-      //     临时注释
-
-      //     return {
-      //       render(params) {
-      //         const slot = slots[slotId]
-      //         if (slot) {
-      //           return <SlotRender slotId={slotId}
-      //             slot={slot}
-      //             props={props}
-      //             params={params}
-      //             style={style}
-      //             onError={onError}
-      //             createPortal={createPortal}
-      //             logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}
-      //             __rxui_child__={__rxui_child__}/>
-      //         } else {
-      //           return (
-      //             <div className={css.error}>
-      //               {errorStringPrefix} 未找到.
-      //             </div>
-      //           )
-      //         }
-      //       },
-      //       get size() {
-      //         return !!slots[slotId]?.comAry?.length
-      //       },
-      //       _inputs: props._inputs,
-      //       inputs: props.inputs,
-      //       outputs: props.outputs
-      //     }
-      //     return {}
-      //   }
-      // })
     }
   }
 }

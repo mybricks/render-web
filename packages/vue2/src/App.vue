@@ -3,6 +3,7 @@
 </template>
 <script>
 import Render from "./components/Render.vue"
+console.log(9988)
 
 export default {
   components: {

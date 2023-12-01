@@ -213,7 +213,7 @@ export default {
             },
             getGlobalComProps(comId) {
               // 从主场景获取真实数据
-              return scenesMap[json.scenes[0].id]._refs.get(comId)
+              return scenesMap[json.scenes[0].id]._refs.get({comId})
             },
             exeGlobalCom({ com, value, pinId }) {
               const globalComId = com.id
@@ -221,7 +221,7 @@ export default {
               Object.keys(scenesMap).forEach((key) => {
                 const scenes = scenesMap[key]
                 if (scenes.show && scenes._refs) {
-                  const globalCom = scenes._refs.get(globalComId)
+                  const globalCom = scenes._refs.get({comId: globalComId})
                   if (globalCom) {
                     globalCom.outputs[pinId](value, true, null, true)
                   }
@@ -229,7 +229,7 @@ export default {
               })
               const refsMap = opts.env._context.getRefsMap()
               Object.entries(refsMap).forEach(([id, refs]) => {
-                const globalCom = refs.get(globalComId)
+                const globalCom = refs.get({comId: globalComId})
                 if (globalCom) {
                   globalCom.outputs[pinId](value, true, null, true)
                 }
@@ -563,7 +563,7 @@ export default {
         },
         getGlobalComProps(comId) {
           // 从主场景获取真实数据
-          return scenesMap[json.scenes[0].id]._refs.get(comId)
+          return scenesMap[json.scenes[0].id]._refs.get({comId})
         },
         exeGlobalCom({ com, value, pinId }) {
           const globalComId = com.id
@@ -571,7 +571,7 @@ export default {
           Object.keys(scenesMap).forEach((key) => {
             const scenes = scenesMap[key]
             if (scenes.show && scenes._refs) {
-              const globalCom = scenes._refs.get(globalComId)
+              const globalCom = scenes._refs.get({comId: globalComId})
               if (globalCom) {
                 globalCom.outputs[pinId](value, true, null, true)
               }
@@ -579,7 +579,7 @@ export default {
           })
           const refsMap = opts.env._context.getRefsMap()
           Object.entries(refsMap).forEach(([id, refs]) => {
-            const globalCom = refs.get(globalComId)
+            const globalCom = refs.get({comId: globalComId})
             if (globalCom) {
               globalCom.outputs[pinId](value, true, null, true)
             }
@@ -760,7 +760,7 @@ export default {
           }
 
           Object.entries(that.globalVarMap).forEach(([ key, value ]) => {
-            const globalCom = scenes._refs.get(key)
+            const globalCom = scenes._refs.get({comId: key})
             if (globalCom) {
               globalCom.outputs['changed'](value, true, null, true)
             }
@@ -790,7 +790,7 @@ export default {
       }
     },
     _notifyBindings(_refs, comId, bindings, value) {
-      const com = _refs.get(comId)
+      const com = _refs.get({comId})
       if (com) {
         if (Array.isArray(bindings)) {
           bindings.forEach((binding) => {
