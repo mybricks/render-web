@@ -10,6 +10,7 @@
 
 <script>
 import SlotRender from './SlotRender.vue'
+import Module from './Module.vue'
 import { pxToVw, pxToRem, convertCamelToHyphen, isNumber } from '../../../core/utils'
 
 export default {
@@ -205,7 +206,12 @@ export default {
       }
     }
 
-    this.component = comDef.runtime
+    if (def.namespace === "mybricks.core-comlib.module") {
+      // 模块使用内置的
+      this.component = Module
+    } else {
+      this.component = comDef.runtime
+    }
 
     this.comDef = comDef
 

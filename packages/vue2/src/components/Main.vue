@@ -54,15 +54,16 @@ export default {
 
     this.comDefs = comDefs
 
-    if (!opts.env.renderCom) {
-      opts.env.renderCom = (json, options) => {
-        return render(json, { ...options, env })
-      }
-    }
+    // if (!opts.env.renderCom) {
+    //   opts.env.renderCom = (json, options) => {
+    //     return render(json, { ...options, env })
+    //   }
+    // }
 
     if (!opts.env.renderModule) {
       opts.env.renderModule = (json, options) => {
-        return render(json, { ...options, env })
+        // TODO：这里实现和react不一致
+        return { json, opts: { ...options, env: opts.env }}
       }
     }
 
