@@ -174,7 +174,8 @@ class Context {
       } else {
         console.log(comDefs)
 
-        throw new Error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
+        // throw new Error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
+        return null
       }
     }
     return rtn

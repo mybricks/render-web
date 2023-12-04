@@ -56,24 +56,36 @@ export default function RenderSlot({
         inputs, outputs, _inputs, _outputs
       }})
 
-      const comKey = (scope ? scope.id : '') + idx//考虑到scope变化的情况，驱动组件强制刷新
-      itemAry.push({
-        id,
-        jsx: <RenderCom key={comKey} com={com}
-                        getComDef={getComDef}
-                        context={context}
-                        scope={scope}
-                        props={props}
-                        env={env}
-                        _env={_env}
-                        template={template}
-                        onError={onError}
-                        logger={logger}
-                        createPortal={createPortal}/>,
-        name,
-        inputs: props.inputsCallable,
-        style: props.style
-      })
+      if (props) {
+        const comKey = (scope ? scope.id : '') + idx//考虑到scope变化的情况，驱动组件强制刷新
+        itemAry.push({
+          id,
+          jsx: <RenderCom key={comKey} com={com}
+                          getComDef={getComDef}
+                          context={context}
+                          scope={scope}
+                          props={props}
+                          env={env}
+                          _env={_env}
+                          template={template}
+                          onError={onError}
+                          logger={logger}
+                          createPortal={createPortal}/>,
+          name,
+          inputs: props.inputsCallable,
+          style: props.style
+        })
+      } else {
+        const jsx = (
+          <div className={css.error}>
+            组件 (namespace = {def.namespace} - id = {id}）未找到.
+          </div>
+        )
+  
+        itemAry.push({
+          id, jsx, name
+        })
+      }
     } else {
       const jsx = (
         <div className={css.error}>
