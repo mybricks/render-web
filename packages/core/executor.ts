@@ -82,6 +82,12 @@ export default function executor(opts, {observable}) {
   /** 变量和作用域的关系 */
   const _varSlotMap = {}
 
+  /** 死循环检测 */
+  const infiniteLoopMap: {[key: string]: {
+    count: number
+    time: number
+  }} = {}
+
   function _logOutputVal(type: 'com' | 'frame',
                          content:
                            {
@@ -136,6 +142,33 @@ export default function executor(opts, {observable}) {
   // logProps, cons, val, curScope, fromCon?, notifyAll?
   function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom, isAutoRun}) {
     function exeCon(inReg, nextScope, val) {
+      if (debug) {
+        const { id } = inReg
+        const info = infiniteLoopMap[id]
+        if (!info) {
+          infiniteLoopMap[id] = {
+            count: 1,
+            time: new Date().getTime()
+          }
+        } else {
+          const { count, time } = info
+          if (count < 20) {
+            info.count = count + 1
+          } else {
+            // 用当前时间和首次时间做比较
+            const currentTime = new Date().getTime()
+            if ((currentTime - time) <= 1 * 1000) {
+              console.log("说明死循环了", id)
+              debugger
+              info.count = 0
+              info.time = currentTime
+              
+              return
+            }
+          }
+        }
+      }
+      
       const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
       if (proxyDesc) {
         _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
