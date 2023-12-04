@@ -453,26 +453,30 @@ function SlotRender ({
     }
   }, [])
 
-  return (
-    <RenderSlot
-      scope={curScope}
-      env={env}
-      createPortal={createPortal}
-      _env={_env}
-      slot={slot}
-      params={params}
-      wrapper={params?.wrap}
-      template={params?.itemWrap}
-      getComDef={getComDef}
-      context={context}
-      inputs={params?.inputs}
-      outputs={params?.outputs}
-      _inputs={params?._inputs}
-      _outputs={params?._outputs}
-      onError={onError}
-      logger={logger}
-    />
-  )
+  const render = useMemo(() => {
+    return (
+      <RenderSlot
+        scope={curScope}
+        env={env}
+        createPortal={createPortal}
+        _env={_env}
+        slot={slot}
+        params={params}
+        wrapper={params?.wrap}
+        template={params?.itemWrap}
+        getComDef={getComDef}
+        context={context}
+        inputs={params?.inputs}
+        outputs={params?.outputs}
+        _inputs={params?._inputs}
+        _outputs={params?._outputs}
+        onError={onError}
+        logger={logger}
+      />
+    )
+  }, [])
+
+  return render
 }
 
 //-----------------------------------------------------------------------
