@@ -262,13 +262,18 @@ export default function executor(opts, {observable}) {
         return
       }
       if (debug && JsonType !== 'module' && _context.debuggerPanel?.hasBreakpoint(inReg)) {
-        
+        let hasLog = true
         await _context.debuggerPanel?.wait(inReg, () => {
+          hasLog = false
           if (logProps) {
             logProps[1].conId = inReg.id
             logProps && _logOutputVal(...logProps, true)
           }
         })
+        if (hasLog && logProps) {
+          logProps[1].conId = inReg.id
+          logProps && _logOutputVal(...logProps)
+        }
       } else {
         logProps && _logOutputVal(...logProps)
       }
