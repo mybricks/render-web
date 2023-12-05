@@ -235,6 +235,19 @@ export default function executor(opts, {observable}) {
       }
     }
 
+    if (debug && JsonType !== 'module') {
+      // 开启断点的连线先执行
+      cons.sort((a: any, b: any) => {
+        if (a.isBreakpoint && !b.isBreakpoint) {
+          return -1
+        } else if (!a.isBreakpoint && b.isBreakpoint) {
+          return 1
+        } else {
+          return 0
+        }
+      })
+    }
+
     cons.forEach(async (inReg: any) => {
       const { comId, pinId, pinType, timerPinInputId, frameKey } = inReg;
       const component = Coms[comId]
