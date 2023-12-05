@@ -447,7 +447,7 @@ export default function executor(opts, {observable}) {
         let finalValue = value;
         let isReady = true;
         const pidx = pinId.indexOf('.')
-        const valueBarrierKey = comId + `${curScope ? `-${curScope.id}` : ''}`
+        const valueBarrierKey = comId + `${curScope?.id ? `-${curScope.id}` : ''}`
         if (component && pidx !== -1) {
           // 多输入
           const { inputs } = component
