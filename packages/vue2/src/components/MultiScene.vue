@@ -736,8 +736,8 @@ export default {
     
             scenes.todo = []
           } else if (!disableAutoRun) {
-            scenes.disableAutoRun = true
             Promise.resolve().then(() => {
+              scenes.disableAutoRun = true
               scenes.json.inputs?.forEach?.((input) => {
                 const { id, mockData } = input
                 let value = void 0

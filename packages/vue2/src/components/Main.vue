@@ -123,7 +123,7 @@ export default {
           })
         }
       }
-      refs.run()
+      this.refs.run()
     }
   },
   computed: {
