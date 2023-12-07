@@ -216,10 +216,7 @@ class Context {
 
         return rtn0
       } else {
-        console.log(comDefs)
         console.error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
-
-        // throw new Error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
         return null
       }
     }
