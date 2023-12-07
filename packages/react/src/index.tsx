@@ -63,6 +63,50 @@ class Context {
       opts.debugLogger = log
     }
 
+    // px转rem响应式相关
+    const pxToRem = env?.pxToRem
+    if (pxToRem) {
+      const { enableAdaptive = false, landscapeWidth = 1440 } = pxToRem
+      const rootDom = document.documentElement
+      if (enableAdaptive) {
+        const calculateFontSize = () => {
+          rootDom.style.fontSize = (rootDom.clientWidth / (landscapeWidth / 12)) + 'px'
+        }
+        calculateFontSize()
+        window.addEventListener('resize', calculateFontSize)
+      } else {
+        rootDom.style.fontSize = '12px';
+      }
+    } else {
+      // rootDom.style.fontSize = '12px';
+    }
+
+    /** 一些默认值 */
+    // 运行时
+    if (!env.runtime) {
+      env.runtime = {}
+    }
+    // 国际化，是否可以去除？？
+    if (!env.i18n) {
+      env.i18n = (text: unknown) => text
+    }
+    // 渲染模块
+    if (!opts.env.renderModule) {
+      opts.env.renderModule = (json: any, options: any) => {
+        return render(json, { ...options, env })
+      }
+    }
+    // 用于判断是mobile或pc，组件响应式
+    if (!env.canvas) {
+      env.canvas = {
+        type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
+      }
+    }
+    // 用于调试时弹窗类挂在
+    if (!('canvasElement' in env)) {
+      env.canvasElement = debug ? (env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
+    }
+
     this.initOther()
     this.initCss()
     this.initComdefs()

@@ -23,56 +23,13 @@ import ErrorBoundary from './ErrorBoundary';
 import {observable as defaultObservable} from './observable';
 import {T_RenderOptions} from "./types";
 
-let count = 1
-
 export default function Main({json, opts, style = {}, className = '', root = true}: { json, opts: T_RenderOptions, style?, className?, root: boolean }) {
   //环境变量，此处可以定义连接器、多语言等实现
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
-    if (count === 1) {
-      count = 2
-      const pxToRem = opts.env?.pxToRem
-
-      if (pxToRem) {
-        const { enableAdaptive = false, landscapeWidth = 1440 } = pxToRem
-        const rootDom = document.documentElement
-        if (enableAdaptive) {
-          function calculateFontSize() {
-            rootDom.style.fontSize = (rootDom.clientWidth / (landscapeWidth / 12)) + 'px'
-          }
-          calculateFontSize()
-          window.addEventListener('resize', calculateFontSize)
-        } else {
-          rootDom.style.fontSize = '12px';
-        }
-      } else {
-        // rootDom.style.fontSize = '12px';
-      }
-    }
-
     const { env, debug } = opts
     if (debug) {
       if (json.type !== "module") {
         style.minHeight = 800
-      }
-    }
-    if (!env.runtime) {
-      env.runtime = {}
-    }
-    if (!env.i18n) {
-      env.i18n = (text) => text
-    }
-    if (!env.canvas) {
-      env.canvas = {
-        type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc'
-      }
-    }
-    if (!('canvasElement' in env)) {
-      env.canvasElement = debug ? (opts.env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
-    }
-
-    if (!opts.env.renderModule) {
-      opts.env.renderModule = (json, options) => {
-        return render(json, { ...options, env })
       }
     }
 
