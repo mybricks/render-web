@@ -196,6 +196,7 @@ export default function MultiScene ({json, opts}) {
               }
             } else {
               scenes.show = false
+              scenes._refs = null
               if (scenes.type === 'popup') {
                 setPopupIds((popupIds) => {
                   return popupIds.filter((id) => id !== scenes.json.id)
