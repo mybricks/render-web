@@ -78,23 +78,23 @@ export default function RenderSlot({
       } else {
         const jsx = (
           <div className={css.error}>
-            组件 (namespace = {def.namespace} - id = {id}）未找到.
+            未找到组件({def.namespace}@{def.version} - {id})定义.
           </div>
         )
   
         itemAry.push({
-          id, jsx, name
+          id, jsx, name, style: {}
         })
       }
     } else {
       const jsx = (
         <div className={css.error}>
-          组件 (namespace = {def.namespace}）未找到.
+          未找到组件({def.namespace}@{def.version})定义.
         </div>
       )
 
       itemAry.push({
-        id, jsx, name
+        id, jsx, name, style: {}
       })
     }
 

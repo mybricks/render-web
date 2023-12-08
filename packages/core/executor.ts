@@ -726,6 +726,7 @@ export default function executor(opts, {observable}) {
             }
 
             const comDef = getComDef(def)
+            if (!comDef) return
 
             const evts = model.outputEvents
             let cons
@@ -949,10 +950,12 @@ export default function executor(opts, {observable}) {
         }
       }
       const comDef = getComDef(def)
+      if (!comDef) return
       _logInputVal({com: props, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
     } else if (pinType === 'config') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
+      if (!comDef) return
       //logInputVal(props.title, comDef, pinId, val);
       _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
@@ -975,6 +978,7 @@ export default function executor(opts, {observable}) {
     } else if (pinType === 'timer') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
+      if (!comDef) return
       _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
       const timerKey = timerPinInputId + '-' + frameKey + (scope?.id ? `-${scope.id}` : '')
       const timerWaitInfo = _timerPinWait[timerKey]
@@ -994,6 +998,7 @@ export default function executor(opts, {observable}) {
         if (jsCom) {
           const props = getComProps(comId, scope)
           const comDef = getComDef(def)
+          if (!comDef) return
           if (jsCom.global) {
             const globalProps = scenesOperate?.getGlobalComProps(comId)
             if (globalProps) {
@@ -1058,7 +1063,7 @@ export default function executor(opts, {observable}) {
           return
         }
         const comDef = getComDef(def)
-
+        if (!comDef) return
         _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
 
@@ -1326,8 +1331,8 @@ export default function executor(opts, {observable}) {
         const jsCom = Coms[id]
         if (jsCom) {
           const props = getComProps(id, scope)
-
           const comDef = getComDef(def)
+          if (!comDef) return
 
           log(`${comDef.namespace} 开始执行`)
 
