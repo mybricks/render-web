@@ -32,6 +32,15 @@ console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`,
 class Context {
   private opts: any
   private debuggerPanel: any
+  private perfermance: any = {
+    render: {
+      // @ts-ignore
+      start: window.MYBRICKS_PC_FMP_START,
+      end: null,
+      time: null
+    },
+    callConnectorTimes: []
+  }
   
   comDefs: any
   onError: any
@@ -61,6 +70,41 @@ class Context {
       debuggerPanel.setResume(onResume)
       this.debuggerPanel = debuggerPanel
       opts.debugLogger = log
+    } else {
+      /** 函数劫持 */
+      const callConnector = env.callConnector
+      if (typeof callConnector === 'function') {
+        env.callConnector = (connector: any, params: any, connectorConfig: any) => {
+          const start = new Date().getTime()
+          let end: any = null
+          const connectorTime: any = {
+            basicInformation: {
+              connector, params, connectorConfig
+            },
+            start,
+            type: 'success'
+          }
+          return new Promise((resolve, reject) => {
+            callConnector(connector, params, connectorConfig).then((res: any) => {
+              end = new Date().getTime()
+              resolve(res)
+            }).catch((err: any) => {
+              end = new Date().getTime()
+              connectorTime.type = 'error'
+              reject(err)
+            }).finally(() => {
+              connectorTime.end = end
+              connectorTime.time = end - start
+              this.setPerfermanceCallConnectorTimes(connectorTime)
+            })
+          })
+        }
+      }
+      const that = this
+      // @ts-ignore
+      window["RENDER_WEB_PERFORMANCE"] = {
+        getPerfermance: this.getPerfermance.bind(that)
+      }
     }
 
     // px转rem响应式相关
@@ -232,6 +276,22 @@ class Context {
 
   getRefsMap() {
     return this._refsMap
+  }
+
+  getPerfermance() {
+    return this.perfermance
+  }
+
+  setPerfermanceRender(type: "start" | "end", time: number) {
+    const render = this.perfermance.render
+    render[type] = time
+    if (type === "end") {
+      render["time"] = time - render["start"]
+    }
+  }
+
+  setPerfermanceCallConnectorTimes(connectorTime: any) {
+    this.perfermance.callConnectorTimes.push(connectorTime)
   }
 }
 

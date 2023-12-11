@@ -1,7 +1,8 @@
 import React, {
   useMemo,
   useState,
-  useCallback
+  useCallback,
+  useEffect,
 } from 'react'
 
 import Main from './Main'
@@ -1083,6 +1084,10 @@ export default function MultiScene ({json, opts}) {
    
     return null
   }, [popupIds])
+
+  useEffect(() => {
+    opts.env._context.setPerfermanceRender("end", new Date().getTime())
+  }, [])
 
   return (
     <>
