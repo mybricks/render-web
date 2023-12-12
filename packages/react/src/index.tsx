@@ -35,7 +35,7 @@ class Context {
   private perfermance: any = {
     render: {
       // @ts-ignore
-      start: window.MYBRICKS_PC_FMP_START,
+      start: window.MYBRICKS_PC_FMP_START || new Date().getTime(),
       end: null,
       time: null
     },
@@ -70,41 +70,6 @@ class Context {
       debuggerPanel.setResume(onResume)
       this.debuggerPanel = debuggerPanel
       opts.debugLogger = log
-    } else {
-      /** 函数劫持 */
-      const callConnector = env.callConnector
-      if (typeof callConnector === 'function') {
-        env.callConnector = (connector: any, params: any, connectorConfig: any) => {
-          const start = new Date().getTime()
-          let end: any = null
-          const connectorTime: any = {
-            basicInformation: {
-              connector, params, connectorConfig
-            },
-            start,
-            type: 'success'
-          }
-          return new Promise((resolve, reject) => {
-            callConnector(connector, params, connectorConfig).then((res: any) => {
-              end = new Date().getTime()
-              resolve(res)
-            }).catch((err: any) => {
-              end = new Date().getTime()
-              connectorTime.type = 'error'
-              reject(err)
-            }).finally(() => {
-              connectorTime.end = end
-              connectorTime.time = end - start
-              this.setPerfermanceCallConnectorTimes(connectorTime)
-            })
-          })
-        }
-      }
-      const that = this
-      // @ts-ignore
-      window["RENDER_WEB_PERFORMANCE"] = {
-        getPerfermance: this.getPerfermance.bind(that)
-      }
     }
 
     // px转rem响应式相关
@@ -149,6 +114,43 @@ class Context {
     // 用于调试时弹窗类挂在
     if (!('canvasElement' in env)) {
       env.canvasElement = debug ? (env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
+    }
+
+    /** 函数劫持 */
+    const callConnector = env.callConnector
+    if (typeof callConnector === 'function') {
+      env.callConnector = (connector: any, params: any, connectorConfig: any) => {
+        const start = new Date().getTime()
+        let end: any = null
+        const connectorTime: any = {
+          basicInformation: {
+            connector, params, connectorConfig
+          },
+          start,
+          type: 'success'
+        }
+        return new Promise((resolve, reject) => {
+          callConnector(connector, params, connectorConfig).then((res: any) => {
+            console.log("成功: ", res)
+            end = new Date().getTime()
+            resolve(res)
+          }).catch((err: any) => {
+            console.log("错误: ", err)
+            end = new Date().getTime()
+            connectorTime.type = 'error'
+            reject(err)
+          }).finally(() => {
+            connectorTime.end = end
+            connectorTime.time = end - start
+            this.setPerfermanceCallConnectorTimes(connectorTime)
+          })
+        })
+      }
+    }
+    const that = this
+    // @ts-ignore
+    window["RENDER_WEB_PERFORMANCE"] = {
+      getPerfermance: this.getPerfermance.bind(that)
     }
 
     this.initOther()
