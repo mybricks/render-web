@@ -128,14 +128,6 @@ export default function MultiScene ({json, opts}) {
       })
     }
 
-    // env.hasPermission = typeof hasPermission === 'function' ? (value) => {
-    //   // TODO 兼容老的组件用法
-    //   if (typeof value === 'string') {
-    //     const permission = permissions.find((permission) => permission.id === value)
-    //     return hasPermission({ permission })
-    //   }
-    //   return hasPermission(value)
-    // } : null
     env.canvas = Object.assign({
       id,
       type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
@@ -252,95 +244,6 @@ export default function MultiScene ({json, opts}) {
               currentFxFrameIdsMap[parentScope.id] = {}
               const { id } = fxtojson
               const { env } = opts
-              // env.canvas = Object.assign({
-              //   id,
-              //   type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-              //   open: async (sceneId, params, openType) => {
-              //     // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
-              //     let scenes = scenesMap[sceneId]
-      
-              //     if (!scenes) {
-              //       if (typeof opts.scenesLoader !== 'function') {
-              //         console.error(`缺少场景信息: ${sceneId}`)
-              //         return
-              //       }
-              //       const json = await opts.scenesLoader({id: sceneId})
-      
-              //       scenes = {
-              //         disableAutoRun: false,
-              //         json,
-              //         show: false,
-              //         parentScope: null,
-              //         todo: [],
-              //         type: json.slot?.showType || json.type,
-              //         useEntryAnimation: false
-              //       }
-      
-              //       scenesMap[sceneId] = scenes
-              //       if (json.type === 'popup') {
-              //       } else {
-              //         setPageScenes((pageScenes) => {
-              //           return [...pageScenes, json]
-              //         })
-              //       }
-              //       if (scenesOperateInputsTodo[sceneId]) {
-              //         const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-              //         scenes.parentScope = parentScope
-              //         todo.forEach(({value, pinId, parentScope}) => {
-              //           scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-              //             pinId,
-              //             value
-              //           }})
-              //         })
-              //       }
-              //     }
-        
-              //     if (openType) {
-              //       Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-              //         if (key === sceneId) {
-              //           if (openType === 'blank') {
-              //             scenes.useEntryAnimation = true
-              //           } else {
-              //             scenes.useEntryAnimation = false
-              //           }
-              //           scenes.show = true
-              //           if (scenes.type === 'popup') {
-              //             setPopupIds((popupIds) => {
-              //               return [...popupIds, sceneId]
-              //             })
-              //           } else {
-              //             setCount((count) => count+1)
-              //           }
-              //         } else {
-              //           scenes.show = false
-              //           if (scenes.type === 'popup') {
-              //             setPopupIds((popupIds) => {
-              //               return popupIds.filter((id) => id !== scenes.json.id)
-              //             })
-              //           } else {
-              //             setCount((count) => count+1)
-              //           }
-              //         }
-              //       })
-              //     } else {
-              //       if (!scenes.show) {
-              //         if (openType === 'blank') {
-              //           scenes.useEntryAnimation = true
-              //         } else {
-              //           scenes.useEntryAnimation = false
-              //         }
-              //         scenes.show = true
-              //         if (scenes.type === 'popup') {
-              //           setPopupIds((popupIds) => {
-              //             return [...popupIds, sceneId]
-              //           })
-              //         } else {
-              //           setCount((count) => count+1)
-              //         }
-              //       }
-              //     }
-              //   }
-              // }, opts.env?.canvas)
               const scenesOperate = {
                 open({todo, frameId, parentScope, comProps}) {
                   // console.log('fx scenesOperate.open', {
@@ -354,95 +257,6 @@ export default function MultiScene ({json, opts}) {
                       currentFxFrameIdsMap[parentScope.id] = {}
                       // const { id } = fxtojson
                       const { env } = opts
-                      // env.canvas = Object.assign({
-                      //   id,
-                      //   type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-                      //   open: async (sceneId, params, openType) => {
-                      //     // console.log(`fx canvas.open 打开场景 -> ${sceneId}`)
-                      //     let scenes = scenesMap[sceneId]
-              
-                      //     if (!scenes) {
-                      //       if (typeof opts.scenesLoader !== 'function') {
-                      //         console.error(`缺少场景信息: ${sceneId}`)
-                      //         return
-                      //       }
-                      //       const json = await opts.scenesLoader({id: sceneId})
-              
-                      //       scenes = {
-                      //         disableAutoRun: false,
-                      //         json,
-                      //         show: false,
-                      //         parentScope: null,
-                      //         todo: [],
-                      //         type: json.slot?.showType || json.type,
-                      //         useEntryAnimation: false
-                      //       }
-              
-                      //       scenesMap[sceneId] = scenes
-                      //       if (json.type === 'popup') {
-                      //       } else {
-                      //         setPageScenes((pageScenes) => {
-                      //           return [...pageScenes, json]
-                      //         })
-                      //       }
-                      //       if (scenesOperateInputsTodo[sceneId]) {
-                      //         const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-                      //         scenes.parentScope = parentScope
-                      //         todo.forEach(({value, pinId, parentScope}) => {
-                      //           scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                      //             pinId,
-                      //             value
-                      //           }})
-                      //         })
-                      //       }
-                      //     }
-                
-                      //     if (openType) {
-                      //       Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-                      //         if (key === sceneId) {
-                      //           if (openType === 'blank') {
-                      //             scenes.useEntryAnimation = true
-                      //           } else {
-                      //             scenes.useEntryAnimation = false
-                      //           }
-                      //           scenes.show = true
-                      //           if (scenes.type === 'popup') {
-                      //             setPopupIds((popupIds) => {
-                      //               return [...popupIds, sceneId]
-                      //             })
-                      //           } else {
-                      //             setCount((count) => count+1)
-                      //           }
-                      //         } else {
-                      //           scenes.show = false
-                      //           if (scenes.type === 'popup') {
-                      //             setPopupIds((popupIds) => {
-                      //               return popupIds.filter((id) => id !== scenes.json.id)
-                      //             })
-                      //           } else {
-                      //             setCount((count) => count+1)
-                      //           }
-                      //         }
-                      //       })
-                      //     } else {
-                      //       if (!scenes.show) {
-                      //         if (openType === 'blank') {
-                      //           scenes.useEntryAnimation = true
-                      //         } else {
-                      //           scenes.useEntryAnimation = false
-                      //         }
-                      //         scenes.show = true
-                      //         if (scenes.type === 'popup') {
-                      //           setPopupIds((popupIds) => {
-                      //             return [...popupIds, sceneId]
-                      //           })
-                      //         } else {
-                      //           setCount((count) => count+1)
-                      //         }
-                      //       }
-                      //     }
-                      //   }
-                      // }, opts.env?.canvas)
                       const scenesOperate = {
                         open({todo, frameId, parentScope, comProps}) {
                           // console.log('fx scenesOperate.open', {
@@ -537,44 +351,6 @@ export default function MultiScene ({json, opts}) {
                           })
                         }
                       }
-                      // env.scenesOperate = scenesOperate
-                      // const options = {
-                      //   ...opts,
-                      //   env,
-                      //   disableAutoRun: true,
-                      //   ref: opts.ref((_refs) => {
-                      //     currentFxFrameIdsMap[parentScope.id]._refs = _refs
-                      //     currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
-                      //     const { inputs, outputs } = _refs
-          
-                      //     fxtojson.outputs.forEach((output) => {
-                      //       outputs(output.id, (value) => {
-                      //         currentFxFrameIdsMap[parentScope.id].parentScope?.outputs[output.id](value)
-                      //       })
-                      //     })
-
-                      //     const configs = comProps?.data?.configs
-                      //     if (configs) {
-                      //       Object.entries(configs).forEach(([key, value]) => {
-                      //         _refs.inputs[key](value, void 0, false)
-                      //       })
-                      //     }
-                      //     _refs.inputs[todo.pinId](todo.value, void 0, false)
-                      //     _refs.run()
-                      //   }),
-                      //   _env: {
-                      //     loadCSSLazy() {},
-                      //     currentScenes: {
-                      //       close() {
-          
-                      //       }
-                      //     }
-                      //   },
-                      //   scenesOperate
-                      // }
-                      // console.log(opts.env, "opts.env")
-                      // fxFramesJsx.push({key: parentScope.id, json: fxtojson, opts: options})
-                      // setCount((count) => count+1)
                       const { _context } = env
                       executor({
                         json: fxtojson,
@@ -695,41 +471,6 @@ export default function MultiScene ({json, opts}) {
                   })
                 }
               }
-              // env.scenesOperate = scenesOperate
-              // const options = {
-              //   ...opts,
-              //   env,
-              //   disableAutoRun: true,
-              //   ref: opts.ref((_refs) => {
-              //     currentFxFrameIdsMap[parentScope.id]._refs = _refs
-              //     currentFxFrameIdsMap[parentScope.id].parentScope = parentScope
-              //     const { inputs, outputs } = _refs
-  
-              //     fxtojson.outputs.forEach((output) => {
-              //       outputs(output.id, (value) => {
-              //         currentFxFrameIdsMap[parentScope.id].parentScope?.outputs[output.id](value)
-              //       })
-              //     })
-
-              //     const configs = comProps?.data?.configs
-              //     if (configs) {
-              //       Object.entries(configs).forEach(([key, value]) => {
-              //         _refs.inputs[key](value, void 0, false)
-              //       })
-              //     }
-              //     _refs.inputs[todo.pinId](todo.value, void 0, false)
-              //     _refs.run()
-              //   }),
-              //   _env: {
-              //     loadCSSLazy() {},
-              //     currentScenes: {
-              //       close() {
-  
-              //       }
-              //     }
-              //   },
-              //   scenesOperate
-              // }
               const { _context } = env
               executor({
                 json: fxtojson,
@@ -858,108 +599,6 @@ export default function MultiScene ({json, opts}) {
 
     return {
       ...opts,
-      // env: {
-      //   ...opts.env,
-      //   themes,
-      //   permissions,
-      //   hasPermission: typeof hasPermission === 'function' ? (value) => {
-      //     // TODO 兼容老的组件用法
-      //     if (typeof value === 'string') {
-      //       const permission = permissions.find((permission) => permission.id === value)
-      //       return hasPermission({ permission })
-      //     }
-      //     return hasPermission(value)
-      //   } : null,  
-      //   canvas: Object.assign({
-      //     id,
-      //     type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-      //     open: async (sceneId, params, openType) => {
-      //       // console.log(`打开场景 -> ${sceneId}`)
-      //       let scenes = scenesMap[sceneId]
-
-      //       if (!scenes) {
-      //         if (typeof opts.scenesLoader !== 'function') {
-      //           console.error(`缺少场景信息: ${sceneId}`)
-      //           return
-      //         }
-      //         const json = await opts.scenesLoader({id: sceneId})
-
-      //         scenes = {
-      //           disableAutoRun: false,
-      //           json,
-      //           show: false,
-      //           parentScope: null,
-      //           todo: [],
-      //           type: json.slot?.showType || json.type,
-      //           useEntryAnimation: false
-      //         }
-
-      //         scenesMap[sceneId] = scenes
-      //         if (json.type === 'popup') {
-      //         } else {
-      //           setPageScenes((pageScenes) => {
-      //             return [...pageScenes, json]
-      //           })
-      //         }
-      //         if (scenesOperateInputsTodo[sceneId]) {
-      //           const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-      //           scenes.parentScope = parentScope
-      //           todo.forEach(({value, pinId, parentScope}) => {
-      //             scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-      //               pinId,
-      //               value
-      //             }})
-      //           })
-      //         }
-      //       }
-  
-      //       if (openType) {
-      //         Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-      //           if (key === sceneId) {
-      //             if (openType === 'blank') {
-      //               scenes.useEntryAnimation = true
-      //             } else {
-      //               scenes.useEntryAnimation = false
-      //             }
-      //             scenes.show = true
-      //             if (scenes.type === 'popup') {
-      //               setPopupIds((popupIds) => {
-      //                 return [...popupIds, sceneId]
-      //               })
-      //             } else {
-      //               setCount((count) => count+1)
-      //             }
-      //           } else {
-      //             scenes.show = false
-      //             if (scenes.type === 'popup') {
-      //               setPopupIds((popupIds) => {
-      //                 return popupIds.filter((id) => id !== scenes.json.id)
-      //               })
-      //             } else {
-      //               setCount((count) => count+1)
-      //             }
-      //           }
-      //         })
-      //       } else {
-      //         if (!scenes.show) {
-      //           if (openType === 'blank') {
-      //             scenes.useEntryAnimation = true
-      //           } else {
-      //             scenes.useEntryAnimation = false
-      //           }
-      //           scenes.show = true
-      //           if (scenes.type === 'popup') {
-      //             setPopupIds((popupIds) => {
-      //               return [...popupIds, sceneId]
-      //             })
-      //           } else {
-      //             setCount((count) => count+1)
-      //           }
-      //         }
-      //       }
-      //     }
-      //   }, opts.env?.canvas),
-      // },
       env,
       get disableAutoRun() {
         return scenes.disableAutoRun
@@ -1029,13 +668,6 @@ export default function MultiScene ({json, opts}) {
             _refs.run()
           })
         }
-
-        // Object.entries(globalVarMap).forEach(([ key, value ]) => {
-        //   const globalCom = scenes._refs.get(key)
-        //   if (globalCom) {
-        //     globalCom.outputs['changed'](value, true, null, true)
-        //   }
-        // })
       }),
       _env: {
         loadCSSLazy() {},
