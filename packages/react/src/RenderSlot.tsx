@@ -210,8 +210,17 @@ function RenderCom({
       // }
 
       return {
-        render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style }) {
+        render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style, scope }) {
           const slot = slots[slotId]
+          const paramsScope = params?.scope
+          if (paramsScope) {
+            currentScope = {
+              id: paramsScope.id + '-' + paramsScope.frameId,
+              frameId: slotId,
+              parentComId: id,
+              parent: paramsScope
+            }
+          }
           if (slot) {
             return <SlotRender 
                                key={params?.key}
@@ -363,7 +372,7 @@ function RenderCom({
   // --- end
 
   if (typeof template === 'function') {
-    jsx = template({id, jsx, name})
+    jsx = template({id, jsx, name, scope})
   }
 
   // --- 2023.2.21 兼容小程序
