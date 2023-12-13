@@ -2,3 +2,5 @@ node_modules
 scripts
 src
 tsconfig.json
+cypress
+cypress.config.ts
