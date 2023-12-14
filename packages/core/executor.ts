@@ -1350,6 +1350,12 @@ export default function executor(opts, {observable}) {
         }
       })
     }
+    if (scope) {
+      const cons = Cons[`${comId}-${frameId}-_init_`]
+      if (Array.isArray(cons)) {
+        exeCons({logProps: null, cons, val: void 0, curScope: scope, fromCom: Coms[comId], isAutoRun: true})
+      }
+    }
   }
 
   function exeInputForFrame({ options, value, scope = void 0, log = true, comProps }) {
