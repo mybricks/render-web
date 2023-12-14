@@ -23,14 +23,12 @@ import ErrorBoundary from './ErrorBoundary';
 import {observable as defaultObservable} from './observable';
 import {T_RenderOptions} from "./types";
 
-export default function Main({json, opts, style = {}, className = '', root = true}: { json, opts: T_RenderOptions, style?, className?, root: boolean }) {
+export default function Main({json, opts, style = {}, className = '', root = true, from}: { json, opts: T_RenderOptions, style?, className?, root: boolean, from?: string }) {
   //环境变量，此处可以定义连接器、多语言等实现
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
     const { env, debug } = opts
-    if (debug) {
-      if (json.type !== "module") {
-        style.minHeight = 800
-      }
+    if (debug && from === 'scene') {
+      style.minHeight = 800
     }
 
     const { _context } = env

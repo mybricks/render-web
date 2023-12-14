@@ -731,7 +731,7 @@ export default function MultiScene ({json, opts}) {
 
 function Scene({json, opts, style = {}, className = ''}) {
   return (
-    <Main json={json} opts={opts} style={style} className={className}/>
+    <Main json={json} opts={opts} style={style} className={className} from={"scene"}/>
   )
 }
 
