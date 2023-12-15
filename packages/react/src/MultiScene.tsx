@@ -18,7 +18,7 @@ export default function MultiScene ({json, opts}) {
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap, _context} = useMemo(() => {
     if (opts.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
       if (index !== -1) {
@@ -71,7 +71,8 @@ export default function MultiScene ({json, opts}) {
       scenesOperateInputsTodo: {},
       themes: json.themes,
       permissions: json.permissions || [],
-      globalVarMap: {}
+      globalVarMap: {},
+      _context: opts._context
     }
   }, [])
 
@@ -342,7 +343,7 @@ export default function MultiScene ({json, opts}) {
                               }
                             }
                           })
-                          const refsMap = env._context.getRefsMap()
+                          const refsMap = _context.getRefsMap()
                           Object.entries(refsMap).forEach(([id, refs]: any) => {
                             const globalCom = refs.get({comId: globalComId})
                               if (globalCom) {
@@ -351,7 +352,6 @@ export default function MultiScene ({json, opts}) {
                           })
                         }
                       }
-                      const { _context } = env
                       executor({
                         json: fxtojson,
                         getComDef: (def) => _context.getComDef(def),
@@ -381,7 +381,8 @@ export default function MultiScene ({json, opts}) {
                         debug: opts.debug,
                         debugLogger: opts.debugLogger,
                         logger: _context.logger,
-                        scenesOperate
+                        scenesOperate,
+                        _context
                       }, {//////TODO goon
                         observable: opts.observable || defaultObservable//传递获取响应式的方法
                       })
@@ -462,7 +463,7 @@ export default function MultiScene ({json, opts}) {
                       }
                     }
                   })
-                  const refsMap = env._context.getRefsMap()
+                  const refsMap = _context.getRefsMap()
                   Object.entries(refsMap).forEach(([id, refs]: any) => {
                     const globalCom = refs.get({comId: globalComId})
                       if (globalCom) {
@@ -471,7 +472,6 @@ export default function MultiScene ({json, opts}) {
                   })
                 }
               }
-              const { _context } = env
               executor({
                 json: fxtojson,
                 getComDef: (def) => _context.getComDef(def),
@@ -501,7 +501,8 @@ export default function MultiScene ({json, opts}) {
                 debug: opts.debug,
                 debugLogger: opts.debugLogger,
                 logger: _context.logger,
-                scenesOperate
+                scenesOperate,
+                _context
               }, {//////TODO goon
                 observable: opts.observable || defaultObservable//传递获取响应式的方法
               })
@@ -585,7 +586,7 @@ export default function MultiScene ({json, opts}) {
             }
           }
         })
-        const refsMap = env._context.getRefsMap()
+        const refsMap = _context.getRefsMap()
         Object.entries(refsMap).forEach(([id, refs]: any) => {
           const globalCom = refs.get({comId: globalComId})
             if (globalCom) {
@@ -718,7 +719,7 @@ export default function MultiScene ({json, opts}) {
   }, [popupIds])
 
   useEffect(() => {
-    opts.env._context.setPerfermanceRender("end", new Date().getTime())
+    opts._context.setPerfermanceRender("end", new Date().getTime())
   }, [])
 
   return (

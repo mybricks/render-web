@@ -8,5 +8,6 @@ export type T_RenderOptions = {
   observable?,
   ref?,
   scenesOperate?,
-  debugLogger?
+  debugLogger?,
+  _context?
 }

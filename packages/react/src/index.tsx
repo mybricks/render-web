@@ -102,7 +102,7 @@ class Context {
     // 渲染模块
     if (!opts.env.renderModule) {
       opts.env.renderModule = (json: any, options: any) => {
-        return render(json, { ...options, env })
+        return render(json, { ...options, env, _context: opts._context })
       }
     }
     // 用于判断是mobile或pc，组件响应式
@@ -301,8 +301,8 @@ export function render(json: any, opts: T_RenderOptions = {}) {
   if (!json) {
     return null
   } else {
-    if (!opts.env._context) {
-      opts.env._context = new Context(opts)
+    if (!opts._context) {
+      opts._context = new Context(opts)
     }
     if (Array.isArray(json.scenes)) {
       transformJSON(json);

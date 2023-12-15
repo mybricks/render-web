@@ -25,20 +25,19 @@ import {T_RenderOptions} from "./types";
 
 export default function Main({json, opts, style = {}, className = '', root = true, from}: { json, opts: T_RenderOptions, style?, className?, root: boolean, from?: string }) {
   //环境变量，此处可以定义连接器、多语言等实现
-  const { env, onError, logger, slot, getComDef } = useMemo(() => {
-    const { env, debug } = opts
+  const { env, onError, logger, slot, getComDef, _context } = useMemo(() => {
+    const { env, debug, _context } = opts
     if (debug && from === 'scene') {
       style.minHeight = 800
     }
-
-    const { _context } = env
 
     return {
       env,
       onError: _context.onError,
       logger: _context.logger,
       getComDef: (def) => _context.getComDef(def),
-      slot: json.slot
+      slot: json.slot,
+      _context
     }
   }, [])
 
@@ -64,7 +63,8 @@ export default function Main({json, opts, style = {}, className = '', root = tru
         debug: opts.debug,
         debugLogger: opts.debugLogger,
         logger,
-        scenesOperate: opts.scenesOperate
+        scenesOperate: opts.scenesOperate,
+        _context
       }, {//////TODO goon
         observable: opts.observable || defaultObservable//传递获取响应式的方法
       })
@@ -118,7 +118,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     return () => {
       if (handle) {
         if (typeof opts.debug === "function") {
-          opts.env._context?.debuggerPanel?.destroy()
+          _context?.debuggerPanel?.destroy()
         }
         setInterval = originalSetInterval
         intervalList.forEach((intervalId) =>
