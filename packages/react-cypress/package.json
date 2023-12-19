@@ -1,0 +1,22 @@
+{
+  "name": "@mybricks/react18-component-cypress",
+  "version": "0.0.1",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "dependencies": {
+    "@mybricks/render-web": "^1.2.31"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}
