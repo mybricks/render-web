@@ -369,3 +369,5 @@ function transformJSON (json: any) {
     })
   }
 }
+
+export * from "./observable"
