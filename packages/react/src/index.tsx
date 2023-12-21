@@ -14,6 +14,7 @@ import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import {T_RenderOptions} from "./types";
 import { DebuggerPanel } from "./Debugger"
+import { PerformancePanel } from "./Performance"
 import { hijackReactcreateElement } from "./observable"
 import { loadCSSLazy } from "../../core/utils"
 import RenderSlotLess from './RenderSlot.lazy.less';
@@ -21,6 +22,7 @@ import MultiSceneLess from './MultiScene.lazy.less';
 import ErrorBoundaryLess from './ErrorBoundary/style.lazy.less';
 import NotificationLess from './Notification/style.lazy.less';
 import DebuggerLess from './Debugger/style.lazy.less';
+import PerformanceLess from './Performance/style.lazy.less';
 import {setLoggerSilent} from '../../core/logger';
 import Notification from './Notification';
 import {compareVersion} from '../../core/utils';
@@ -32,21 +34,14 @@ console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`,
 class Context {
   private opts: any
   private debuggerPanel: any
-  private perfermance: any = {
-    render: {
-      // @ts-ignore
-      start: window.MYBRICKS_PC_FMP_START || new Date().getTime(),
-      end: null,
-      time: null
-    },
-    callConnectorTimes: []
-  }
+  private performancePanel: any
   
   comDefs: any
   onError: any
   logger: any
   constructor(opts: any) {
     const { env, debug, observable } = opts
+    this.performancePanel = new PerformancePanel({ env, observable })
     if (!observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
       hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: env.pxToVw});
@@ -116,43 +111,6 @@ class Context {
       env.canvasElement = debug ? (env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot?.getElementById('_geoview-wrapper_') || document.body) : document.body
     }
 
-    /** 函数劫持 */
-    const callConnector = env.callConnector
-    if (typeof callConnector === 'function') {
-      env.callConnector = (connector: any, params: any, connectorConfig: any) => {
-        const start = new Date().getTime()
-        let end: any = null
-        const connectorTime: any = {
-          basicInformation: {
-            connector, params, connectorConfig
-          },
-          start,
-          type: 'success'
-        }
-        return new Promise((resolve, reject) => {
-          callConnector(connector, params, connectorConfig).then((res: any) => {
-            console.log("成功: ", res)
-            end = new Date().getTime()
-            resolve(res)
-          }).catch((err: any) => {
-            console.log("错误: ", err)
-            end = new Date().getTime()
-            connectorTime.type = 'error'
-            reject(err)
-          }).finally(() => {
-            connectorTime.end = end
-            connectorTime.time = end - start
-            this.setPerfermanceCallConnectorTimes(connectorTime)
-          })
-        })
-      }
-    }
-    const that = this
-    // @ts-ignore
-    window["RENDER_WEB_PERFORMANCE"] = {
-      getPerfermance: this.getPerfermance.bind(that)
-    }
-
     this.initOther()
     this.initCss()
     this.initComdefs()
@@ -191,6 +149,7 @@ class Context {
     loadCSSLazy(MultiSceneLess, shadowRoot)
     loadCSSLazy(ErrorBoundaryLess, shadowRoot)
     loadCSSLazy(NotificationLess, shadowRoot)
+    loadCSSLazy(PerformanceLess, shadowRoot)
     if (typeof this.opts.debug === "function") {
       loadCSSLazy(DebuggerLess, shadowRoot)
     }
@@ -278,22 +237,6 @@ class Context {
 
   getRefsMap() {
     return this._refsMap
-  }
-
-  getPerfermance() {
-    return this.perfermance
-  }
-
-  setPerfermanceRender(type: "start" | "end", time: number) {
-    const render = this.perfermance.render
-    render[type] = time
-    if (type === "end") {
-      render["time"] = time - render["start"]
-    }
-  }
-
-  setPerfermanceCallConnectorTimes(connectorTime: any) {
-    this.perfermance.callConnectorTimes.push(connectorTime)
   }
 }
 

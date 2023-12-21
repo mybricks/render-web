@@ -719,7 +719,7 @@ export default function MultiScene ({json, opts}) {
   }, [popupIds])
 
   useEffect(() => {
-    opts._context.setPerfermanceRender("end", new Date().getTime())
+    opts._context.performancePanel.setRender("end", new Date().getTime())
   }, [])
 
   return (
