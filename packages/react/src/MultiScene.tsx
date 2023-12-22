@@ -6,6 +6,7 @@ import React, {
 } from 'react'
 
 import Main from './Main'
+import { useMyBricksRenderContext } from '.'
 import executor from '../../core/executor'
 import {observable as defaultObservable} from './observable';
 
@@ -14,11 +15,12 @@ import lazyCss from './MultiScene.lazy.less'
 const css = lazyCss.locals
 
 export default function MultiScene ({json, opts}) {
+  const _context = useMyBricksRenderContext()
   const [count, setCount] = useState(0)
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap, _context} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap} = useMemo(() => {
     if (opts.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
       if (index !== -1) {
@@ -72,7 +74,6 @@ export default function MultiScene ({json, opts}) {
       themes: json.themes,
       permissions: json.permissions || [],
       globalVarMap: {},
-      _context: opts._context
     }
   }, [])
 
@@ -343,13 +344,13 @@ export default function MultiScene ({json, opts}) {
                               }
                             }
                           })
-                          const refsMap = _context.getRefsMap()
-                          Object.entries(refsMap).forEach(([id, refs]: any) => {
-                            const globalCom = refs.get({comId: globalComId})
-                              if (globalCom) {
-                                globalCom.outputs[pinId](value, true, null, true)
-                              }
-                          })
+                          // const refsMap = _context.getRefsMap()
+                          // Object.entries(refsMap).forEach(([id, refs]: any) => {
+                          //   const globalCom = refs.get({comId: globalComId})
+                          //     if (globalCom) {
+                          //       globalCom.outputs[pinId](value, true, null, true)
+                          //     }
+                          // })
                         }
                       }
                       executor({
@@ -463,13 +464,13 @@ export default function MultiScene ({json, opts}) {
                       }
                     }
                   })
-                  const refsMap = _context.getRefsMap()
-                  Object.entries(refsMap).forEach(([id, refs]: any) => {
-                    const globalCom = refs.get({comId: globalComId})
-                      if (globalCom) {
-                        globalCom.outputs[pinId](value, true, null, true)
-                      }
-                  })
+                  // const refsMap = _context.getRefsMap()
+                  // Object.entries(refsMap).forEach(([id, refs]: any) => {
+                  //   const globalCom = refs.get({comId: globalComId})
+                  //     if (globalCom) {
+                  //       globalCom.outputs[pinId](value, true, null, true)
+                  //     }
+                  // })
                 }
               }
               executor({
@@ -586,13 +587,13 @@ export default function MultiScene ({json, opts}) {
             }
           }
         })
-        const refsMap = _context.getRefsMap()
-        Object.entries(refsMap).forEach(([id, refs]: any) => {
-          const globalCom = refs.get({comId: globalComId})
-            if (globalCom) {
-              globalCom.outputs[pinId](value, true, null, true)
-            }
-        })
+        // const refsMap = _context.getRefsMap()
+        // Object.entries(refsMap).forEach(([id, refs]: any) => {
+        //   const globalCom = refs.get({comId: globalComId})
+        //     if (globalCom) {
+        //       globalCom.outputs[pinId](value, true, null, true)
+        //     }
+        // })
       }
     }
 
@@ -719,7 +720,7 @@ export default function MultiScene ({json, opts}) {
   }, [popupIds])
 
   useEffect(() => {
-    opts._context.setPerfermanceRender("end", new Date().getTime())
+    _context.setPerformanceRender("end", new Date().getTime())
   }, [])
 
   return (

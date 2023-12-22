@@ -14,19 +14,19 @@ import React, {
   useEffect,
 } from 'react';
 
-import { render } from './index'
+import { useMyBricksRenderContext } from './index'
 import executor from '../../core/executor'
 import RenderSlot from './RenderSlot';
-import {compareVersion} from '../../core/utils';
 import Notification from './Notification';
 import ErrorBoundary from './ErrorBoundary';
 import {observable as defaultObservable} from './observable';
-import {T_RenderOptions} from "./types";
 
-export default function Main({json, opts, style = {}, className = '', root = true, from}: { json, opts: T_RenderOptions, style?, className?, root: boolean, from?: string }) {
+export default function Main({json, opts, style = {}, className = '', root = true, from}: { json, opts, style?, className?, root: boolean, from?: string }) {
+  const _context = useMyBricksRenderContext()
+  
   //环境变量，此处可以定义连接器、多语言等实现
-  const { env, onError, logger, slot, getComDef, _context } = useMemo(() => {
-    const { env, debug, _context } = opts
+  const { env, onError, logger, slot, getComDef } = useMemo(() => {
+    const { env, debug } = opts
     if (debug && from === 'scene') {
       style.minHeight = 800
     }

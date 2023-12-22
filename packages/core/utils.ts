@@ -119,35 +119,6 @@ export const pxToVw = (value) => {
   return value.replace(REG_PX, vwReplace);
 }
 
-export const loadCSSLazy = (css, root) => {
-
-  // const root = env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot
-
-  const finalRoot = root || document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.head
-
-  css.use({ target: finalRoot });
-
-  // super();
-  // this.attachShadow({ mode: "open" });
-
-  // const divElement = document.createElement("div");
-
-  // divElement.textContent = "Text content.";
-
-  // this.shadowRoot.appendChild(divElement);
-
-  // customSquareStyles.use({ target: this.shadowRoot });
-
-  // // 你可以覆盖注入的样式
-  // const bgPurple = new CSSStyleSheet();
-  // const width = this.getAttribute("w");
-  // const height = this.getAttribute("h");
-
-  // bgPurple.replace(`div { width: ${width}px; height: ${height}px; }`);
-
-  // this.shadowRoot.adoptedStyleSheets = [bgPurple];
-}
-
 // const toString = Object.prototype.toString
 
 export function dataSlim(value) {
@@ -173,4 +144,14 @@ export function dataSlim(value) {
   // }
 
   // return value
+}
+
+let stylesheetMountNode: Node | undefined = void 0
+
+/**
+ * 
+ * @returns 获取style样式挂载节点
+ */
+export function getStylesheetMountNode(): Node {
+  return stylesheetMountNode || (stylesheetMountNode = document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.head)
 }

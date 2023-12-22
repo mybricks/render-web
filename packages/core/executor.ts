@@ -1425,9 +1425,9 @@ export default function executor(opts, {observable}) {
       get: rst.get,
       getComInfo: rst.getComInfo
     }
-    if (_context && JsonType === 'module') {
-      _context.setRefs(json.id, refs)
-    }
+    // if (_context && JsonType === 'module') {
+    //   _context.setRefs(json.id, refs)
+    // }
     ref(refs)
   }
 
