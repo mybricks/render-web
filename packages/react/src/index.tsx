@@ -72,7 +72,10 @@ class Context {
     }
   } = {}
   // 组件runtime入参
-  onError: (error: Error | string) => void = () => {}
+  onError: (error: Error | string) => void = (e) => {
+    console.error(e);
+    Notification.error(e);
+  }
   // onError: (params: Error | string) => null
   // 组件runtime入参
   logger: any
