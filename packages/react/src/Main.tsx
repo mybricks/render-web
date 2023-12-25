@@ -12,6 +12,7 @@ import React, {
   useCallback,
   useLayoutEffect,
   useEffect,
+  useState,
 } from 'react';
 
 import { useMyBricksRenderContext } from './index'
@@ -105,7 +106,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
   useEffect(() => {
     const intervalList = []
     let originalSetInterval
-    const handle = opts.debug && setInterval.name !== 'mySetInterval'
+    const handle = opts.debug && setInterval.name !== 'mySetInterval' && json.type !== 'module'
     if (handle) {
       originalSetInterval = setInterval;
       setInterval = function mySetInterval(...args) {
@@ -117,9 +118,9 @@ export default function Main({json, opts, style = {}, className = '', root = tru
    
     return () => {
       if (handle) {
-        if (typeof opts.debug === "function") {
-          _context?.debuggerPanel?.destroy()
-        }
+        // if (typeof opts.debug === "function") {
+        //   _context?.debuggerPanel?.destroy()
+        // }
         setInterval = originalSetInterval
         intervalList.forEach((intervalId) =>
           clearInterval(intervalId)

@@ -1,12 +1,14 @@
 import React from "react"
 import ReactDOM from "react-dom"
+
+import { getStylesheetMountNode } from "../../../../core/utils"
+
 import lazyCss from './style.lazy.less';
 
 const css: any = lazyCss.locals;
-
 const resumeIcon = <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="10635" width="12" height="12"><path d="M219.428571 73.142857v877.714286H73.142857V73.142857zM365.714286 73.142857l585.142857 438.857143-577.828572 438.857143L365.714286 599.771429" p-id="10636" fill="#707070"></path></svg>
 
-export default function Debugger({ resume }: any) {
+function DebuggerPanel({ resume }: any) {
   return (
     <div className={css.debugger}>
       <div className={css.titlebar}>
@@ -17,19 +19,54 @@ export default function Debugger({ resume }: any) {
   )
 }
 
-export class DebuggerPanel {
+export default class MyBricksRenderDebugger {
+  constructor() {}
+
+  apply(context: any) {
+    const { options } = context
+    const { env, debug, onError } = options
+
+    if (typeof debug === "function") {
+      const debuggerPanel = new Debugger(env);
+      const { log, onResume } = debug({
+        // 点击逻辑面板下一步
+        resume: () => {
+          debuggerPanel.next();
+        },
+        // 点击逻辑面板忽略所有断点
+        ignoreAll: (bool: boolean) => {
+          debuggerPanel.setIgnoreWait(bool)
+          if (bool) {
+            // 忽略调试，全部执行完
+            debuggerPanel.next(true)
+          }
+        }
+      })
+      // 点击调试面板下一步执行onResume
+      debuggerPanel.setResume(onResume)
+      context.debuggerPanel = debuggerPanel
+      // 调试时与引擎逻辑面板交互，调用options的debugLogger来实现
+      options.debugLogger = log
+
+      // 引擎环境内引擎提供onError，目前用于逻辑面板计算组件的报错ui展示
+      context.onError = onError
+      lazyCss.use({ target: getStylesheetMountNode() });
+    }
+  }
+}
+
+
+class Debugger {
   dom: any
   canvas: any
   root: any
-  env: any
 
+  // @ts-ignore
   isReact18 = !!ReactDOM.createRoot
 
   resume = () => {}
 
-  constructor({ env }: any) {
-    this.env = env
-  }
+  constructor(private env: any) {}
 
   setResume(resume: any) {
     this.resume = resume
@@ -50,11 +87,12 @@ export class DebuggerPanel {
       div.style.visibility = 'visible';
       canvas.appendChild(div);
       if (this.isReact18) {
+        // @ts-ignore
         const root = ReactDOM.createRoot(div);
-        root.render(<Debugger resume={this.resume}/>);
+        root.render(<DebuggerPanel resume={this.resume}/>);
         this.root = root;
       } else {
-        ReactDOM.render(<Debugger resume={this.resume}/>, div)
+        ReactDOM.render(<DebuggerPanel resume={this.resume}/>, div)
       }
     } else {
       this.dom.style.visibility = 'visible';

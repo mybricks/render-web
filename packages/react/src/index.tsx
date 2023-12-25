@@ -12,7 +12,7 @@ import React, { useContext, createContext } from "react";
 import Main from "./Main";
 import pkg from "../package.json";
 import MultiScene from "./MultiScene";
-import { DebuggerPanel } from "./Debugger"
+import Debugger from "./plugins/Debugger";
 import { hijackReactcreateElement } from "./observable"
 import RenderSlotLess from './RenderSlot.lazy.less';
 import MultiSceneLess from './MultiScene.lazy.less';
@@ -33,15 +33,13 @@ function loadCSSLazy (css: typeof RenderSlotLess, root: Node) {
 }
 
 interface RenderOptions {
-  env: {};
+  env: any;
   // TODO: 改造完成后在透出的类型里隐藏
   _isNestedRender: boolean;
-  // [key: string]: any;
+  [key: string]: any;
 }
 
 class Context {
-  // 传入的配置项
-  private opts: any
   // TODO: 调试面板，作为插件注入
   private debuggerPanel: any
   // TODO: 性能面板，作为插件注入，加一个开关（例如localStorage
@@ -58,6 +56,12 @@ class Context {
     // 连接器数据收集（耗时，配置信息）
     callConnectorTimes: []
   }
+
+  /**
+   * - development - 引擎环境
+   * - production - 生产环境
+   */
+  mode: 'development' | 'production'
   
   // 组件信息 namespace-version => {runtime}
   comDefs: {
@@ -68,58 +72,31 @@ class Context {
     }
   } = {}
   // 组件runtime入参
-  onError: (error: Error | string) => void
+  onError: (error: Error | string) => void = () => {}
   // onError: (params: Error | string) => null
   // 组件runtime入参
   logger: any
-  constructor(opts: any) {
-    const { env, debug, observable, onError } = opts
+  // 传入的配置项
+  constructor(public options: RenderOptions) {
+    const { env, debug, observable, onError, plugins = [] } = options
+    this.mode = debug ? 'development' : 'production'
     if (!observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
       hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: env.pxToVw});
     }
-    this.opts = opts;
     // 样式加载dom节点
     const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
-
-    // 说明是在引擎内调试
-    if (typeof debug === "function") {
-      const debuggerPanel = new DebuggerPanel({ env });
-      const { log, onResume } = debug({
-        // 点击逻辑面板下一步
-        resume: () => {
-          debuggerPanel.next();
-        },
-        // 点击逻辑面板忽略所有断点
-        ignoreAll: (bool: boolean) => {
-          debuggerPanel.setIgnoreWait(bool)
-          if (bool) {
-            // 忽略调试，全部执行完
-            debuggerPanel.next(true)
-          }
-        }
-      })
-      // 点击调试面板下一步执行onResume
-      debuggerPanel.setResume(onResume)
-      this.debuggerPanel = debuggerPanel
-      // 调试时与引擎逻辑面板交互
-      opts.debugLogger = log
-
-      // 引擎环境内引擎提供onError，目前用于逻辑面板计算组件的报错ui展示
-      this.onError = onError
-      // 调试面板lazycss加载，仅用于搭建时
-      loadCSSLazy(DebuggerLess, LOAD_CSS_LAZY_ROOT)
-    } else {
-      this.onError = (e: any) => {
-        console.error(e);
-        Notification.error(e);
-      }
-      // 各种lazycss加载
-      loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
-      loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
-      loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
-      loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
-    }
+    // 执行安装的插件
+    // 暂时内置前面的插件
+    const arr = [new Debugger()]
+    arr.concat(plugins).forEach((plugin) => {
+      plugin.apply(this)
+    })
+    // 各种lazycss加载
+    loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
+    loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
+    loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
+    loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
 
     // px转rem响应式相关
     const pxToRem = env?.pxToRem
@@ -160,6 +137,12 @@ class Context {
       env.renderModule = (json: any, options: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
         return render(json, { ...options, env, _isNestedRender: true })
+      }
+    } else {
+      const renderModule = env.renderModule
+      env.renderModule = (json: any, options: any) => {
+        // 最终还是调render-wen提供的render函数，渲染toJSON
+        return renderModule(json, { ...options, env, _isNestedRender: true })
       }
     }
     const body = document.body
@@ -225,7 +208,7 @@ class Context {
 
   // 初始化其它信息
   initOther() {
-    const { env } = this.opts
+    const { env } = this.options
     // 是否打印IO输入输出的数据信息
     // TODO: 通过options传入，而非env
     if (!!env.silent) {
@@ -258,7 +241,7 @@ class Context {
         }
       })
     }
-    const { comDefs: defaultComdefs } = this.opts;
+    const { comDefs: defaultComdefs } = this.options;
     const { comDefs } = this;
 
     /** 外部传入组件信息 */
@@ -340,6 +323,11 @@ class Context {
 const MyBricksRenderContext = createContext<any>({})
 
 export function MyBricksRenderProvider ({ children, value }: any) {
+  // useEffect(() => {
+  //   return () => {
+  //     console.log("render 渲染根组件 销毁: ", value) // 这里可以做各类销毁动作，尤其是一些插件
+  //   }
+  // }, [])
   return (
     <MyBricksRenderContext.Provider value={value}>
       {children}
@@ -353,23 +341,24 @@ export function useMyBricksRenderContext () {
   return context
 }
 
-export function render(json: ToJSON | MultiSceneToJSON, opts: RenderOptions) {
+export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) {
   if (!json) {
     return null
   } else {
     let jsx = null
     if ("scenes" in json)  {
       transformJSON(json);
-      jsx = <MultiScene json={json} opts={opts as any}/>
+      jsx = <MultiScene json={json} opts={options}/>
     } else {
-      jsx = <Main json={json} opts={opts as any} root={json.type === 'module' ? false : true}/>
+      // 检查一下这个json.type的判断能否去掉
+      jsx = <Main json={json} opts={options} root={json.type === 'module' ? false : true}/>
     }
     // 如果是嵌套渲染，不再重复嵌套Provider
-    if (opts._isNestedRender) {
+    if (options._isNestedRender) {
       return jsx
     }
     return (
-      <MyBricksRenderProvider value={new Context(opts)}>
+      <MyBricksRenderProvider value={new Context(options)}>
         {jsx}
       </MyBricksRenderProvider>
     )
