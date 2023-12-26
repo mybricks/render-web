@@ -215,6 +215,7 @@ class Context {
     // 是否打印IO输入输出的数据信息
     // TODO: 通过options传入，而非env
     if (!!env.silent) {
+      // 调试模式下有debugger，所以无论silent设置，都没有影响
       setLoggerSilent();
     }
     // 是否显示错误通知

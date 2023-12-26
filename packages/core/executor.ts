@@ -6,7 +6,7 @@
  * CheMingjun @2019
  * mybricks@126.com
  */
-import {log, logInputVal, logOutputVal} from './logger';
+import {logInputVal, logOutputVal} from './logger';
 import {uuid, dataSlim} from "./utils";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -1327,6 +1327,7 @@ export default function executor(opts, {observable}) {
 
     const autoAry = ComsAutoRun[idPre]
     if (autoAry) {
+      // 自执行组件（不需要输入项触发
       autoAry.forEach(com => {
         const {id, def} = com
         const jsCom = Coms[id]
@@ -1334,8 +1335,6 @@ export default function executor(opts, {observable}) {
           const props = getComProps(id, scope)
           const comDef = getComDef(def)
           if (!comDef) return
-
-          log(`${comDef.namespace} 开始执行`)
 
           comDef.runtime({
             env: _Env,
