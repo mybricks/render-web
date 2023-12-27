@@ -29,6 +29,8 @@ export default function executor(opts, {observable}) {
     _context,
   } = opts
 
+  console.log("executor debugLogger: ", debugLogger)
+
   const scenesOperate = opts.scenesOperate || env.scenesOperate
 
   const {
@@ -44,13 +46,13 @@ export default function executor(opts, {observable}) {
 
   const _Env = env
 
-  const _Props = {}
+  const _Props: any = {}
 
-  const _frameOutputProxy = {}
+  const _frameOutputProxy: any = {}
 
   const _exedJSCom = {}
 
-  const _frameOutput = {}
+  const _frameOutput: any = {}
 
   /** _next */
   const _nextConsPinKeyMap = {}
@@ -71,7 +73,7 @@ export default function executor(opts, {observable}) {
   const _timerPinWait: any = {}
 
   // 当前输入项
-  const _slotValue = {}
+  const _slotValue: any = {}
   
   const _variableRelationship: any = {}
 
@@ -134,108 +136,107 @@ export default function executor(opts, {observable}) {
     }
   }
 
-  // logProps, cons, val, curScope, fromCon?, notifyAll?
-  function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom, isAutoRun}) {
-    function exeCon(inReg, nextScope, val) {
-      const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
-      if (proxyDesc) {
-        _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
-        if (fromCon && fromCon.finishPinParentKey !== inReg.startPinParentKey) {
-          return
+  function exeCon(inReg: any, nextScope: any, val: any, fromCon: any) {
+    const proxyDesc = PinProxies[inReg.comId + '-' + inReg.pinId]
+    if (proxyDesc) {
+      _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
+      if (fromCon && fromCon.finishPinParentKey !== inReg.startPinParentKey) {
+        return
+      }
+
+      if (proxyDesc.type === 'frame') {//call fx frame
+
+        const comProps = getComProps(inReg.comId, nextScope)
+        let myScope: any
+        //if (!curScope) {
+        myScope = {
+          // id: nextScope?.id || uuid(10, 16),
+          id: uuid(10, 16),
+          frameId: proxyDesc.frameId,
+          parent: nextScope,
+          proxyComProps: comProps//current proxied component instance
+        }
+        //}
+
+        const isFrameOutput = inReg.def.namespace === 'mybricks.core-comlib.frame-output'
+
+        if (isFrameOutput && nextScope) {
+          proxyDesc.frameId = nextScope.proxyComProps.id
+          myScope = nextScope.parent
+        }
+        const isFn = inReg.def.namespace === 'mybricks.core-comlib.fn'
+
+        if (isFn) {
+          const { configs } = comProps.data
+          if (configs) {
+            Object.entries(configs).forEach(([key, value]) => {
+              const { frameId, comId, pinId } = proxyDesc
+              const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
+              const cons = Cons[idPre + '-' + key]
+              if (cons) {
+                exeCons({logProps: null, cons, val: value, curScope: myScope})
+              }
+            })
+          }
         }
 
-        if (proxyDesc.type === 'frame') {//call fx frame
+        exeInputForFrame({ options: proxyDesc, value: val, scope: myScope, comProps })
 
-          const comProps = getComProps(inReg.comId, nextScope)
-          let myScope
-          //if (!curScope) {
-          myScope = {
-            // id: nextScope?.id || uuid(10, 16),
-            id: uuid(10, 16),
-            frameId: proxyDesc.frameId,
-            parent: nextScope,
-            proxyComProps: comProps//current proxied component instance
-          }
-          //}
+        if (!isFrameOutput) {
+          exeForFrame({frameId: proxyDesc.frameId, scope: myScope})
+        }
+        return
+      }
+    }
 
-          const isFrameOutput = inReg.def.namespace === 'mybricks.core-comlib.frame-output'
-
-          if (isFrameOutput && nextScope) {
-            proxyDesc.frameId = nextScope.proxyComProps.id
-            myScope = nextScope.parent
-          }
-          const isFn = inReg.def.namespace === 'mybricks.core-comlib.fn'
-
-          if (isFn) {
-            const { configs } = comProps.data
-            if (configs) {
-              Object.entries(configs).forEach(([key, value]) => {
-                const { frameId, comId, pinId } = proxyDesc
-                const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
-                const cons = Cons[idPre + '-' + key]
-                if (cons) {
-                  exeCons({logProps: null, cons, val: value, curScope: myScope})
-                }
-              })
-            }
-          }
-
-          exeInputForFrame({ options: proxyDesc, value: val, scope: myScope, comProps })
-
-          if (!isFrameOutput) {
-            exeForFrame({frameId: proxyDesc.frameId, scope: myScope})
-          }
+    if (inReg.type === 'com') {
+      if (fromCon) {
+        if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels///TODO
+          exeInputForCom(inReg, val, nextScope)
+        }
+      } else {
+        exeInputForCom(inReg, val, nextScope)
+      }
+    } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
+      if (fromCon) {
+        if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels
           return
         }
       }
 
-      if (inReg.type === 'com') {
-        if (fromCon) {
-          if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels///TODO
-            exeInputForCom(inReg, val, nextScope)
+      if (inReg.comId) {
+        if (inReg.direction === 'inner-input') {
+          // const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+          // TODO
+          const proxyFn = _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+          if (proxyFn) {
+            proxyFn(val)
           }
-        } else {
-          exeInputForCom(inReg, val, nextScope)
+        } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
+          const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
+          if (cons) {
+            exeCons({logProps: null, cons, val})
+          }
         }
-      } else if (inReg.type === 'frame') {//frame-inner-input -> com-output proxy,exg dialog
-        if (fromCon) {
-          if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels
+      } else {
+        const proxiedComProps = nextScope?.proxyComProps
+        if (proxiedComProps) {
+
+          const outPin = proxiedComProps.outputs[inReg.pinId]
+          if (outPin) {
+            outPin(val, nextScope.parent)
             return
           }
         }
 
-        if (inReg.comId) {
-          if (inReg.direction === 'inner-input') {
-            // const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
-            // TODO
-            const proxyFn = _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
-            if (proxyFn) {
-              proxyFn(val)
-            }
-          } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
-            const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
-            if (cons) {
-              exeCons({logProps: null, cons, val})
-            }
-          }
-        } else {
-          const proxiedComProps = nextScope?.proxyComProps
-          if (proxiedComProps) {
-
-            const outPin = proxiedComProps.outputs[inReg.pinId]
-            if (outPin) {
-              outPin(val, nextScope.parent)
-              return
-            }
-          }
-
-          _frameOutput[inReg.pinId]?.(val)
-        }
-      } else {
-        throw new Error(`尚未实现`)
+        _frameOutput[inReg.pinId]?.(val)
       }
+    } else {
+      throw new Error(`尚未实现`)
     }
+  }
 
+  function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom, isAutoRun}: any) {
     if (debug && JsonType !== 'module') {
       // 开启断点的连线先执行
       cons.sort((a: any, b: any) => {
@@ -278,121 +279,16 @@ export default function executor(opts, {observable}) {
       } else {
         logProps && _logOutputVal(...logProps)
       }
-      // 这里需要劫持所有东西，所以说多输入这里也需要劫持
-      function next({ pinId, value, curScope }: any) {
-        let nextScope = curScope
-        const finalInReg = pinId ? {...inReg, pinId} : inReg
-
-        if (notifyAll) {
-          const frameKey = finalInReg.frameKey
-          if (!frameKey) {
-            throw new Error(`数据异常，请检查toJSON结果.`)
-          }
-          if (frameKey === ROOT_FRAME_KEY) {//root作用域
-            exeCon(finalInReg, {}, value)
-          } else {
-            // const ary = frameKey.split('-')
-            // if (ary.length >= 2) {
-            //   const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
-            //   if (!slotProps.curScope) {
-            //     slotProps.pushTodo((curScope) => {
-            //       exeCon(finalInReg, curScope, value)
-            //     })
-            //   } else {
-            //     exeCon(finalInReg, slotProps.curScope, value)
-            //   }
-            // }
-            exeCon(finalInReg, curScope, value)
-          }
-        } else {
-          const ary = finalInReg.frameKey.split('-')
-          if (ary.length >= 2 && !nextScope) {
-            // 如果是作用域内却没有scope信息
-            const slotProps = getSlotProps(ary[0], ary[1], null, false)
-
-            if (slotProps?.type === 'scope') {
-              // 作用域插槽
-              if (!slotProps.curScope) {
-                // 还没完成渲染
-                slotProps.pushTodo((curScope) => {
-                  exeCon(finalInReg, curScope, value)
-                })
-              } else {
-                exeCon(finalInReg, slotProps.curScope, value)
-              }
-            } else {
-              exeCon(finalInReg, nextScope, value)
-            }
-          } else {
-            exeCon(finalInReg, nextScope, value)
-          }
-        }
-      }
-      function callNext({ pinId, value, component, curScope }: any) {
-        const { isReady, isMultipleInput, pinId: realPinId, value: realValue, cb } = transformInputId({ pinId, value, component, curScope })
-
-        if (isReady) {
-          const nextProps = {
-            pinId: isMultipleInput ? realPinId : null,
-            value: realValue,
-            curScope
-          }
-          // 可以触发
-          if (timerPinInputId) {
-            // debugger
-            // const timerKey = curScope ? timerPinInputId + '-' + curScope.id : timerPinInputId
-            const timerKey = timerPinInputId + '-' + frameKey + (curScope?.id ? `-${curScope.id}` : '')
-            const timerWaitInfo = _timerPinWait[timerKey]
-            if (timerWaitInfo) {
-              const { ready, todo } = timerWaitInfo
-              if (ready) {
-                let hasSameFn = false
-                Object.entries(todo).forEach(([key, todoFn]: any) => {
-                  if (key === realPinId) {
-                    next(nextProps)
-                    hasSameFn = true
-                  } else {
-                    todoFn()
-                  }
-                })
-                if (!hasSameFn) {
-                  next(nextProps)
-                }
-                cb?.()
-                Reflect.deleteProperty(_timerPinWait, timerKey)
-              } else {
-                todo[realPinId] = () => {
-                  cb?.()
-                  next(nextProps)
-                }
-              }
-            } else {
-              _timerPinWait[timerKey] = {
-                ready: false,
-                todo: {
-                  [realPinId]: () => {
-                    cb?.()
-                    next(nextProps)
-                  }
-                }
-              }
-            }
-          } else {
-            cb?.()
-            next(nextProps)
-          }
-        }
-      }
 
       // 这里需要等待多输入和timer
       if (pinType === "timer") {
         // 这里不存在多输入，直接执行即可
-        next({value: val, curScope})
+        next({value: val, curScope, inReg, notifyAll, fromCon})
       } else {
         if (notifyAll) {
           const frameKey = inReg.frameKey
           if (frameKey === ROOT_FRAME_KEY || isAutoRun) { // 插槽内对变量的监听在插槽第一次渲染时默认触发一次
-            callNext({ pinId, value: val, component, curScope: null})
+            callNext({ pinId, value: val, component, curScope: null, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
           } else {
             const [comId, slotId] = frameKey.split('-')
 
@@ -415,7 +311,7 @@ export default function executor(opts, {observable}) {
 
             if (fromCom.parentComId) {
               /** 监听到作用域内变量更新，仅监听当前作用域 */
-              callNext({ pinId, value: val, component, curScope})
+              callNext({ pinId, value: val, component, curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
             } else {
               /** 监听到非作用域变量，更新所有作用域 */
               const frameProps = _Props[`${comId}-${slotId}`]
@@ -426,64 +322,172 @@ export default function executor(opts, {observable}) {
                     if (!slot.curScope) {
                       // 还没完成渲染
                       slot.pushTodo((curScope: any) => {
-                        callNext({ pinId, value: val, component, curScope})
+                        callNext({ pinId, value: val, component, curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
                       })
                     } else {
-                      callNext({ pinId, value: val, component, curScope: slot.curScope})
+                      callNext({ pinId, value: val, component, curScope: slot.curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
                     }
                   } else {
-                    callNext({ pinId, value: val, component, curScope: slot.curScope})
+                    callNext({ pinId, value: val, component, curScope: slot.curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
                   }
                 })
               }
             } 
           }
         } else {
-          callNext({ pinId, value: val, component, curScope})
-        }
-      }
-
-      function transformInputId({ pinId, value, component, curScope }: any) {
-        let finalPinId = pinId;
-        let finalValue = value;
-        let isReady = true;
-        const pidx = pinId.indexOf('.')
-        const valueBarrierKey = comId + `${curScope?.id ? `-${curScope.id}` : ''}`
-        if (component && pidx !== -1) {
-          // 多输入
-          const { inputs } = component
-          finalPinId = pinId.substring(0, pidx)
-          const paramId = pinId.substring(pidx + 1)
-          let barrier = _valueBarrier[valueBarrierKey]
-          if (!barrier) {
-            barrier = _valueBarrier[valueBarrierKey] = {}
-          }
-          barrier[paramId] = val
-          const regExp = new RegExp(`${finalPinId}.`)
-          const allPins: string[] = inputs.filter((pin: string) => {
-            return !!pin.match(regExp)
-          })
-
-          if (Object.keys(barrier).length === allPins.length) {
-            // 多输入全部到达
-            finalValue = barrier
-          } else {
-            isReady = false
-          }
-        }
-        let isMultipleInput = finalPinId !== pinId
-
-        return {
-          pinId: finalPinId,
-          value: finalValue,
-          isReady,
-          isMultipleInput,
-          cb: isMultipleInput ? () => {
-            Reflect.deleteProperty(_valueBarrier, valueBarrierKey)
-          } : null
+          callNext({ pinId, value: val, component, curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
         }
       }
     })
+  }
+
+  // 这里需要劫持所有东西，所以说多输入这里也需要劫持
+  function next({ pinId, value, curScope, inReg, notifyAll, fromCon }: any) {
+    let nextScope = curScope
+    const finalInReg = pinId ? {...inReg, pinId} : inReg
+
+    if (notifyAll) {
+      const frameKey = finalInReg.frameKey
+      if (!frameKey) {
+        throw new Error(`数据异常，请检查toJSON结果.`)
+      }
+      if (frameKey === ROOT_FRAME_KEY) {//root作用域
+        exeCon(finalInReg, {}, value, fromCon)
+      } else {
+        // const ary = frameKey.split('-')
+        // if (ary.length >= 2) {
+        //   const slotProps = getSlotProps(ary[0], ary[1], nextScope, notifyAll)
+        //   if (!slotProps.curScope) {
+        //     slotProps.pushTodo((curScope) => {
+        //       exeCon(finalInReg, curScope, value)
+        //     })
+        //   } else {
+        //     exeCon(finalInReg, slotProps.curScope, value)
+        //   }
+        // }
+        exeCon(finalInReg, curScope, value, fromCon)
+      }
+    } else {
+      const ary = finalInReg.frameKey.split('-')
+      if (ary.length >= 2 && !nextScope) {
+        // 如果是作用域内却没有scope信息
+        const slotProps = getSlotProps(ary[0], ary[1], null, false)
+
+        if (slotProps?.type === 'scope') {
+          // 作用域插槽
+          if (!slotProps.curScope) {
+            // 还没完成渲染
+            slotProps.pushTodo((curScope: any) => {
+              exeCon(finalInReg, curScope, value, fromCon)
+            })
+          } else {
+            exeCon(finalInReg, slotProps.curScope, value, fromCon)
+          }
+        } else {
+          exeCon(finalInReg, nextScope, value, fromCon)
+        }
+      } else {
+        exeCon(finalInReg, nextScope, value, fromCon)
+      }
+    }
+  }
+
+  function callNext({ pinId, value, component, curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon }: any) {
+    const { isReady, isMultipleInput, pinId: realPinId, value: realValue, cb } = transformInputId({ pinId, value, component, curScope, comId, val })
+
+    if (isReady) {
+      const nextProps = {
+        pinId: isMultipleInput ? realPinId : null,
+        value: realValue,
+        curScope,
+        inReg, notifyAll, fromCon
+      }
+      // 可以触发
+      if (timerPinInputId) {
+        // debugger
+        // const timerKey = curScope ? timerPinInputId + '-' + curScope.id : timerPinInputId
+        const timerKey = timerPinInputId + '-' + frameKey + (curScope?.id ? `-${curScope.id}` : '')
+        const timerWaitInfo = _timerPinWait[timerKey]
+        if (timerWaitInfo) {
+          const { ready, todo } = timerWaitInfo
+          if (ready) {
+            let hasSameFn = false
+            Object.entries(todo).forEach(([key, todoFn]: any) => {
+              if (key === realPinId) {
+                next(nextProps)
+                hasSameFn = true
+              } else {
+                todoFn()
+              }
+            })
+            if (!hasSameFn) {
+              next(nextProps)
+            }
+            cb?.()
+            Reflect.deleteProperty(_timerPinWait, timerKey)
+          } else {
+            todo[realPinId] = () => {
+              cb?.()
+              next(nextProps)
+            }
+          }
+        } else {
+          _timerPinWait[timerKey] = {
+            ready: false,
+            todo: {
+              [realPinId]: () => {
+                cb?.()
+                next(nextProps)
+              }
+            }
+          }
+        }
+      } else {
+        cb?.()
+        next(nextProps)
+      }
+    }
+  }
+
+  function transformInputId({ pinId, value, component, curScope, comId, val }: any) {
+    const pidx = pinId.indexOf('.')
+    const result = {
+      pinId,
+      value,
+      isReady: true,
+      isMultipleInput: false,
+      cb: null
+    }
+    if (component && pidx !== -1) {
+      const valueBarrierKey = comId + `${curScope?.id ? `-${curScope.id}` : ''}`
+      // 多输入
+      const { inputs } = component
+      const finalPinId = pinId.substring(0, pidx)
+      result.pinId = finalPinId
+      const paramId = pinId.substring(pidx + 1)
+      let barrier = _valueBarrier[valueBarrierKey]
+      if (!barrier) {
+        barrier = _valueBarrier[valueBarrierKey] = {}
+      }
+      barrier[paramId] = val
+      const regExp = new RegExp(`${finalPinId}.`)
+      const allPins: string[] = inputs.filter((pin: string) => {
+        return !!pin.match(regExp)
+      })
+
+      if (Object.keys(barrier).length === allPins.length) {
+        // 多输入全部到达
+        result.value = barrier
+        result.isMultipleInput = true
+        result.cb = () => {
+          Reflect.deleteProperty(_valueBarrier, valueBarrierKey)
+        }
+      } else {
+        result.isReady = false
+      }
+    }
+
+    return result
   }
 
   function getComProps(comId,
@@ -737,8 +741,6 @@ export default function executor(opts, {observable}) {
                 const activeEvt = eAry.find(e => e.active)
                 if (activeEvt) {
                   const {type} = activeEvt
-
-
                   switch (type) {
                     case 'none':
                       cons = []
@@ -769,32 +771,6 @@ export default function executor(opts, {observable}) {
                       }
                       break
                   }
-
-                  // if (type === 'none') {
-                  //   return
-                  // }
-
-                  // if (!['fx', 'defined'].includes(type)) {
-                  //   if (Array.isArray(env?.events)) {
-                  //     const def = env.events.find(ce => {
-                  //       if (ce.type === type) {
-                  //         return ce
-                  //       }
-                  //     })
-                  //     if (def && typeof def.exe === 'function') {
-                  //       def.exe({options: activeEvt.options})//与设计器中的使用方法对齐
-                  //     }
-                  //   }
-
-                  //   return
-                  // }
-
-                  // if (type === 'fx') {
-                  //   const proxyDesc = PinProxies[comId + '-' + name]
-                  //   if (proxyDesc?.type === 'frame') {
-                  //     cons = Cons[`${proxyDesc.frameId}-${proxyDesc.pinId}`]
-                  //   }
-                  // }
                 }
               }
             }
@@ -1335,6 +1311,9 @@ export default function executor(opts, {observable}) {
           const props = getComProps(id, scope)
           const comDef = getComDef(def)
           if (!comDef) return
+          
+          console.log(comDef, "comDef")
+          console.log(props, "props")
 
           comDef.runtime({
             env: _Env,

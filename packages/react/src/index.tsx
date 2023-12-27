@@ -89,6 +89,8 @@ class Context {
     const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
     // 执行安装的插件
     // 暂时内置前面的插件
+    console.log("debug: ", debug)
+    console.log("mode: ", this.mode)
     const arr = [new Debugger()]
     arr.concat(plugins).forEach((plugin) => {
       plugin.apply(this)

@@ -7,9 +7,9 @@
  * mybricks@126.com
  */
 
-import React, {memo, useEffect, useMemo, useState} from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 
-import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen} from "../../core/utils";
+import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen, getStylesheetMountNode} from "../../core/utils";
 
 import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
@@ -139,17 +139,13 @@ function RenderCom({
   } = props
 
   useMemo(() => {
-    // if (!props._todo) {
-    //   props._todo = {}
-    //   props._slotProps = {}
-    // }
     const { pxToRem: configPxToRem, pxToVw: configPxToVw } = env
 
     const styleAry = getStyleAry({ env, def, style })
 
     if (Array.isArray(styleAry)) {
-      const root = env?.shadowRoot || document.getElementById('_mybricks-geo-webview_')?.shadowRoot
-      if (!(root || document).querySelector(`style[id="${id}"]`)) {
+      const root = getStylesheetMountNode();
+      if (!root.querySelector(`style[id="${id}"]`)) {
         const styleTag = document.createElement('style')
         let innerText = ''
 
@@ -245,52 +241,6 @@ function RenderCom({
         get size() {
           return !!slots[slotId]?.comAry?.length
         },
-        // _inputs: new Proxy({}, {
-        //   get(_, id) {
-        //     return (value) => {
-        //       if (!props._slotProps[slotId]) {
-        //         if (!props._todo[slotId]) {
-        //           props._todo[slotId] = [{type: "_inputs", id, value}]
-        //         } else {
-        //           props._todo[slotId].push({type: "_inputs", id, value})
-        //         }
-        //       } else {
-        //         props._slotProps[slotId]._inputs[id](value)
-        //       }
-        //     }
-        //   }
-        // }),
-        // inputs: new Proxy({}, {
-        //   get(_, id) {
-        //     return (value) => {
-        //       if (!props._slotProps[slotId]) {
-        //         if (!props._todo[slotId]) {
-        //           props._todo[slotId] = [{type: "inputs", id, value}]
-        //         } else {
-        //           props._todo[slotId].push({type: "inputs", id, value})
-        //         }
-        //       } else {
-        //         props._slotProps[slotId].inputs[id](value)
-        //       }
-        //     }
-        //   }
-        // }),
-        // outputs: new Proxy({}, {
-        //   get(_, id) {
-        //     return (value) => {
-        //       if (!props._slotProps[slotId]) {
-        //         if (!props._todo[slotId]) {
-        //           props._todo[slotId] = [{type: "outputs", id, value}]
-        //         } else {
-        //           props._todo[slotId].push({type: "outputs", id, value})
-        //         }
-        //       } else {
-        //         props._slotProps[slotId].outputs[id](value)
-        //       }
-        //     }
-        //   }
-        // }),
-        
         _inputs: props._inputs,
         inputs: props.inputs,
         outputs: props.outputs
@@ -414,7 +364,7 @@ function SlotRender ({
   onError,
   logger
 }) {
-  const [ preInputValues, setPreInputValues] = useState(null)
+  const preInputValues = useRef(null)
   const { curScope, curProps } = useMemo(() => {
     let finalScope = currentScope
     let finalProps = props
@@ -429,12 +379,9 @@ function SlotRender ({
         }
 
         hasNewScope = true
-
-        // finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
       }
     }
 
-  
     if (params) {
       const ivs = params.inputValues
       if (typeof ivs === 'object') {
@@ -457,9 +404,9 @@ function SlotRender ({
   useEffect(() => {
     const paramsInputValues = params?.inputValues
     if (paramsInputValues) {
-      if (!preInputValues) {
-        setPreInputValues(paramsInputValues)
-      } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues) !== JSON.stringify(paramsInputValues))) {
+      if (!preInputValues.current) {
+        preInputValues.current = paramsInputValues
+      } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues.current) !== JSON.stringify(paramsInputValues))) {
         for (let pro in paramsInputValues) {
           curProps.inputs[pro](paramsInputValues[pro], curScope)
         }
