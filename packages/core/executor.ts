@@ -29,8 +29,6 @@ export default function executor(opts, {observable}) {
     _context,
   } = opts
 
-  console.log("executor debugLogger: ", debugLogger)
-
   const scenesOperate = opts.scenesOperate || env.scenesOperate
 
   const {

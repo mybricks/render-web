@@ -25,8 +25,6 @@ export default class MyBricksRenderDebugger {
   apply(context: any) {
     const { options, mode } = context
     const { env, debug, onError } = options
-
-    console.log("debugger apply: ", mode === "development" && typeof debug === "function")
     if (mode === "development" && typeof debug === "function") {
       const debuggerPanel = new Debugger(env);
       const { log, onResume } = debug({
