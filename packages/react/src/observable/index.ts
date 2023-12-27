@@ -110,13 +110,9 @@ function enhance(component, memoIt = true) {
     const ref = useRef<Reaction | null>(null);
     const [, setState] = useState([]);
   
-    const update = useCallback(() => {
-      setState([]);
-    }, []);
-  
     useMemo(() => {
       if (!ref.current) {
-        ref.current = new Reaction(update);
+        ref.current = new Reaction(() => setState([]));
       }
     }, []);
   
