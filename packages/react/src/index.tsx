@@ -40,8 +40,6 @@ interface RenderOptions {
 }
 
 class Context {
-  // TODO: 调试面板，作为插件注入
-  private debuggerPanel: any
   // TODO: 性能面板，作为插件注入，加一个开关（例如localStorage
   private performance: any = {
     render: {

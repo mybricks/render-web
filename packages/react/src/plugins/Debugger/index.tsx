@@ -26,7 +26,7 @@ export default class MyBricksRenderDebugger {
     const { options, mode } = context
     const { env, debug, onError } = options
 
-    if (mode === "development") {
+    if (mode === "development" && typeof debug === "function") {
       const debuggerPanel = new Debugger(env);
       const { log, onResume } = debug({
         // 点击逻辑面板下一步
