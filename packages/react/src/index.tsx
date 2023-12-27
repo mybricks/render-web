@@ -21,6 +21,7 @@ import NotificationLess from './Notification/style.lazy.less';
 import DebuggerLess from './Debugger/style.lazy.less';
 import { setLoggerSilent } from '../../core/logger';
 import Notification from './Notification';
+import executor from '../../core/executor'
 import { compareVersion, getStylesheetMountNode } from '../../core/utils';
 import type { ToJSON, MultiSceneToJSON } from "./types";
 // @ts-ignore
@@ -354,8 +355,50 @@ export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) 
       transformJSON(json);
       jsx = <MultiScene json={json} opts={options}/>
     } else {
-      // 检查一下这个json.type的判断能否去掉
-      jsx = <Main json={json} opts={options} root={json.type === 'module' ? false : true}/>
+      if (json.slot) {
+        // 检查一下这个json.type的判断能否去掉
+        jsx = <Main json={json} opts={options} root={json.type === 'module' ? false : true}/>
+      }
+    }
+    if (!jsx) {
+      // TODO: 这里是运行纯函数的模版
+      const _context = new Context(options)
+      executor({
+        json,
+        getComDef: (def: any) => _context.getComDef(def),
+        events: options.events,
+        env: options.env,
+        ref(_refs: any) {
+          const { inputs } = _refs
+          const jsonInputs = (json as ToJSON).inputs
+          if (inputs && Array.isArray(jsonInputs)) {
+            jsonInputs.forEach((input) => {
+              const { id, mockData } = input
+              let value = void 0
+              if (options.debug && typeof mockData !== 'undefined') {
+                try {
+                  value = JSON.parse(decodeURIComponent(mockData))
+                } catch {
+                  value = mockData
+                }
+              }
+              inputs[id](value)
+            })
+          }
+          _refs.run()
+        },
+        onError: _context.onError,
+        debug: options.debug,
+        debugLogger: options.debugLogger,
+        logger: _context.logger,
+        scenesOperate: options.scenesOperate,
+        _context
+      }, {
+        observable: options.observable || function(data: any) {
+          return data
+        }
+      }) 
+      return null
     }
     // 如果是嵌套渲染，不再重复嵌套Provider
     if (options._isNestedRender) {

@@ -23,6 +23,16 @@ export interface ToJSON {
    * - fx - 全局Fx
    */
   type?: 'module' | 'fx'
+
+  /**
+   * 有slot代表是ui，否则判定为纯计算组件
+   */
+  slot?: object
+
+  /**
+   * 输入项
+   */
+  inputs: Array<any>
 }
 
 export interface MultiSceneToJSON {
