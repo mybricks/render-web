@@ -72,7 +72,7 @@ export default function executor(opts, {observable}) {
 
   // 当前输入项
   const _slotValue: any = {}
-  
+
   const _variableRelationship: any = {}
 
   /** 全局保存变量值, 在每次变量输出时存储值，变量为内置组件，知道其内部实现 */
@@ -206,7 +206,7 @@ export default function executor(opts, {observable}) {
         if (inReg.direction === 'inner-input') {
           // const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
           // TODO
-          const proxyFn = _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+          const proxyFn = (nextScope && _frameOutputProxy[`${nextScope.id}-${inReg.pinId}`]) || _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
           if (proxyFn) {
             proxyFn(val)
           }
