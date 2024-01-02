@@ -626,12 +626,12 @@ function getStyleAry ({ env, style, def }) {
     return style.styleAry
   }
 
-  let styleAry
+  let styleAry = style.styleAry
 
   const { themesId } = style
   const { namespace } = def
 
-  if (!themesId) {
+  if (!themesId && !styleAry) {
     // 去找默认值
     const comThemeAry = comThemes[namespace]
     if (Array.isArray(comThemeAry)) {
@@ -642,7 +642,7 @@ function getStyleAry ({ env, style, def }) {
     }
   } else if (themesId === '_defined') {
     // 使用styleAry
-    styleAry = style.styleAry
+    // styleAry = style.styleAry
   } else {
     // 去找相应的内容
     const comThemeAry = comThemes[namespace]
@@ -655,9 +655,9 @@ function getStyleAry ({ env, style, def }) {
   }
 
   // TODO: 兼容
-  if (!styleAry) {
-    return style.styleAry
-  }
+  // if (!styleAry) {
+  //   return style.styleAry
+  // }
 
   return styleAry
 }
