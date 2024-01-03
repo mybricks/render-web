@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 
-import React, { useContext, createContext } from "react";
+import React, { useEffect, useContext, createContext } from "react";
 
 import Main from "./Main";
 import pkg from "../package.json";
@@ -55,6 +55,8 @@ class Context {
     // 连接器数据收集（耗时，配置信息）
     callConnectorTimes: []
   }
+
+  onCompleteCallBacks: Array<() => void> = []
 
   /**
    * - development - 引擎环境
@@ -123,10 +125,20 @@ class Context {
       }
     }
 
+    const { onCompleteCallBacks } = this
     /** 一些默认值 */
     // 运行时，默认为runtime模式
     if (!env.runtime) {
-      env.runtime = {}
+      env.runtime = {
+        debug: {
+          onComplete(fn: any) {
+            onCompleteCallBacks.push(fn)
+          }
+        },
+        onComplete(fn: any) {
+          onCompleteCallBacks.push(fn)
+        }
+      }
     }
     // 国际化，是否可以去除？？，PC通用组件库内使用
     // TODO: 去除
@@ -326,11 +338,13 @@ class Context {
 const MyBricksRenderContext = createContext<any>({})
 
 export function MyBricksRenderProvider ({ children, value }: any) {
-  // useEffect(() => {
-  //   return () => {
-  //     console.log("render 渲染根组件 销毁: ", value) // 这里可以做各类销毁动作，尤其是一些插件
-  //   }
-  // }, [])
+  useEffect(() => {
+    return () => {
+      value.onCompleteCallBacks.forEach((cb: any) => {
+        cb()
+      })
+    }
+  }, [])
   return (
     <MyBricksRenderContext.Provider value={value}>
       {children}
