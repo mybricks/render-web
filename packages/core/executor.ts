@@ -901,7 +901,7 @@ export default function executor(opts, {observable}) {
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
-    const {comId, def, pinId, pinType, frameKey, finishPinParentKey, timerPinInputId} = inReg
+    const {comId, def, pinId, pinType, frameKey, finishPinParentKey, timerPinInputId, targetFrameKey} = inReg
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
@@ -1018,9 +1018,10 @@ export default function executor(opts, {observable}) {
                     const pinValueProxy = PinValueProxies[`${comId}-${pinId}`]
                     if (pinValueProxy) {
                       const frameId = pinValueProxy.frameId
-                      val = getSlotValue(`${frameId === json.id ? ROOT_FRAME_KEY : frameKey}-${pinValueProxy.pinId}`, scope)
+                      const slotValueKey = `${frameId === json.id ? ROOT_FRAME_KEY : (targetFrameKey || frameKey)}-${pinValueProxy.pinId}`
+                      val = getSlotValue(slotValueKey, scope)
                       if (typeof val === 'undefined') {
-                        val = getSlotValue(`${frameId === json.id ? ROOT_FRAME_KEY : frameKey}-${pinValueProxy.pinId}`, null)
+                        val = getSlotValue(slotValueKey, null)
                       }
                     }
                   }
