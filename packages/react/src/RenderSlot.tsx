@@ -407,6 +407,7 @@ function SlotRender ({
       if (!preInputValues.current) {
         preInputValues.current = paramsInputValues
       } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues.current) !== JSON.stringify(paramsInputValues))) {
+        preInputValues.current = paramsInputValues
         for (let pro in paramsInputValues) {
           curProps.inputs[pro](paramsInputValues[pro], curScope)
         }
