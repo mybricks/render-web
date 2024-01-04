@@ -130,11 +130,11 @@ class Context {
     // 运行时，默认为runtime模式
     if (!env.runtime) {
       env.runtime = {
-        debug: {
-          onComplete(fn: any) {
-            onCompleteCallBacks.push(fn)
-          }
-        },
+        // debug: {
+        //   onComplete(fn: any) {
+        //     onCompleteCallBacks.push(fn)
+        //   }
+        // },
         onComplete(fn: any) {
           onCompleteCallBacks.push(fn)
         }
