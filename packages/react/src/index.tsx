@@ -435,7 +435,7 @@ function transformJSON (json: MultiSceneToJSON) {
   const { global, modules, scenes } = json
 
   if (global) {
-    const { comsReg, consReg, pinRels, fxFrames } = global
+    const { comsReg, consReg, pinRels, fxFrames, pinProxies } = global
     if (comsReg) {
       Object.keys(comsReg).forEach((key) => {
         comsReg[key].global = true
@@ -452,6 +452,9 @@ function transformJSON (json: MultiSceneToJSON) {
         if (pinRels) {
           Object.assign(fxFrame.pinRels, pinRels)
         }
+        if (pinProxies) {
+          Object.assign(fxFrame.pinProxies, pinProxies)
+        }
       })
     }
     if (modules) {
@@ -466,6 +469,9 @@ function transformJSON (json: MultiSceneToJSON) {
         if (pinRels) {
           Object.assign(json.pinRels, pinRels)
         }
+        if (pinProxies) {
+          Object.assign(json.pinProxies, pinProxies)
+        }
       })
     }
     scenes.forEach((scene: any) => {
@@ -477,6 +483,9 @@ function transformJSON (json: MultiSceneToJSON) {
       }
       if (pinRels) {
         Object.assign(scene.pinRels, pinRels)
+      }
+      if (pinProxies) {
+        Object.assign(scene.pinProxies, pinProxies)
       }
     })
   }
