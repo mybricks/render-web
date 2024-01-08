@@ -858,13 +858,15 @@ export default function executor(opts, {observable}) {
       }
     }
 
+    const isJS = def.rtType?.match(/^js/gi)
+
     const rtn = {
       id: com.id,
       title: com.title,
       frameId: com.frameId,
       parentComId: com.parentComId,
-      data: observable(modelData),
-      style: observable(modelStyle),
+      data: isJS ? modelData : observable(modelData),
+      style: isJS ? modelStyle : observable(modelStyle),
       _inputRegs: inputRegs,
       addInputTodo,
       inputs: inputs(),

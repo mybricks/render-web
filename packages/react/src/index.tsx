@@ -36,7 +36,7 @@ function loadCSSLazy (css: typeof RenderSlotLess, root: Node) {
 interface RenderOptions {
   env: any;
   // TODO: 改造完成后在透出的类型里隐藏
-  _isNestedRender: boolean;
+  _isNestedRender?: boolean;
   [key: string]: any;
 }
 
@@ -90,12 +90,6 @@ class Context {
     }
     // 样式加载dom节点
     const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
-    // 执行安装的插件
-    // 暂时内置前面的插件
-    const arr = [new Debugger()]
-    arr.concat(plugins).forEach((plugin) => {
-      plugin.apply(this)
-    })
     // 各种lazycss加载
     loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
     loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
@@ -218,6 +212,13 @@ class Context {
     this.initOther()
     // 收集页面组件信息
     this.initComdefs()
+
+    // 执行安装的插件
+    // 暂时内置前面的插件
+    const arr = [new Debugger()]
+    arr.concat(plugins).forEach((plugin) => {
+      plugin.apply(this)
+    })
   }
 
   // 初始化其它信息
