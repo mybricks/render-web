@@ -153,6 +153,18 @@ class Context {
         return renderModule(json, { ...options, env, _isNestedRender: true })
       }
     }
+    if (!env.renderCom) {
+      env.renderCom = (json: any, options: any) => {
+        // 最终还是调render-wen提供的render函数，渲染toJSON
+        return render(json, { ...options, _isNestedRender: true })
+      }
+    } else {
+      const renderCom = env.renderCom
+      env.renderCom = (json: any, options: any) => {
+        // 最终还是调render-wen提供的render函数，渲染toJSON
+        return renderCom(json, { ...options, _isNestedRender: true })
+      }
+    }
     const body = document.body
     // 用于判断是mobile或pc，组件响应式，目前通用pc组件库内有使用
     if (!env.canvas) {

@@ -65,6 +65,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
         debugLogger: opts.debugLogger,
         logger,
         scenesOperate: opts.scenesOperate,
+        _isNestedRender: opts._isNestedRender,
         _context
       }, {//////TODO goon
         observable: opts.observable || defaultObservable//传递获取响应式的方法
