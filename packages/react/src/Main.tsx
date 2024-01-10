@@ -7,13 +7,7 @@
  * mybricks@126.com
  */
 
-import React, {
-  useMemo,
-  useCallback,
-  useLayoutEffect,
-  useEffect,
-  useState,
-} from 'react';
+import React, { useMemo, useLayoutEffect } from 'react';
 
 import { useMyBricksRenderContext } from './index'
 import executor from '../../core/executor'
@@ -22,12 +16,24 @@ import Notification from './Notification';
 import ErrorBoundary from './ErrorBoundary';
 import {observable as defaultObservable} from './observable';
 
-export default function Main({json, opts, style = {}, className = '', root = true, from}: { json, opts, style?, className?, root: boolean, from?: string }) {
+// ToJSON
+
+import type { ToJSON } from "./types";
+
+interface Props {
+  json: ToJSON;
+  options: any;
+  style?: any;
+  className?: string;
+  root: boolean;
+  from?: 'scene';
+}
+
+export default function Main({json, options, style = {}, className = '', root = true, from}: Props) {
   const _context = useMyBricksRenderContext()
   
-  //环境变量，此处可以定义连接器、多语言等实现
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
-    const { env, debug } = opts
+    const { env, debug } = options
     if (debug && from === 'scene') {
       style.minHeight = 800
     }
@@ -36,7 +42,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
       env,
       onError: _context.onError,
       logger: _context.logger,
-      getComDef: (def) => _context.getComDef(def),
+      getComDef: (def: any) => _context.getComDef(def),
       slot: json.slot,
       _context
     }
@@ -50,25 +56,25 @@ export default function Main({json, opts, style = {}, className = '', root = tru
       const context = executor({
         json,
         getComDef,
-        events: opts.events,
+        events: options.events,
         env,
-        ref(_refs) {
+        ref(_refs: any) {
           refs = _refs
-          if (typeof opts.ref === 'function') {
-            opts.ref(_refs)
+          if (typeof options.ref === 'function') {
+            options.ref(_refs)
             // 如果被代理，那么inputs由外部处理
             activeTriggerInput = false
           }
         },
         onError,
-        debug: opts.debug,
-        debugLogger: opts.debugLogger,
+        debug: options.debug,
+        debugLogger: options.debugLogger,
         logger,
-        scenesOperate: opts.scenesOperate,
-        _isNestedRender: opts._isNestedRender,
+        scenesOperate: options.scenesOperate,
+        _isNestedRender: options._isNestedRender,
         _context
       }, {//////TODO goon
-        observable: opts.observable || defaultObservable//传递获取响应式的方法
+        observable: options.observable || defaultObservable//传递获取响应式的方法
       })
 
       return [context, refs, activeTriggerInput]
@@ -80,7 +86,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
   }, [])
 
   useLayoutEffect(() => {
-    if (!opts.disableAutoRun) {
+    if (!options.disableAutoRun) {
       if (activeTriggerInput) {
         const { inputs } = refs
         const jsonInputs = json.inputs
@@ -88,7 +94,7 @@ export default function Main({json, opts, style = {}, className = '', root = tru
           jsonInputs.forEach((input) => {
             const { id, mockData } = input
             let value = void 0
-            if (opts.debug && typeof mockData !== 'undefined') {
+            if (options.debug && typeof mockData !== 'undefined') {
               try {
                 value = JSON.parse(decodeURIComponent(mockData))
               } catch {
@@ -108,12 +114,12 @@ export default function Main({json, opts, style = {}, className = '', root = tru
       <RenderSlot
         env={env}
         style={style}
-        _env={opts._env}
+        _env={options._env}
         slot={slot}
         getComDef={getComDef}
         context={context}
         className={className}
-        createPortal={opts.createPortal || (() => {})}
+        createPortal={options.createPortal || (() => {})}
         onError={onError}
         logger={logger}
         root={root}

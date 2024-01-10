@@ -14,15 +14,15 @@ import lazyCss from './MultiScene.lazy.less'
 
 const css = lazyCss.locals
 
-export default function MultiScene ({json, opts}) {
+export default function MultiScene ({json, options}) {
   const _context = useMyBricksRenderContext()
   const [count, setCount] = useState(0)
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
   const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap} = useMemo(() => {
-    if (opts.sceneId) {
-      const index = json.scenes.findIndex((scenes) => scenes.id === opts.sceneId)
+    if (options.sceneId) {
+      const index = json.scenes.findIndex((scenes) => scenes.id === options.sceneId)
       if (index !== -1) {
         const scene = json.scenes.splice(index, 1)
         json.scenes.unshift(...scene)
@@ -47,12 +47,12 @@ export default function MultiScene ({json, opts}) {
 
     const { modules, definedComs } = json
 
-    if (!opts.env.getDefinedComJSON) {
-      opts.env.getDefinedComJSON = (definedId: string) => {
+    if (!options.env.getDefinedComJSON) {
+      options.env.getDefinedComJSON = (definedId: string) => {
         return definedComs[definedId].json
       }
     }
-    opts.env.getModuleJSON = (moduleId: string) => {
+    options.env.getModuleJSON = (moduleId: string) => {
       return modules?.[moduleId]?.json
     }
 
@@ -78,14 +78,14 @@ export default function MultiScene ({json, opts}) {
   }, [])
 
   useMemo(() => {
-    if (opts.ref) {
-      const ref = opts.ref
-      opts.ref = (cb) => (_refs) => {
+    if (options.ref) {
+      const ref = options.ref
+      options.ref = (cb) => (_refs) => {
         cb(_refs)
-        return ref.call(opts, _refs)
+        return ref.call(options, _refs)
       }
     } else {
-      opts.ref = (cb) => (_refs) => {
+      options.ref = (cb) => (_refs) => {
         cb(_refs)
       }
     }
@@ -109,10 +109,10 @@ export default function MultiScene ({json, opts}) {
     }
   }, [])
 
-  const options = useCallback((id) => {
+  const getOptions = useCallback((id) => {
     const scenes = scenesMap[id]
-    const hasPermission = opts.env.hasPermission
-    const { env } = opts
+    const hasPermission = options.env.hasPermission
+    const { env } = options
     env.themes = themes
     env.permissions = permissions
     if (typeof hasPermission === 'function') {
@@ -138,11 +138,11 @@ export default function MultiScene ({json, opts}) {
         let scenes = scenesMap[sceneId]
 
         if (!scenes) {
-          if (typeof opts.scenesLoader !== 'function') {
+          if (typeof options.scenesLoader !== 'function') {
             console.error(`缺少场景信息: ${sceneId}`)
             return
           }
-          const json = await opts.scenesLoader({id: sceneId})
+          const json = await options.scenesLoader({id: sceneId})
 
           scenes = {
             disableAutoRun: false,
@@ -219,7 +219,7 @@ export default function MultiScene ({json, opts}) {
           }
         }
       }
-    }, opts.env?.canvas)
+    }, options.env?.canvas)
 
     const scenesOperate = {
       open({todo, frameId, parentScope, comProps}) {
@@ -245,7 +245,7 @@ export default function MultiScene ({json, opts}) {
             if (!currentFxFrameIdsMap[parentScope.id]) {
               currentFxFrameIdsMap[parentScope.id] = {}
               const { id } = fxtojson
-              const { env } = opts
+              const { env } = options
               const scenesOperate = {
                 open({todo, frameId, parentScope, comProps}) {
                   // console.log('fx scenesOperate.open', {
@@ -258,7 +258,7 @@ export default function MultiScene ({json, opts}) {
                     if (!currentFxFrameIdsMap[parentScope.id]) {
                       currentFxFrameIdsMap[parentScope.id] = {}
                       // const { id } = fxtojson
-                      const { env } = opts
+                      const { env } = options
                       const scenesOperate = {
                         open({todo, frameId, parentScope, comProps}) {
                           // console.log('fx scenesOperate.open', {
@@ -356,7 +356,7 @@ export default function MultiScene ({json, opts}) {
                       executor({
                         json: fxtojson,
                         getComDef: (def) => _context.getComDef(def),
-                        events: opts.events,
+                        events: options.events,
                         env,
                         ref(_refs) {
                           currentFxFrameIdsMap[parentScope.id]._refs = _refs
@@ -379,13 +379,13 @@ export default function MultiScene ({json, opts}) {
                           _refs.run()
                         },
                         onError: _context.onError,
-                        debug: opts.debug,
-                        debugLogger: opts.debugLogger,
+                        debug: options.debug,
+                        debugLogger: options.debugLogger,
                         logger: _context.logger,
                         scenesOperate,
                         _context
                       }, {//////TODO goon
-                        observable: opts.observable || defaultObservable//传递获取响应式的方法
+                        observable: options.observable || defaultObservable//传递获取响应式的方法
                       })
                     } else {
                       const { _refs } = currentFxFrameIdsMap[parentScope.id]
@@ -476,7 +476,7 @@ export default function MultiScene ({json, opts}) {
               executor({
                 json: fxtojson,
                 getComDef: (def) => _context.getComDef(def),
-                events: opts.events,
+                events: options.events,
                 env,
                 ref(_refs) {
                   currentFxFrameIdsMap[parentScope.id]._refs = _refs
@@ -499,15 +499,15 @@ export default function MultiScene ({json, opts}) {
                   _refs.run()
                 },
                 onError: _context.onError,
-                debug: opts.debug,
-                debugLogger: opts.debugLogger,
+                debug: options.debug,
+                debugLogger: options.debugLogger,
                 logger: _context.logger,
                 scenesOperate,
                 _context
               }, {//////TODO goon
-                observable: opts.observable || defaultObservable//传递获取响应式的方法
+                observable: options.observable || defaultObservable//传递获取响应式的方法
               })
-              // fxFramesJsx.push({key: parentScope.id, json: fxtojson, opts: options})
+              // fxFramesJsx.push({key: parentScope.id, json: fxtojson, options: options})
               // setCount((count) => count+1)
             } else {
               const { _refs } = currentFxFrameIdsMap[parentScope.id]
@@ -600,12 +600,12 @@ export default function MultiScene ({json, opts}) {
     env.scenesOperate = scenesOperate
 
     return {
-      ...opts,
+      ...options,
       env,
       get disableAutoRun() {
         return scenes.disableAutoRun
       },
-      ref: opts.ref((_refs) => {
+      ref: options.ref((_refs) => {
         // console.log(`场景注册_refs -> ${id}`)
         scenes._refs = _refs
         const todo = scenes.todo
@@ -653,7 +653,7 @@ export default function MultiScene ({json, opts}) {
             scenes.json.inputs?.forEach?.((input) => {
               const { id, mockData } = input
               let value = void 0
-              if (opts.debug && typeof mockData !== 'undefined') {
+              if (options.debug && typeof mockData !== 'undefined') {
                 try {
                   value = JSON.parse(decodeURIComponent(mockData))
                 } catch {
@@ -701,7 +701,7 @@ export default function MultiScene ({json, opts}) {
       const { id } = json
       const scene = scenesMap[id]
       
-      return scene.show && <Scene key={id} json={{...json, scenesMap}} opts={options(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}}/>
+      return scene.show && <Scene key={id} json={{...json, scenesMap}} options={getOptions(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}}/>
     })
   }, [count, pageScenes])
 
@@ -712,7 +712,7 @@ export default function MultiScene ({json, opts}) {
         const json = scene.json
         const { id } = json
         
-        return <Scene key={json.id} json={{...json, scenesMap}} opts={options(id)} style={{position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'}}/>
+        return <Scene key={json.id} json={{...json, scenesMap}} options={getOptions(id)} style={{position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'}}/>
       })
     }
    
@@ -731,9 +731,9 @@ export default function MultiScene ({json, opts}) {
   )
 }
 
-function Scene({json, opts, style = {}, className = ''}) {
+function Scene({json, options, style = {}, className = ''}) {
   return (
-    <Main json={json} opts={opts} style={style} className={className} from={"scene"}/>
+    <Main json={json} options={options} style={style} className={className} from={"scene"}/>
   )
 }
 

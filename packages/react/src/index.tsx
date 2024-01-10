@@ -378,11 +378,11 @@ export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) 
     let jsx = null
     if ("scenes" in json)  {
       transformJSON(json);
-      jsx = <MultiScene json={json} opts={options}/>
+      jsx = <MultiScene json={json} options={options}/>
     } else {
       if (json.slot) {
         // 检查一下这个json.type的判断能否去掉
-        jsx = <Main json={json} opts={options} root={json.type === 'module' ? false : true}/>
+        jsx = <Main json={json} options={options} root={json.type === 'module' ? false : true}/>
       }
     }
     if (!jsx) {
