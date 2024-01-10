@@ -14,7 +14,6 @@ import executor from '../../core/executor'
 import RenderSlot from './RenderSlot';
 import Notification from './Notification';
 import ErrorBoundary from './ErrorBoundary';
-import {observable as defaultObservable} from './observable';
 
 // ToJSON
 
@@ -74,7 +73,7 @@ export default function Main({json, options, style = {}, className = '', root = 
         _isNestedRender: options._isNestedRender,
         _context
       }, {//////TODO goon
-        observable: options.observable || defaultObservable//传递获取响应式的方法
+        observable: _context.observable
       })
 
       return [context, refs, activeTriggerInput]

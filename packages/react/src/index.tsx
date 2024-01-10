@@ -13,12 +13,11 @@ import Main from "./Main";
 import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import Debugger from "./plugins/Debugger";
-import { hijackReactcreateElement } from "./observable"
+import { hijackReactcreateElement, observable as defaultObservable } from "./observable"
 import RenderSlotLess from './RenderSlot.lazy.less';
 import MultiSceneLess from './MultiScene.lazy.less';
 import ErrorBoundaryLess from './ErrorBoundary/style.lazy.less';
 import NotificationLess from './Notification/style.lazy.less';
-import DebuggerLess from './Debugger/style.lazy.less';
 import { setLoggerSilent } from '../../core/logger';
 import Notification from './Notification';
 import executor from '../../core/executor'
@@ -80,6 +79,10 @@ class Context {
   // onError: (params: Error | string) => null
   // 组件runtime入参
   logger: any
+
+  // 将对象转换为响应式对象的方法
+  observable = defaultObservable
+
   // 传入的配置项
   constructor(public options: RenderOptions) {
     const { env, debug, observable, onError, plugins = [] } = options
@@ -87,6 +90,8 @@ class Context {
     if (!observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
       hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: env.pxToVw});
+    } else {
+      this.observable = observable
     }
     // 样式加载dom节点
     const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
@@ -419,9 +424,7 @@ export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) 
         scenesOperate: options.scenesOperate,
         _context
       }, {
-        observable: options.observable || function(data: any) {
-          return data
-        }
+        observable: _context.observable
       }) 
       return null
     }

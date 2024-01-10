@@ -8,7 +8,6 @@ import React, {
 import Main from './Main'
 import { useMyBricksRenderContext } from '.'
 import executor from '../../core/executor'
-import {observable as defaultObservable} from './observable';
 
 import lazyCss from './MultiScene.lazy.less'
 
@@ -385,7 +384,7 @@ export default function MultiScene ({json, options}) {
                         scenesOperate,
                         _context
                       }, {//////TODO goon
-                        observable: options.observable || defaultObservable//传递获取响应式的方法
+                        observable: _context.observable//传递获取响应式的方法
                       })
                     } else {
                       const { _refs } = currentFxFrameIdsMap[parentScope.id]
@@ -505,7 +504,7 @@ export default function MultiScene ({json, options}) {
                 scenesOperate,
                 _context
               }, {//////TODO goon
-                observable: options.observable || defaultObservable//传递获取响应式的方法
+                observable: _context.observable//传递获取响应式的方法
               })
               // fxFramesJsx.push({key: parentScope.id, json: fxtojson, options: options})
               // setCount((count) => count+1)
