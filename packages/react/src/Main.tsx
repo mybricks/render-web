@@ -103,33 +103,6 @@ export default function Main({json, opts, style = {}, className = '', root = tru
     }
   }, [])
 
-  // TODO:
-  useEffect(() => {
-    const intervalList = []
-    let originalSetInterval
-    const handle = opts.debug && setInterval.name !== 'mySetInterval' && json.type !== 'module'
-    if (handle) {
-      originalSetInterval = setInterval;
-      setInterval = function mySetInterval(...args) {
-        const id = originalSetInterval(...args);
-        intervalList.push(id);
-        return id
-      };
-    }
-   
-    return () => {
-      if (handle) {
-        // if (typeof opts.debug === "function") {
-        //   _context?.debuggerPanel?.destroy()
-        // }
-        setInterval = originalSetInterval
-        intervalList.forEach((intervalId) =>
-          clearInterval(intervalId)
-        )
-      }
-    }
-  }, [])
-
   return (
     <ErrorBoundary errorTip={`页面渲染错误`}>
       <RenderSlot
