@@ -2,8 +2,6 @@
 import Main from "./Main.vue";
 import MultiScene from "./MultiScene.vue";
 
-console.log(`%c ${'@mybricks/render-web-vue'} %c@${'0.0.1'}`, `color:#FFF;background:#fa6400`, ``, ``);
-
 class Context {
   _refsMap = {}
 
