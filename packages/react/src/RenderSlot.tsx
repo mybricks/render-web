@@ -37,7 +37,7 @@ export default function RenderSlot({
                                      onError,
                                      logger
                                    }) {
-  const {style, comAry, layoutTemplate} = slot
+  const {style, comAry} = slot
   function renderRstTraverseCom(com: any, index: any) {
     const { type } = com
 
@@ -57,19 +57,18 @@ export default function RenderSlot({
         )
       }
     } else {
-
       const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
 
       return jsx.jsx
     }
   }
 
-  if (layoutTemplate) {
+  if (style.layout === "absolute-smart") {
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
       <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
-        {layoutTemplate.map((rstTraverseElement: any, index: any) => {
+        {comAry.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom(rstTraverseElement, index)
         })}
       </div>

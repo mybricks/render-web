@@ -376,13 +376,16 @@ export function useMyBricksRenderContext () {
   return context
 }
 
+import { transformToJSON } from "../../utils/src"
+
 export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) {
   if (!json) {
     return null
   } else {
     let jsx = null
-    if ("scenes" in json)  {
-      transformJSON(json);
+    if ("scenes" in json) {
+      console.log("render json: ", JSON.parse(JSON.stringify(json)))
+      transformToJSON(json);
       jsx = <MultiScene json={json} options={options}/>
     } else {
       if (json.slot) {
