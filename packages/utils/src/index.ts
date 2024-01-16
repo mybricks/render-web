@@ -108,7 +108,7 @@ class Transform {
         return preTop - curTop
       })
 
-      slot.comAry = this.traverseElementsToSlotComAry(this.traverseElements(resultComAry.map((com) => {
+      slot.comAry2 = this.traverseElementsToSlotComAry(this.traverseElements(resultComAry.map((com) => {
         const id = com.id
         const style = coms[id].model.style
 
