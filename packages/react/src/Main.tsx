@@ -49,6 +49,7 @@ export default function Main({json, options, style = {}, className = '', root = 
 
   //根据script生成context对象
   const [context, refs, activeTriggerInput] = useMemo(() => {
+    console.log("页面级别: ", slot)
     try {
       let refs
       let activeTriggerInput = true

@@ -37,67 +37,48 @@ export default function RenderSlot({
                                      onError,
                                      logger
                                    }) {
-  const {style, comAry} = slot
+  const {style, comAry, layoutTemplate} = slot
+  function renderRstTraverseCom(com: any, index: any) {
+    const { type } = com
+
+    if (type) {
+      const { items } = com
+      if (type === 'row') {
+        return (
+          <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
+            {items.map(renderRstTraverseCom)}
+          </div>
+        )
+      } else if (type === 'column') {
+        return (
+          <div key={index} style={{display: 'flex', flexDirection: 'column'}}>
+            {items.map(renderRstTraverseCom)}
+          </div>
+        )
+      }
+    } else {
+
+      const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
+
+      return jsx.jsx
+    }
+  }
+
+  if (layoutTemplate) {
+    const paramsStyle = params?.style;
+    const slotStyle = paramsStyle || style;
+    return (
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
+        {layoutTemplate.map((rstTraverseElement: any, index: any) => {
+          return renderRstTraverseCom(rstTraverseElement, index)
+        })}
+      </div>
+    )
+  }
 
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
-    const {id, def, name}: Com = com
-    const comInfo = context.getComInfo(id)
-    const { hasPermission } = env
-    const permissions = comInfo?.model?.permissions
-
-    if (permissions && typeof hasPermission === 'function' && !hasPermission(permissions.id)) {
-      return
-    }
-    const comDef = getComDef(def)
-
-    if (comDef) {
-      const props = context.get({comId: id, scope, _ioProxy: {
-        inputs, outputs, _inputs, _outputs
-      }})
-
-      if (props) {
-        const comKey = (scope ? scope.id : '') + idx//考虑到scope变化的情况，驱动组件强制刷新
-        itemAry.push({
-          id,
-          jsx: <RenderCom key={comKey} com={com}
-                          getComDef={getComDef}
-                          context={context}
-                          scope={scope}
-                          props={props}
-                          env={env}
-                          _env={_env}
-                          template={template}
-                          onError={onError}
-                          logger={logger}
-                          createPortal={createPortal}/>,
-          name,
-          inputs: props.inputsCallable,
-          style: props.style
-        })
-      } else {
-        const jsx = (
-          <div className={css.error}>
-            未找到组件({def.namespace}@{def.version} - {id})定义.
-          </div>
-        )
-  
-        itemAry.push({
-          id, jsx, name, style: {}
-        })
-      }
-    } else {
-      const jsx = (
-        <div className={css.error}>
-          未找到组件({def.namespace}@{def.version})定义.
-        </div>
-      )
-
-      itemAry.push({
-        id, jsx, name, style: {}
-      })
-    }
-
+    itemAry.push(getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: idx, _env, template, onError, logger, createPortal }))
   })
 
   if (typeof wrapper === 'function') {
@@ -113,6 +94,70 @@ export default function RenderSlot({
   }
 }
 
+function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal }) {
+  const {id, def, name, children} = com
+  const comInfo = context.getComInfo(id)
+  const { hasPermission } = env
+  const permissions = comInfo?.model?.permissions
+
+  if (permissions && typeof hasPermission === 'function' && !hasPermission(permissions.id)) {
+    return
+  }
+  const comDef = getComDef(def)
+
+  if (comDef) {
+    const props = context.get({comId: id, scope, _ioProxy: {
+      inputs, outputs, _inputs, _outputs
+    }})
+
+    if (props) {
+      const comKey = (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
+      let childrenJSX = []
+      if (children?.length) {
+        children.forEach((child: any, index: any) => {
+          const jsx = getRenderComJSX({ com: child, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal })
+          childrenJSX.push(jsx.jsx)
+        })
+      }
+      return {
+        id,
+        jsx: <RenderCom key={comKey} com={com}
+                        getComDef={getComDef}
+                        context={context}
+                        scope={scope}
+                        props={props}
+                        env={env}
+                        _env={_env}
+                        template={template}
+                        onError={onError}
+                        logger={logger}
+                        createPortal={createPortal}>
+                          {childrenJSX}
+                          </RenderCom>,
+        name,
+        inputs: props.inputsCallable,
+        style: props.style
+      }
+    } else {
+      return {
+        id, jsx: (
+          <div className={css.error}>
+            未找到组件({def.namespace}@{def.version} - {id})定义.
+          </div>
+        ), name, style: {}
+      }
+    }
+  } else {
+    return {
+      id, jsx: (
+        <div className={css.error}>
+          未找到组件({def.namespace}@{def.version})定义.
+        </div>
+      ), name, style: {}
+    }
+  }
+}
+
 function RenderCom({
                      com,
                      props,
@@ -124,7 +169,8 @@ function RenderCom({
                      getComDef,
                      context,
                      onError,
-                     logger
+                     logger,
+                     children
                    }) {
   const {id, def, name, slots = {}}: Com = com
   const {
@@ -338,6 +384,7 @@ function RenderCom({
     }} className={classes}>
       <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}>
         {jsx}
+        {children}
       </ErrorBoundary>
     </div>
   ) : null
