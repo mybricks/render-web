@@ -71,7 +71,10 @@ export function transformToJSON(toJSON: ToJSON) {
 
 class Transform {
 
+  comIdToSlotComMap = {}
+
   transformSlotComAry(slot, coms) {
+    const { comIdToSlotComMap } = this
     const { comAry } = slot
   
     // TODO: 目前引擎可以通过这个字段来判断是否智能布局
@@ -105,8 +108,11 @@ class Transform {
         return preTop - curTop
       })
 
-      slot.comAry = this.traverseElementsToSlotComAry(this.traverseElements(resultComAry.map(({ id }) => {
+      slot.comAry = this.traverseElementsToSlotComAry(this.traverseElements(resultComAry.map((com) => {
+        const id = com.id
         const style = coms[id].model.style
+
+        comIdToSlotComMap[id] = com
   
         return {
           id,
@@ -130,6 +136,7 @@ class Transform {
   }
 
   traverseElementsToSlotComAry(comAry: any, coms: any) {
+    const { comIdToSlotComMap } = this
     const result = []
     comAry.forEach((com) => {
       const { id, type, items } = com
@@ -143,7 +150,7 @@ class Transform {
         const com = coms[id]
         const modelStyle = com.model.style
         modelStyle.position = 'relative'
-        result.push(com)
+        result.push(comIdToSlotComMap[id])
       }
     })
 
