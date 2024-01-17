@@ -170,10 +170,10 @@ export function traverseElements(elements: any) {
 function calculateRow(elements: any) {
   const rows: any = []
   let rowIndex = 0
-  let width = 0
-  let left = 0
-  let height = 0
-  let top = 0
+  // let width = 0
+  // let left = 0
+  // let height = 0
+  // let top = 0
   let finish = false
 
   /**
@@ -181,18 +181,18 @@ function calculateRow(elements: any) {
    * - 高度 height
    * - 上外边距 top
    */
-  elements.forEach((element) => {
+  elements.sort((pre, cur) => pre.top - cur.top).forEach((element) => {
     if (!rows[rowIndex]) {
       // 新的一行，直接赋值
       rows[rowIndex] = [element]
-      width = element.width + element.left
-      left = element.left
-      height = element.height + element.top
-      top = element.top
+      // width = element.width + element.left
+      // left = element.left
+      // height = element.height + element.top
+      // top = element.top
       finish = true
 
-      // 新行，TODO: 和上一个行对比
-      element.marginLeft = element.left
+      // 新行，TODO: 和上一个行对比，marginLeft应该在分列的时候使用
+      // element.marginLeft = element.left
       element.marginTop = element.top
 
     } else {
@@ -209,19 +209,15 @@ function calculateRow(elements: any) {
         rowIndex = rowIndex + 1
         rows[rowIndex] = [element]
         // 如果是换行，那left就不用计算了，新行，TODO：非第一列情况
-        element.marginLeft = element.left
+        // element.marginLeft = element.left
         element.marginTop = element.top - (lastElement.height + lastElement.top)
         
-        width = element.width + element.left
+        // width = element.width + element.left
         // top = elementTop + height
-        height = elementHeight + elementTop
+        // height = elementHeight + elementTop
         // 换行后，left改为0
         finish = true
       } else {
-        // 列上一个
-        const lastColumnElement = rows[rowIndex][rows[rowIndex].length - 1]
-        element.marginLeft = element.left - lastColumnElement.width - lastColumnElement.left
-
         // 非第一行
         if (rowIndex) {
           // 行上一个
@@ -251,71 +247,45 @@ function calculateRow(elements: any) {
 
 function calculateColumn(elements: any) {
   const columns: any = []
-  let columnIndex = 0
-  let width = 0
-  let left = 0
-  let finish = false
 
   /**
    * 分析列
    * - 宽度 width
    * - 左外边距 left
    */
-  elements.forEach((element, index) => {
-    if (!columns[columnIndex]) {
-      // 新的一列，直接赋值
-      columns[columnIndex] = [element]
-      width = element.width
-      left = element.left
-      finish = true
+  elements.sort((pre, cur) => pre.left - cur.left).forEach((element, index) => {
+    if (!columns.length) {
+      columns.push([element])
     } else {
-      const elementWidth = element.width
-      const elementLeft = element.left
+      let count = columns.length - 1
+      while (count > -1) {
+        const lastColumns = columns[count]
+        const columnsLength = lastColumns.length
 
-      if (elementLeft >= width) {
-        // left比width大，换列
-        if (columns[columnIndex].length > 1) {
-          columns[columnIndex] = calculateRow(columns[columnIndex])
-        }
-        columnIndex = columnIndex + 1
-        columns[columnIndex] = [element]
-        width = elementWidth + elementLeft
-        left = elementLeft
-        finish = true
-      } else {
-        let count = index - 1
-
-        while (count > -1) {
-          const lastElement = elements[count]
-          if (checkElementRelationship(lastElement, element)) {
-            // TODO: 包含，还缺一个相交
+        for (let i = 0; i < columnsLength; i++) {
+          const lastElement = lastColumns[i]
+          if (element.left >= lastElement.left + lastElement.width) {
+            // TODO: 后面继续判断，两列也许可以拼成一列。总体marginTop
+            columns.push([element])
             count = -2
-            lastElement.children.push({
-              ...element,
-              top: element.top - lastElement.top,
-              left: element.left - lastElement.left
-            })
+            break
           } else {
-            count = count - 1
+            if (element.left >= lastElement.left) {
+              columns[count].splice(i + 1, 0, element)
+              count = -2
+              break
+            }
           }
         }
-
-        if (count != -2) {
-          columns[columnIndex].push(element)
-          finish = false
-        }
+        count = count - 1
       }
     }
   })
 
-  if (!finish) {
-    columns[columnIndex] = calculateRow(columns[columnIndex])
-  }
-
   return columns.map((column: any) => {
     return {
       type: 'column',
-      items: column
+      items: column.length ? calculateRow(column) : column
     }
   })
 }
