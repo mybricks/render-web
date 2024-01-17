@@ -108,7 +108,7 @@ class Transform {
         return preTop - curTop
       })
 
-      slot.comAry2 = this.traverseElementsToSlotComAry(this.traverseElements(resultComAry.map((com) => {
+      slot.comAry2 = this.traverseElementsToSlotComAry(traverseElements(resultComAry.map((com) => {
         const id = com.id
         const style = coms[id].model.style
 
@@ -156,155 +156,184 @@ class Transform {
 
     return result
   }
-  
+}
+
+/**
+ * 有一个前提，需要把元素按顺序排好
+ */
+export function traverseElements(elements: any) {
+  return calculateRow(elements)
+}
+
+function calculateRow(elements: any) {
+  const rows: any = []
+  let rowIndex = 0
+  let width = 0
+  let left = 0
+  let height = 0
+  let top = 0
+  let finish = false
+
   /**
-   * 有一个前提，需要把元素按顺序排好
+   * 分析行
+   * - 高度 height
+   * - 上外边距 top
    */
-  traverseElements(elements: any) {
-    return this.calculateRow(elements)
-  }
-  
-  calculateRow(elements: any) {
-    const rows: any = []
-    let rowIndex = 0
-    let height = 0
-    let top = 0
-    let finish = false
-  
-    /**
-     * 分析行
-     * - 高度 height
-     * - 上外边距 top
-     */
-    elements.forEach((element) => {
-      if (!rows[rowIndex]) {
-        // 新的一行，直接赋值
+  elements.forEach((element) => {
+    if (!rows[rowIndex]) {
+      // 新的一行，直接赋值
+      rows[rowIndex] = [element]
+      width = element.width + element.left
+      left = element.left
+      height = element.height + element.top
+      top = element.top
+      finish = true
+
+      if (element.width + left > element.width) {
+        element.marginLeft = element.left
+      }
+      if (element.height + top > element.height) {
+        element.marginTop = element.top
+      }
+
+    } else {
+      const elementHeight = element.height
+      const elementTop = element.top
+
+      if (elementTop >= height) {
+        // top比height大，换行
+        if (rows[rowIndex].length > 1) {
+          rows[rowIndex] = calculateColumn(rows[rowIndex])
+        }
+        rowIndex = rowIndex + 1
         rows[rowIndex] = [element]
-        height = element.height
-        top = element.top
+        if (element.width + left > element.width) {
+          element.marginLeft = element.left
+        }
+        if (element.height + top > element.height) {
+          element.marginTop = element.top - height
+        }
+        width = element.width + element.left
+        // top = elementTop + height
+        height = elementHeight + elementTop
+        // 换行后，left改为0
         finish = true
       } else {
-        const elementHeight = element.height
-        const elementTop = element.top
-  
-        if (elementTop >= height) {
-          // top比height大，换行
-          if (rows[rowIndex].length > 1) {
-            rows[rowIndex] = this.calculateColumn(rows[rowIndex])
+        const lastElement = rows[rowIndex][rows[rowIndex].length - 1]
+
+        if (element.left !== lastElement.width + lastElement.marginLeft) {
+          element.marginLeft = element.left - lastElement.width - lastElement.marginLeft
+        }
+        if (element.top !== lastElement.height + lastElement.marginTop) {
+          element.marginTop = element.top - lastElement.height - lastElement.marginTop
+        }
+
+        rows[rowIndex].push(element)
+        finish = false
+      }
+    }
+  })
+
+  if (!finish) {
+    rows[rowIndex] = calculateColumn(rows[rowIndex])
+  }
+
+  return rows.map((row: any) => {
+    return {
+      type: 'row',
+      items: row
+    }
+  })
+}
+
+function calculateColumn(elements: any) {
+  const columns: any = []
+  let columnIndex = 0
+  let width = 0
+  let left = 0
+  let finish = false
+
+  /**
+   * 分析列
+   * - 宽度 width
+   * - 左外边距 left
+   */
+  elements.forEach((element, index) => {
+    if (!columns[columnIndex]) {
+      // 新的一列，直接赋值
+      columns[columnIndex] = [element]
+      width = element.width
+      left = element.left
+      finish = true
+    } else {
+      const elementWidth = element.width
+      const elementLeft = element.left
+
+      if (elementLeft >= width) {
+        // left比width大，换列
+        if (columns[columnIndex].length > 1) {
+          columns[columnIndex] = calculateRow(columns[columnIndex])
+        }
+        columnIndex = columnIndex + 1
+        columns[columnIndex] = [element]
+        width = elementWidth + elementLeft
+        left = elementLeft
+        finish = true
+      } else {
+        let count = index - 1
+
+        while (count > -1) {
+          const lastElement = elements[count]
+          if (checkElementRelationship(lastElement, element)) {
+            // TODO: 包含，还缺一个相交
+            count = -2
+            lastElement.children.push({
+              ...element,
+              top: element.top - lastElement.top,
+              left: element.left - lastElement.left
+            })
+          } else {
+            count = count - 1
           }
-          rowIndex = rowIndex + 1
-          rows[rowIndex] = [element]
-          height = elementHeight + elementTop
-          top = elementTop
-          finish = true
-        } else {
-          rows[rowIndex].push(element)
+        }
+
+        if (count != -2) {
+          columns[columnIndex].push(element)
           finish = false
         }
       }
-    })
-  
-    if (!finish) {
-      rows[rowIndex] = this.calculateColumn(rows[rowIndex])
     }
-  
-    return rows.map((row: any) => {
-      return {
-        type: 'row',
-        items: row
-      }
-    })
+  })
+
+  if (!finish) {
+    columns[columnIndex] = calculateRow(columns[columnIndex])
   }
-  
-  calculateColumn(elements: any) {
-    const columns: any = []
-    let columnIndex = 0
-    let width = 0
-    let left = 0
-    let finish = false
-  
-    /**
-     * 分析列
-     * - 宽度 width
-     * - 左外边距 left
-     */
-    elements.forEach((element, index) => {
-      if (!columns[columnIndex]) {
-        // 新的一列，直接赋值
-        columns[columnIndex] = [element]
-        width = element.width
-        left = element.left
-        finish = true
-      } else {
-        const elementWidth = element.width
-        const elementLeft = element.left
-  
-        if (elementLeft >= width) {
-          // left比width大，换列
-          if (columns[columnIndex].length > 1) {
-            columns[columnIndex] = this.calculateRow(columns[columnIndex])
-          }
-          columnIndex = columnIndex + 1
-          columns[columnIndex] = [element]
-          width = elementWidth + elementLeft
-          left = elementLeft
-          finish = true
-        } else {
-          let count = index - 1
-  
-          while (count > -1) {
-            const lastElement = elements[count]
-            if (this.checkElementRelationship(lastElement, element)) {
-              // TODO: 包含，还缺一个相交
-              count = -2
-              lastElement.children.push({
-                ...element,
-                top: element.top - lastElement.top,
-                left: element.left - lastElement.left
-              })
-            } else {
-              count = count - 1
-            }
-          }
-  
-          if (count != -2) {
-            columns[columnIndex].push(element)
-            finish = false
-          }
-        }
-      }
-    })
-  
-    if (!finish) {
-      columns[columnIndex] = this.calculateRow(columns[columnIndex])
+
+  return columns.map((column: any) => {
+    return {
+      type: 'column',
+      items: column
     }
-  
-    return columns.map((column: any) => {
-      return {
-        type: 'column',
-        items: column
-      }
-    })
+  })
+}
+
+/**
+ * - elementA 被对比
+ * - elementB 对比
+ */
+function checkElementRelationship(elementA: any, elementB: any) {
+  const { width: a_width, height: a_height, top: a_top, left: a_left } = elementA
+  const { width: b_width, height: b_height, top: b_top, left: b_left } = elementB
+
+  // 仅包含了
+  if (
+    a_width + a_left >= b_width + b_left && // 右侧包含
+    a_top <= b_top && // 上侧包含
+    a_left <= b_left && // 左侧包含
+    a_height + a_top >= b_height + b_top
+  ) {
+    return true
   }
-  
-  /**
-   * - elementA 被对比
-   * - elementB 对比
-   */
-  checkElementRelationship(elementA: any, elementB: any) {
-    const { width: a_width, height: a_height, top: a_top, left: a_left } = elementA
-    const { width: b_width, height: b_height, top: b_top, left: b_left } = elementB
-  
-    // 仅包含了
-    if (
-      a_width + a_left >= b_width + b_left && // 右侧包含
-      a_top <= b_top && // 上侧包含
-      a_left <= b_left && // 左侧包含
-      a_height + a_top >= b_height + b_top
-    ) {
-      return true
-    }
-  
-    return false
-  }
+
+  return false
 }
