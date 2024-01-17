@@ -147,9 +147,11 @@ class Transform {
         })
       } else {
         // 这里记得处理下包含关系，children?
-        const com = coms[id]
-        const modelStyle = com.model.style
+        const modelStyle = coms[id].model.style
         modelStyle.position = 'relative'
+        modelStyle.marginTop = com.marginTop
+        modelStyle.marginLeft = com.marginLeft
+
         result.push(comIdToSlotComMap[id])
       }
     })
