@@ -116,10 +116,10 @@ class Transform {
   
         return {
           id,
-          width: style.width,
-          height: style.height,
-          top: style.top,
-          left: style.left,
+          width: style.width || 0,
+          height: style.height || 0,
+          top: style.top || 0,
+          left: style.left || 0,
           children: []
         }
       })), coms)
@@ -191,43 +191,46 @@ function calculateRow(elements: any) {
       top = element.top
       finish = true
 
-      if (element.width + left > element.width) {
-        element.marginLeft = element.left
-      }
-      if (element.height + top > element.height) {
-        element.marginTop = element.top
-      }
+      // 新行，TODO: 和上一个行对比
+      element.marginLeft = element.left
+      element.marginTop = element.top
 
     } else {
       const elementHeight = element.height
       const elementTop = element.top
 
-      if (elementTop >= height) {
+      // 上一行最后一个
+      const lastElement = rows[rowIndex][rows[rowIndex].length - 1]
+      if (elementTop >= lastElement.height + lastElement.top) {
         // top比height大，换行
         if (rows[rowIndex].length > 1) {
           rows[rowIndex] = calculateColumn(rows[rowIndex])
         }
         rowIndex = rowIndex + 1
         rows[rowIndex] = [element]
-        if (element.width + left > element.width) {
-          element.marginLeft = element.left
-        }
-        if (element.height + top > element.height) {
-          element.marginTop = element.top - height
-        }
+        // 如果是换行，那left就不用计算了，新行，TODO：非第一列情况
+        element.marginLeft = element.left
+        element.marginTop = element.top - (lastElement.height + lastElement.top)
+        
         width = element.width + element.left
         // top = elementTop + height
         height = elementHeight + elementTop
         // 换行后，left改为0
         finish = true
       } else {
-        const lastElement = rows[rowIndex][rows[rowIndex].length - 1]
+        
+        // 列上一个
+        const lastColumnElement = rows[rowIndex][rows[rowIndex].length - 1]
+        element.marginLeft = element.left - lastColumnElement.width - lastColumnElement.left
+        
+        // console.log("lastColumnElement: ", lastColumnElement)
+        // console.log("同行/", element, element.left - lastColumnElement.width - lastColumnElement.left)
 
-        if (element.left !== lastElement.width + lastElement.marginLeft) {
-          element.marginLeft = element.left - lastElement.width - lastElement.marginLeft
-        }
-        if (element.top !== lastElement.height + lastElement.marginTop) {
-          element.marginTop = element.top - lastElement.height - lastElement.marginTop
+        // 非第一行
+        if (rowIndex) {
+          // 行上一个
+          const lastRowElement = rows[rowIndex - 1][rows[rowIndex - 1].length - 1]
+          element.marginTop = element.top - (lastRowElement.height + lastRowElement.top)
         }
 
         rows[rowIndex].push(element)
