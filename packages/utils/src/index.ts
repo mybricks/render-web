@@ -245,6 +245,17 @@ function calculateRow(elements: any) {
   })
 }
 
+function findMaxLeftWidth(elements: any) {
+  let maxSum = 0
+  for (var i = 0; i < elements.length; i++) {
+    let sum = elements[i].width + elements[i].left
+    if (sum > maxSum) {
+      maxSum = sum
+    }
+  }
+  return maxSum
+}
+
 function calculateColumn(elements: any) {
   const columns: any = []
 
@@ -255,6 +266,7 @@ function calculateColumn(elements: any) {
    */
   elements.sort((pre, cur) => pre.left - cur.left).forEach((element, index) => {
     if (!columns.length) {
+      element.marginLeft = element.left
       columns.push([element])
     } else {
       let count = columns.length - 1
@@ -266,6 +278,8 @@ function calculateColumn(elements: any) {
           const lastElement = lastColumns[i]
           if (element.left >= lastElement.left + lastElement.width) {
             // TODO: 后面继续判断，两列也许可以拼成一列。总体marginTop
+            element.marginLeft = element.left - findMaxLeftWidth(columns[count])
+
             columns.push([element])
             count = -2
             break
