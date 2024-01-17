@@ -169,12 +169,6 @@ export function traverseElements(elements: any) {
 
 function calculateRow(elements: any) {
   const rows: any = []
-  let rowIndex = 0
-  // let width = 0
-  // let left = 0
-  // let height = 0
-  // let top = 0
-  let finish = false
 
   /**
    * 分析行
@@ -182,67 +176,54 @@ function calculateRow(elements: any) {
    * - 上外边距 top
    */
   elements.sort((pre, cur) => pre.top - cur.top).forEach((element) => {
-    if (!rows[rowIndex]) {
-      // 新的一行，直接赋值
-      rows[rowIndex] = [element]
-      // width = element.width + element.left
-      // left = element.left
-      // height = element.height + element.top
-      // top = element.top
-      finish = true
-
-      // 新行，TODO: 和上一个行对比，marginLeft应该在分列的时候使用
-      // element.marginLeft = element.left
+    if (!rows.length) {
       element.marginTop = element.top
-
+      rows.push([element])
     } else {
-      const elementHeight = element.height
-      const elementTop = element.top
+      let count = rows.length - 1
+      while (count > -1) {
+        const lastRows = rows[count]
+        const rowsLength = lastRows.length
 
-      // 上一行最后一个
-      const lastElement = rows[rowIndex][rows[rowIndex].length - 1]
-      if (elementTop >= lastElement.height + lastElement.top) {
-        // top比height大，换行
-        if (rows[rowIndex].length > 1) {
-          rows[rowIndex] = calculateColumn(rows[rowIndex])
-        }
-        rowIndex = rowIndex + 1
-        rows[rowIndex] = [element]
-        // 如果是换行，那left就不用计算了，新行，TODO：非第一列情况
-        // element.marginLeft = element.left
-        element.marginTop = element.top - (lastElement.height + lastElement.top)
-        
-        // width = element.width + element.left
-        // top = elementTop + height
-        // height = elementHeight + elementTop
-        // 换行后，left改为0
-        finish = true
-      } else {
-        // 非第一行
-        if (rowIndex) {
-          // 行上一个
-          const lastRowElement = rows[rowIndex - 1][rows[rowIndex - 1].length - 1]
-          element.marginTop = element.top - (lastRowElement.height + lastRowElement.top)
-        } else {
-          element.marginTop = element.top
-        }
+        for (let i = 0; i < rowsLength; i++) {
+          const lastElement = lastRows[i]
+          if (element.top >= lastElement.top + lastElement.height) {
+            // TODO: 后面继续判断，两列也许可以拼成一列。总体marginTop
+            element.marginTop = element.top - findMaxTopHeight(rows[count])
 
-        rows[rowIndex].push(element)
-        finish = false
+            rows.push([element])
+            count = -2
+            break
+          } else {
+            if (element.top >= lastElement.top) {
+              rows[count].splice(i + 1, 0, element)
+              count = -2
+              break
+            }
+          }
+        }
+        count = count - 1
       }
     }
   })
 
-  if (!finish) {
-    rows[rowIndex] = calculateColumn(rows[rowIndex])
-  }
-
   return rows.map((row: any) => {
     return {
       type: 'row',
-      items: row
+      items: calculateColumn(row)
     }
   })
+}
+
+function findMaxTopHeight(elements: any) {
+  let maxSum = 0
+  for (var i = 0; i < elements.length; i++) {
+    let sum = elements[i].height + elements[i].top
+    if (sum > maxSum) {
+      maxSum = sum
+    }
+  }
+  return maxSum
 }
 
 function findMaxLeftWidth(elements: any) {
@@ -299,7 +280,7 @@ function calculateColumn(elements: any) {
   return columns.map((column: any) => {
     return {
       type: 'column',
-      items: column.length ? calculateRow(column) : column
+      items: column.length > 1 ? calculateRow(column) : column
     }
   })
 }
