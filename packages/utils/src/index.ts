@@ -218,19 +218,17 @@ function calculateRow(elements: any) {
         // 换行后，left改为0
         finish = true
       } else {
-        
         // 列上一个
         const lastColumnElement = rows[rowIndex][rows[rowIndex].length - 1]
         element.marginLeft = element.left - lastColumnElement.width - lastColumnElement.left
-        
-        // console.log("lastColumnElement: ", lastColumnElement)
-        // console.log("同行/", element, element.left - lastColumnElement.width - lastColumnElement.left)
 
         // 非第一行
         if (rowIndex) {
           // 行上一个
           const lastRowElement = rows[rowIndex - 1][rows[rowIndex - 1].length - 1]
           element.marginTop = element.top - (lastRowElement.height + lastRowElement.top)
+        } else {
+          element.marginTop = element.top
         }
 
         rows[rowIndex].push(element)
