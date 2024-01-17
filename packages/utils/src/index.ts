@@ -123,6 +123,7 @@ class Transform {
           children: []
         }
       })), coms)
+      console.log("comAry 结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
         const { slots } = com
@@ -169,7 +170,8 @@ export function traverseElements(elements: any) {
 
 function calculateRow(elements: any) {
   const rows: any = []
-
+  // 记录最高的高度，后续如果有大于最高高度的，那就换行
+  let maxHeight = 0
   /**
    * 分析行
    * - 高度 height
@@ -179,6 +181,7 @@ function calculateRow(elements: any) {
     if (!rows.length) {
       element.marginTop = element.top
       rows.push([element])
+      maxHeight = element.top + element.height
     } else {
       let count = rows.length - 1
       while (count > -1) {
@@ -187,15 +190,20 @@ function calculateRow(elements: any) {
 
         for (let i = 0; i < rowsLength; i++) {
           const lastElement = lastRows[i]
-          if (element.top >= lastElement.top + lastElement.height) {
+          if (element.top >= maxHeight) {
             // TODO: 后面继续判断，两列也许可以拼成一列。总体marginTop
-            element.marginTop = element.top - findMaxTopHeight(rows[count])
-
+            element.marginTop = element.top - maxHeight
+            maxHeight = element.top + element.height
             rows.push([element])
             count = -2
             break
           } else {
             if (element.top >= lastElement.top) {
+              element.marginTop = element.top - (lastElement.top - lastElement.marginTop)
+              const curMaxHeight = element.top + element.height
+              if (curMaxHeight > maxHeight) {
+                maxHeight = curMaxHeight
+              }
               rows[count].splice(i + 1, 0, element)
               count = -2
               break
@@ -239,6 +247,8 @@ function findMaxLeftWidth(elements: any) {
 
 function calculateColumn(elements: any) {
   const columns: any = []
+  // 记录最宽的宽度，后续如果有大于最宽宽度的，那就换列
+  let maxWidth = 0
 
   /**
    * 分析列
@@ -249,6 +259,7 @@ function calculateColumn(elements: any) {
     if (!columns.length) {
       element.marginLeft = element.left
       columns.push([element])
+      maxWidth = element.left + element.width
     } else {
       let count = columns.length - 1
       while (count > -1) {
@@ -257,15 +268,19 @@ function calculateColumn(elements: any) {
 
         for (let i = 0; i < columnsLength; i++) {
           const lastElement = lastColumns[i]
-          if (element.left >= lastElement.left + lastElement.width) {
+          if (element.left >= maxWidth) {
             // TODO: 后面继续判断，两列也许可以拼成一列。总体marginTop
-            element.marginLeft = element.left - findMaxLeftWidth(columns[count])
+            element.marginLeft = element.left - maxWidth
 
             columns.push([element])
             count = -2
             break
           } else {
             if (element.left >= lastElement.left) {
+              const width = element.left + element.width
+              if (width > maxWidth) {
+                maxWidth = width
+              }
               columns[count].splice(i + 1, 0, element)
               count = -2
               break
