@@ -334,7 +334,7 @@ function checkElementRelationship(elementA: any, elementB: any) {
   }
 
   if (
-    (b_left > a_left && (b_left < a_left + a_width) && (b_top >= a_top) && b_top <= (a_top + a_height)) || // 左上角
+    (b_left >= a_left && (b_left < a_left + a_width) && (b_top >= a_top) && b_top <= (a_top + a_height)) || // 左上角
     (b_left > a_left && (b_left < a_left + a_width) && (a_top <= b_top + b_height) && (b_top + b_height <= a_top + a_height)) || // 左下角
     ((b_left + b_width > a_left) && (b_left + b_width < a_left + a_width) && (b_top > a_top) && b_top < (a_top + a_height)) || // 右上角
     ((b_left + b_width > a_left) && (b_left + b_width < a_left + a_width) && (b_top + b_height > a_top) && (b_top + b_height < a_top + a_height)) // 右下角
