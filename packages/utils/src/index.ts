@@ -140,7 +140,8 @@ class Transform {
     const { comIdToSlotComMap } = this
     const result = []
     comAry.forEach((com) => {
-      const { id, type, items } = com
+      // TODO: children是包含关系和相交
+      const { id, type, items, children } = com
       if (type) {
         result.push({
           type,
@@ -153,7 +154,7 @@ class Transform {
         modelStyle.marginTop = com.marginTop
         modelStyle.marginLeft = com.marginLeft
 
-        result.push(comIdToSlotComMap[id])
+        result.push({...comIdToSlotComMap[id], children: this.traverseElementsToSlotComAry(children, coms)})
       }
     })
 
@@ -179,38 +180,28 @@ function calculateRow(elements: any) {
    */
   elements.sort((pre, cur) => pre.top - cur.top).forEach((element) => {
     if (!rows.length) {
-      element.marginTop = element.top
+      // 新行设置marginTop，观察
+      if (!element.marginTop) {
+        element.marginTop = element.top
+      }
       rows.push([element])
       maxHeight = element.top + element.height
     } else {
-      let count = rows.length - 1
-      while (count > -1) {
-        const lastRows = rows[count]
-        const rowsLength = lastRows.length
-
-        for (let i = 0; i < rowsLength; i++) {
-          const lastElement = lastRows[i]
-          if (element.top >= maxHeight) {
-            // TODO: 后面继续判断，两列也许可以拼成一列。总体marginTop
-            element.marginTop = element.top - maxHeight
-            maxHeight = element.top + element.height
-            rows.push([element])
-            count = -2
-            break
-          } else {
-            if (element.top >= lastElement.top) {
-              element.marginTop = element.top - (lastElement.top - lastElement.marginTop)
-              const curMaxHeight = element.top + element.height
-              if (curMaxHeight > maxHeight) {
-                maxHeight = curMaxHeight
-              }
-              rows[count].splice(i + 1, 0, element)
-              count = -2
-              break
-            }
-          }
+      if (element.top >= maxHeight) {
+        // 换行
+        console.log(2, element.value)
+        element.marginTop = element.top - maxHeight
+        rows.push([element])
+        maxHeight = element.top + element.height
+      } else {
+        const curRow = rows[rows.length -1]
+        const lastElement = curRow[curRow.length -1]
+        element.marginTop = element.top - (lastElement.top - lastElement.marginTop)
+        const curMaxHeight = element.top + element.height
+        if (curMaxHeight > maxHeight) {
+          maxHeight = curMaxHeight
         }
-        count = count - 1
+        rows[rows.length -1].push(element)
       }
     }
   })
@@ -261,35 +252,38 @@ function calculateColumn(elements: any) {
       columns.push([element])
       maxWidth = element.left + element.width
     } else {
-      let count = columns.length - 1
-      while (count > -1) {
-        const lastColumns = columns[count]
-        const columnsLength = lastColumns.length
-
-        for (let i = 0; i < columnsLength; i++) {
-          const lastElement = lastColumns[i]
-          if (element.left >= maxWidth) {
-            // TODO: 后面继续判断，两列也许可以拼成一列。总体marginTop
-            element.marginLeft = element.left - maxWidth
-
-            columns.push([element])
-            count = -2
-            break
-          } else {
-            if (element.left >= lastElement.left) {
-              const width = element.left + element.width
-              if (width > maxWidth) {
-                maxWidth = width
-              }
-              columns[count].splice(i + 1, 0, element)
-              count = -2
-              break
-            }
+      if (element.left >= maxWidth) {
+        // 换行
+        element.marginLeft = element.left - maxWidth
+        columns.push([element])
+        maxWidth = element.left + element.width
+      } else {
+        const curColumn = columns[columns.length -1]
+        const lastElement = curColumn[curColumn.length -1]
+        if (checkElementRelationship(lastElement, element)) {
+          lastElement.children.push(element)
+        } else {
+          element.marginLeft = element.left - (lastElement.left - lastElement.marginLeft)
+          const curMaxWidth = element.left + element.width
+          if (curMaxWidth > maxWidth) {
+            maxWidth = curMaxWidth
           }
+          curColumn.push(element)
         }
-        count = count - 1
       }
     }
+  })
+
+  columns.forEach((column) => {
+    column.forEach(({ children, marginTop, marginLeft }, index) => {
+      if (children.length) {
+        children.forEach((child) => {
+          child.top = child.top - marginTop
+          child.left = child.left - marginLeft
+        })
+        column[index].children = traverseElements(children)
+      }
+    })
   })
 
   return columns.map((column: any) => {

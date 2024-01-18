@@ -16,6 +16,31 @@ import ErrorBoundary from "./ErrorBoundary";
 
 const css = lazyCss.locals
 
+function renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}) {
+  const { type } = com
+
+  if (type) {
+    const { items } = com
+    if (type === 'row') {
+      return (
+        <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
+          {items.map((com, index) => renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
+        </div>
+      )
+    } else if (type === 'column') {
+      return (
+        <div key={index} style={{display: 'flex', flexDirection: 'column'}}>
+          {items.map((com, index) => renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
+        </div>
+      )
+    }
+  } else {
+    const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
+
+    return jsx.jsx
+  }
+}
+
 export default function RenderSlot({
                                      scope,
                                      root,
@@ -38,30 +63,6 @@ export default function RenderSlot({
                                      logger
                                    }) {
   const {style, comAry, comAry2} = slot
-  function renderRstTraverseCom(com: any, index: any) {
-    const { type } = com
-
-    if (type) {
-      const { items } = com
-      if (type === 'row') {
-        return (
-          <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
-            {items.map(renderRstTraverseCom)}
-          </div>
-        )
-      } else if (type === 'column') {
-        return (
-          <div key={index} style={{display: 'flex', flexDirection: 'column'}}>
-            {items.map(renderRstTraverseCom)}
-          </div>
-        )
-      }
-    } else {
-      const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
-
-      return jsx.jsx
-    }
-  }
 
   if (style.layout === "absolute-smart" && comAry2) {
     const paramsStyle = params?.style;
@@ -69,7 +70,7 @@ export default function RenderSlot({
     return (
       <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
         {comAry2.map((rstTraverseElement: any, index: any) => {
-          return renderRstTraverseCom(rstTraverseElement, index)
+          return renderRstTraverseCom({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
         })}
       </div>
     )
@@ -113,10 +114,10 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
       const comKey = (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
       let childrenJSX = []
       if (children?.length) {
-        children.forEach((child: any, index: any) => {
-          const jsx = getRenderComJSX({ com: child, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal })
-          childrenJSX.push(jsx.jsx)
-        })
+        {children.forEach((child: any, index: any) => {
+          const jsx = renderRstTraverseCom({ com: child, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal })
+          childrenJSX.push(jsx)
+        })}
       }
       return {
         id,
@@ -383,6 +384,10 @@ function RenderCom({
     }} className={classes}>
       <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}>
         {jsx}
+        {/* TODO */}
+        {/* <div style={{position: 'absolute', top: 0, left: 0}}>
+          {children}
+        </div> */}
         {children}
       </ErrorBoundary>
     </div>
