@@ -95,7 +95,7 @@ export default function RenderSlot({
 }
 
 function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal }) {
-  const {id, def, name, children} = com
+  const {id, def, name, children, brother} = com
   const comInfo = context.getComInfo(id)
   const { hasPermission } = env
   const permissions = comInfo?.model?.permissions
@@ -113,10 +113,17 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
     if (props) {
       const comKey = (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
       let childrenJSX = []
+      let brotherJSX = []
       if (children?.length) {
         {children.forEach((child: any, index: any) => {
           const jsx = renderRstTraverseCom({ com: child, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal })
           childrenJSX.push(jsx)
+        })}
+      }
+      if (brother?.length) {
+        {brother.forEach((bro: any, index: any) => {
+          const jsx = renderRstTraverseCom({ com: bro, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal })
+          brotherJSX.push(jsx)
         })}
       }
       return {
@@ -133,6 +140,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                         logger={logger}
                         createPortal={createPortal}>
                           {childrenJSX}
+                          {brotherJSX}
                           </RenderCom>,
         name,
         inputs: props.inputsCallable,

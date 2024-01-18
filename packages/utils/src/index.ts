@@ -120,9 +120,10 @@ class Transform {
           height: style.height || 0,
           top: style.top || 0,
           left: style.left || 0,
-          children: []
+          children: [],
+          brother: []
         }
-      })), coms)
+      })), coms, "items")
       console.log("comAry 结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
@@ -136,25 +137,37 @@ class Transform {
     }
   }
 
-  traverseElementsToSlotComAry(comAry: any, coms: any) {
+  traverseElementsToSlotComAry(comAry: any, coms: any, nextType: any) {
     const { comIdToSlotComMap } = this
     const result = []
     comAry.forEach((com) => {
       // TODO: children是包含关系和相交
-      const { id, type, items, children } = com
+      const { id, type, items, children, brother } = com
       if (type) {
         result.push({
           type,
-          items: this.traverseElementsToSlotComAry(items, coms)
+          items: this.traverseElementsToSlotComAry(items, coms, type)
         })
       } else {
-        // 这里记得处理下包含关系，children?
-        const modelStyle = coms[id].model.style
-        modelStyle.position = 'relative'
-        modelStyle.marginTop = com.marginTop
-        modelStyle.marginLeft = com.marginLeft
+        // TODO: 
+        if (nextType === "brother") {
+          const modelStyle = coms[id].model.style
+          modelStyle.position = 'absolute'
+          modelStyle.top = com.top
+          modelStyle.left = com.left
+        } else {
+          // 这里记得处理下包含关系，children?
+          const modelStyle = coms[id].model.style
+          modelStyle.position = 'relative'
+          modelStyle.marginTop = com.marginTop
+          modelStyle.marginLeft = com.marginLeft
+        }
 
-        result.push({...comIdToSlotComMap[id], children: this.traverseElementsToSlotComAry(children, coms)})
+        result.push({
+          ...comIdToSlotComMap[id],
+          children: this.traverseElementsToSlotComAry(children, coms, "children"),
+          brother: this.traverseElementsToSlotComAry(brother, coms, "brother"),
+        })
       }
     })
 
@@ -181,7 +194,7 @@ function calculateRow(elements: any) {
   elements.sort((pre, cur) => pre.top - cur.top).forEach((element) => {
     if (!rows.length) {
       // 新行设置marginTop，观察
-      if (!element.marginTop) {
+      if (typeof element.marginTop === 'undefined') {
         element.marginTop = element.top
       }
       rows.push([element])
@@ -189,7 +202,6 @@ function calculateRow(elements: any) {
     } else {
       if (element.top >= maxHeight) {
         // 换行
-        console.log(2, element.value)
         element.marginTop = element.top - maxHeight
         rows.push([element])
         maxHeight = element.top + element.height
@@ -260,8 +272,15 @@ function calculateColumn(elements: any) {
       } else {
         const curColumn = columns[columns.length -1]
         const lastElement = curColumn[curColumn.length -1]
-        if (checkElementRelationship(lastElement, element)) {
+        const relationship = checkElementRelationship(lastElement, element)
+        if (relationship === 'include') {
+          // 包含
           lastElement.children.push(element)
+        } else if (relationship === 'intersect') {
+          // 相交，相对lastElement绝对定位
+          element.top = element.top - lastElement.top
+          element.left = element.left - lastElement.left
+          lastElement.brother.push(element)
         } else {
           element.marginLeft = element.left - (lastElement.left - lastElement.marginLeft)
           const curMaxWidth = element.left + element.width
@@ -280,6 +299,8 @@ function calculateColumn(elements: any) {
         children.forEach((child) => {
           child.top = child.top - marginTop
           child.left = child.left - marginLeft
+          // TODO: 临时的为了方便render-web使用
+          Reflect.deleteProperty(child, "marginTop")
         })
         column[index].children = traverseElements(children)
       }
@@ -307,10 +328,19 @@ function checkElementRelationship(elementA: any, elementB: any) {
     a_width + a_left >= b_width + b_left && // 右侧包含
     a_top <= b_top && // 上侧包含
     a_left <= b_left && // 左侧包含
-    a_height + a_top >= b_height + b_top
+    a_height + a_top >= b_height + b_top // 下侧包含
   ) {
-    return true
+    return 'include'
   }
 
-  return false
+  if (
+    (b_left > a_left && (b_left < a_left + a_width) && (b_top >= a_top) && b_top <= (a_top + a_height)) || // 左上角
+    (b_left > a_left && (b_left < a_left + a_width) && (a_top <= b_top + b_height) && (b_top + b_height <= a_top + a_height)) || // 左下角
+    ((b_left + b_width > a_left) && (b_left + b_width < a_left + a_width) && (b_top > a_top) && b_top < (a_top + a_height)) || // 右上角
+    ((b_left + b_width > a_left) && (b_left + b_width < a_left + a_width) && (b_top + b_height > a_top) && (b_top + b_height < a_top + a_height)) // 右下角
+  ) {
+    return 'intersect'
+  }
+
+  return
 }
