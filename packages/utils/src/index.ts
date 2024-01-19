@@ -141,7 +141,6 @@ class Transform {
     const { comIdToSlotComMap } = this
     const result = []
     comAry.forEach((com) => {
-      // TODO: children是包含关系和相交
       const { id, type, items, children, brother } = com
       if (type) {
         result.push({
@@ -149,7 +148,7 @@ class Transform {
           items: this.traverseElementsToSlotComAry(items, coms, type)
         })
       } else {
-        // TODO: 
+        // TODO: 临时 children是包含关系，brother是相交关系
         if (nextType === "brother") {
           const modelStyle = coms[id].model.style
           modelStyle.position = 'absolute'
@@ -274,17 +273,29 @@ function calculateColumn(elements: any) {
         maxWidth = element.left + element.width
       } else {
         const curColumn = columns[columns.length -1]
-        const lastElement = curColumn[curColumn.length -1]
-        const relationship = checkElementRelationship(lastElement, element)
-        if (relationship === 'include') {
-          // 包含
-          lastElement.children.push(element)
-        } else if (relationship === 'intersect') {
-          // 相交，相对lastElement绝对定位
-          element.top = element.top - lastElement.top
-          element.left = element.left - lastElement.left
-          lastElement.brother.push(element)
-        } else {
+        let count = curColumn.length - 1
+
+        // 这里之后看下怎么优化
+        while (count > -1) {
+          const lastElement = curColumn[count]
+          const relationship = checkElementRelationship(lastElement, element)
+          if (relationship === 'include') {
+            // 包含
+            lastElement.children.push(element)
+            count = -1
+          } else if (relationship === 'intersect') {
+            // 相交，相对lastElement绝对定位
+            element.top = element.top - lastElement.top
+            element.left = element.left - lastElement.left
+            lastElement.brother.push(element)
+            count = -1
+          }
+          count = count - 1
+        }
+
+        if (count != -2) {
+          // 说明是非包含非相交情况
+          const lastElement = curColumn[curColumn.length -1]
           element.marginLeft = element.left - (lastElement.left - lastElement.marginLeft)
           const curMaxWidth = element.left + element.width
           if (curMaxWidth > maxWidth) {
