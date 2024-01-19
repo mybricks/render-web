@@ -260,7 +260,10 @@ function calculateColumn(elements: any) {
    */
   elements.sort((pre, cur) => pre.left - cur.left).forEach((element, index) => {
     if (!columns.length) {
-      element.marginLeft = element.left
+      // 新行设置marginLeft，观察
+      if (typeof element.marginLeft === 'undefined') {
+        element.marginLeft = element.left
+      }
       columns.push([element])
       maxWidth = element.left + element.width
     } else {
@@ -334,7 +337,7 @@ function checkElementRelationship(elementA: any, elementB: any) {
   }
 
   if (
-    (b_left >= a_left && (b_left < a_left + a_width) && (b_top >= a_top) && b_top <= (a_top + a_height)) || // 左上角
+    (b_left >= a_left && (b_left < a_left + a_width) && (b_top >= a_top) && b_top <= (a_top + a_height)) && !(b_top === a_top || b_top === (a_top + a_height)) || // 左上角
     (b_left > a_left && (b_left < a_left + a_width) && (a_top <= b_top + b_height) && (b_top + b_height <= a_top + a_height)) || // 左下角
     ((b_left + b_width > a_left) && (b_left + b_width < a_left + a_width) && (b_top > a_top) && b_top < (a_top + a_height)) || // 右上角
     ((b_left + b_width > a_left) && (b_left + b_width < a_left + a_width) && (b_top + b_height > a_top) && (b_top + b_height < a_top + a_height)) // 右下角
