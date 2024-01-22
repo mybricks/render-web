@@ -146,6 +146,7 @@ class Transform {
     comAry.forEach((com) => {
       const { id, type, items, children, brother, style } = com
       if (type) {
+        Reflect.deleteProperty(style, 'width')
         result.push({
           type,
           style,
@@ -387,23 +388,37 @@ function calculateColumn(elements: any, config: any) {
 
   return columns.map((column: any) => {
     const items = column.length > 1 ? calculateRow(column, config) : column
-    const columnStyle: any = {}
-    column.forEach((item, index) => {
-      const { marginTop, marginLeft, width } = item
-      if (!index) {
-        columnStyle.marginTop = marginTop
-        columnStyle.marginLeft = marginLeft
-        columnStyle.width = width
-        Reflect.deleteProperty(item, 'marginTop')
-        Reflect.deleteProperty(item, 'marginLeft')
+    let marginLeft = 0
+    let marginTop = 0
+    let width = 0
+    // 这里计算列的marginTop、marginLeft，元素不再有这两个属性
+
+    items.forEach((item) => {
+      const { items } = item
+      
+      if (Array.isArray(items)) {
+        let curWidth = 0
+        items.forEach((item) => {
+          const { width: itemWidth, marginTop: itemMarginTop, marginLeft: itemMarginLeft } = item.style
+          curWidth = curWidth + itemWidth + itemMarginLeft
+        })
+        if (width < curWidth) {
+          width = curWidth
+        }
       } else {
-        columnStyle.width = columnStyle.width + marginLeft + width
+        marginLeft = item.marginLeft
+        marginTop = item.marginTop
+        width = item.width
       }
     })
 
     return {
       type: 'column',
-      style: columnStyle,
+      style: {
+        marginLeft,
+        marginTop,
+        width
+      },
       items
     }
   })
