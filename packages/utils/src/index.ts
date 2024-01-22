@@ -48,7 +48,7 @@ export function transformToJSON(toJSON: ToJSON) {
       })
     }
     // TODO: 临时写死的，等引擎提供数据
-    const transform = new Transform({ containerWidth: 375 })
+    const transform = new Transform()
     scenes.forEach((scene: any) => {
       transform.transformSlotComAry(scene.slot, scene.coms)
 
@@ -73,8 +73,6 @@ export function transformToJSON(toJSON: ToJSON) {
 class Transform {
 
   comIdToSlotComMap = {}
-
-  constructor(private config) {}
 
   transformSlotComAry(slot, coms) {
     const { comIdToSlotComMap } = this
@@ -126,7 +124,7 @@ class Transform {
           children: [],
           brother: []
         }
-      }), this.config), coms, "items")
+      }), { width: slot.style.width }), coms, "items")
       console.log("comAry 结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
