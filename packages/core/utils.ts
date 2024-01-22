@@ -155,3 +155,17 @@ let stylesheetMountNode: Node | undefined = void 0
 export function getStylesheetMountNode(): Node {
   return stylesheetMountNode || (stylesheetMountNode = document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.head)
 }
+
+export function easyClone(val: any) {
+  if (val && typeof val === 'object') {
+    try {
+      if (val instanceof FormData) {
+        return val
+      }
+      return JSON.parse(JSON.stringify(val))
+    } catch (ex) {
+      return val
+    }
+  }
+  return val
+}

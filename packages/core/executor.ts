@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal} from './logger';
-import {uuid, dataSlim} from "./utils";
+import {uuid, dataSlim, easyClone} from "./utils";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
@@ -908,7 +908,7 @@ export default function executor(opts, {observable}) {
       val = getSlotValue(key, scope.parent)
     }
 
-    return val
+    return easyClone(val)
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
