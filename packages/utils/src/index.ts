@@ -47,7 +47,8 @@ export function transformToJSON(toJSON: ToJSON) {
         }
       })
     }
-    const transform = new Transform()
+    // TODO: 临时写死的，等引擎提供数据
+    const transform = new Transform({ containerWidth: 375 })
     scenes.forEach((scene: any) => {
       transform.transformSlotComAry(scene.slot, scene.coms)
 
@@ -72,6 +73,8 @@ export function transformToJSON(toJSON: ToJSON) {
 class Transform {
 
   comIdToSlotComMap = {}
+
+  constructor(private config) {}
 
   transformSlotComAry(slot, coms) {
     const { comIdToSlotComMap } = this
@@ -123,7 +126,7 @@ class Transform {
           children: [],
           brother: []
         }
-      })), coms, "items")
+      }), this.config), coms, "items")
       console.log("comAry 结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
@@ -141,10 +144,11 @@ class Transform {
     const { comIdToSlotComMap } = this
     const result = []
     comAry.forEach((com) => {
-      const { id, type, items, children, brother } = com
+      const { id, type, items, children, brother, style } = com
       if (type) {
         result.push({
           type,
+          style,
           items: this.traverseElementsToSlotComAry(items, coms, type)
         })
       } else {
@@ -158,8 +162,9 @@ class Transform {
           // 这里记得处理下包含关系，children?
           const modelStyle = coms[id].model.style
           modelStyle.position = 'relative'
-          modelStyle.marginTop = com.marginTop
-          modelStyle.marginLeft = com.marginLeft
+          // 观察: 删除了组件的margin，用行列来替代
+          // modelStyle.marginTop = com.marginTop
+          // modelStyle.marginLeft = com.marginLeft
         }
 
         result.push({
@@ -177,11 +182,11 @@ class Transform {
 /**
  * 有一个前提，需要把元素按顺序排好
  */
-export function traverseElements(elements: any) {
-  return calculateRow(elements)
+export function traverseElements(elements: any, config: any) {
+  return calculateRow(elements, config)
 }
 
-function calculateRow(elements: any) {
+function calculateRow(elements: any, config: any) {
   const rows: any = []
   // 记录最高的高度，后续如果有大于最高高度的，那就换行
   let maxHeight = 0
@@ -218,11 +223,70 @@ function calculateRow(elements: any) {
   })
 
   return rows.map((row: any) => {
+    const items = calculateColumn(row, config)
     return {
       type: 'row',
-      items: calculateColumn(row)
+      style: calculateRowStyle(items, config),
+      items
     }
   })
+}
+
+function calculateRowStyle(elements: any, config: any) {
+  // 先计算横向的
+  const { width: containerWidth } = config
+  const rowStyle: any = {}
+  let start = 0
+  let end = 0
+  let spacings = []
+  let curWidth = 0
+  let elementWidth = 0
+  const elementsLength = elements.length - 1
+  elements.forEach((element, index) => {
+    const elementStyle = element.style
+    elementWidth = elementWidth + elementStyle.width
+    curWidth = curWidth + elementStyle.marginLeft + elementStyle.width
+    if (index === 0) {
+      start = elementStyle.marginLeft
+    } else {
+      spacings.push(elementStyle.marginLeft)
+    }
+    if (elementsLength === index) {
+      end = containerWidth - curWidth
+    }
+  })
+
+  const spacing = spacings[0]
+
+  if (start === end && spacings.reduce((pre, cur) => pre + cur, 0) === spacing * spacings.length) {
+    // 最基本的，前后、间距也必须相等
+    if (spacing === start) {
+      // 全部间距完全相等
+      rowStyle.justifyContent = 'space-evenly'
+    } else if (spacing / 2 === start) {
+      // 前后间距是元素间间距的二分之一
+      rowStyle.justifyContent = 'space-around'
+    } else if (start === 0) {
+      // 前后是0
+      rowStyle.justifyContent = 'space-between'
+    }
+  }
+
+  if (!rowStyle.justifyContent) {
+    // 有可能整体是居中的？
+    if (start === end) {
+      rowStyle.justifyContent = 'center'
+      // TODO: 持续观察
+      Reflect.deleteProperty(elements[0].style, 'marginLeft')
+    }
+  } else {
+    elements.forEach((element) => {
+      // TODO: 持续观察
+      Reflect.deleteProperty(element.style, 'marginLeft')
+    })
+  }
+
+  return rowStyle
 }
 
 function findMaxTopHeight(elements: any) {
@@ -247,7 +311,7 @@ function findMaxLeftWidth(elements: any) {
   return maxSum
 }
 
-function calculateColumn(elements: any) {
+function calculateColumn(elements: any, config: any) {
   const columns: any = []
   // 记录最宽的宽度，后续如果有大于最宽宽度的，那就换列
   let maxWidth = 0
@@ -308,7 +372,7 @@ function calculateColumn(elements: any) {
   })
 
   columns.forEach((column) => {
-    column.forEach(({ children, marginTop, marginLeft }, index) => {
+    column.forEach(({ children, marginTop, marginLeft, width }, index) => {
       if (children.length) {
         children.forEach((child) => {
           child.top = child.top - marginTop
@@ -316,17 +380,38 @@ function calculateColumn(elements: any) {
           // TODO: 临时的为了方便render-web使用
           Reflect.deleteProperty(child, "marginTop")
         })
-        column[index].children = traverseElements(children)
+        column[index].children = traverseElements(children, config)
       }
     })
   })
 
   return columns.map((column: any) => {
+    const items = column.length > 1 ? calculateRow(column, config) : column
+    const columnStyle: any = {}
+    column.forEach((item, index) => {
+      const { marginTop, marginLeft, width } = item
+      if (!index) {
+        columnStyle.marginTop = marginTop
+        columnStyle.marginLeft = marginLeft
+        columnStyle.width = width
+        Reflect.deleteProperty(item, 'marginTop')
+        Reflect.deleteProperty(item, 'marginLeft')
+      } else {
+        columnStyle.width = columnStyle.width + marginLeft + width
+      }
+    })
+
     return {
       type: 'column',
-      items: column.length > 1 ? calculateRow(column) : column
+      style: columnStyle,
+      items
     }
   })
+}
+
+function calculateColumnStyle(elements: any) {
+  // console.log("计算列style: ", elements)
+  return {}
 }
 
 /**

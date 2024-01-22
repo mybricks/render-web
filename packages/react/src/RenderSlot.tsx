@@ -20,16 +20,16 @@ function renderRstTraverseCom({com, index, env, getComDef, context, scope, input
   const { type } = com
 
   if (type) {
-    const { items } = com
+    const { items, style } = com
     if (type === 'row') {
       return (
-        <div key={index} style={{display: 'flex', flexDirection: 'row'}}>
+        <div key={index} style={{display: 'flex', flexDirection: 'row', ...style}}>
           {items.map((com, index) => renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
         </div>
       )
     } else if (type === 'column') {
       return (
-        <div key={index} style={{display: 'flex', flexDirection: 'column'}}>
+        <div key={index} style={{display: 'flex', flexDirection: 'column', ...style}}>
           {items.map((com, index) => renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
         </div>
       )
