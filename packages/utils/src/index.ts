@@ -227,7 +227,9 @@ function calculateRow(elements: any, config: any) {
     const items = calculateColumn(row, config)
     return {
       type: 'row',
-      style: calculateRowStyle(items, config),
+      style: {},
+      // 后面再考虑弹性的问题
+      // style: calculateRowStyle(items, config),
       items
     }
   })
@@ -279,6 +281,8 @@ function calculateRowStyle(elements: any, config: any) {
     // 有可能整体是居中的？
     if (sameStartEnd) {
       rowStyle.justifyContent = 'center'
+      // elements[0].style.width = "100%"
+      // elements[0].style.margin = `0 ${start}px`
       // TODO: 持续观察
       Reflect.deleteProperty(elements[0].style, 'marginLeft')
     }
