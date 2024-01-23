@@ -111,14 +111,16 @@ class Transform {
 
       slot.comAry2 = this.traverseElementsToSlotComAry(traverseElements(resultComAry.map((com) => {
         const id = com.id
-        const style = coms[id].model.style
+        const comInfo = coms[id]
+        const style = comInfo.model.style
+        const calculateStyle = comInfo.style
 
         comIdToSlotComMap[id] = com
   
         return {
           id,
-          width: style.width || 0,
-          height: style.height || 0,
+          width: calculateStyle.width || 0,
+          height: calculateStyle.height || 0,
           top: style.top || 0,
           left: style.left || 0,
           children: [],
@@ -242,13 +244,13 @@ function calculateRowStyle(elements: any, config: any) {
   let elementWidth = 0
   const elementsLength = elements.length - 1
   elements.forEach((element, index) => {
-    const elementStyle = element.style
-    elementWidth = elementWidth + elementStyle.width
-    curWidth = curWidth + elementStyle.marginLeft + elementStyle.width
+    const { width: elemenStyletWidth = 0, marginLeft: elementStyleMarginLeft = 0 } = element.style
+    elementWidth = elementWidth + elemenStyletWidth
+    curWidth = curWidth + elementStyleMarginLeft + elemenStyletWidth
     if (index === 0) {
-      start = elementStyle.marginLeft
+      start = elementStyleMarginLeft
     } else {
-      spacings.push(elementStyle.marginLeft)
+      spacings.push(elementStyleMarginLeft)
     }
     if (elementsLength === index) {
       end = containerWidth - curWidth
@@ -256,8 +258,10 @@ function calculateRowStyle(elements: any, config: any) {
   })
 
   const spacing = spacings[0]
+  const sameStartEnd = start === end
+  const sameSpacing = spacings.reduce((pre, cur) => pre + cur, 0) === spacing * spacings.length
 
-  if (start === end && spacings.reduce((pre, cur) => pre + cur, 0) === spacing * spacings.length) {
+  if (sameStartEnd && sameSpacing) {
     // 最基本的，前后、间距也必须相等
     if (spacing === start) {
       // 全部间距完全相等
@@ -273,7 +277,7 @@ function calculateRowStyle(elements: any, config: any) {
 
   if (!rowStyle.justifyContent) {
     // 有可能整体是居中的？
-    if (start === end) {
+    if (sameStartEnd) {
       rowStyle.justifyContent = 'center'
       // TODO: 持续观察
       Reflect.deleteProperty(elements[0].style, 'marginLeft')
