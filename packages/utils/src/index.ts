@@ -187,6 +187,239 @@ export function traverseElements(elements: any, config: any) {
   return calculateRow(elements, config)
 }
 
+export function traverseElements2(elements, config) {
+  const traverseElements = new TraverseElements( elements.sort((pre, cur) => {
+    if (pre.top === cur.top) {
+      return pre.left - cur.left
+    }
+    return pre.top - cur.top
+  }), config )
+  return traverseElements.getElements()
+  // console.log(elements, config)
+
+  // const groupElements = []
+
+  // const sortElements = elements.sort((pre, cur) => {
+  //   if (pre.top === cur.top) {
+  //     return pre.left - cur.left
+  //   }
+  //   return pre.top - cur.top
+  // })
+
+
+  // splitElements(sortElements, groupElements)
+
+  // console.log("groupElements: ", groupElements)
+  // return groupElements
+}
+
+class TraverseElements {
+  private elementsIdToGroupMap = {}
+  private elementsGroup = []
+  constructor(private elements, private config) {}
+
+  getElements() {
+    const { elements } = this
+
+    this.splitElements(this.elements)
+
+    return []
+  }
+
+  splitElements(elements) {
+    console.log("splitElements: ", elements, )
+    const { elementsIdToGroupMap } = this
+
+    elements.forEach((element, index) => {
+      console.log("当前: ", element)
+      console.log("对比: ", elements.slice(index + 1))
+
+      const comparedElements = elements.slice(index + 1)
+
+      const height = element.top + element.height
+      const width = element.left + element.width
+
+      let xElementInfo = void 0
+      let yElementInfo = void 0
+
+      for (let i = 0; i < comparedElements.length; i++) {
+        const curElement = comparedElements[i]
+        /**
+         * 待解决问题：
+         * - 相交
+         */
+    
+        if (!xElementInfo && curElement.left >= width) {
+          xElementInfo = {
+            element: curElement,
+            spacing: curElement.left - width
+          }
+        }
+        if (!yElementInfo && curElement.top >= height ) {
+          yElementInfo = {
+            element: curElement,
+            spacing: curElement.top - height
+          }
+        }
+    
+        if (xElementInfo && yElementInfo) {
+          break
+        }
+      }
+
+      if (xElementInfo && yElementInfo) {
+        console.log(xElementInfo.id, yElementInfo.id, " 两个都有，需要比较")
+        // ，
+
+      } else {
+        if (xElementInfo) {
+          console.log("只有x: ", xElementInfo.element.id)
+        } else if (yElementInfo) {
+          console.log("只有y: ", yElementInfo.element.id)
+        }
+      }
+
+      // console.log({
+      //   xElement,
+      //   xIndex,
+      //   yElement,
+      //   yIndex
+      // })
+    })
+
+  }
+
+}
+
+function mergeElements(elements) {
+  console.log("elements: ", JSON.parse(JSON.stringify(elements)))
+  let width = 0
+  let height = 0 
+
+  const { left, top } = elements.slice(1).reduce((min, element) => {
+    if (element.left < min.left) {
+      min.left = element.left
+    }
+    if (element.top < min.top) {
+      min.top = element.top
+    }
+    return min
+  }, {
+    left: elements[0].left,
+    top: elements[0].top
+  })
+  const newElements = []
+
+  let maxHeight = 0
+
+  elements.forEach((element, index) => {
+    const elementLeft = element.left - left
+    const elementTop = element.top - top
+    newElements.push({
+      ...element,
+      left: elementLeft,
+      top: elementTop,
+      marginTop: elementTop - maxHeight
+    })
+
+    maxHeight = elementTop + element.height
+
+    if (elementLeft + element.width > width) {
+      width = elementLeft + element.width
+    }
+    if (elementTop + element.height > width) {
+      height = elementTop + element.height
+    }
+  })
+
+  return {
+    left,
+    top,
+    width,
+    height,
+    elements: newElements
+  }
+}
+
+function splitElements(elements, groupElements = []) {
+  /**
+   * 看边上的距离，哪个近跟哪个
+   * 如果相同取下面的
+   * 如果一条线上有多个，考虑非一组
+   */
+  const element = elements.shift()
+  const height = element.top + element.height
+  const width = element.left + element.width
+
+  let maxHeight = height
+  let maxWidth = width
+  let xCount = 0
+  let yCount = 0
+  // x间距
+  let xDistance = void 0
+  // y间距
+  let yDistance = void 0
+
+  let xIndex = -1
+  let xElement = void 0
+  let yIndex = -1
+  let yElement = void 0
+
+  for (let i = 0; i < elements.length; i++) {
+    const curElement = elements[i]
+    /**
+     * 待解决问题：
+     * - 相交
+     */
+
+    if (!xElement && curElement.left >= maxWidth) {
+      xElement = curElement
+      xIndex = i
+    }
+    if (!yElement && curElement.top >= maxHeight ) {
+      yElement = curElement
+      yIndex = i
+    }
+
+    if (xElement && yElement) {
+      break
+    }
+  }
+
+  console.log(xElement?.value)
+  console.log(yElement?.value)
+  console.log("elements: ", JSON.parse(JSON.stringify(elements)))
+
+  // 可能没有
+  if (xElement && yElement) {
+    // 对比
+    if (xElement.left - (element.left + element.width) < yElement.top - (element.top + element.height)) {
+      groupElements.push(mergeElements([element, elements.splice(xIndex, 1)[0]]))
+    } else {
+      groupElements.push(mergeElements([element, elements.splice(yIndex, 1)[0]]))
+    }
+  } else {
+    if (xElement) {
+      groupElements.push(mergeElements([element, elements.splice(xIndex, 1)[0]]))
+    } else {
+      groupElements.push(mergeElements([element, elements.splice(yIndex, 1)[0]]))
+    }
+  }
+
+  if (elements.length > 1) {
+    return splitElements(elements, groupElements)
+  }
+
+  // if (groupElements.length > 1) {
+  //   console.log("groupElements: ", JSON.parse(JSON.stringify(groupElements)))
+  //   return splitElements(groupElements)
+  // }
+
+
+
+  return groupElements
+}
+
 function calculateRow(elements: any, config: any) {
   const rows: any = []
   // 记录最高的高度，后续如果有大于最高高度的，那就换行
