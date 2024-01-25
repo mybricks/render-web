@@ -63,7 +63,7 @@ export default function MultiScene ({json, options}) {
             show: index === 0,
             todo: [],
             json,
-            disableAutoRun: !!index,
+            disableAutoRun: !!(options.disableAutoRun || index),
             useEntryAnimation: false,
             type: json.slot?.showType || json.type
           }
