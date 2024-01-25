@@ -21,7 +21,7 @@ import NotificationLess from './Notification/style.lazy.less';
 import { setLoggerSilent } from '../../core/logger';
 import Notification from './Notification';
 import executor from '../../core/executor'
-import { compareVersion, getStylesheetMountNode } from '../../core/utils';
+import { compareVersion, deepCopy, getStylesheetMountNode } from '../../core/utils';
 import type { ToJSON, MultiSceneToJSON } from "./types";
 // @ts-ignore
 import coreLib from '@mybricks/comlib-core';
@@ -382,6 +382,9 @@ export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) 
   } else {
     let jsx = null
     if ("scenes" in json)  {
+      if (options._isNestedRender) {
+        options.env = deepCopy(options.env)
+      }
       transformJSON(json);
       jsx = <MultiScene json={json} options={options}/>
     } else {
