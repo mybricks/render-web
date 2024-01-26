@@ -330,7 +330,8 @@ function RenderCom({
     <div id={id} key={id} style={{
       display: style.display,
       // overflow: "hidden",
-      position: style.position || "relative",
+      // position: style.position || "relative",
+      position: style.position,
       ...otherStyle,
       ...sizeStyle,
       ...marginStyle,

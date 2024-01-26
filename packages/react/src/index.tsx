@@ -382,8 +382,9 @@ export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) 
   } else {
     let jsx = null
     if ("scenes" in json)  {
-      if (options._isNestedRender) {
+      if (options._isNestedRender || options.debug) {
         options.env = deepCopy(options.env)
+        // TODO：需不需要把runtime.debug删了，这里弹窗是这样判断是否在调试环境的
       }
       transformJSON(json);
       jsx = <MultiScene json={json} options={options}/>

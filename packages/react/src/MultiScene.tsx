@@ -220,7 +220,7 @@ export default function MultiScene ({json, options}) {
     //   }
     // }, options.env?.canvas)
 
-    env.canvas.id = id
+    // canvas.id = id
     env.canvas.open = async (sceneId, params, openType) => {
       // console.log(`打开场景 -> ${sceneId}`)
       let scenes = scenesMap[sceneId]
@@ -308,6 +308,7 @@ export default function MultiScene ({json, options}) {
       }
     }
 
+    // TODO:挪出去，优化一下
     const scenesOperate = {
       open({todo, frameId, parentScope, comProps}) {
         const scenes = scenesMap[frameId]

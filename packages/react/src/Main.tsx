@@ -33,8 +33,8 @@ export default function Main({json, options, style = {}, className = '', root = 
   
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
     const { env, debug } = options
-    if (debug && from === 'scene') {
-      style.minHeight = 800
+    if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene') {
+      style.minHeight = 800;
     }
 
     return {
