@@ -195,229 +195,324 @@ export function traverseElements2(elements, config) {
     return pre.top - cur.top
   }), config )
   return traverseElements.getElements()
-  // console.log(elements, config)
-
-  // const groupElements = []
-
-  // const sortElements = elements.sort((pre, cur) => {
-  //   if (pre.top === cur.top) {
-  //     return pre.left - cur.left
-  //   }
-  //   return pre.top - cur.top
-  // })
-
-
-  // splitElements(sortElements, groupElements)
-
-  // console.log("groupElements: ", groupElements)
-  // return groupElements
 }
 
 class TraverseElements {
-  private elementsIdToGroupMap = {}
-  private elementsGroup = []
   constructor(private elements, private config) {}
 
   getElements() {
     const { elements } = this
-
-    this.splitElements(this.elements)
-
+    const eleGroup = this.splitElements(this.handleIntersectionsAndInclusions(elements))
     return []
   }
 
-  splitElements(elements) {
-    console.log("splitElements: ", elements, )
-    const { elementsIdToGroupMap } = this
+  handleIntersectionsAndInclusions(elements: any) {
+    // 处理包含和相交关系
+    return elements
+  }
+
+  splitElements(elements: any) {
+    const eleIdToInfo = {}
+    const eleGroup = []
 
     elements.forEach((element, index) => {
-      console.log("当前: ", element)
-      console.log("对比: ", elements.slice(index + 1))
+      let x
+      let y
+      for (let i = 0; i < elements.length; i++) {
+        const cEle = elements[i]
+        if (cEle.id !== element.id) {
+          if (cEle.left >= element.left + element.width && cEle.top < element.top + element.height && (!x ? true : x.left > cEle.left) && element.top < cEle.top + cEle.height) {
+            // 这里要选出最小的
+            x = cEle
+          }
+          if (cEle.top >= element.top + element.height && cEle.left < element.left + element.width && (!y ? true : y.top > cEle.top) && element.left < cEle.left + cEle.width) {
+            // 这里要选出最小的
+            y = cEle
+          }
+        }
+        // TODO: 看看能不能提前结束
+      }
 
-      const comparedElements = elements.slice(index + 1)
+      /**
+       * 距离最近的元素(被对比元素)
+       */
+      let resEle
+      /**
+       * x距离
+       */
+      let xSpace
+      /**
+       * y距离
+       */
+      let ySpace
 
-      const height = element.top + element.height
-      const width = element.left + element.width
+      /**
+       * 横向对比
+       */
+      let isX
+      /**
+       * 纵向对比
+       */
+      let isY
 
-      let xElementInfo = void 0
-      let yElementInfo = void 0
-
-      for (let i = 0; i < comparedElements.length; i++) {
-        const curElement = comparedElements[i]
+      if (x && y) {
         /**
-         * 待解决问题：
-         * - 相交
+         * 两个都有，选最近的，如果相等选x
          */
-    
-        if (!xElementInfo && curElement.left >= width) {
-          xElementInfo = {
-            element: curElement,
-            spacing: curElement.left - width
+        if (x.left - (element.left + element.width) <= y.top - (element.top + element.height)) {
+          resEle = x
+        } else {
+          resEle = y
+        }
+        xSpace = x.left - (element.left + element.width)
+        ySpace = y.top - (element.top + element.height)
+        if (xSpace <= ySpace) {
+          isX = true
+        } else {
+          isY = true
+        }
+      } else if (x) {
+        xSpace = x.left - (element.left + element.width)
+        resEle = x
+        isX = true
+      } else if (y) {
+        ySpace = y.top - (element.top + element.height)
+        resEle = y
+        isY = true
+      }
+
+      if (!eleIdToInfo[element.id]) {
+        eleIdToInfo[element.id] = {
+          topEles: [],
+          leftEles: [],
+          rightEles: [],
+          bottomEles: []
+        }
+      }
+      if (typeof xSpace === 'number') {
+        eleIdToInfo[element.id].right = xSpace
+        eleIdToInfo[element.id].rightEles.push(resEle)
+      }
+      if (typeof ySpace === 'number') {
+        eleIdToInfo[element.id].bottom = ySpace
+        eleIdToInfo[element.id].bottomEles.push(resEle)
+      }
+      if (x) {
+        if (!eleIdToInfo[x.id]) {
+          eleIdToInfo[x.id] = {
+            topEles: [],
+            leftEles: [],
+            rightEles: [],
+            bottomEles: []
           }
         }
-        if (!yElementInfo && curElement.top >= height ) {
-          yElementInfo = {
-            element: curElement,
-            spacing: curElement.top - height
+        eleIdToInfo[x.id].leftEles.push(element)
+      }
+      if (y) {
+        if (!eleIdToInfo[y.id]) {
+          eleIdToInfo[y.id] = {
+            topEles: [],
+            leftEles: [],
+            rightEles: [],
+            bottomEles: []
           }
         }
-    
-        if (xElementInfo && yElementInfo) {
-          break
+        eleIdToInfo[y.id].topEles.push(element)
+      }
+
+      if (resEle) {
+        if (typeof xSpace === 'number' && typeof ySpace === 'number') {
+          if (xSpace > ySpace) {
+            eleIdToInfo[resEle.id].top = ySpace
+          } else {
+            eleIdToInfo[resEle.id].left = xSpace
+          }
+        } else if (typeof xSpace === 'number') {
+          eleIdToInfo[resEle.id].left = xSpace
+        } else if (typeof ySpace === 'number') {
+          eleIdToInfo[resEle.id].top = ySpace
         }
       }
 
-      if (xElementInfo && yElementInfo) {
-        console.log(xElementInfo.id, yElementInfo.id, " 两个都有，需要比较")
-        // ，
+      /**
+       * 当前元素的信息
+       */
+      const eleInfo = eleIdToInfo[element.id]
+      /**
+       * 被对比元素的信息
+       */
+      const resEleInfo = eleIdToInfo[resEle?.id]
+      
+      if (isX) {
+        if (!('idx1' in eleInfo)) {
+          // 没有ele
+          if (!('idx1' in resEleInfo)) {
+            // 没有resEle，直接成组
+            eleGroup.push([element, resEle])
+            eleInfo.idx1 = eleGroup.length - 1
+            eleInfo.idx2 = 0
+            resEleInfo.idx1 = eleGroup.length - 1
+            resEleInfo.idx2 = 1
+          } else {
+            // 有resEle
+            if (resEleInfo.leftEles.length > 1) {
+              const idx1 = eleIdToInfo[resEleInfo.leftEles[0].id].idx1
+              if (resEleInfo.idx1 === idx1) {
+                // 相交了，resEle摘出去，element放进去
+                eleGroup[idx1].splice(resEleInfo.idx2, 1)
+                eleGroup.push([resEle])
+                resEleInfo.idx1 = eleGroup.length -1
+                resEleInfo.idx2 = 0
 
+                eleGroup[idx1].push(element)
+                eleInfo.idx1 = idx1
+                eleInfo.idx2 = eleGroup[idx1].length - 1
+              } else {
+                // 虽然相交，但是resEle已经不在这一侧了，直接把element放进去
+                eleGroup[idx1].push(element)
+                eleInfo.idx1 = idx1
+                eleInfo.idx2 = eleGroup[idx1].length - 1
+              }
+            } else {
+              const idx1 = resEleInfo.idx1
+              eleGroup[idx1].push(element)
+              eleInfo.idx1 = idx1
+              eleInfo.idx2 = eleGroup[idx1].length - 1
+            }
+          }
+        } else {
+          // 有ele
+          if (!('idx1' in resEleInfo)) {
+            // 没有resEle
+            if (eleInfo.right <= eleInfo.top || eleInfo.right <= eleInfo.left || eleInfo.right <= eleInfo.bottom) {
+              eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
+              eleGroup.push([element, resEle])
+              eleInfo.idx1 = eleGroup.length - 1
+              eleInfo.idx2 = 0
+              resEleInfo.idx1 = eleGroup.length - 1
+              resEleInfo.idx2 = 1
+            } else {
+              eleGroup.push([resEle])
+              resEleInfo.idx1 = eleGroup.length - 1
+              resEleInfo.idx2 = 0
+            }
+          } else {
+            // 有resEle
+            // TODO: 待观察
+            // if (eleInfo.right <= eleInfo.top || eleInfo.right <= eleInfo.left || eleInfo.right <= eleInfo.bottom) {
+            // } else {
+            // }
+          }
+        }
+      } else if (isY) {
+        if (!('idx1' in eleInfo)) {
+          // 没有ele
+          if (!('idx1' in resEleInfo)) {
+            // 没有resEle，直接成组
+            eleGroup.push([element, resEle])
+            eleInfo.idx1 = eleGroup.length - 1
+            eleInfo.idx2 = 0
+            resEleInfo.idx1 = eleGroup.length - 1
+            resEleInfo.idx2 = 1
+          } else {
+            // 有resEle
+            debugger
+          }
+        } else {
+          // 有ele
+          if (!('idx1' in resEleInfo)) {
+            // 没有resEle
+            // debugger
+            if (resEleInfo.topEles.length > 1) {
+              eleGroup.push([resEle])
+              resEleInfo.idx1 = eleGroup.length - 1
+              resEleInfo.idx2 = 0
+            } else {
+              // debugger
+              if (eleInfo.bottom < eleInfo.top || eleInfo.bottom < eleInfo.left || eleInfo.bottom < eleInfo.right) {
+                eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
+                eleGroup.push([element, resEle])
+                eleInfo.idx1 = eleGroup.length -1
+                eleInfo.idx2 = 0
+                resEleInfo.idx1 = eleGroup.length -1
+                resEleInfo.idx2 = 1
+              } else {
+                debugger
+              }
+            }
+          } else {
+            // 有resEle
+            // debugger
+          }
+        }
       } else {
-        if (xElementInfo) {
-          console.log("只有x: ", xElementInfo.element.id)
-        } else if (yElementInfo) {
-          console.log("只有y: ", yElementInfo.element.id)
+        if (!('idx1' in eleInfo)) {
+          // 没有element，直接push
+          eleGroup.push([element])
+          eleInfo.idx1 = eleGroup.length - 1
+          eleInfo.idx2 = 0
+        } else {
+          // 有了，又没有对比，这里不用动
         }
       }
-
-      // console.log({
-      //   xElement,
-      //   xIndex,
-      //   yElement,
-      //   yIndex
-      // })
     })
 
+    // eleGroup.forEach((ele) => {
+    //   console.log(ele.map((e) => e.id))
+    // })
+
+    let newElements = this.convertedToElements(eleGroup)
+
+    // console.log("newElements: ", newElements)
+
+    if (eleGroup.length === elements.length) {
+      return newElements
+    } else {
+      return this.splitElements(newElements)
+    }
   }
 
-}
+  convertedToElements(eleGroup: any) {
+    const elements = []
 
-function mergeElements(elements) {
-  console.log("elements: ", JSON.parse(JSON.stringify(elements)))
-  let width = 0
-  let height = 0 
+    eleGroup.forEach((group) => {
+      const length = group.length
+      if (length) {
+        if (length === 1) {
+          elements.push(group[0])
+        } else if (length > 1) {
+          // 找最小的top，最小的left，计算最大的width和height
+          let top,left,width,height
+          group.forEach((ele) => {
+            if (!top || top > ele.top) {
+              top = ele.top
+            }
+            if (!left || left > ele.left) {
+              left = ele.left
+            }
+            if (!width || width < ele.width + ele.left) {
+              width = ele.width + ele.left
+            }
+            if (!height || height < ele.height + ele.top) {
+              height = ele.height + ele.top
+            }
+          })
 
-  const { left, top } = elements.slice(1).reduce((min, element) => {
-    if (element.left < min.left) {
-      min.left = element.left
-    }
-    if (element.top < min.top) {
-      min.top = element.top
-    }
-    return min
-  }, {
-    left: elements[0].left,
-    top: elements[0].top
-  })
-  const newElements = []
-
-  let maxHeight = 0
-
-  elements.forEach((element, index) => {
-    const elementLeft = element.left - left
-    const elementTop = element.top - top
-    newElements.push({
-      ...element,
-      left: elementLeft,
-      top: elementTop,
-      marginTop: elementTop - maxHeight
+          elements.push({
+            // 方便看数据，后续去掉
+            id: group.map((i) => i.id).join(),
+            top,
+            left,
+            width: width - left,
+            height: height - top,
+            elements: group
+          })
+        }
+      }
     })
 
-    maxHeight = elementTop + element.height
-
-    if (elementLeft + element.width > width) {
-      width = elementLeft + element.width
-    }
-    if (elementTop + element.height > width) {
-      height = elementTop + element.height
-    }
-  })
-
-  return {
-    left,
-    top,
-    width,
-    height,
-    elements: newElements
+    return elements
   }
-}
-
-function splitElements(elements, groupElements = []) {
-  /**
-   * 看边上的距离，哪个近跟哪个
-   * 如果相同取下面的
-   * 如果一条线上有多个，考虑非一组
-   */
-  const element = elements.shift()
-  const height = element.top + element.height
-  const width = element.left + element.width
-
-  let maxHeight = height
-  let maxWidth = width
-  let xCount = 0
-  let yCount = 0
-  // x间距
-  let xDistance = void 0
-  // y间距
-  let yDistance = void 0
-
-  let xIndex = -1
-  let xElement = void 0
-  let yIndex = -1
-  let yElement = void 0
-
-  for (let i = 0; i < elements.length; i++) {
-    const curElement = elements[i]
-    /**
-     * 待解决问题：
-     * - 相交
-     */
-
-    if (!xElement && curElement.left >= maxWidth) {
-      xElement = curElement
-      xIndex = i
-    }
-    if (!yElement && curElement.top >= maxHeight ) {
-      yElement = curElement
-      yIndex = i
-    }
-
-    if (xElement && yElement) {
-      break
-    }
-  }
-
-  console.log(xElement?.value)
-  console.log(yElement?.value)
-  console.log("elements: ", JSON.parse(JSON.stringify(elements)))
-
-  // 可能没有
-  if (xElement && yElement) {
-    // 对比
-    if (xElement.left - (element.left + element.width) < yElement.top - (element.top + element.height)) {
-      groupElements.push(mergeElements([element, elements.splice(xIndex, 1)[0]]))
-    } else {
-      groupElements.push(mergeElements([element, elements.splice(yIndex, 1)[0]]))
-    }
-  } else {
-    if (xElement) {
-      groupElements.push(mergeElements([element, elements.splice(xIndex, 1)[0]]))
-    } else {
-      groupElements.push(mergeElements([element, elements.splice(yIndex, 1)[0]]))
-    }
-  }
-
-  if (elements.length > 1) {
-    return splitElements(elements, groupElements)
-  }
-
-  // if (groupElements.length > 1) {
-  //   console.log("groupElements: ", JSON.parse(JSON.stringify(groupElements)))
-  //   return splitElements(groupElements)
-  // }
-
-
-
-  return groupElements
 }
 
 function calculateRow(elements: any, config: any) {
