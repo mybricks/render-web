@@ -109,7 +109,26 @@ class Transform {
         return preTop - curTop
       })
 
-      slot.comAry2 = this.traverseElementsToSlotComAry(traverseElements(resultComAry.map((com) => {
+      // slot.comAry2 = this.traverseElementsToSlotComAry(traverseElements(resultComAry.map((com) => {
+      //   const id = com.id
+      //   const comInfo = coms[id]
+      //   const style = comInfo.model.style
+      //   const calculateStyle = comInfo.style
+
+      //   comIdToSlotComMap[id] = com
+  
+      //   return {
+      //     id,
+      //     width: calculateStyle.width || 0,
+      //     height: calculateStyle.height || 0,
+      //     top: style.top || 0,
+      //     left: style.left || 0,
+      //     children: [],
+      //     brother: []
+      //   }
+      // }), { width: slot.style.width }), coms, "items")
+
+      slot.comAry2 = this.traverseElementsToSlotComAry2(traverseElements2(resultComAry.map((com) => {
         const id = com.id
         const comInfo = coms[id]
         const style = comInfo.model.style
@@ -126,7 +145,8 @@ class Transform {
           children: [],
           brother: []
         }
-      }), { width: slot.style.width }), coms, "items")
+      }), { width: slot.style.width }), coms)
+
       console.log("comAry 结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
@@ -178,6 +198,62 @@ class Transform {
 
     return result
   }
+
+  traverseElementsToSlotComAry2(comAry: any, coms: any) {
+    const { comIdToSlotComMap } = this
+    const result = []
+    comAry.forEach((com) => {
+      const { id, elements, marginLeft, marginTop, flexDirection, height, width } = com
+
+      if (Array.isArray(elements)) {
+        result.push({
+          ...com,
+          elements: this.traverseElementsToSlotComAry2(elements, coms)
+        })
+      } else {
+        const modelStyle = coms[id].model.style
+        modelStyle.position = 'relative'
+        modelStyle.marginTop = marginTop
+        modelStyle.marginLeft = marginLeft
+        result.push(comIdToSlotComMap[id])
+      }
+
+      
+
+      // const { id, type, items, children, brother, style } = com
+      // if (type) {
+      //   Reflect.deleteProperty(style, 'width')
+      //   result.push({
+      //     type,
+      //     style,
+      //     items: this.traverseElementsToSlotComAry2(items, coms, type)
+      //   })
+      // } else {
+      //   // TODO: 临时 children是包含关系，brother是相交关系
+      //   if (nextType === "brother") {
+      //     const modelStyle = coms[id].model.style
+      //     modelStyle.position = 'absolute'
+      //     modelStyle.top = com.top
+      //     modelStyle.left = com.left
+      //   } else {
+      //     // 这里记得处理下包含关系，children?
+      //     const modelStyle = coms[id].model.style
+      //     modelStyle.position = 'relative'
+      //     // 观察: 删除了组件的margin，用行列来替代
+      //     // modelStyle.marginTop = com.marginTop
+      //     // modelStyle.marginLeft = com.marginLeft
+      //   }
+
+      //   result.push({
+      //     ...comIdToSlotComMap[id],
+      //     children: this.traverseElementsToSlotComAry2(children, coms, "children"),
+      //     brother: this.traverseElementsToSlotComAry2(brother, coms, "brother"),
+      //   })
+      // }
+    })
+
+    return result
+  }
 }
 
 /**
@@ -188,13 +264,10 @@ export function traverseElements(elements: any, config: any) {
 }
 
 export function traverseElements2(elements, config) {
-  const traverseElements = new TraverseElements( elements.sort((pre, cur) => {
-    if (pre.top === cur.top) {
-      return pre.left - cur.left
-    }
-    return pre.top - cur.top
-  }), config )
-  return traverseElements.getElements()
+  const traverseElements = new TraverseElements(elements, config)
+  const res = traverseElements.getElements()
+  console.log("traverseElements2结果: ", res)
+  return res
 }
 
 class TraverseElements {
@@ -203,7 +276,139 @@ class TraverseElements {
   getElements() {
     const { elements } = this
     const eleGroup = this.splitElements(this.handleIntersectionsAndInclusions(elements))
-    return []
+    // console.log("最终结果eleGroup: ", eleGroup)
+  
+    
+    return this.handleEleGroup(eleGroup, { top: 0, left: 0 })
+  }
+
+  handleEleGroup(elements, { top: pTop, left: pLeft }) {
+    const resEles: any = []
+    let curTop = pTop
+    let curLeft = pLeft
+    // console.log(elements.length, "elements.length")
+    // console.log("elements", elements.map(ele => ele.id))
+
+    if (elements.length === 1) {
+      const ele = elements[0]
+      // console.log(ele.id, '只有一项', { top: pTop, left: pLeft })
+      const resEle: any = {
+        ...ele,
+        marginTop: ele.top - curTop,
+        marginLeft: ele.left - curLeft
+      }
+      // console.log(111, "marginLeft: ", ele.id, ele.left - curLeft)
+      if (Array.isArray(ele.elements)) {
+        resEle.elements = this.handleEleGroup(ele.elements, {
+          top: resEle.marginTop,
+          left: resEle.marginLeft
+        })
+      }
+      resEles.push(resEle)
+    } else {
+      let curTop = pTop
+      let curLeft = pLeft
+      elements.forEach((ele) => {
+        const resEle: any = {...ele}
+        const parentFlexDirection = ele.parentFlexDirection
+        // console.log("parentFlexDirection", parentFlexDirection, ele.id)
+        resEle.marginLeft = ele.left - curLeft
+        // console.log(222, "marginLeft: ", ele.id, ele.left - curLeft, ele.left, curLeft, JSON.parse(JSON.stringify(ele)))
+        resEle.marginTop = ele.top - curTop
+
+        if (Array.isArray(ele.elements)) {
+          // console.log(333, ele.id, ele.left - curLeft, curLeft)
+          resEle.elements = this.handleEleGroup(ele.elements, { 
+            // top: curTop, 
+            // top: ele.top - curTop,
+            // left: ele.left - curLeft
+            top: curTop + resEle.marginTop,
+            left: curLeft + resEle.marginLeft
+          })
+        }
+
+        if (parentFlexDirection === 'row') {
+          curLeft = ele.left + ele.width
+        } else if (parentFlexDirection === 'column') {
+          curTop = ele.top + ele.height
+        }
+
+        resEles.push(resEle)
+      })
+    }
+
+
+    // elements.forEach((item) => {
+    //   const parentFlexDirection = item.parentFlexDirection
+
+    //   // if (parentFlexDirection === 'column')
+
+    //   console.log("111, ", item.id, parentFlexDirection)
+    //   const resEle: any = {...item}
+    //   // curTop = item.top - curTop
+    //   // curLeft = item.left - curLeft
+    //   // const marginTop = item.top - top
+    //   // const marginLeft = item.left - left
+
+
+    //   // console.log("遍历处理margin：", item.id, {
+    //   //   width: item.width,
+    //   //   height: item.height, 
+    //   //   top: item.top,
+    //   //   left: item.left,
+    //   //   marginTop: item.top - curTop,
+    //   //   marginLeft: item.left - curLeft,
+    //   //   // curTop,
+    //   //   // curLeft
+    //   // })
+
+    //   // console.log({curTop, curLeft})
+    //   resEle.marginTop = item.top - curTop
+    //   resEle.marginLeft = item.left - curLeft
+
+    //   const { elements } = item
+    //   if (Array.isArray(elements)) {
+    //     resEle.elements = this.handleEleGroup(elements, { 
+    //       // top: curTop, 
+    //       top: item.top,
+    //       left: item.left - curLeft 
+    //     })
+    //   }
+    //   resEles.push(resEle)
+
+    //   curTop = item.height + item.top
+    //   // curLeft = curLeft + item.left
+
+    // })
+
+
+    // 处理下间距等
+    // let top,left,width,height
+    // let flexDirection
+    // elements.forEach((ele) => {
+    //   console.log(ele, 'element')
+    //   // if (typeof top !== 'number' || top > ele.top) {
+    //   //   top = ele.top
+    //   // }
+    //   // if (typeof left !== 'number' || left > ele.left) {
+    //   //   left = ele.left
+    //   // }
+    //   // if (typeof width !== 'number' || width < ele.width + ele.left) {
+    //   //   width = ele.width + ele.left
+    //   // }
+    //   // if (typeof height !== 'number' || height < ele.height + ele.top) {
+    //   //   height = ele.height + ele.top
+    //   // }
+    //   // // console.log({left, width, eleft: ele.left, ewidth: ele.width}, ele.id)
+
+    //   // if (left < ele.left) {
+    //   //   flexDirection = 'row'
+    //   // }
+    // })
+    // console.log("flexDirection: ", flexDirection)
+    // console.log("elements", elements.map(ele => ele.id))
+
+    return resEles
   }
 
   handleIntersectionsAndInclusions(elements: any) {
@@ -211,11 +416,17 @@ class TraverseElements {
     return elements
   }
 
+  // 拆分
   splitElements(elements: any) {
     const eleIdToInfo = {}
     const eleGroup = []
 
-    elements.forEach((element, index) => {
+    elements.sort((pre, cur) => {
+      if (pre.top === cur.top) {
+        return pre.left - cur.left
+      }
+      return pre.top - cur.top
+    }).forEach((element, index) => {
       let x
       let y
       for (let i = 0; i < elements.length; i++) {
@@ -343,10 +554,13 @@ class TraverseElements {
        */
       const resEleInfo = eleIdToInfo[resEle?.id]
       
+      const haslog = element.id === "u_u8wIa"
       if (isX) {
         if (!('idx1' in eleInfo)) {
+          haslog && console.log(1)
           // 没有ele
           if (!('idx1' in resEleInfo)) {
+            haslog && console.log(2)
             // 没有resEle，直接成组
             eleGroup.push([element, resEle])
             eleInfo.idx1 = eleGroup.length - 1
@@ -354,10 +568,13 @@ class TraverseElements {
             resEleInfo.idx1 = eleGroup.length - 1
             resEleInfo.idx2 = 1
           } else {
+            haslog && console.log(3)
             // 有resEle
             if (resEleInfo.leftEles.length > 1) {
+              haslog && console.log(4)
               const idx1 = eleIdToInfo[resEleInfo.leftEles[0].id].idx1
               if (resEleInfo.idx1 === idx1) {
+                haslog && console.log(5)
                 // 相交了，resEle摘出去，element放进去
                 eleGroup[idx1].splice(resEleInfo.idx2, 1)
                 eleGroup.push([resEle])
@@ -368,12 +585,14 @@ class TraverseElements {
                 eleInfo.idx1 = idx1
                 eleInfo.idx2 = eleGroup[idx1].length - 1
               } else {
+                haslog && console.log(6)
                 // 虽然相交，但是resEle已经不在这一侧了，直接把element放进去
                 eleGroup[idx1].push(element)
                 eleInfo.idx1 = idx1
                 eleInfo.idx2 = eleGroup[idx1].length - 1
               }
             } else {
+              haslog && console.log(7)
               const idx1 = resEleInfo.idx1
               eleGroup[idx1].push(element)
               eleInfo.idx1 = idx1
@@ -381,10 +600,17 @@ class TraverseElements {
             }
           }
         } else {
+          haslog && console.log(8)
           // 有ele
           if (!('idx1' in resEleInfo)) {
+            haslog && console.log(9)
             // 没有resEle
             if (eleInfo.right <= eleInfo.top || eleInfo.right <= eleInfo.left || eleInfo.right <= eleInfo.bottom) {
+              haslog && console.log('9-1')
+              haslog && console.log("info", JSON.parse(JSON.stringify({eleInfo, resEleInfo})))
+              haslog && console.log("ele", JSON.parse(JSON.stringify({element, resEle})))
+              haslog && console.log("", JSON.parse(JSON.stringify(eleGroup)))
+              
               eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
               eleGroup.push([element, resEle])
               eleInfo.idx1 = eleGroup.length - 1
@@ -392,22 +618,45 @@ class TraverseElements {
               resEleInfo.idx1 = eleGroup.length - 1
               resEleInfo.idx2 = 1
             } else {
+              haslog && console.log(10)
               eleGroup.push([resEle])
               resEleInfo.idx1 = eleGroup.length - 1
               resEleInfo.idx2 = 0
             }
           } else {
+            haslog && console.log(11)
             // 有resEle
             // TODO: 待观察
-            // if (eleInfo.right <= eleInfo.top || eleInfo.right <= eleInfo.left || eleInfo.right <= eleInfo.bottom) {
-            // } else {
-            // }
+            if (eleInfo.right <= eleInfo.top || eleInfo.right <= eleInfo.left || eleInfo.right <= eleInfo.bottom) {
+              haslog && console.log(12)
+              const resIdx1 = resEleInfo.idx1
+              const resIdx2 = resEleInfo.idx2
+              const resGroup = eleGroup[resIdx1]
+              eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
+              eleInfo.idx1 = resIdx1
+              if (resIdx2 === 0) {
+                resGroup.unshift(element)
+              } else {
+                resGroup.splice(resIdx2 - 1, 0, element)
+              }
+              resGroup.forEach((ele, idx2) => {
+                eleIdToInfo[ele.id].idx2 = idx2
+              })
+            } else {
+              haslog && console.log(13)
+              // debugger
+              // 暂时不管，后续要看
+            }
           }
         }
       } else if (isY) {
+        haslog && console.log(14)
         if (!('idx1' in eleInfo)) {
+          haslog && console.log(15)
           // 没有ele
           if (!('idx1' in resEleInfo)) {
+            haslog && console.log(16)
+
             // 没有resEle，直接成组
             eleGroup.push([element, resEle])
             eleInfo.idx1 = eleGroup.length - 1
@@ -415,21 +664,26 @@ class TraverseElements {
             resEleInfo.idx1 = eleGroup.length - 1
             resEleInfo.idx2 = 1
           } else {
+            haslog && console.log(17)
             // 有resEle
-            debugger
+            // debugger
           }
         } else {
           // 有ele
           if (!('idx1' in resEleInfo)) {
+            haslog && console.log(18)
             // 没有resEle
             // debugger
             if (resEleInfo.topEles.length > 1) {
+              haslog && console.log(19)
               eleGroup.push([resEle])
               resEleInfo.idx1 = eleGroup.length - 1
               resEleInfo.idx2 = 0
             } else {
+              haslog && console.log(20)
               // debugger
               if (eleInfo.bottom < eleInfo.top || eleInfo.bottom < eleInfo.left || eleInfo.bottom < eleInfo.right) {
+                haslog && console.log(21)
                 eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
                 eleGroup.push([element, resEle])
                 eleInfo.idx1 = eleGroup.length -1
@@ -437,16 +691,20 @@ class TraverseElements {
                 resEleInfo.idx1 = eleGroup.length -1
                 resEleInfo.idx2 = 1
               } else {
-                debugger
+                haslog && console.log(22)
+                // debugger
               }
             }
           } else {
+            haslog && console.log(23)
             // 有resEle
             // debugger
           }
         }
       } else {
+        haslog && console.log(24)
         if (!('idx1' in eleInfo)) {
+          haslog && console.log(25)
           // 没有element，直接push
           eleGroup.push([element])
           eleInfo.idx1 = eleGroup.length - 1
@@ -457,13 +715,9 @@ class TraverseElements {
       }
     })
 
-    // eleGroup.forEach((ele) => {
-    //   console.log(ele.map((e) => e.id))
-    // })
-
     let newElements = this.convertedToElements(eleGroup)
 
-    // console.log("newElements: ", newElements)
+    // console.log("eleIdToInfo: ", eleIdToInfo)
 
     if (eleGroup.length === elements.length) {
       return newElements
@@ -477,25 +731,49 @@ class TraverseElements {
 
     eleGroup.forEach((group) => {
       const length = group.length
+      // console.log("group: ", group.map((i) => i.id))
       if (length) {
         if (length === 1) {
           elements.push(group[0])
         } else if (length > 1) {
           // 找最小的top，最小的left，计算最大的width和height
           let top,left,width,height
+          let flexDirection
+          let curLeft = 0
+          let curTop = 0
+          // console.log(":group", group.map((i) => i.id))
+          // group.sort((pre, cur) => {
+          //   if (pre.top === cur.top) {
+          //     return pre.left - cur.left
+          //   }
+          //   return pre.top - cur.top
+          // })
           group.forEach((ele) => {
-            if (!top || top > ele.top) {
+            if (typeof top !== 'number' || top > ele.top) {
               top = ele.top
             }
-            if (!left || left > ele.left) {
+            if (typeof left !== 'number' || left > ele.left) {
               left = ele.left
             }
-            if (!width || width < ele.width + ele.left) {
+            if (typeof width !== 'number' || width < ele.width + ele.left) {
               width = ele.width + ele.left
             }
-            if (!height || height < ele.height + ele.top) {
+            if (typeof height !== 'number' || height < ele.height + ele.top) {
               height = ele.height + ele.top
             }
+
+            if (ele.top >= curTop) {
+              flexDirection = 'column'
+            } else if (ele.left >= curLeft) {
+              flexDirection = 'row'
+            }
+           
+
+            // if (curLeft <= ele.left) {
+            //   flexDirection = 'row'
+            // }
+            curLeft = ele.left + ele.width
+            curTop = ele.top + ele.height
           })
 
           elements.push({
@@ -505,7 +783,13 @@ class TraverseElements {
             left,
             width: width - left,
             height: height - top,
-            elements: group
+            flexDirection: flexDirection || 'column',
+            elements: group.map((g) => {
+              return {
+                ...g,
+                parentFlexDirection: flexDirection || 'column',
+              }
+            })
           })
         }
       }
