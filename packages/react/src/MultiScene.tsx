@@ -706,17 +706,21 @@ export default function MultiScene ({json, options}) {
             if (output.id === 'apply') {
               scenes.parentScope?.outputs[output.id](value)
             } else {
-              scenes.show = false
-              scenes.todo = []
-              scenes._refs = null
-              scenes.parentScope?.outputs[output.id](value)
-              scenes.parentScope = null
-              if (scenes.type === 'popup') {
-                setPopupIds((popupIds) => {
-                  return popupIds.filter((id) => id !== scenes.json.id)
-                })
+              if (scenes.type !== 'module') {
+                scenes.show = false
+                scenes.todo = []
+                scenes._refs = null
+                scenes.parentScope?.outputs[output.id](value)
+                scenes.parentScope = null
+                if (scenes.type === 'popup') {
+                  setPopupIds((popupIds) => {
+                    return popupIds.filter((id) => id !== scenes.json.id)
+                  })
+                } else {
+                  setCount((count) => count+1)
+                }
               } else {
-                setCount((count) => count+1)
+                scenes.parentScope?.outputs[output.id](value)
               }
             }
           })
