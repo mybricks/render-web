@@ -419,10 +419,15 @@ class TraverseElements {
    * - 是 true
    * - 否 false
    */
-  checkRightIntersects(elements) {
+  checkRightIntersects(elements, ele, value) {
     const length = elements.length
 
     if (!length || length === 1) {
+      const cEle = elements[0]
+      if (cEle) {
+        value.rightSpace = cEle.left - (ele.left + ele.width)
+      }
+      
       return false
     } else {
       elements.sort((pre, cur) => {
@@ -432,8 +437,12 @@ class TraverseElements {
       const right2Ele = elements[1]
 
       if (right1Ele.left + right1Ele.width > right2Ele.left) {
+        debugger
+        console.log("checkRightIntersects: ", elements)
         return true
       } 
+      debugger
+      console.log("checkRightIntersects: ", elements)
       return false
     }
     // let bool = false
@@ -459,11 +468,15 @@ class TraverseElements {
    * - 是 true
    * - 否 false
    */
-  checkBottomIntersects(elements) {
+  checkBottomIntersects(elements, ele, value) {
     // 全量对比版本
     const length = elements.length
 
     if (!length || length === 1) {
+      const cEle = elements[0]
+      if (cEle) {
+        value.bottomSpace = cEle.top - (ele.top + ele.height)
+      }
       return false
     } else {
       elements.sort((pre, cur) => {
@@ -473,35 +486,52 @@ class TraverseElements {
       const top2Ele = elements[1]
 
       if (top1Ele.top + top1Ele.height > top2Ele.top) {
+        value.bottomSpace = top1Ele.top - (ele.top + ele.height)
+
         return true
       } 
+
+      value.bottomSpace = top1Ele.top - (ele.top + ele.height)
+      
       return false
     }
   }
 
-  checkTopIntersects(elements) {
+  checkTopIntersects(elements, ele, value) {
     const length = elements.length
 
     if (!length || length === 1) {
+      const cEle = elements[0]
+      if (cEle) {
+        value.topSpace = ele.top - (cEle.top + cEle.height)
+      }
       return false
     } else {
       elements.sort((pre, cur) => {
-        return (pre.top + pre.height) - (cur.top + cur.height)
+        return  (cur.top + cur.height) - (pre.top + pre.height)
       })
       const top1Ele = elements[0]
       const top2Ele = elements[1]
 
-      if (top1Ele.top + top1Ele.height > top2Ele.top) {
+      if (top2Ele.top + top2Ele.height > top1Ele.top) {
+        value.topSpace = ele.top - (top1Ele.top + top1Ele.height)
         return true
-      } 
+      }
+
+      value.topSpace = ele.top - (top1Ele.top + top1Ele.height)
+     
       return false
     }
   }
 
-  checkLeftIntersects(elements) {
+  checkLeftIntersects(elements, ele, value) {
     const length = elements.length
 
     if (!length || length === 1) {
+      const cEle = elements[0]
+      if (cEle) {
+        value.leftSpace = ele.left - (cEle.left + cEle.width)
+      }
       return false
     } else {
       elements.sort((pre, cur) => {
@@ -511,15 +541,20 @@ class TraverseElements {
       const top2Ele = elements[1]
 
       if (top2Ele.left + top2Ele.width > top1Ele.left) {
+        value.leftSpace = ele.left - (top1Ele.left + top1Ele.width)
         return true
       }
+      value.leftSpace = ele.left - (top1Ele.left + top1Ele.width)
+      
       return false
     }
   }
 
   handleAdjacent(elements) {
     const eleIdToInfo = {}
+    const eleIdMap = {}
     elements.forEach((ele => {
+      eleIdMap[ele.id] = ele
       const rightEles = []
       const bottomEles = []
 
@@ -668,10 +703,11 @@ class TraverseElements {
     }))
 
     Object.entries(eleIdToInfo).forEach(([key, value]: any) => {
-      value.rightIntersect = this.checkRightIntersects(value.rightEles)
-      value.bottomIntersect = this.checkBottomIntersects(value.bottomEles)
-      value.topIntersect = this.checkTopIntersects(value.topEles)
-      value.leftIntersect = this.checkLeftIntersects(value.leftEles)
+      // console.log("key: ", key)
+      value.rightIntersect = this.checkRightIntersects(value.rightEles, eleIdMap[key], value)
+      value.bottomIntersect = this.checkBottomIntersects(value.bottomEles, eleIdMap[key], value)
+      value.topIntersect = this.checkTopIntersects(value.topEles, eleIdMap[key], value)
+      value.leftIntersect = this.checkLeftIntersects(value.leftEles, eleIdMap[key], value)
     })
 
     return eleIdToInfo
@@ -696,9 +732,10 @@ class TraverseElements {
       return pre.top - cur.top
     }))
 
-    const haslog = false
+    const haslog = (elements.length === 17) && false
 
     haslog && console.log("当前elements: ", elements)
+    haslog && console.log("当前eleIdToInfo: ", eleIdToInfo)
 
     const easyIdToInfo = {}
     Object.entries(eleIdToInfo).forEach(([key, value]: any) => {
@@ -776,19 +813,6 @@ class TraverseElements {
 
                 if (typeof fElePo.space !== 'number') {
                   haslog && console.log(83, "没处理")
-                  haslog && console.log(`没有 ${ele.id}  有${fEle.id}`)
-                  haslog && console.log("ggg", JSON.parse(JSON.stringify(eleGroup)))
-                  haslog && console.log("信息: ", JSON.parse(JSON.stringify({
-                    ele: ele || "没有",
-                    eleInfo: eleInfo || "没有",
-                    elePo: elePo || "没有",
-                    fEle: fEle || "没有",
-                    fEleInfo: fEleInfo || "没有",
-                    fElePo: fElePo || "没有",
-                    "间距": space
-                  })))
-
-
                   
 
                   if (fEleInfo.leftIntersect) {
@@ -802,24 +826,6 @@ class TraverseElements {
                   } else {
                     haslog && console.log(95, "没有处理")
                   }
-
-                  // // 删除原来的
-                  // eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
-                  // eleGroup[fElePo.idx1].forEach((ele, idx) => {
-                  //   eleIdToPosition[ele.id].idx2 = idx
-                  // })
-                  // // 合并当前和被对比
-                  // eleGroup.push([ele, fEle])
-                  // eleIdToPosition[ele.id] = {
-                  //   space,
-                  //   idx1: eleGroup.length - 1,
-                  //   idx2: 0
-                  // }
-                  // eleIdToPosition[fEle.id] = {
-                  //   space,
-                  //   idx1: eleGroup.length - 1,
-                  //   idx2: 1
-                  // }
                 } else {
                   haslog && console.log(84)
                   if (space <= fElePo.space) {
@@ -870,22 +876,6 @@ class TraverseElements {
             
           }
         }
-
-        
-
-
-        // if (!elePo) {
-        //   haslog && console.log(43, ele.id)
-        //   // 没有当前，直接push
-        //   eleGroup.push([ele])
-        //   eleIdToPosition[ele.id] = {
-        //     // space,
-        //     idx1: eleGroup.length - 1,
-        //     idx2: 0
-        //   }
-        // } else {
-        //   haslog && console.log(2, "相交")
-        // }
       } else if (eleInfo.rightIntersect && eleInfo.bottomIntersect) {
         console.log("两边都相交单独拆分")
       } else {
@@ -932,13 +922,8 @@ class TraverseElements {
                 // 没有被对比，两个直接成组
                 eleGroup.push([ele, fEle])
 
-                const space = fEle.top - (ele.top + ele.height)
-                if (space === -39) {
-                  // debugger
-                  console.log("这里计算间距有问题")
-                  console.log("fEle: ", fEle)
-                  console.log("ele: ", ele)
-                }
+                const space = fEle.left - (ele.left + ele.width)
+                
                 eleIdToPosition[ele.id] = {
                   space,
                   idx1: eleGroup.length - 1,
@@ -1103,7 +1088,6 @@ class TraverseElements {
                 // fEleInfo.topEles.length > 1
                 if (fEleInfo.topIntersect) {
                   haslog && console.log(30)
-                  debugger
                   // 相交的
                   if (!fElePo) {
                     haslog && console.log(31, "还没处理")
@@ -1120,9 +1104,9 @@ class TraverseElements {
   
                     const idx2 = cEleGroup.findIndex((i) => i.left >= ele.left + ele.width)
                     if (idx2 === -1) {
-                      debugger
-                    }
-                    if (idx2 === 0) {
+                      // debugger
+                      console.log("出问题111")
+                    } else if (idx2 === 0) {
                       cEleGroup.unshift(ele)
                     } else {
                       cEleGroup.splice(idx2 - 1, 0, ele)
@@ -1163,9 +1147,8 @@ class TraverseElements {
 
                   const idx2 = cEleGroup.findIndex((i) => i.left >= ele.left + ele.width)
                   if (idx2 === -1) {
-                    debugger
-                  }
-                  if (idx2 === 0) {
+                    console.log("出问题222")
+                  } else if (idx2 === 0) {
                     cEleGroup.unshift(ele)
                   } else {
                     cEleGroup.splice(idx2 - 1, 0, ele)
@@ -1510,16 +1493,6 @@ class TraverseElements {
 
                   if (space < elePo.space) {
                     haslog && console.log(92)
-                    haslog && console.log(`没有 ${ele.id}  有${fEle.id}`)
-                    haslog && console.log("ggg", JSON.parse(JSON.stringify(eleGroup)))
-                    haslog && console.log("信息: ", JSON.parse(JSON.stringify({
-                      ele: ele || "没有",
-                      eleInfo: eleInfo || "没有",
-                      elePo: elePo || "没有",
-                      fEle: fEle || "没有",
-                      fEleInfo: fEleInfo || "没有",
-                      fElePo: fElePo || "没有",
-                    })))
                     // 间距更小，删除原来的，这俩合并
                     eleGroup[elePo.idx1].splice(elePo.idx2)
                     eleGroup[elePo.idx1].forEach((ele, idx) => {
@@ -1581,7 +1554,8 @@ class TraverseElements {
       }
     })
 
-    // console.log("eleGroup 结果: ", eleGroup.map((i) => i.map((i) => i.id)))
+    haslog && console.log("eleGroup 结果: ", eleGroup.map((i) => i.map((i) => i.id)))
+    haslog && console.log("eleIdToPosition 位置信息: ", eleIdToPosition)
 
     // return []
 
