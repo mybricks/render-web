@@ -1315,6 +1315,11 @@ class TraverseElements {
                     // 间距更大？
                     haslog && console.log(41, "还没处理", `没有${ele.id}， 有${fEle.id}`, fElePo.space)
                    
+                    eleGroup.push([ele])
+                    eleIdToPosition[ele.id] = {
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
                  
                   }
                 }
