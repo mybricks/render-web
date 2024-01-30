@@ -437,12 +437,10 @@ class TraverseElements {
       const right2Ele = elements[1]
 
       if (right1Ele.left + right1Ele.width > right2Ele.left) {
-        debugger
-        console.log("checkRightIntersects: ", elements)
+        value.rightSpace = right1Ele.left - (ele.left + ele.width)
         return true
       } 
-      debugger
-      console.log("checkRightIntersects: ", elements)
+      value.rightSpace = right1Ele.left - (ele.left + ele.width)
       return false
     }
     // let bool = false
@@ -732,7 +730,7 @@ class TraverseElements {
       return pre.top - cur.top
     }))
 
-    const haslog = (elements.length === 17) && false
+    const haslog = (elements.length === 17) || true
 
     haslog && console.log("当前elements: ", elements)
     haslog && console.log("当前eleIdToInfo: ", eleIdToInfo)
@@ -779,10 +777,22 @@ class TraverseElements {
           if (fEle) {
             haslog && console.log(87, "没处理")
           } else {
-            haslog && console.log(88, "没处理")
+            haslog && console.log(88)
+
+            if (!elePo) {
+              // 没有当前，直接push
+              haslog && console.log(102)
+              eleGroup.push([ele])
+              eleIdToPosition[ele.id] = {
+                idx1: eleGroup.length - 1,
+                idx2: 0
+              }
+            } else {
+              // 有当前
+              haslog && console.log(103, "没处理")
+            }
+
           }
-          // const fElePo = eleIdToPosition[fEle.id]
-          // const fEleInfo = eleIdToInfo[fEle.id]
 
         } else if (eleInfo.bottomIntersect) {
           haslog && console.log(74, "下边相交 和右边比")
