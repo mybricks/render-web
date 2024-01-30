@@ -291,13 +291,11 @@ class TraverseElements {
 
     if (elements.length === 1) {
       const ele = elements[0]
-      // console.log(ele.id, '只有一项', { top: pTop, left: pLeft })
       const resEle: any = {
         ...ele,
         marginTop: ele.top - curTop,
         marginLeft: ele.left - curLeft
       }
-      // console.log(111, "marginLeft: ", ele.id, ele.left - curLeft)
       if (Array.isArray(ele.elements)) {
         resEle.elements = this.handleEleGroup(ele.elements, {
           top: resEle.marginTop,
@@ -416,312 +414,1197 @@ class TraverseElements {
     return elements
   }
 
+  /**
+   * 是否相交
+   * - 是 true
+   * - 否 false
+   */
+  checkRightIntersects(elements) {
+    const length = elements.length
+
+    if (!length || length === 1) {
+      return false
+    } else {
+      elements.sort((pre, cur) => {
+        return pre.left - cur.left
+      })
+      const right1Ele = elements[0]
+      const right2Ele = elements[1]
+
+      if (right1Ele.left + right1Ele.width > right2Ele.left) {
+        return true
+      } 
+      return false
+    }
+    // let bool = false
+    // for (let i = 0; i < elements.length; i++) {
+    //   if (bool) {
+    //     break
+    //   }
+    //   for (let j = 0; j < elements.length; j++) {
+    //     if (i !== j) {
+    //       const a = elements[i], b = elements[j]
+    //       if ((a.left >= b.left && a.left < b.left + b.width) || (a.left + a.width > b.left && a.left + a.width <= b.left + b.width)) {
+    //         bool = true
+    //         break
+    //       }
+    //     }
+    //   }
+    // }
+    // return bool
+  }
+
+   /**
+   * 是否相交
+   * - 是 true
+   * - 否 false
+   */
+  checkBottomIntersects(elements) {
+    // 全量对比版本
+    const length = elements.length
+
+    if (!length || length === 1) {
+      return false
+    } else {
+      elements.sort((pre, cur) => {
+        return pre.top - cur.top
+      })
+      const top1Ele = elements[0]
+      const top2Ele = elements[1]
+
+      if (top1Ele.top + top1Ele.height > top2Ele.top) {
+        return true
+      } 
+      return false
+    }
+  }
+
+  checkTopIntersects(elements) {
+    const length = elements.length
+
+    if (!length || length === 1) {
+      return false
+    } else {
+      elements.sort((pre, cur) => {
+        return (pre.top + pre.height) - (cur.top + cur.height)
+      })
+      const top1Ele = elements[0]
+      const top2Ele = elements[1]
+
+      if (top1Ele.top + top1Ele.height > top2Ele.top) {
+        return true
+      } 
+      return false
+    }
+  }
+
+  checkLeftIntersects(elements) {
+    const length = elements.length
+
+    if (!length || length === 1) {
+      return false
+    } else {
+      elements.sort((pre, cur) => {
+        return (cur.left + cur.width) - (pre.left + pre.width)
+      })
+      const top1Ele = elements[0]
+      const top2Ele = elements[1]
+
+      if (top2Ele.left + top2Ele.width > top1Ele.left) {
+        return true
+      }
+      return false
+    }
+  }
+
+  handleAdjacent(elements) {
+    const eleIdToInfo = {}
+    elements.forEach((ele => {
+      const rightEles = []
+      const bottomEles = []
+
+      const haslog = false
+
+      for (let i = 0; i < elements.length; i++) {
+        const cEle = elements[i]
+        if (!eleIdToInfo[cEle.id]) {
+          eleIdToInfo[cEle.id] = {
+            topEles: [],
+            leftEles: [],
+            rightEles: [],
+            bottomEles: []
+          }
+        }
+
+        if (ele.id !== cEle.id) {
+          const break1 = cEle.left >= ele.left + ele.width && cEle.top >= ele.top + ele.height
+          // 被对比的在右下角就不用管了
+          if (break1) {
+            // break
+          }
+          if (break1 || (cEle.left + cEle.width <= ele.left || cEle.top + cEle.height <= ele.top)) {
+
+          } else {
+           
+            // 先看是上下还是左右
+            if (cEle.top >= ele.top + ele.height) {
+              // 上下对比
+              // 找是否有相同区间的
+              let sLeft = 0
+              let mWidth = 0
+              const { left: cLeft, width: cWidth } = cEle
+              // let sIdx = -1
+              // bottomEles.forEach(({left, width}, idx) => {
+              //   if (left < sLeft) {
+              //     sLeft = left
+              //   }
+              //   if (mWidth < left + width) {
+              //     mWidth = left + width
+              //   }
+                
+              //   if ((cLeft >= left && cLeft < left + width) || (cLeft + cWidth <= left + width && cLeft + cWidth > left)) {
+              //     sIdx = idx
+              //     // return true
+              //   }
+              //   // return false
+              // })
+
+              // if (sIdx === -1) {
+              //   if (cEle.id === 'J') {
+              //     console.log("检测上下左右,", cEle.id, ele.id, sIdx, JSON.parse(JSON.stringify(bottomEles)))
+              //     console.log({sLeft, mWidth})
+              //   }
+  
+              //   // 说明没有相交的，当前下侧直接push
+              //   bottomEles.push(cEle)
+              //   // 向被对比的上侧添加
+              //   eleIdToInfo[cEle.id].topEles.push(ele)
+              //   // TODO:看是否考虑在这里就把关系做好
+              // } else {
+              //   // sIdx 说明相交了，对比top，看谁更近
+              //   const sEle = bottomEles[sIdx]
+              //   if (cEle.top < sEle.top) {
+              //     // 当前更小，替换
+              //     bottomEles.splice(sIdx, 1, cEle)
+              //     // 向被对比的上侧添加
+              //     eleIdToInfo[cEle.id].topEles.push(ele)
+              //     // 把相同的上侧删除当前元素
+              //     const sEleTopEles = eleIdToInfo[sEle.id].topEles
+              //     const sEleTopIdx = sEleTopEles.findIndex((e) => e.id === ele.id)
+              //     if (sEleTopIdx !== -1) {
+              //       sEleTopEles.splice(sEleTopIdx, 1)
+              //     }
+              //   } else {
+              //     // 当前更大，不做处理
+              //   }
+              // }
+
+              if (!bottomEles.length) {
+                // 没有，直接push
+                bottomEles.push(cEle)
+                eleIdToInfo[cEle.id].topEles.push(ele)
+              } else {
+                const hasNoPush = bottomEles.some(({left, width}) => {
+                  return (cEle.left >= left && cEle.left <= left + width) || 
+                    (cEle.left + cEle.width >= left && cEle.left + cEle.width <= left + width) ||
+                    (left >= cEle.left && left <= cEle.left + cEle.width) ||
+                    (left + width >= cEle.left && left + width <= cEle.left + cEle.width)
+                })
+
+                if (!hasNoPush) {
+                  bottomEles.push(cEle)
+                  eleIdToInfo[cEle.id].topEles.push(ele)
+                }
+              }
+
+             
+
+
+
+            } else {
+              // 左右对比
+              // console.log("左右对比: ", ele.id, cEle.id)
+              // 找是否有相同区间的
+              const sIdx = rightEles.findIndex(({top, height}) => {
+                const { top: cTop, height: cHeight } = cEle
+                if ((cTop >= top && cTop < top + height) || (cTop + cHeight <= top + height && cTop + cHeight > top)) {
+                  return true
+                }
+                return false
+              })
+
+              if (sIdx === -1) {
+                // 说明没有相交的，当前右侧直接push
+                rightEles.push(cEle)
+                // 向被对比的左侧添加
+                eleIdToInfo[cEle.id].leftEles.push(ele)
+                // TODO:看是否考虑在这里就把关系做好
+              } else {
+                // sIdx 说明相交了，对比left，看谁更近
+                const sEle = rightEles[sIdx]
+                if (cEle.left < sEle.left) {
+                  // 当前更小，替换
+                  rightEles.splice(sIdx, 1, cEle)
+                  // 向被对比的左侧添加
+                  eleIdToInfo[cEle.id].leftEles.push(ele)
+                  // 把相同的左侧删除当前元素
+                  const sEleLeftEles = eleIdToInfo[sEle.id].leftEles
+                  const sEleLeftIdx = sEleLeftEles.findIndex((e) => e.id === ele.id)
+                  if (sEleLeftIdx !== -1) {
+                    sEleLeftEles.splice(sEleLeftIdx, 1)
+                  }
+                } else {
+                  // 当前更大，不做处理
+                  haslog && console.log(9988)
+                }
+              }
+            }
+          }
+        }
+      }
+
+      eleIdToInfo[ele.id].rightEles = rightEles
+      eleIdToInfo[ele.id].bottomEles = bottomEles
+    }))
+
+    Object.entries(eleIdToInfo).forEach(([key, value]: any) => {
+      value.rightIntersect = this.checkRightIntersects(value.rightEles)
+      value.bottomIntersect = this.checkBottomIntersects(value.bottomEles)
+      value.topIntersect = this.checkTopIntersects(value.topEles)
+      value.leftIntersect = this.checkLeftIntersects(value.leftEles)
+    })
+
+    return eleIdToInfo
+  }
+
   // 拆分
   splitElements(elements: any) {
-    const eleIdToInfo = {}
+    // const eleIdToInfo = {}
     const eleGroup = []
+    const eleIdToPosition = {}
 
-    elements.sort((pre, cur) => {
+    const eleIdToInfo = this.handleAdjacent(elements.sort((pre, cur) => {
+      // if (!eleIdToPosition[cur.id]) {
+      //   eleIdToPosition[cur.id] = {}
+      // }
+      // if (!eleIdToPosition[pre.id]) {
+      //   eleIdToPosition[pre.id] = {}
+      // }
       if (pre.top === cur.top) {
         return pre.left - cur.left
       }
       return pre.top - cur.top
-    }).forEach((element, index) => {
-      let x
-      let y
-      for (let i = 0; i < elements.length; i++) {
-        const cEle = elements[i]
-        if (cEle.id !== element.id) {
-          if (cEle.left >= element.left + element.width && cEle.top < element.top + element.height && (!x ? true : x.left > cEle.left) && element.top < cEle.top + cEle.height) {
-            // 这里要选出最小的
-            x = cEle
-          }
-          if (cEle.top >= element.top + element.height && cEle.left < element.left + element.width && (!y ? true : y.top > cEle.top) && element.left < cEle.left + cEle.width) {
-            // 这里要选出最小的
-            y = cEle
-          }
-        }
-        // TODO: 看看能不能提前结束
-      }
+    }))
 
-      /**
-       * 距离最近的元素(被对比元素)
-       */
-      let resEle
-      /**
-       * x距离
-       */
-      let xSpace
-      /**
-       * y距离
-       */
-      let ySpace
+    const haslog = false
 
-      /**
-       * 横向对比
-       */
-      let isX
-      /**
-       * 纵向对比
-       */
-      let isY
+    haslog && console.log("当前elements: ", elements)
 
-      if (x && y) {
-        /**
-         * 两个都有，选最近的，如果相等选x
-         */
-        if (x.left - (element.left + element.width) <= y.top - (element.top + element.height)) {
-          resEle = x
-        } else {
-          resEle = y
-        }
-        xSpace = x.left - (element.left + element.width)
-        ySpace = y.top - (element.top + element.height)
-        if (xSpace <= ySpace) {
-          isX = true
-        } else {
-          isY = true
-        }
-      } else if (x) {
-        xSpace = x.left - (element.left + element.width)
-        resEle = x
-        isX = true
-      } else if (y) {
-        ySpace = y.top - (element.top + element.height)
-        resEle = y
-        isY = true
+    const easyIdToInfo = {}
+    Object.entries(eleIdToInfo).forEach(([key, value]: any) => {
+      easyIdToInfo[key] = {
+        ...value,
+        topEles: value.topEles.map((e) => e.id),
+        leftEles: value.leftEles.map((e) => e.id),
+        rightEles: value.rightEles.map((e) => e.id),
+        bottomEles: value.bottomEles.map((e) => e.id),
       }
+    })
 
-      if (!eleIdToInfo[element.id]) {
-        eleIdToInfo[element.id] = {
-          topEles: [],
-          leftEles: [],
-          rightEles: [],
-          bottomEles: []
-        }
-      }
-      if (typeof xSpace === 'number') {
-        eleIdToInfo[element.id].right = xSpace
-        eleIdToInfo[element.id].rightEles.push(resEle)
-      }
-      if (typeof ySpace === 'number') {
-        eleIdToInfo[element.id].bottom = ySpace
-        eleIdToInfo[element.id].bottomEles.push(resEle)
-      }
-      if (x) {
-        if (!eleIdToInfo[x.id]) {
-          eleIdToInfo[x.id] = {
-            topEles: [],
-            leftEles: [],
-            rightEles: [],
-            bottomEles: []
-          }
-        }
-        eleIdToInfo[x.id].leftEles.push(element)
-      }
-      if (y) {
-        if (!eleIdToInfo[y.id]) {
-          eleIdToInfo[y.id] = {
-            topEles: [],
-            leftEles: [],
-            rightEles: [],
-            bottomEles: []
-          }
-        }
-        eleIdToInfo[y.id].topEles.push(element)
-      }
+    haslog && console.log("easyIdToInfo: ", easyIdToInfo)
 
-      if (resEle) {
-        if (typeof xSpace === 'number' && typeof ySpace === 'number') {
-          if (xSpace > ySpace) {
-            eleIdToInfo[resEle.id].top = ySpace
-          } else {
-            eleIdToInfo[resEle.id].left = xSpace
-          }
-        } else if (typeof xSpace === 'number') {
-          eleIdToInfo[resEle.id].left = xSpace
-        } else if (typeof ySpace === 'number') {
-          eleIdToInfo[resEle.id].top = ySpace
-        }
-      }
+    // haslog && console.log("eleIdToInfo: ", JSON.parse(JSON.stringify(eleIdToInfo)))
 
-      /**
-       * 当前元素的信息
-       */
-      const eleInfo = eleIdToInfo[element.id]
-      /**
-       * 被对比元素的信息
-       */
-      const resEleInfo = eleIdToInfo[resEle?.id]
-      
-      const haslog = element.id === "u_u8wIa"
-      if (isX) {
-        if (!('idx1' in eleInfo)) {
-          haslog && console.log(1)
-          // 没有ele
-          if (!('idx1' in resEleInfo)) {
-            haslog && console.log(2)
-            // 没有resEle，直接成组
-            eleGroup.push([element, resEle])
-            eleInfo.idx1 = eleGroup.length - 1
-            eleInfo.idx2 = 0
-            resEleInfo.idx1 = eleGroup.length - 1
-            resEleInfo.idx2 = 1
-          } else {
-            haslog && console.log(3)
-            // 有resEle
-            if (resEleInfo.leftEles.length > 1) {
-              haslog && console.log(4)
-              const idx1 = eleIdToInfo[resEleInfo.leftEles[0].id].idx1
-              if (resEleInfo.idx1 === idx1) {
-                haslog && console.log(5)
-                // 相交了，resEle摘出去，element放进去
-                eleGroup[idx1].splice(resEleInfo.idx2, 1)
-                eleGroup.push([resEle])
-                resEleInfo.idx1 = eleGroup.length -1
-                resEleInfo.idx2 = 0
+    elements.forEach((ele) => {
+      haslog && console.log("当前id: ", ele.id)
+      // const haslog = elements.length === 4 && ele.id === 'B'
+      const eleId = ele.id
+      const eleInfo = eleIdToInfo[eleId]
+      const elePo = eleIdToPosition[eleId]
+      // 打印的开关
 
-                eleGroup[idx1].push(element)
-                eleInfo.idx1 = idx1
-                eleInfo.idx2 = eleGroup[idx1].length - 1
-              } else {
-                haslog && console.log(6)
-                // 虽然相交，但是resEle已经不在这一侧了，直接把element放进去
-                eleGroup[idx1].push(element)
-                eleInfo.idx1 = idx1
-                eleInfo.idx2 = eleGroup[idx1].length - 1
+      if (eleInfo.rightIntersect || eleInfo.bottomIntersect) {
+        // 任意一边相交都单独拆分
+        haslog && console.log(1)
+
+        if (eleInfo.rightIntersect) {
+          haslog && console.log(73, "右边相交 和下边比")
+          const fEle = eleInfo.bottomEles.reduce((res, ele) => {
+            if (!res) {
+              return ele
+            } else {
+              if (res.top < ele.top) {
+                return res
               }
+              return ele
+            }
+          }, null)
+          if (fEle) {
+            haslog && console.log(87, "没处理")
+          } else {
+            haslog && console.log(88, "没处理")
+          }
+          // const fElePo = eleIdToPosition[fEle.id]
+          // const fEleInfo = eleIdToInfo[fEle.id]
+
+        } else if (eleInfo.bottomIntersect) {
+          haslog && console.log(74, "下边相交 和右边比")
+          const fEle = eleInfo.rightEles.reduce((res, ele) => {
+            if (!res) {
+              return ele
+            } else {
+              if (res.left < ele.left) {
+                return res
+              }
+              return ele
+            }
+          }, null)
+          if (fEle) {
+            haslog && console.log(75)
+            const fElePo = eleIdToPosition[fEle.id]
+            const fEleInfo = eleIdToInfo[fEle.id]
+            if (!elePo) {
+              // 没有当前
+              haslog && console.log(79)
+              if (!fElePo) {
+                // 没有被对比
+                haslog && console.log(81, "没处理")
+              } else {
+                // 有被对比
+                haslog && console.log(82)
+                const space = fEle.left - (ele.left + ele.width)
+
+                if (typeof fElePo.space !== 'number') {
+                  haslog && console.log(83, "没处理")
+                  haslog && console.log(`没有 ${ele.id}  有${fEle.id}`)
+                  haslog && console.log("ggg", JSON.parse(JSON.stringify(eleGroup)))
+                  haslog && console.log("信息: ", JSON.parse(JSON.stringify({
+                    ele: ele || "没有",
+                    eleInfo: eleInfo || "没有",
+                    elePo: elePo || "没有",
+                    fEle: fEle || "没有",
+                    fEleInfo: fEleInfo || "没有",
+                    fElePo: fElePo || "没有",
+                    "间距": space
+                  })))
+
+
+                  
+
+                  if (fEleInfo.leftIntersect) {
+                    haslog && console.log(94)
+                    // 左相交，直接push当前即可
+                    eleGroup.push([ele])
+                    eleIdToPosition[ele.id] = {
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                  } else {
+                    haslog && console.log(95, "没有处理")
+                  }
+
+                  // // 删除原来的
+                  // eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                  // eleGroup[fElePo.idx1].forEach((ele, idx) => {
+                  //   eleIdToPosition[ele.id].idx2 = idx
+                  // })
+                  // // 合并当前和被对比
+                  // eleGroup.push([ele, fEle])
+                  // eleIdToPosition[ele.id] = {
+                  //   space,
+                  //   idx1: eleGroup.length - 1,
+                  //   idx2: 0
+                  // }
+                  // eleIdToPosition[fEle.id] = {
+                  //   space,
+                  //   idx1: eleGroup.length - 1,
+                  //   idx2: 1
+                  // }
+                } else {
+                  haslog && console.log(84)
+                  if (space <= fElePo.space) {
+                    haslog && console.log(85)
+                    // 相等的话默认横向
+                    // 删除被对比，
+                    eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                    eleGroup[fElePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                    // 当前和被对比成组
+                    eleGroup.push([ele, fEle])
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 1
+                    }
+                  } else {
+                    haslog && console.log(86, "没处理")
+                  }
+                }
+
+              }
+             } else {
+              // 有当前
+              haslog && console.log(80, "没处理")
+            }
+          } else {
+            // 右边没有，不做对比了
+            haslog && console.log(76)
+            if (!elePo) {
+              // 没有当前，直接push
+              haslog && console.log(77)
+              eleGroup.push([ele])
+              eleIdToPosition[ele.id] = {
+                idx1: eleGroup.length - 1,
+                idx2: 0
+              }
+            } else {
+              // 有当前
+              haslog && console.log(78, "没处理")
+            }
+            
+          }
+        }
+
+        
+
+
+        // if (!elePo) {
+        //   haslog && console.log(43, ele.id)
+        //   // 没有当前，直接push
+        //   eleGroup.push([ele])
+        //   eleIdToPosition[ele.id] = {
+        //     // space,
+        //     idx1: eleGroup.length - 1,
+        //     idx2: 0
+        //   }
+        // } else {
+        //   haslog && console.log(2, "相交")
+        // }
+      } else if (eleInfo.rightIntersect && eleInfo.bottomIntersect) {
+        console.log("两边都相交单独拆分")
+      } else {
+        const rightEle = eleInfo.rightEles.reduce((res, ele) => {
+          if (!res) {
+            return ele
+          } else {
+            if (res.left < ele.left) {
+              return res
+            }
+            return ele
+          }
+        }, null)
+
+        const bottomEle = eleInfo.bottomEles.reduce((res, ele) => {
+          if (!res) {
+            return ele
+          } else {
+            if (res.top < ele.top) {
+              return res
+            }
+            return ele
+          }
+        }, null)
+
+        /**
+         * 最终被对比的ele
+         */
+        let fEle
+
+        if (rightEle && bottomEle) {
+          haslog && console.log(1)
+          if ((rightEle.left - (ele.left + ele.width)) < bottomEle.top - (ele.top + ele.height)) {
+            haslog && console.log(20)
+            fEle = rightEle
+            const fEleInfo = eleIdToInfo[fEle.id]
+            const fElePo = eleIdToPosition[fEle.id]
+            // 对比右方
+            if (!elePo) {
+              // 没有当前
+              haslog && console.log(34)
+              if (!fElePo) {
+                haslog && console.log(36)
+                // 没有被对比，两个直接成组
+                eleGroup.push([ele, fEle])
+
+                const space = fEle.top - (ele.top + ele.height)
+                if (space === -39) {
+                  // debugger
+                  console.log("这里计算间距有问题")
+                  console.log("fEle: ", fEle)
+                  console.log("ele: ", ele)
+                }
+                eleIdToPosition[ele.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 0
+                }
+                eleIdToPosition[fEle.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 1
+                }
+              } else {
+                // 有被对比
+                haslog && console.log(37)
+                
+
+                  // fEleInfo.leftEles.length > 1
+                if (fEleInfo.leftIntersect) {
+                  haslog && console.log(57)
+                  debugger
+                  // 相交的
+                  if (!fElePo) {
+                    haslog && console.log(58, "还没处理")
+                  } else {
+                    haslog && console.log(59)
+                    
+                    // // 删除当前
+                    // // 删除被对比
+                    const idx1 = fElePo.idx1
+                    const cEleGroup = eleGroup[idx1]
+                    cEleGroup.splice(fElePo.idx2, 1)
+                    eleGroup.push([fEle])
+                    fElePo.idx1 = eleGroup.length - 1
+                    fElePo.idx2 = 0
+  
+                    const idx2 = cEleGroup.findIndex((i) => i.top >= ele.top + ele.height)
+                    haslog && console.log(ele, JSON.parse(JSON.stringify(cEleGroup)))
+                    if (idx2 === 0) {
+                      cEleGroup.unshift(ele)
+                    } else if (idx2 === -1) {
+                      cEleGroup.push(ele)
+                    } else {
+                      cEleGroup.splice(idx2 - 1, 0, ele)
+                    }
+                    cEleGroup.forEach((ele, idx2) => {
+                      eleIdToPosition[ele.id].idx2 = idx2
+                    })
+                  
+                  }
+                } else {
+                  haslog && console.log(68)
+                  const space = fEle.left - (ele.left + ele.width)
+                  if (fElePo.space) {
+                    haslog && console.log(69)
+                    
+
+                    if (space < fElePo.space) {
+                      // 间距更小
+                      haslog && console.log(45)
+                      // 删除被对比
+                      eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                      eleGroup[fElePo.idx1].forEach((ele, idx) => {
+                        eleIdToPosition[ele.id].idx2 = idx
+                      })
+                      eleGroup.push([ele, fEle])
+                      eleIdToPosition[ele.id] = {
+                        space,
+                        idx1: eleGroup.length - 1,
+                        idx2: 0
+                      }
+                      eleIdToPosition[fEle.id] = {
+                        space,
+                        idx1: eleGroup.length - 1,
+                        idx2: 1
+                      }
+                    } else {
+                      haslog && console.log(42, "还没处理", "间距更大")
+                     
+                    }
+                  } else {
+                    // 被对比没有间距自成一组的，直接合并两个
+                    haslog && console.log(70)
+             
+                     // 删除被对比
+                     eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                     eleGroup[fElePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                     eleGroup.push([ele, fEle])
+                     eleIdToPosition[ele.id] = {
+                       space,
+                       idx1: eleGroup.length - 1,
+                       idx2: 0
+                     }
+                     eleIdToPosition[fEle.id] = {
+                       space,
+                       idx1: eleGroup.length - 1,
+                       idx2: 1
+                     }
+                  }
+
+                }
+              }
+            } else {
+              // 有当前
+              haslog && console.log(35)
+              if (!fElePo) {
+                // 没有被对比
+                haslog && console.log(38)
+
+                const space = fEle.left - (ele.left + ele.width)
+
+                if (space < elePo.space) {
+                  // 间距更小，成组
+                  haslog && console.log(60, '还没处理')
+                } else {
+                  // 间距更大，直接push被对比
+                  haslog && console.log(61)
+                  eleGroup.push([fEle])
+                  eleIdToPosition[fEle.id] = {
+                    idx1: eleGroup.length - 1,
+                    idx2: 0
+                  }
+                }
+
+              } else {
+                // 有被对比
+                haslog && console.log(39, `重点处理这里，有${ele.id}, 有${fEle.id}`)
+               
+                
+              }
+            }
+          
+          } else {
+            // const haslog = false
+            // 对比下方
+            haslog && console.log(21)
+            fEle = bottomEle
+            const fEleInfo = eleIdToInfo[fEle.id]
+            const fElePo = eleIdToPosition[fEle.id]
+            if (!elePo) {
+              // 没有当前
+              haslog && console.log(22)
+              if (!fElePo) {
+                // 没有被对比，两个直接成组
+                haslog && console.log(27,)
+                eleGroup.push([ele, fEle])
+
+                const space = fEle.top - (ele.top + ele.height)
+                eleIdToPosition[ele.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 0
+                }
+                eleIdToPosition[fEle.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 1
+                }
+              } else {
+                // 有被对比
+                haslog && console.log(28)
+                // fEleInfo.topEles.length > 1
+                if (fEleInfo.topIntersect) {
+                  haslog && console.log(30)
+                  debugger
+                  // 相交的
+                  if (!fElePo) {
+                    haslog && console.log(31, "还没处理")
+                  } else {
+                    haslog && console.log(32)
+                    // 删除当前
+                    // 删除被对比
+                    const idx1 = fElePo.idx1
+                    const cEleGroup = eleGroup[idx1]
+                    cEleGroup.splice(fElePo.idx2, 1)
+                    eleGroup.push([fEle])
+                    fElePo.idx1 = eleGroup.length - 1
+                    fElePo.idx2 = 0
+  
+                    const idx2 = cEleGroup.findIndex((i) => i.left >= ele.left + ele.width)
+                    if (idx2 === -1) {
+                      debugger
+                    }
+                    if (idx2 === 0) {
+                      cEleGroup.unshift(ele)
+                    } else {
+                      cEleGroup.splice(idx2 - 1, 0, ele)
+                    }
+                    cEleGroup.forEach((ele, idx2) => {
+                      eleIdToPosition[ele.id].idx2 = idx2
+                    })
+                  }
+                } else {
+                  haslog && console.log(33, "没有处理")
+                }
+              }
+
+            } else {
+              // 有当前
+              haslog && console.log(23)
+
+              // fEleInfo.topEles.length > 1
+              if (fEleInfo.topIntersect) {
+                haslog && console.log(24, "还没处理")
+                // 相交的
+                if (!fElePo) {
+                  haslog && console.log(25, "还没处理")
+                } else {
+                  haslog && console.log(26)
+                  // 删除当前
+                  eleGroup[elePo.idx1].splice(elePo.idx2, 1)
+                  eleGroup[elePo.idx1].forEach((ele, idx) => {
+                    eleIdToPosition[ele.id].idx2 = idx
+                  })
+                  // 删除被对比
+                  const idx1 = fElePo.idx1
+                  const cEleGroup = eleGroup[idx1]
+                  cEleGroup.splice(fElePo.idx2, 1)
+                  eleGroup.push([fEle])
+                  fElePo.idx1 = eleGroup.length - 1
+                  fElePo.idx2 = 0
+
+                  const idx2 = cEleGroup.findIndex((i) => i.left >= ele.left + ele.width)
+                  if (idx2 === -1) {
+                    debugger
+                  }
+                  if (idx2 === 0) {
+                    cEleGroup.unshift(ele)
+                  } else {
+                    cEleGroup.splice(idx2 - 1, 0, ele)
+                  }
+                  cEleGroup.forEach((ele, idx2) => {
+                    eleIdToPosition[ele.id].idx2 = idx2
+                  })
+                }
+              } else {
+                haslog && console.log(29)
+                // 上面没有相交
+                if (!fElePo) {
+                  // 没有对比
+                  haslog && console.log(49)
+
+                  const space = fEle.top - (ele.top + ele.height)
+
+                  if (space < elePo.space) {
+                    haslog && console.log(51)
+
+                    // 删除当前，合并当前和对比
+                    eleGroup[elePo.idx1].splice(elePo.idx2)
+                    eleGroup[elePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                    eleGroup.push([ele, fEle])
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 1
+                    }
+                  } else {
+                    haslog && console.log(52, "没处理", `有${ele.id} 没有${fEle.id}`)
+                  }
+
+
+                 
+                } else {
+                  // 有对比
+                  haslog && console.log(50, "没处理")
+                
+                }
+                
+               
+              }
+
+            }
+          }
+          // fEle = (rightEle.left - (ele.left + ele.width)) < (bottomEle.top - (bottomEle.top + bottomEle.height)) ? rightEle : bottomEle
+        } else if (rightEle) {
+          // const haslog = false
+          // 只有右边
+          haslog && console.log(2)
+          fEle = rightEle
+          const fElePo = eleIdToPosition[fEle.id]
+          const fEleInfo = eleIdToInfo[fEle.id]
+
+          if (!elePo) {
+            // 没有当前
+            haslog && console.log(3)
+            if (!fElePo) {
+              // 没有被对比
+              haslog && console.log(4)
+              // 右边的也没有，直接push
+              eleGroup.push([ele, fEle])
+              const space = fEle.left - (ele.left + ele.width)
+              eleIdToPosition[ele.id] = {
+                space,
+                idx1: eleGroup.length - 1,
+                idx2: 0
+              }
+              eleIdToPosition[fEle.id] = {
+                space,
+                idx1: eleGroup.length - 1,
+                idx2: 1
+              }
+            } else {
+              // 有被对比
+              haslog && console.log(5)
+
+              const space = fEle.left - (ele.left + ele.width)
+
+              if (typeof fElePo.space !== 'number') {
+                haslog && console.log(46)
+                // 删除原来的
+                eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                eleGroup[fElePo.idx1].forEach((ele, idx) => {
+                  eleIdToPosition[ele.id].idx2 = idx
+                })
+                // 合并当前和被对比
+                eleGroup.push([ele, fEle])
+                eleIdToPosition[ele.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 0
+                }
+                eleIdToPosition[fEle.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 1
+                }
+              } else {
+                haslog && console.log(52)
+
+                // fEleInfo.leftEles.length > 1
+                if (fEleInfo.leftIntersect) {
+                  // debugger
+                  haslog && console.log(53, '重点看这里', fEleInfo, fEle.id)
+                  // 相交的
+                  if (!fElePo) {
+                    haslog && console.log(55, "还没处理")
+                  } else {
+                    haslog && console.log(56)
+                    // // 删除当前
+                    // // 删除被对比
+                    const idx1 = fElePo.idx1
+                    const cEleGroup = eleGroup[idx1]
+                    cEleGroup.splice(fElePo.idx2, 1)
+                    eleGroup.push([fEle])
+                    fElePo.idx1 = eleGroup.length - 1
+                    fElePo.idx2 = 0
+  
+                    const idx2 = cEleGroup.findIndex((i) => i.top >= ele.top + ele.height)
+                    haslog && console.log(ele, JSON.parse(JSON.stringify(cEleGroup)))
+                    if (idx2 === 0) {
+                      cEleGroup.unshift(ele)
+                    } else if (idx2 === -1) {
+                      cEleGroup.push(ele)
+                    } else {
+                      cEleGroup.splice(idx2 - 1, 0, ele)
+                    }
+                    cEleGroup.forEach((ele, idx2) => {
+                      eleIdToPosition[ele.id].idx2 = idx2
+                    })
+                  
+                  }
+                } else {
+                  haslog && console.log(54)
+                  if (space < fElePo.space) {
+                    // 间距更小
+                    haslog && console.log(40)
+                    // 删除被对比
+                    eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                    eleGroup[fElePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                    eleGroup.push([ele, fEle])
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 1
+                    }
+                  } else {
+                    // 间距更大？
+                    haslog && console.log(41, "还没处理", `没有${ele.id}， 有${fEle.id}`, fElePo.space)
+                   
+                 
+                  }
+                }
+              }
+
+            
+
+            }
+          } else {
+            // 有当前
+            haslog && console.log(6)
+
+            if (fEleInfo.leftIntersect) {
+              // 不做处理
+              haslog && console.log(66, "左边相交的，被对比本来就是单独一行")
+            } else {
+              haslog && console.log(67)
+
+              // 当前对比间距
+              const space = fEle.left - (ele.left + ele.width)
+
+              if (typeof elePo.space === 'number') {
+                haslog && console.log(62)
+                if (space < elePo.space) {
+                  // 间距更小
+                  haslog && console.log(7)
+                  
+                  if (!fElePo) {
+                    // 没有被对比
+                    haslog && console.log(47, "还没处理", "有", ele.id, "没有", fEle.id)
+                    // 删除当前，和被对比合并
+                    eleGroup[elePo.idx1].splice(elePo.idx2, 1)
+                    eleGroup[elePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                    eleGroup.push([ele, fEle])
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 1
+                    }
+                  } else {
+                    // 有被对比
+                    haslog && console.log(48)
+                    // 删除当前和被对比
+                    eleGroup[elePo.idx1].splice(elePo.idx2, 1)
+                    eleGroup[elePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                    eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                    eleGroup[fElePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                    // 合并
+                    eleGroup.push([ele, fEle])
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 1
+                    }
+                  }
+                  
+                } else {
+                  // 距离更大
+                  haslog && console.log(8)
+                  if (!fElePo) {
+                    // 没有被对比
+                    haslog && console.log(9)
+                    // 右边没有，直接push
+                    eleGroup.push([fEle])
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                  } else {
+                    // 有被对比
+                    haslog && console.log(10, "还没处理", `有当前${ele.id}，有对比${fEle.id}`)
+                  }
+                }
+              } else {
+                // 没有距离，两个直接成组
+                haslog && console.log(63)
+                if (!fElePo) {
+                  // 没有被对比
+                  haslog && console.log(64)
+                  const idx1 = elePo.idx1
+                  eleGroup[idx1].push(fEle)
+                  elePo.space = space
+                  eleIdToPosition[fEle.id] = {
+                    space,
+                    idx1,
+                    idx2: eleGroup[idx1].length - 1
+                  }
+                } else {
+                  // 有被对比
+                  haslog && console.log(65, "没有处理")
+                }
+              }
+            }
+          }
+        } else if (bottomEle) {
+          // const haslog = false
+          haslog && console.log(11)
+          fEle = bottomEle
+          const fElePo = eleIdToPosition[fEle.id]
+          const fEleInfo = eleIdToInfo[fEle.id]
+
+          if (!elePo) {
+            // 没有当前
+            haslog && console.log(12)
+            if (!fElePo) {
+              // 没有被对比
+              haslog && console.log(13, ele.id, fEle.id)
+
+              if (eleInfo.leftIntersect) {
+                haslog && console.log(71, "注意观察")
+                eleGroup.push([ele])
+                eleIdToPosition[ele.id] = {
+                  idx1: eleGroup.length - 1,
+                  idx2: 0
+                }
+                eleGroup.push([fEle])
+                eleIdToPosition[fEle.id] = {
+                  idx1: eleGroup.length - 1,
+                  idx2: 0
+                }
+              } else {
+                haslog && console.log(72)
+                // 下边的也没有，直接push
+                eleGroup.push([ele, fEle])
+                const space = fEle.top - (ele.top + ele.height)
+                eleIdToPosition[ele.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 0
+                }
+                eleIdToPosition[fEle.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 1
+                }
+              }
+
+
+            } else {
+              // 有被对比
+              haslog && console.log(14, '还没处理')
+            }
+          } else {
+            // 有当前
+            haslog && console.log(15)
+            // 当前对比间距
+            const space = fEle.top - (ele.top + ele.height)
+            if (space < elePo.space) {
+              // 间距更小
+              if (!fElePo) {
+                // 没有被对比
+                haslog && console.log(16)
+                
+                if (typeof elePo.space !== 'number') {
+                  haslog && console.log(90, '没有处理')
+                } else {
+                  haslog && console.log(91)
+                  const space = fEle.top - (ele.top + ele.height)
+
+                  if (space < elePo.space) {
+                    haslog && console.log(92)
+                    haslog && console.log(`没有 ${ele.id}  有${fEle.id}`)
+                    haslog && console.log("ggg", JSON.parse(JSON.stringify(eleGroup)))
+                    haslog && console.log("信息: ", JSON.parse(JSON.stringify({
+                      ele: ele || "没有",
+                      eleInfo: eleInfo || "没有",
+                      elePo: elePo || "没有",
+                      fEle: fEle || "没有",
+                      fEleInfo: fEleInfo || "没有",
+                      fElePo: fElePo || "没有",
+                    })))
+                    // 间距更小，删除原来的，这俩合并
+                    eleGroup[elePo.idx1].splice(elePo.idx2)
+                    eleGroup[elePo.idx1].forEach((ele, idx) => {
+                      eleIdToPosition[ele.id].idx2 = idx
+                    })
+                    eleGroup.push([ele, fEle])
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: 1
+                    }
+                  } else {
+                    haslog && console.log(93, "还没处理")
+                  }
+                }
+                
+
+              } else {
+                // 有被对比
+                haslog && console.log(89, '没有处理')
+              }
+             
             } else {
               haslog && console.log(7)
-              const idx1 = resEleInfo.idx1
-              eleGroup[idx1].push(element)
-              eleInfo.idx1 = idx1
-              eleInfo.idx2 = eleGroup[idx1].length - 1
-            }
-          }
-        } else {
-          haslog && console.log(8)
-          // 有ele
-          if (!('idx1' in resEleInfo)) {
-            haslog && console.log(9)
-            // 没有resEle
-            if (eleInfo.right <= eleInfo.top || eleInfo.right <= eleInfo.left || eleInfo.right <= eleInfo.bottom) {
-              haslog && console.log('9-1')
-              haslog && console.log("info", JSON.parse(JSON.stringify({eleInfo, resEleInfo})))
-              haslog && console.log("ele", JSON.parse(JSON.stringify({element, resEle})))
-              haslog && console.log("", JSON.parse(JSON.stringify(eleGroup)))
-              
-              eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
-              eleGroup.push([element, resEle])
-              eleInfo.idx1 = eleGroup.length - 1
-              eleInfo.idx2 = 0
-              resEleInfo.idx1 = eleGroup.length - 1
-              resEleInfo.idx2 = 1
-            } else {
-              haslog && console.log(10)
-              eleGroup.push([resEle])
-              resEleInfo.idx1 = eleGroup.length - 1
-              resEleInfo.idx2 = 0
-            }
-          } else {
-            haslog && console.log(11)
-            // 有resEle
-            // TODO: 待观察
-            if (eleInfo.right <= eleInfo.top || eleInfo.right <= eleInfo.left || eleInfo.right <= eleInfo.bottom) {
-              haslog && console.log(12)
-              const resIdx1 = resEleInfo.idx1
-              const resIdx2 = resEleInfo.idx2
-              const resGroup = eleGroup[resIdx1]
-              eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
-              eleInfo.idx1 = resIdx1
-              if (resIdx2 === 0) {
-                resGroup.unshift(element)
+              if (!fElePo) {
+                // 没有被对比
+                haslog && console.log(18)
+                // 下边没有，直接push
+                eleGroup.push([fEle])
+                eleIdToPosition[fEle.id] = {
+                  space,
+                  idx1: eleGroup.length - 1,
+                  idx2: 0
+                }
               } else {
-                resGroup.splice(resIdx2 - 1, 0, element)
-              }
-              resGroup.forEach((ele, idx2) => {
-                eleIdToInfo[ele.id].idx2 = idx2
-              })
-            } else {
-              haslog && console.log(13)
-              // debugger
-              // 暂时不管，后续要看
-            }
-          }
-        }
-      } else if (isY) {
-        haslog && console.log(14)
-        if (!('idx1' in eleInfo)) {
-          haslog && console.log(15)
-          // 没有ele
-          if (!('idx1' in resEleInfo)) {
-            haslog && console.log(16)
-
-            // 没有resEle，直接成组
-            eleGroup.push([element, resEle])
-            eleInfo.idx1 = eleGroup.length - 1
-            eleInfo.idx2 = 0
-            resEleInfo.idx1 = eleGroup.length - 1
-            resEleInfo.idx2 = 1
-          } else {
-            haslog && console.log(17)
-            // 有resEle
-            // debugger
-          }
-        } else {
-          // 有ele
-          if (!('idx1' in resEleInfo)) {
-            haslog && console.log(18)
-            // 没有resEle
-            // debugger
-            if (resEleInfo.topEles.length > 1) {
-              haslog && console.log(19)
-              eleGroup.push([resEle])
-              resEleInfo.idx1 = eleGroup.length - 1
-              resEleInfo.idx2 = 0
-            } else {
-              haslog && console.log(20)
-              // debugger
-              if (eleInfo.bottom < eleInfo.top || eleInfo.bottom < eleInfo.left || eleInfo.bottom < eleInfo.right) {
-                haslog && console.log(21)
-                eleGroup[eleInfo.idx1].splice(eleInfo.idx2, 1)
-                eleGroup.push([element, resEle])
-                eleInfo.idx1 = eleGroup.length -1
-                eleInfo.idx2 = 0
-                resEleInfo.idx1 = eleGroup.length -1
-                resEleInfo.idx2 = 1
-              } else {
-                haslog && console.log(22)
-                // debugger
+                // 有被对比
+                haslog && console.log(19, "还有处理")
               }
             }
-          } else {
-            haslog && console.log(23)
-            // 有resEle
-            // debugger
           }
-        }
-      } else {
-        haslog && console.log(24)
-        if (!('idx1' in eleInfo)) {
-          haslog && console.log(25)
-          // 没有element，直接push
-          eleGroup.push([element])
-          eleInfo.idx1 = eleGroup.length - 1
-          eleInfo.idx2 = 0
         } else {
-          // 有了，又没有对比，这里不用动
+          haslog && console.log("什么也没有", ele.id)
+          if (elePo) {
+            // 有当前，不用做处理，观察一下
+          } else {
+            // 没有当前,直接push
+            eleGroup.push([ele])
+            eleIdToPosition[ele.id] = {
+              idx1: eleGroup.length - 1,
+              idx2: 0
+            }
+          }
         }
       }
     })
 
+    console.log("eleGroup 结果: ", eleGroup.map((i) => i.map((i) => i.id)))
+
+    // return []
+
     let newElements = this.convertedToElements(eleGroup)
 
-    // console.log("eleIdToInfo: ", eleIdToInfo)
+    // console.log("newElements: ", newElements)
 
-    if (eleGroup.length === elements.length) {
+    // // 临时测试
+    // return newElements
+
+    if (newElements.length === 1) {
+      return newElements
+    } else if (eleGroup.length === elements.length) {
+      return this.splitElements(newElements)
+    } else {
+      return this.splitElements(newElements)
+    }
+
+    if (eleGroup.length === elements.length || newElements.length === 1) {
+      console.log("newElements: ", newElements)
       return newElements
     } else {
+      console.log("继续分析: ", newElements)
       return this.splitElements(newElements)
     }
   }
