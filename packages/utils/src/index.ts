@@ -1581,7 +1581,7 @@ class TraverseElements {
       }
     })
 
-    console.log("eleGroup 结果: ", eleGroup.map((i) => i.map((i) => i.id)))
+    // console.log("eleGroup 结果: ", eleGroup.map((i) => i.map((i) => i.id)))
 
     // return []
 
