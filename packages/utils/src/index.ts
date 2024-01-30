@@ -730,7 +730,7 @@ class TraverseElements {
       return pre.top - cur.top
     }))
 
-    const haslog = (elements.length === 17) || true
+    const haslog = (elements.length === 10) && false
 
     haslog && console.log("当前elements: ", elements)
     haslog && console.log("当前eleIdToInfo: ", eleIdToInfo)
@@ -1045,18 +1045,40 @@ class TraverseElements {
 
                 const space = fEle.left - (ele.left + ele.width)
 
-                if (space < elePo.space) {
-                  // 间距更小，成组
-                  haslog && console.log(60, '还没处理')
-                } else {
-                  // 间距更大，直接push被对比
-                  haslog && console.log(61)
-                  eleGroup.push([fEle])
-                  eleIdToPosition[fEle.id] = {
+                if (typeof elePo.space !== 'number') {
+                  // 删除原来的
+                  eleGroup[elePo.idx1].splice(elePo.idx2, 1)
+                  eleGroup[elePo.idx1].forEach((ele, idx) => {
+                    eleIdToPosition[ele.id].idx2 = idx
+                  })
+                  // 合并当前和被对比
+                  eleGroup.push([ele, fEle])
+                  eleIdToPosition[ele.id] = {
+                    space,
                     idx1: eleGroup.length - 1,
                     idx2: 0
                   }
+                  eleIdToPosition[fEle.id] = {
+                    space,
+                    idx1: eleGroup.length - 1,
+                    idx2: 1
+                  }
+                } else {
+                  haslog && console.log(105)
+                  if (space < elePo.space) {
+                    // 间距更小，成组
+                    haslog && console.log(60, '还没处理')
+                  } else {
+                    // 间距更大，直接push被对比
+                    haslog && console.log(61)
+                    eleGroup.push([fEle])
+                    eleIdToPosition[fEle.id] = {
+                      idx1: eleGroup.length - 1,
+                      idx2: 0
+                    }
+                  }
                 }
+
 
               } else {
                 // 有被对比
@@ -1078,20 +1100,34 @@ class TraverseElements {
               haslog && console.log(22)
               if (!fElePo) {
                 // 没有被对比，两个直接成组
-                haslog && console.log(27,)
-                eleGroup.push([ele, fEle])
+                haslog && console.log(27, ele, fEle)
 
-                const space = fEle.top - (ele.top + ele.height)
-                eleIdToPosition[ele.id] = {
-                  space,
-                  idx1: eleGroup.length - 1,
-                  idx2: 0
+                if (fEleInfo.topIntersect) {
+                  haslog && console.log(104)
+                  eleGroup.push([ele])
+                  eleIdToPosition[ele.id] = {
+                    idx1: eleGroup.length - 1,
+                    idx2: 0
+                  }
+                } else {
+                  eleGroup.push([ele, fEle])
+
+                  const space = fEle.top - (ele.top + ele.height)
+                  eleIdToPosition[ele.id] = {
+                    space,
+                    idx1: eleGroup.length - 1,
+                    idx2: 0
+                  }
+                  eleIdToPosition[fEle.id] = {
+                    space,
+                    idx1: eleGroup.length - 1,
+                    idx2: 1
+                  }
                 }
-                eleIdToPosition[fEle.id] = {
-                  space,
-                  idx1: eleGroup.length - 1,
-                  idx2: 1
-                }
+
+                
+
+              
               } else {
                 // 有被对比
                 haslog && console.log(28)
