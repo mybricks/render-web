@@ -275,10 +275,7 @@ class TraverseElements {
 
   getElements() {
     const { elements } = this
-    const eleGroup = this.splitElements(this.handleIntersectionsAndInclusions(elements))
-    // console.log("最终结果eleGroup: ", eleGroup)
-  
-    
+    const eleGroup = this.splitElements2(this.handleIntersectionsAndInclusions(elements))
     return this.handleEleGroup(eleGroup, { top: 0, left: 0 })
   }
 
@@ -286,8 +283,6 @@ class TraverseElements {
     const resEles: any = []
     let curTop = pTop
     let curLeft = pLeft
-    // console.log(elements.length, "elements.length")
-    // console.log("elements", elements.map(ele => ele.id))
 
     if (elements.length === 1) {
       const ele = elements[0]
@@ -309,17 +304,11 @@ class TraverseElements {
       elements.forEach((ele) => {
         const resEle: any = {...ele}
         const parentFlexDirection = ele.parentFlexDirection
-        // console.log("parentFlexDirection", parentFlexDirection, ele.id)
         resEle.marginLeft = ele.left - curLeft
-        // console.log(222, "marginLeft: ", ele.id, ele.left - curLeft, ele.left, curLeft, JSON.parse(JSON.stringify(ele)))
         resEle.marginTop = ele.top - curTop
 
         if (Array.isArray(ele.elements)) {
-          // console.log(333, ele.id, ele.left - curLeft, curLeft)
-          resEle.elements = this.handleEleGroup(ele.elements, { 
-            // top: curTop, 
-            // top: ele.top - curTop,
-            // left: ele.left - curLeft
+          resEle.elements = this.handleEleGroup(ele.elements, {
             top: curTop + resEle.marginTop,
             left: curLeft + resEle.marginLeft
           })
@@ -334,77 +323,6 @@ class TraverseElements {
         resEles.push(resEle)
       })
     }
-
-
-    // elements.forEach((item) => {
-    //   const parentFlexDirection = item.parentFlexDirection
-
-    //   // if (parentFlexDirection === 'column')
-
-    //   console.log("111, ", item.id, parentFlexDirection)
-    //   const resEle: any = {...item}
-    //   // curTop = item.top - curTop
-    //   // curLeft = item.left - curLeft
-    //   // const marginTop = item.top - top
-    //   // const marginLeft = item.left - left
-
-
-    //   // console.log("遍历处理margin：", item.id, {
-    //   //   width: item.width,
-    //   //   height: item.height, 
-    //   //   top: item.top,
-    //   //   left: item.left,
-    //   //   marginTop: item.top - curTop,
-    //   //   marginLeft: item.left - curLeft,
-    //   //   // curTop,
-    //   //   // curLeft
-    //   // })
-
-    //   // console.log({curTop, curLeft})
-    //   resEle.marginTop = item.top - curTop
-    //   resEle.marginLeft = item.left - curLeft
-
-    //   const { elements } = item
-    //   if (Array.isArray(elements)) {
-    //     resEle.elements = this.handleEleGroup(elements, { 
-    //       // top: curTop, 
-    //       top: item.top,
-    //       left: item.left - curLeft 
-    //     })
-    //   }
-    //   resEles.push(resEle)
-
-    //   curTop = item.height + item.top
-    //   // curLeft = curLeft + item.left
-
-    // })
-
-
-    // 处理下间距等
-    // let top,left,width,height
-    // let flexDirection
-    // elements.forEach((ele) => {
-    //   console.log(ele, 'element')
-    //   // if (typeof top !== 'number' || top > ele.top) {
-    //   //   top = ele.top
-    //   // }
-    //   // if (typeof left !== 'number' || left > ele.left) {
-    //   //   left = ele.left
-    //   // }
-    //   // if (typeof width !== 'number' || width < ele.width + ele.left) {
-    //   //   width = ele.width + ele.left
-    //   // }
-    //   // if (typeof height !== 'number' || height < ele.height + ele.top) {
-    //   //   height = ele.height + ele.top
-    //   // }
-    //   // // console.log({left, width, eleft: ele.left, ewidth: ele.width}, ele.id)
-
-    //   // if (left < ele.left) {
-    //   //   flexDirection = 'row'
-    //   // }
-    // })
-    // console.log("flexDirection: ", flexDirection)
-    // console.log("elements", elements.map(ele => ele.id))
 
     return resEles
   }
@@ -425,6 +343,7 @@ class TraverseElements {
     if (!length || length === 1) {
       const cEle = elements[0]
       if (cEle) {
+        value.rightEle = cEle
         value.rightSpace = cEle.left - (ele.left + ele.width)
       }
       
@@ -437,28 +356,14 @@ class TraverseElements {
       const right2Ele = elements[1]
 
       if (right1Ele.left + right1Ele.width > right2Ele.left) {
+        value.rightEle = right1Ele
         value.rightSpace = right1Ele.left - (ele.left + ele.width)
         return true
-      } 
+      }
+      value.rightEle = right1Ele
       value.rightSpace = right1Ele.left - (ele.left + ele.width)
       return false
     }
-    // let bool = false
-    // for (let i = 0; i < elements.length; i++) {
-    //   if (bool) {
-    //     break
-    //   }
-    //   for (let j = 0; j < elements.length; j++) {
-    //     if (i !== j) {
-    //       const a = elements[i], b = elements[j]
-    //       if ((a.left >= b.left && a.left < b.left + b.width) || (a.left + a.width > b.left && a.left + a.width <= b.left + b.width)) {
-    //         bool = true
-    //         break
-    //       }
-    //     }
-    //   }
-    // }
-    // return bool
   }
 
    /**
@@ -473,6 +378,7 @@ class TraverseElements {
     if (!length || length === 1) {
       const cEle = elements[0]
       if (cEle) {
+        value.bottomEle = cEle
         value.bottomSpace = cEle.top - (ele.top + ele.height)
       }
       return false
@@ -484,13 +390,12 @@ class TraverseElements {
       const top2Ele = elements[1]
 
       if (top1Ele.top + top1Ele.height > top2Ele.top) {
+        value.bottomEle = top1Ele
         value.bottomSpace = top1Ele.top - (ele.top + ele.height)
-
         return true
       } 
-
+      value.bottomEle = top1Ele
       value.bottomSpace = top1Ele.top - (ele.top + ele.height)
-      
       return false
     }
   }
@@ -501,6 +406,7 @@ class TraverseElements {
     if (!length || length === 1) {
       const cEle = elements[0]
       if (cEle) {
+        value.topEle = cEle
         value.topSpace = ele.top - (cEle.top + cEle.height)
       }
       return false
@@ -512,12 +418,12 @@ class TraverseElements {
       const top2Ele = elements[1]
 
       if (top2Ele.top + top2Ele.height > top1Ele.top) {
+        value.topEle = top1Ele
         value.topSpace = ele.top - (top1Ele.top + top1Ele.height)
         return true
       }
-
+      value.topEle = top1Ele
       value.topSpace = ele.top - (top1Ele.top + top1Ele.height)
-     
       return false
     }
   }
@@ -528,6 +434,7 @@ class TraverseElements {
     if (!length || length === 1) {
       const cEle = elements[0]
       if (cEle) {
+        value.leftEle = cEle
         value.leftSpace = ele.left - (cEle.left + cEle.width)
       }
       return false
@@ -539,11 +446,12 @@ class TraverseElements {
       const top2Ele = elements[1]
 
       if (top2Ele.left + top2Ele.width > top1Ele.left) {
+        value.leftEle = top1Ele
         value.leftSpace = ele.left - (top1Ele.left + top1Ele.width)
         return true
       }
+      value.leftEle = top1Ele
       value.leftSpace = ele.left - (top1Ele.left + top1Ele.width)
-      
       return false
     }
   }
@@ -711,6 +619,246 @@ class TraverseElements {
     return eleIdToInfo
   }
 
+
+  newSplitElements({elements, eleIdToInfo}) {
+    const intersectMap = {
+      bottomSpace: 'bottomIntersect',
+      topSpace: 'topIntersect',
+      leftSpace: 'leftIntersect',
+      rightSpace: 'rightIntersect',
+    }
+    const eleMap = {
+      bottomSpace: 'bottomEle',
+      topSpace: 'topEle',
+      leftSpace: 'leftEle',
+      rightSpace: 'rightEle',
+    }
+    const eleGroup = []
+    const eleIdToPosition = {}
+
+    function sortEles({ele, eleInfo, fEle, fEleInfo, direction}) {
+      let eles
+      let idxMap = {}
+      let space
+      let comparable = true
+
+      if (direction === 'bottomSpace') {
+        // 说明fEle在ele下面
+        eles = [ele, fEle]
+        idxMap[ele.id] = 0
+        idxMap[fEle.id] = 1
+        space = fEle.top - (ele.top + ele.height)
+        comparable = !fEleInfo.topIntersect
+      } else if (direction === 'bottomSpace') {
+        // 说明fEle在ele上面
+        eles = [fEle, ele]
+        idxMap[fEle.id] = 0
+        idxMap[ele.id] = 1
+        space = ele.top - (fEle.top + fEle.height)
+        comparable = !fEleInfo.topIntersect
+      } else if (direction === 'leftSpace') {
+        // 说明fEle在ele左面
+        eles = [fEle, ele]
+        idxMap[fEle.id] = 0
+        idxMap[ele.id] = 1
+        space = ele.left - (fEle.left + fEle.width)
+        comparable = !fEleInfo.rightIntersect
+      } else if (direction === 'rightSpace') {
+        // 说明fEle在ele右面
+        eles = [ele, fEle]
+        idxMap[ele.id] = 0
+        idxMap[fEle.id] = 1
+        space = fEle.left - (ele.left + ele.width)
+        comparable = !fEleInfo.leftIntersect
+      }
+      
+      return {
+        eles,
+        idxMap,
+        space,
+        comparable
+      }
+    }
+
+    elements.forEach((ele) => {
+      const eleInfo = eleIdToInfo[ele.id]
+      const spaceAry = ['bottomSpace', 'topSpace', 'leftSpace', 'rightSpace'].filter((key) => {
+        if (eleInfo.hasOwnProperty(key)) {
+          return true
+        }
+      }).sort((p, c) => {
+        return eleInfo[p] - eleInfo[c]
+      })
+      if (!spaceAry.length) {
+        eleGroup.push([ele])
+        eleIdToPosition[ele.id] = {
+          idx1: eleGroup.length - 1,
+          idx2: 0
+        }
+      } else {
+        let isBreak = false
+        const elePo = eleIdToPosition[ele.id]
+        for (let i = 0; i < spaceAry.length; i++) {
+          const key = spaceAry[i]
+          const intersect = eleInfo[intersectMap[key]]
+          const fEle = eleInfo[eleMap[key]]
+          const fElePo = eleIdToPosition[fEle.id]
+          const fEleInfo = eleIdToInfo[fEle.id]
+
+          if (!intersect) {
+            // 没有相交
+            if (!elePo) {
+              // 没有当前
+              if (!fElePo) {
+                // 没有被对比
+                console.log(`✅ 没有相交 没有-当前${ele.id} 没有-被对比${fEle.id}`) // 直接push合并即可
+                const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
+
+                if (comparable) {
+                  eleGroup.push(eles)
+                  eleIdToPosition[ele.id] = {
+                    space,
+                    idx1: eleGroup.length - 1,
+                    idx2: idxMap[ele.id]
+                  }
+                  eleIdToPosition[fEle.id] = {
+                    space,
+                    idx1: eleGroup.length - 1,
+                    idx2: idxMap[fEle.id]
+                  }
+                  isBreak = true
+                  break
+                }
+              } else {
+                const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
+                if (comparable) {
+                  if (space < fElePo.space) {
+                    console.log(`✅ 没有相交 间距更小 没有-当前${ele.id} 有-被对比${fEle.id}`)
+                    // 删除被对比
+                    eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                    // 和被对比成组
+                    eleGroup.push(eles)
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: idxMap[ele.id]
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: idxMap[fEle.id]
+                    }
+                    isBreak = true
+                    break
+                  } else {
+                    // 间距更大，忽略
+                  }
+                }
+              }
+            } else {
+              if (!fElePo) {
+                // 没有被对比
+                const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
+                if (comparable) {
+                  if (space < elePo.space) {
+                    console.log(`✅ 没有相交 间距更小 有-当前${ele.id} 没有-被对比${fEle.id}`)
+                    // 删除当前
+                    eleGroup[elePo.idx1].splice(elePo.idx2, 1)
+                    // 和被对比成组
+                    eleGroup.push(eles)
+                    eleIdToPosition[ele.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: idxMap[ele.id]
+                    }
+                    eleIdToPosition[fEle.id] = {
+                      space,
+                      idx1: eleGroup.length - 1,
+                      idx2: idxMap[fEle.id]
+                    }
+                    isBreak = true
+                    break
+                  } else {
+                    // 间距更大，忽略
+                  }
+                }
+              } else {
+                // 有被对比
+                if (elePo.idx1 === fElePo.idx1) {
+                  // 在同一组
+                  isBreak = true
+                  break
+                } else {
+                  const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
+                  if (comparable) {
+                    if (space < fElePo.space) {
+                      console.log(`✅ 没有相交 间距更小 有-当前${ele.id} 有-被对比${fEle.id}`)
+                      // 删除被对比
+                      eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
+                      // 和被对比成组
+                      eleGroup.push(eles)
+                      eleIdToPosition[ele.id] = {
+                        space,
+                        idx1: eleGroup.length - 1,
+                        idx2: idxMap[ele.id]
+                      }
+                      eleIdToPosition[fEle.id] = {
+                        space,
+                        idx1: eleGroup.length - 1,
+                        idx2: idxMap[fEle.id]
+                      }
+                      isBreak = true
+                      break
+                    } else {
+                      // 间距更大，忽略
+                    }
+                  }
+                }
+              }
+            }
+          } else {
+            // 相交的话直接忽略即可
+          }
+        }
+        if (!isBreak) {
+          console.log(`✅ 单独 ${ele.id}`)
+          eleGroup.push([ele])
+          eleIdToPosition[ele.id] = {
+            idx1: eleGroup.length - 1,
+            idx2: 0
+          }
+        }
+      }
+    })
+
+    return eleGroup
+  }
+
+  // 拆分2
+  splitElements2(elements: any) {
+    const eleIdToInfo = this.handleAdjacent(elements.sort((pre, cur) => {
+      if (pre.top === cur.top) {
+        return pre.left - cur.left
+      }
+      return pre.top - cur.top
+    }))
+
+    const eleGroup = this.newSplitElements({elements: elements.sort((pre, cur) => {
+      if (pre.top === cur.top) {
+        return pre.left - cur.left
+      }
+      return pre.top - cur.top
+    }), eleIdToInfo})
+
+
+    let newElements = this.convertedToElements(eleGroup)
+    if (newElements.length > 1) {
+      return this.splitElements2(newElements)
+    }
+
+    return newElements
+  }
+
   // 拆分
   splitElements(elements: any) {
     // const eleIdToInfo = {}
@@ -730,7 +878,12 @@ class TraverseElements {
       return pre.top - cur.top
     }))
 
-    const haslog = (elements.length === 10) && false
+    const haslog = (elements.length === 18) && false
+
+    if (elements.length === 18) {
+      
+      this.newSplitElements({elements, eleIdToInfo})
+    }
 
     haslog && console.log("当前elements: ", elements)
     haslog && console.log("当前eleIdToInfo: ", eleIdToInfo)
@@ -1603,9 +1756,9 @@ class TraverseElements {
           }
         }
       }
-    })
+    });
 
-    haslog && console.log("eleGroup 结果: ", eleGroup.map((i) => i.map((i) => i.id)))
+    (haslog || elements.length === 18) && console.log("eleGroup 结果: ", eleGroup.map((i) => i.map((i) => i.id)))
     haslog && console.log("eleIdToPosition 位置信息: ", eleIdToPosition)
 
     // return []
