@@ -439,7 +439,8 @@ function RenderCom({
     <div id={id} key={id} style={{
       display: style.display,
       // overflow: "hidden",
-      position: style.position || "relative",
+      // position: style.position || "relative",
+      position: style.position,
       ...otherStyle,
       ...sizeStyle,
       ...marginStyle,
@@ -577,6 +578,7 @@ function calSlotStyles(style, hasParamsStyle, root) {
     backgroundPosition,
     backgroundRepeat,
     backgroundSize,
+    position,
     ...otherStyle
   } = style;
   let slotStyle = {

@@ -21,7 +21,7 @@ import NotificationLess from './Notification/style.lazy.less';
 import { setLoggerSilent } from '../../core/logger';
 import Notification from './Notification';
 import executor from '../../core/executor'
-import { compareVersion, getStylesheetMountNode } from '../../core/utils';
+import { compareVersion, deepCopy, getStylesheetMountNode } from '../../core/utils';
 import type { ToJSON, MultiSceneToJSON } from "./types";
 // @ts-ignore
 import coreLib from '@mybricks/comlib-core';
@@ -187,37 +187,37 @@ class Context {
     }
 
     /** 函数劫持 */
-    // render-web知道一定存在env.callConnector，用于“服务接口”组件
-    const callConnector = env.callConnector
-    // TODO: 性能面板，作为插件注入
-    if (typeof callConnector === 'function') {
-      // 劫持callConnector获取执行时间和执行信息，写入性能面板
-      env.callConnector = (connector: any, params: any, connectorConfig: any) => {
-        const start = new Date().getTime()
-        let end: any = null
-        const connectorTime: any = {
-          basicInformation: {
-            connector, params, connectorConfig
-          },
-          start,
-          type: 'success'
-        }
-        return new Promise((resolve, reject) => {
-          callConnector(connector, params, connectorConfig).then((res: any) => {
-            end = new Date().getTime()
-            resolve(res)
-          }).catch((err: any) => {
-            end = new Date().getTime()
-            connectorTime.type = 'error'
-            reject(err)
-          }).finally(() => {
-            connectorTime.end = end
-            connectorTime.time = end - start
-            this.setPerformanceCallConnectorTimes(connectorTime)
-          })
-        })
-      }
-    }
+    // // render-web知道一定存在env.callConnector，用于“服务接口”组件
+    // const callConnector = env.callConnector
+    // // TODO: 性能面板，作为插件注入
+    // if (typeof callConnector === 'function') {
+    //   // 劫持callConnector获取执行时间和执行信息，写入性能面板
+    //   env.callConnector = (connector: any, params: any, connectorConfig: any) => {
+    //     const start = new Date().getTime()
+    //     let end: any = null
+    //     const connectorTime: any = {
+    //       basicInformation: {
+    //         connector, params, connectorConfig
+    //       },
+    //       start,
+    //       type: 'success'
+    //     }
+    //     return new Promise((resolve, reject) => {
+    //       callConnector(connector, params, connectorConfig).then((res: any) => {
+    //         end = new Date().getTime()
+    //         resolve(res)
+    //       }).catch((err: any) => {
+    //         end = new Date().getTime()
+    //         connectorTime.type = 'error'
+    //         reject(err)
+    //       }).finally(() => {
+    //         connectorTime.end = end
+    //         connectorTime.time = end - start
+    //         this.setPerformanceCallConnectorTimes(connectorTime)
+    //       })
+    //     })
+    //   }
+    // }
     const that = this
     // @ts-ignore
     // TODO: 性能面板，作为插件注入
@@ -383,7 +383,11 @@ export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) 
     return null
   } else {
     let jsx = null
-    if ("scenes" in json) {
+    if ("scenes" in json)  {
+      if (options._isNestedRender || options.debug) {
+        options.env = deepCopy(options.env)
+        // TODO：需不需要把runtime.debug删了，这里弹窗是这样判断是否在调试环境的
+      }
       transformToJSON(json);
       jsx = <MultiScene json={json} options={options}/>
     } else {

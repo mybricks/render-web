@@ -63,7 +63,7 @@ export default function MultiScene ({json, options}) {
             show: index === 0,
             todo: [],
             json,
-            disableAutoRun: !!index,
+            disableAutoRun: !!(options.disableAutoRun || index),
             useEntryAnimation: false,
             type: json.slot?.showType || json.type
           }
@@ -129,79 +129,141 @@ export default function MultiScene ({json, options}) {
       })
     }
 
-    env.canvas = Object.assign({
-      id,
-      type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
-      open: async (sceneId, params, openType) => {
-        // console.log(`打开场景 -> ${sceneId}`)
-        let scenes = scenesMap[sceneId]
+    // env.canvas = Object.assign({
+    //   id,
+    //   type: window.document.body.clientWidth <= 414 ? 'mobile' : 'pc',
+    //   open: async (sceneId, params, openType) => {
+    //     // console.log(`打开场景 -> ${sceneId}`)
+    //     let scenes = scenesMap[sceneId]
 
-        if (!scenes) {
-          if (typeof options.scenesLoader !== 'function') {
-            console.error(`缺少场景信息: ${sceneId}`)
-            return
-          }
-          const json = await options.scenesLoader({id: sceneId})
+    //     if (!scenes) {
+    //       if (typeof options.scenesLoader !== 'function') {
+    //         console.error(`缺少场景信息: ${sceneId}`)
+    //         return
+    //       }
+    //       const json = await options.scenesLoader({id: sceneId})
 
-          scenes = {
-            disableAutoRun: false,
-            json,
-            show: false,
-            parentScope: null,
-            todo: [],
-            type: json.slot?.showType || json.type,
-            useEntryAnimation: false
-          }
+    //       scenes = {
+    //         disableAutoRun: false,
+    //         json,
+    //         show: false,
+    //         parentScope: null,
+    //         todo: [],
+    //         type: json.slot?.showType || json.type,
+    //         useEntryAnimation: false
+    //       }
 
-          scenesMap[sceneId] = scenes
-          if (json.type === 'popup') {
-          } else {
-            setPageScenes((pageScenes) => {
-              return [...pageScenes, json]
-            })
-          }
-          if (scenesOperateInputsTodo[sceneId]) {
-            const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-            scenes.parentScope = parentScope
-            todo.forEach(({value, pinId, parentScope}) => {
-              scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-                pinId,
-                value
-              }})
-            })
-          }
+    //       scenesMap[sceneId] = scenes
+    //       if (json.type === 'popup') {
+    //       } else {
+    //         setPageScenes((pageScenes) => {
+    //           return [...pageScenes, json]
+    //         })
+    //       }
+    //       if (scenesOperateInputsTodo[sceneId]) {
+    //         const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+    //         scenes.parentScope = parentScope
+    //         todo.forEach(({value, pinId, parentScope}) => {
+    //           scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+    //             pinId,
+    //             value
+    //           }})
+    //         })
+    //       }
+    //     }
+
+    //     if (openType) {
+    //       Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+    //         if (key === sceneId) {
+    //           if (openType === 'blank') {
+    //             scenes.useEntryAnimation = true
+    //           } else {
+    //             scenes.useEntryAnimation = false
+    //           }
+    //           scenes.show = true
+    //           if (scenes.type === 'popup') {
+    //             setPopupIds((popupIds) => {
+    //               return [...popupIds, sceneId]
+    //             })
+    //           } else {
+    //             setCount((count) => count+1)
+    //           }
+    //         } else {
+    //           scenes.show = false
+    //           scenes._refs = null
+    //           if (scenes.type === 'popup') {
+    //             setPopupIds((popupIds) => {
+    //               return popupIds.filter((id) => id !== scenes.json.id)
+    //             })
+    //           } else {
+    //             setCount((count) => count+1)
+    //           }
+    //         }
+    //       })
+    //     } else {
+    //       if (!scenes.show) {
+    //         if (openType === 'blank') {
+    //           scenes.useEntryAnimation = true
+    //         } else {
+    //           scenes.useEntryAnimation = false
+    //         }
+    //         scenes.show = true
+    //         if (scenes.type === 'popup') {
+    //           setPopupIds((popupIds) => {
+    //             return [...popupIds, sceneId]
+    //           })
+    //         } else {
+    //           setCount((count) => count+1)
+    //         }
+    //       }
+    //     }
+    //   }
+    // }, options.env?.canvas)
+
+    // canvas.id = id
+    env.canvas.open = async (sceneId, params, openType) => {
+      // console.log(`打开场景 -> ${sceneId}`)
+      let scenes = scenesMap[sceneId]
+
+      if (!scenes) {
+        if (typeof options.scenesLoader !== 'function') {
+          console.error(`缺少场景信息: ${sceneId}`)
+          return
+        }
+        const json = await options.scenesLoader({id: sceneId})
+
+        scenes = {
+          disableAutoRun: false,
+          json,
+          show: false,
+          parentScope: null,
+          todo: [],
+          type: json.slot?.showType || json.type,
+          useEntryAnimation: false
         }
 
-        if (openType) {
-          Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-            if (key === sceneId) {
-              if (openType === 'blank') {
-                scenes.useEntryAnimation = true
-              } else {
-                scenes.useEntryAnimation = false
-              }
-              scenes.show = true
-              if (scenes.type === 'popup') {
-                setPopupIds((popupIds) => {
-                  return [...popupIds, sceneId]
-                })
-              } else {
-                setCount((count) => count+1)
-              }
-            } else {
-              scenes.show = false
-              scenes._refs = null
-              if (scenes.type === 'popup') {
-                setPopupIds((popupIds) => {
-                  return popupIds.filter((id) => id !== scenes.json.id)
-                })
-              } else {
-                setCount((count) => count+1)
-              }
-            }
-          })
+        scenesMap[sceneId] = scenes
+        if (json.type === 'popup') {
         } else {
-          if (!scenes.show) {
+          setPageScenes((pageScenes) => {
+            return [...pageScenes, json]
+          })
+        }
+        if (scenesOperateInputsTodo[sceneId]) {
+          const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
+          scenes.parentScope = parentScope
+          todo.forEach(({value, pinId, parentScope}) => {
+            scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
+              pinId,
+              value
+            }})
+          })
+        }
+      }
+
+      if (openType) {
+        Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+          if (key === sceneId) {
             if (openType === 'blank') {
               scenes.useEntryAnimation = true
             } else {
@@ -215,11 +277,38 @@ export default function MultiScene ({json, options}) {
             } else {
               setCount((count) => count+1)
             }
+          } else {
+            scenes.show = false
+            scenes._refs = null
+            if (scenes.type === 'popup') {
+              setPopupIds((popupIds) => {
+                return popupIds.filter((id) => id !== scenes.json.id)
+              })
+            } else {
+              setCount((count) => count+1)
+            }
+          }
+        })
+      } else {
+        if (!scenes.show) {
+          if (openType === 'blank') {
+            scenes.useEntryAnimation = true
+          } else {
+            scenes.useEntryAnimation = false
+          }
+          scenes.show = true
+          if (scenes.type === 'popup') {
+            setPopupIds((popupIds) => {
+              return [...popupIds, sceneId]
+            })
+          } else {
+            setCount((count) => count+1)
           }
         }
       }
-    }, options.env?.canvas)
+    }
 
+    // TODO:挪出去，优化一下
     const scenesOperate = {
       open({todo, frameId, parentScope, comProps}) {
         const scenes = scenesMap[frameId]
@@ -617,17 +706,21 @@ export default function MultiScene ({json, options}) {
             if (output.id === 'apply') {
               scenes.parentScope?.outputs[output.id](value)
             } else {
-              scenes.show = false
-              scenes.todo = []
-              scenes._refs = null
-              scenes.parentScope?.outputs[output.id](value)
-              scenes.parentScope = null
-              if (scenes.type === 'popup') {
-                setPopupIds((popupIds) => {
-                  return popupIds.filter((id) => id !== scenes.json.id)
-                })
+              if (scenes.type !== 'module') {
+                scenes.show = false
+                scenes.todo = []
+                scenes._refs = null
+                scenes.parentScope?.outputs[output.id](value)
+                scenes.parentScope = null
+                if (scenes.type === 'popup') {
+                  setPopupIds((popupIds) => {
+                    return popupIds.filter((id) => id !== scenes.json.id)
+                  })
+                } else {
+                  setCount((count) => count+1)
+                }
               } else {
-                setCount((count) => count+1)
+                scenes.parentScope?.outputs[output.id](value)
               }
             }
           })
