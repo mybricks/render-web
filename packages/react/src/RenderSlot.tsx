@@ -464,6 +464,7 @@ function calSlotStyles(style, hasParamsStyle, root) {
     backgroundPosition,
     backgroundRepeat,
     backgroundSize,
+    position,
     ...otherStyle
   } = style;
   let slotStyle = {
