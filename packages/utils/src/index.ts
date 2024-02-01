@@ -147,7 +147,7 @@ class Transform {
         }
       }), { width: slot.style.width }), coms)
 
-      console.log("comAry 结果: ", slot.comAry2)
+      console.log("最终结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
         const { slots } = com
@@ -266,7 +266,6 @@ export function traverseElements(elements: any, config: any) {
 export function traverseElements2(elements, config) {
   const traverseElements = new TraverseElements(elements, config)
   const res = traverseElements.getElements()
-  console.log("traverseElements2结果: ", res)
   return res
 }
 
