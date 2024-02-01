@@ -335,19 +335,40 @@ export default function executor(opts, {observable}) {
               /** 监听到非作用域变量，更新所有作用域 */
               const frameProps = _Props[`${comId}-${slotId}`]
               if (frameProps) {
-                Object.entries(frameProps).forEach(([key, slot]: any) => {
-                  if (slot?.type === 'scope') {
-                    // 作用域插槽
-                    if (!slot.curScope) {
-                      // 还没完成渲染
-                      slot.pushTodo((curScope: any) => {
-                        callNext({ pinId, value: val, component, curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
-                      })
+                // Object.entries(frameProps).forEach(([key, slot]: any) => {
+                //   if (slot?.type === 'scope') {
+                //     // 作用域插槽
+                //     if (!slot.curScope) {
+                //       // 还没完成渲染
+                //       slot.pushTodo((curScope: any) => {
+                //         callNext({ pinId, value: val, component, curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
+                //       })
+                //     } else {
+                //       callNext({ pinId, value: val, component, curScope: slot.curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
+                //     }
+                //   } else {
+                //     callNext({ pinId, value: val, component, curScope: slot.curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
+                //   }
+                // })
+                const entries = Object.entries(frameProps)
+                const length = entries.length
+                entries.forEach(([key, slot]: any) => {
+                  if (length > 1 && key === 'slot') {
+
+                  } else {
+                    if (slot?.type === 'scope') {
+                      // 作用域插槽
+                      if (!slot.curScope) {
+                        // 还没完成渲染
+                        slot.pushTodo((curScope: any) => {
+                          callNext({ pinId, value: val, component, curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
+                        })
+                      } else {
+                        callNext({ pinId, value: val, component, curScope: slot.curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
+                      }
                     } else {
                       callNext({ pinId, value: val, component, curScope: slot.curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
                     }
-                  } else {
-                    callNext({ pinId, value: val, component, curScope: slot.curScope, comId, val, timerPinInputId, frameKey, inReg, notifyAll, fromCon})
                   }
                 })
               }
@@ -478,7 +499,7 @@ export default function executor(opts, {observable}) {
       cb: null
     }
     if (component && pidx !== -1) {
-      const valueBarrierKey = comId + `${curScope?.id ? `-${curScope.id}` : ''}`
+      const valueBarrierKey = component.id + `${curScope?.id ? `-${curScope.id}` : ''}`
       // 多输入
       const { inputs } = component
       const finalPinId = pinId.substring(0, pidx)
