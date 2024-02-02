@@ -38,16 +38,37 @@ export default function RenderSlot({
                                      logger
                                    }) {
   const {style, comAry} = slot
+  const { hasPermission, permissions: envPermissions } = env
 
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
     const {id, def, name}: Com = com
     const comInfo = context.getComInfo(id)
-    const { hasPermission } = env
-    const permissions = comInfo?.model?.permissions
+    const permissionsId = comInfo?.model?.permissions?.id
 
-    if (permissions && typeof hasPermission === 'function' && !hasPermission(permissions.id)) {
-      return
+    if (permissionsId && typeof hasPermission === 'function') {
+      if (!hasPermission(permissionsId)) {
+        return
+      } else {
+        const permission = envPermissions.find((p) => p.id === permissionsId)
+        if (permission?.register.noPrivilege === 'hintLink') {
+          itemAry.push({
+            id,
+            name,
+            jsx: (
+              <div>
+                <a
+                  href={permission.hintLink}
+                  target="_blank"
+                  style={{textDecoration: 'underline'}}
+                >{permission.register.title}</a>
+              </div>
+            ),
+            style: {}
+          })
+          return
+        }
+      }
     }
     const comDef = getComDef(def)
 
