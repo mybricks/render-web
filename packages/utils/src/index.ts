@@ -246,10 +246,11 @@ class Transform {
         const marginRight = width - com.marginLeft - com.width
         if (com.marginLeft === marginRight) {
           // 说明是水平居中的
+          // 这里应该还有其它情况，比如两边是0？那可能是space-between
           style.justifyContent = 'center'
+        } else {
+          style.marginLeft = com.marginLeft
         }
-
-        
 
         res.push({
           id: com.id,
