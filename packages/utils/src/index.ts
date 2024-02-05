@@ -179,7 +179,7 @@ class Transform {
         }
       }), { width: slot.style.width }), coms)
 
-      slot.comAry2 = this.transformComAry2(comAry2, coms, { width: slot.style.width })
+      slot.comAry2 = this.transformComAry2(comAry2, coms, { width: slot.style.width, marginLeft: 0 })
       console.log("最终结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
@@ -193,14 +193,14 @@ class Transform {
     }
   }
 
-  transformComAry2(comAry: any, coms: any, { width }: any) {
+  transformComAry2(comAry: any, coms: any, { width, marginLeft }: any) {
     const res = []
 
-    console.log("comAry: ", comAry)
+    console.log("🚀 comAry: ", comAry)
+    console.log("🐯 容器信息: ", { width, marginLeft })
 
     comAry.forEach((com) => {
       if (com.def) {
-        console.log("🐣 组件信息: ", coms[com.id])
         /**
          * coms[com.id].model.style
          * 没有height，即适应内容
@@ -215,7 +215,6 @@ class Transform {
         }
         res.push(com)
       } else {
-        // const { width: comWidth, marginLeft: comMarginLeft, marginTop: comMarginTop } = com
         // 行列
         const style: any = {
           display: 'flex',
@@ -224,38 +223,42 @@ class Transform {
           // marginTop: com.marginTop,
           // marginLeft: com.marginLeft
         }
-        // const marginRight = width - comMarginLeft - comWidth
-        // style.marginRight = marginRight
-        
-        /**
-         * 没有flexDirection的说明是单个组件外面套了一层div
-         */
 
-        console.log("🐶 当前容器的宽度: ", width)
-        console.log("🐶 当前信息: ", com)
+        let nextWidth = com.width
+        let nextMarginLeft = 0
 
-        
-        /**
-         * 处理一行只有一个的情况
-         */
-        // if (!com.flexDirection) {
-          // 说明当前容器里只有一个组件
-          
-        // }
-
-        const marginRight = width - com.marginLeft - com.width
-        if (com.marginLeft === marginRight) {
-          // 说明是水平居中的
-          // 这里应该还有其它情况，比如两边是0？那可能是space-between
-          style.justifyContent = 'center'
+        if (!com.flexDirection) {
+          // 说明是单个组件外面套了一层div
+          const marginRight = width - com.marginLeft - com.width - marginLeft
+          if (com.marginLeft + marginLeft === marginRight) {
+            // 说明是居中的
+            // TODO: 这里应该还有其它情况，比如两边是0？那可能是space-between
+            style.justifyContent = 'center'
+          } else {
+            // 不居中，设置左外间距
+            style.marginLeft = (com.marginLeft || 0) + marginLeft
+          }
         } else {
-          style.marginLeft = com.marginLeft
+          if (com.flexDirection === 'column') {
+            // 如果是列，每一行单独计算
+            nextWidth = width
+            nextMarginLeft = com.marginLeft
+          } else {
+            const marginRight = width - com.marginLeft - com.width - marginLeft
+            if (com.marginLeft + marginLeft === marginRight) {
+              // 说明是居中的
+              style.justifyContent = 'center'
+            } else {
+              // 不居中，设置左外间距
+              style.marginLeft = (com.marginLeft || 0) + marginLeft
+            }
+          }
         }
 
         res.push({
           id: com.id,
           style,
-          elements: this.transformComAry2(com.elements, coms, { width: com.width })
+          elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft })
         })
       }
     })
@@ -1970,12 +1973,16 @@ class TraverseElements {
       // console.log("group: ", group.map((i) => i.id))
       if (length) {
         if (length === 1) {
-          // console.log("❓ 这里观察下是否合理", group[0])
           // elements.push(group[0])
-          elements.push({
-            ...group[0],
-            tempElements: [group[0]]
-          })
+          const ele = group[0]
+          if (group[0].flexDirection) {
+            elements.push(ele)
+          } else {
+            elements.push({
+              ...ele,
+              tempElements: [ele]
+            })
+          }
         } else if (length > 1) {
           // 找最小的top，最小的left，计算最大的width和height
           let top,left,width,height
@@ -2026,6 +2033,18 @@ class TraverseElements {
             height: height - top,
             flexDirection: flexDirection || 'column',
             elements: group.map((g) => {
+              if (g.flexDirection) {
+                return {
+                  ...g,
+                  parentFlexDirection: flexDirection || 'column',
+                }
+              } else {
+                return {
+                  ...g,
+                  parentFlexDirection: flexDirection || 'column',
+                  tempElements: [g]
+                }
+              }
               return {
                 ...g,
                 parentFlexDirection: flexDirection || 'column',
