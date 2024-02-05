@@ -1116,10 +1116,40 @@ class TraverseElements {
 
     let newElements = this.convertedToElements(eleGroup)
 
-    // if (elements.length === newElements.length) {
-    //   console.log("处理后长度相同，没得说了，直接返回吧: ", elements)
-    //   return newElements
-    // }
+    if (elements.length === newElements.length) {
+      // 处理后长度相同
+      // 默认为不同行
+
+      let minLeft = Infinity, minTop = Infinity, maxHeight = 0, maxWdith = 0, id = ''
+      const lastIndex = newElements.length - 1
+      newElements.forEach((ele, index) => {
+        id = id + ele.id + `${index === lastIndex ? '' : ','}`
+        ele.parentFlexDirection = 'column'
+        
+        if (ele.top < minTop) {
+          minTop = ele.top
+        }
+        if (ele.left < minLeft) {
+          minLeft = ele.left
+        }
+        if (ele.top + ele.height > maxHeight) {
+          maxHeight = ele.top + ele.height
+        }
+        if (ele.left + ele.width > maxWdith) {
+          maxWdith = ele.left + ele.width
+        }
+      })
+
+      return [{
+        id,
+        flexDirection: 'column',
+        elements: newElements,
+        top: minTop,
+        left: minLeft,
+        height: maxHeight,
+        width: maxWdith
+      }]
+    }
 
     if (newElements.length > 1) {
       return this.splitElements2(newElements)
