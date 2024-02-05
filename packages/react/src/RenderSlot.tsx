@@ -48,9 +48,7 @@ export default function RenderSlot({
 
     if (permissionsId && typeof hasPermission === 'function') {
       if (!hasPermission(permissionsId)) {
-        return
-      } else {
-        const permission = envPermissions.find((p) => p.id === permissionsId)
+        const permission = envPermissions.find((p: any) => p.id === permissionsId)
         if (permission?.register.noPrivilege === 'hintLink') {
           itemAry.push({
             id,
@@ -66,8 +64,8 @@ export default function RenderSlot({
             ),
             style: {}
           })
-          return
         }
+        return
       }
     }
     const comDef = getComDef(def)
