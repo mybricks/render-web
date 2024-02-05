@@ -319,8 +319,10 @@ class Transform {
             const hasFlexX = elements.some((ele) => ele.style.flex)
 
             if (hasFlexX) {
-              style.flex = 1
               style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + marginLeft}px`
+              widthAry.push(com.width)
+              sumWidth = sumWidth + com.width
+              flexMap[widthAry.length - 1] = style
             }
 
             res.push({
@@ -1113,6 +1115,12 @@ class TraverseElements {
 
 
     let newElements = this.convertedToElements(eleGroup)
+
+    // if (elements.length === newElements.length) {
+    //   console.log("处理后长度相同，没得说了，直接返回吧: ", elements)
+    //   return newElements
+    // }
+
     if (newElements.length > 1) {
       return this.splitElements2(newElements)
     }
