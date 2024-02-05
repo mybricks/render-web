@@ -178,8 +178,8 @@ class Transform {
           brother: []
         }
       }), { width: slot.style.width }), coms)
-
-      slot.comAry2 = this.transformComAry2(comAry2, coms, { width: slot.style.width, marginLeft: 0 })
+      // console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
+      slot.comAry2 = this.transformComAry2(comAry2, coms, { width: slot.style.width, marginLeft: 0, flexDirection: 'row' })
       console.log("最终结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
@@ -193,13 +193,24 @@ class Transform {
     }
   }
 
-  transformComAry2(comAry: any, coms: any, { width, marginLeft }: any) {
+  transformComAry2(comAry: any, coms: any, { width, marginLeft, flexDirection }: any) {
     const res = []
 
-    console.log("🚀 comAry: ", comAry)
-    console.log("🐯 容器信息: ", { width, marginLeft })
+    const isRow = flexDirection === 'row'
 
-    comAry.forEach((com) => {
+    // const haslog = comAry.length === 1
+
+    // haslog && console.log("🚀 comAry: ", comAry)
+    // haslog && console.log("🐯 容器信息: ", { width, marginLeft })
+
+    // 设置了宽度百分百的宽度数组
+    const widthAry = []
+    // 上述数组的index对应com的style
+    const flexMap = {}
+    // 设置宽度百分百的com的总宽度
+    let sumWidth = 0
+
+    comAry.forEach((com, index) => {
       if (com.def) {
         /**
          * coms[com.id].model.style
@@ -213,6 +224,14 @@ class Transform {
           // 引擎适应内容配置，会产生height:auto
           style.height = 'fit-content'
         }
+        // if (style.flexX === 1) {
+        //   // 组件设置了宽度100%
+        //   style.width = '100%'
+        //   const styleWidth = comInfo.style.width
+        //   widthAry.push(styleWidth)
+        //   sumWidth = sumWidth + styleWidth
+        //   flexMap[widthAry.length - 1] = style
+        // }
         res.push(com)
       } else {
         // 行列
@@ -229,7 +248,7 @@ class Transform {
 
         if (!com.flexDirection) {
           // 说明是单个组件外面套了一层div
-          const marginRight = width - com.marginLeft - com.width - marginLeft
+          const marginRight = width - com.marginLeft - com.width - marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
           if (com.marginLeft + marginLeft === marginRight) {
             // 说明是居中的
             // TODO: 这里应该还有其它情况，比如两边是0？那可能是space-between
@@ -238,13 +257,57 @@ class Transform {
             // 不居中，设置左外间距
             style.marginLeft = (com.marginLeft || 0) + marginLeft
           }
+          const ele = com.tempElements[0]
+          const comInfo = coms[ele.id]
+          const comStyle = comInfo.model.style
+
+          if (comStyle.flexX) {
+            // haslog && console.log("🐱 com: ", com)
+            // haslog && console.log("🐶 marginRight: ", marginRight)
+            comStyle.width = '100%'
+            const styleWidth = comInfo.style.width
+            widthAry.push(styleWidth)
+            sumWidth = sumWidth + styleWidth
+            flexMap[widthAry.length - 1] = style
+
+            // if (marginRight === 200) {
+            //   const aaa = width - com.marginLeft - com.width - marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
+            //   console.log("这里还要减去左边的宽度", aaa)
+            //   console.log("marginRight: ", marginRight)
+            //   console.log("com: ", com)
+            //   console.log("com.marginLeft: ", com.marginLeft)
+            //   console.log("com.width: ", com.width)
+            //   console.log("容器 width: ", width)
+            //   console.log("容器 marginLeft: ", marginLeft)
+            //   console.log("容器 flexDirection: ", flexDirection)
+            //   console.log("comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0): ", comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0))
+            //   console.log("comAry.slice(index + 1): ", comAry.slice(index + 1))
+            // }
+
+
+          
+
+            style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + marginLeft}px`
+          }
+
+          res.push({
+            id: com.id,
+            style,
+            elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
+          })
+
         } else {
           if (com.flexDirection === 'column') {
             // 如果是列，每一行单独计算
             nextWidth = width
             nextMarginLeft = com.marginLeft
+            res.push({
+              id: com.id,
+              style,
+              elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
+            })
           } else {
-            const marginRight = width - com.marginLeft - com.width - marginLeft
+            const marginRight = width - com.marginLeft - com.width - marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
             if (com.marginLeft + marginLeft === marginRight) {
               // 说明是居中的
               style.justifyContent = 'center'
@@ -252,16 +315,37 @@ class Transform {
               // 不居中，设置左外间距
               style.marginLeft = (com.marginLeft || 0) + marginLeft
             }
+            const elements = this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
+            const hasFlexX = elements.some((ele) => ele.style.flex)
+
+            if (hasFlexX) {
+              style.flex = 1
+              style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + marginLeft}px`
+            }
+
+            res.push({
+              id: com.id,
+              style,
+              elements
+            })
           }
         }
 
-        res.push({
-          id: com.id,
-          style,
-          elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft })
-        })
+        // res.push({
+        //   id: com.id,
+        //   style,
+        //   elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
+        // })
       }
     })
+
+    if (widthAry.length) {
+      const gcd = findGCD(widthAry)
+      widthAry.forEach((width, index) => {
+        const style = flexMap[index]
+        style.flex = width / gcd
+      })
+    }
 
     return res
 
@@ -452,7 +536,6 @@ class TraverseElements {
 
   getElements() {
     const { elements } = this
-    console.log("🚀 elements: ", elements)
     const eleGroup = this.splitElements2(this.handleIntersectionsAndInclusions(elements))
     return this.handleEleGroup(eleGroup, { top: 0, left: 0 })
   }
@@ -1975,13 +2058,17 @@ class TraverseElements {
         if (length === 1) {
           // elements.push(group[0])
           const ele = group[0]
-          if (group[0].flexDirection) {
+          if (ele.flexDirection) {
             elements.push(ele)
           } else {
-            elements.push({
-              ...ele,
-              tempElements: [ele]
-            })
+            if (ele.tempElements) {
+              elements.push(ele)
+            } else {
+              elements.push({
+                ...ele,
+                tempElements: [ele]
+              })
+            }
           }
         } else if (length > 1) {
           // 找最小的top，最小的left，计算最大的width和height
@@ -2039,15 +2126,17 @@ class TraverseElements {
                   parentFlexDirection: flexDirection || 'column',
                 }
               } else {
+                if (g.tempElements) {
+                  return {
+                    ...g,
+                    parentFlexDirection: flexDirection || 'column',
+                  }
+                }
                 return {
                   ...g,
                   parentFlexDirection: flexDirection || 'column',
                   tempElements: [g]
                 }
-              }
-              return {
-                ...g,
-                parentFlexDirection: flexDirection || 'column',
               }
             })
           })
