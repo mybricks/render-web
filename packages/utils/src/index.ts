@@ -2,6 +2,38 @@ interface ToJSON {
   [key: string]: any
 }
 
+function findGCD(arr) {
+  // 找到数组中的最小值
+  const min = Math.min(...arr);
+
+  // 初始化公约数为最小值
+  let gcd = min;
+
+  // 从最小值开始递减，直到找到最大公约数
+  while (gcd > 1) {
+    let isGCD = true;
+
+    // 检查数组中的每个元素是否能被公约数整除
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] % gcd !== 0) {
+        isGCD = false;
+        break;
+      }
+    }
+
+    // 如果所有元素都能被公约数整除，则找到最大公约数
+    if (isGCD) {
+      break;
+    }
+
+    // 否则，继续递减公约数
+    gcd--;
+  }
+
+  return gcd;
+}
+
+
 export function transformToJSON(toJSON: ToJSON) {
   const { global, modules, scenes } = toJSON
   if (!scenes) {
@@ -128,7 +160,7 @@ class Transform {
       //   }
       // }), { width: slot.style.width }), coms, "items")
 
-      slot.comAry2 = this.traverseElementsToSlotComAry2(traverseElements2(resultComAry.map((com) => {
+      const comAry2 = this.traverseElementsToSlotComAry2(traverseElements2(resultComAry.map((com) => {
         const id = com.id
         const comInfo = coms[id]
         const style = comInfo.model.style
@@ -147,6 +179,7 @@ class Transform {
         }
       }), { width: slot.style.width }), coms)
 
+      slot.comAry2 = this.transformComAry2(comAry2, coms, { width: slot.style.width })
       console.log("最终结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
@@ -158,6 +191,176 @@ class Transform {
         }
       })
     }
+  }
+
+  transformComAry2(comAry: any, coms: any, { width }: any) {
+    const res = []
+
+    console.log("comAry: ", comAry)
+
+    comAry.forEach((com) => {
+      if (com.def) {
+        console.log("🐣 组件信息: ", coms[com.id])
+        /**
+         * coms[com.id].model.style
+         * 没有height，即适应内容
+         * 
+         */
+        const { id } = com
+        const comInfo = coms[id]
+        const style = comInfo.model.style
+        if (style.height === "auto") {
+          // 引擎适应内容配置，会产生height:auto
+          style.height = 'fit-content'
+        }
+        res.push(com)
+      } else {
+        // const { width: comWidth, marginLeft: comMarginLeft, marginTop: comMarginTop } = com
+        // 行列
+        const style: any = {
+          display: 'flex',
+          marginTop: com.marginTop,
+          flexDirection: com.flexDirection,
+          // marginTop: com.marginTop,
+          // marginLeft: com.marginLeft
+        }
+        // const marginRight = width - comMarginLeft - comWidth
+        // style.marginRight = marginRight
+        
+        /**
+         * 没有flexDirection的说明是单个组件外面套了一层div
+         */
+
+        console.log("🐶 当前容器的宽度: ", width)
+        console.log("🐶 当前信息: ", com)
+
+        
+        /**
+         * 处理一行只有一个的情况
+         */
+        // if (!com.flexDirection) {
+          // 说明当前容器里只有一个组件
+          
+        // }
+
+        const marginRight = width - com.marginLeft - com.width
+        if (com.marginLeft === marginRight) {
+          // 说明是水平居中的
+          style.justifyContent = 'center'
+        }
+
+        
+
+        res.push({
+          id: com.id,
+          style,
+          elements: this.transformComAry2(com.elements, coms, { width: com.width })
+        })
+      }
+    })
+
+    return res
+
+    // comAry.forEach((com) => {
+    //   console.log(com, 'com')
+    //   if (com.def) {
+    //     console.log("❌ 组件: ", com)
+    //     res.push(com)
+    //   } else {
+    //     const { id, elements } = com
+    //     console.log("🌟 行列包裹div: ", com)
+    //     console.log("🌟 子元素(这里需要看看是否可以把行列再摘出来): ", elements)
+    //     const relEles = []
+    //     elements.forEach((ele) => {
+    //       if (ele.elements) {
+    //         if (ele.flexDirection === ele.parentFlexDirection) {
+    //           relEles.push(...this.transformComAry2(ele.elements, coms, { width: ele.width }))
+    //         }            
+    //       } else {
+    //         relEles.push(ele)
+    //       }
+    //     })
+
+    //     console.log("🏠 目前的宽度: ", width, width - com.width - com.marginLeft)
+    //     console.log("res push relEles: ", relEles)
+
+    //     res.push({
+    //       id,
+    //       elements: relEles,
+    //       style: {
+    //         display: 'flex',
+    //         flexDirection: com.flexDirection
+    //       }
+    //     })
+    //   }
+    // })
+
+    // console.log("✅ 结果: ", res)
+
+    // return res
+
+    // const res = []
+    // const widthAry = []
+    // const flexMap = {}
+    // let sumWidth = 0
+    // comAry.forEach((com, index) => {
+    //   if (com.def) {
+    //     // 组件
+    //     res.push(com)
+    //     const { id } = com
+    //     const comInfo = coms[id]
+    //     const style = comInfo.model.style
+    //     const styleWidth = comInfo.style.width
+    //     if (style.height === "auto") {
+    //       // 引擎适应内容配置，会产生height:auto
+    //       style.height = 'fit-content'
+    //     }
+    //     if (style.flexX === 1) {
+    //       widthAry.push(styleWidth)
+    //       sumWidth = sumWidth + styleWidth
+    //       flexMap[widthAry.length - 1] = style
+    //     }
+        
+    //   } else {
+    //     const { width: comWidth, marginLeft: comMarginLeft, marginTop: comMarginTop } = com
+    //     // 行列
+    //     const style: any = {
+    //       display: 'flex',
+    //       flexDirection: com.flexDirection,
+    //       marginTop: com.marginTop,
+    //       marginLeft: com.marginLeft
+    //     }
+
+    //     // const marginRight = width - comWidth - comMarginLeft
+
+    //     // if (com.flexDirection === 'row') {
+    //     //   // 这里是否考虑超出的问题
+          
+    //     //   console.log("marginRight: ", marginRight, { width, comWidth, comMarginLeft })
+    //     //   console.log("com: ", com)
+    //     //   console.log("当前容器宽度: ", width)
+    //     //   style.margin = `${comMarginTop}px ${marginRight}px 0px ${comMarginLeft}px`
+    //     // }
+
+    //     console.log("下一个： ", com.width)
+
+    //     res.push({
+    //       id: com.id,
+    //       style,
+    //       elements: this.transformComAry2(com.elements, coms, { width: com.width })
+    //     })
+    //   }
+    // })
+
+    // if (widthAry.length) {
+    //   const gcd = findGCD(widthAry)
+    //   widthAry.forEach((width, index) => {
+    //     const style = flexMap[index]
+    //     style.flex = width / gcd
+    //   })
+    // }
+
+    // return res
   }
 
   traverseElementsToSlotComAry(comAry: any, coms: any, nextType: any) {
@@ -203,12 +406,16 @@ class Transform {
     const { comIdToSlotComMap } = this
     const result = []
     comAry.forEach((com) => {
-      const { id, elements, marginLeft, marginTop, flexDirection, height, width } = com
-
+      const { id, elements, tempElements, marginLeft, marginTop, flexDirection, height, width } = com
       if (Array.isArray(elements)) {
         result.push({
           ...com,
           elements: this.traverseElementsToSlotComAry2(elements, coms)
+        })
+      } else if (Array.isArray(tempElements)) {
+        result.push({
+          ...com,
+          elements: this.traverseElementsToSlotComAry2(tempElements, coms)
         })
       } else {
         const modelStyle = coms[id].model.style
@@ -217,39 +424,6 @@ class Transform {
         modelStyle.marginLeft = marginLeft
         result.push(comIdToSlotComMap[id])
       }
-
-      
-
-      // const { id, type, items, children, brother, style } = com
-      // if (type) {
-      //   Reflect.deleteProperty(style, 'width')
-      //   result.push({
-      //     type,
-      //     style,
-      //     items: this.traverseElementsToSlotComAry2(items, coms, type)
-      //   })
-      // } else {
-      //   // TODO: 临时 children是包含关系，brother是相交关系
-      //   if (nextType === "brother") {
-      //     const modelStyle = coms[id].model.style
-      //     modelStyle.position = 'absolute'
-      //     modelStyle.top = com.top
-      //     modelStyle.left = com.left
-      //   } else {
-      //     // 这里记得处理下包含关系，children?
-      //     const modelStyle = coms[id].model.style
-      //     modelStyle.position = 'relative'
-      //     // 观察: 删除了组件的margin，用行列来替代
-      //     // modelStyle.marginTop = com.marginTop
-      //     // modelStyle.marginLeft = com.marginLeft
-      //   }
-
-      //   result.push({
-      //     ...comIdToSlotComMap[id],
-      //     children: this.traverseElementsToSlotComAry2(children, coms, "children"),
-      //     brother: this.traverseElementsToSlotComAry2(brother, coms, "brother"),
-      //   })
-      // }
     })
 
     return result
@@ -274,6 +448,7 @@ class TraverseElements {
 
   getElements() {
     const { elements } = this
+    console.log("🚀 elements: ", elements)
     const eleGroup = this.splitElements2(this.handleIntersectionsAndInclusions(elements))
     return this.handleEleGroup(eleGroup, { top: 0, left: 0 })
   }
@@ -681,7 +856,7 @@ class TraverseElements {
 
     elements.forEach((ele) => {
       const eleInfo = eleIdToInfo[ele.id]
-      const spaceAry = ['bottomSpace', 'topSpace', 'leftSpace', 'rightSpace'].filter((key) => {
+      const spaceAry = ['rightSpace', 'bottomSpace', 'topSpace', 'leftSpace'].filter((key) => {
         if (eleInfo.hasOwnProperty(key)) {
           return true
         }
@@ -1794,7 +1969,12 @@ class TraverseElements {
       // console.log("group: ", group.map((i) => i.id))
       if (length) {
         if (length === 1) {
-          elements.push(group[0])
+          // console.log("❓ 这里观察下是否合理", group[0])
+          // elements.push(group[0])
+          elements.push({
+            ...group[0],
+            tempElements: [group[0]]
+          })
         } else if (length > 1) {
           // 找最小的top，最小的left，计算最大的width和height
           let top,left,width,height

@@ -65,20 +65,22 @@ function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inpu
   //   return jsx.jsx
   // }
 
-  const { elements } = com
+  const { id, elements, style } = com
 
   if (elements) {
     return (
       <div
-        key={index}
-        style={{
-          display: 'flex',
-          width: com.width,
-          height: com.height,
-          marginLeft: com.marginLeft,
-          marginTop: com.marginTop,
-          flexDirection: com.flexDirection
-        }}
+        key={id}
+        style={style}
+        // style={{
+        //   display: 'flex',
+        //   // width: com.width,
+        //   // height: com.height,
+        //   marginLeft: com.marginLeft,
+        //   marginRight: com.marginRight,
+        //   marginTop: com.marginTop,
+        //   flexDirection: com.flexDirection
+        // }}
       >
         {elements.map((com: any) => {
           return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
@@ -166,7 +168,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
     }})
 
     if (props) {
-      const comKey = (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
+      const comKey = id + (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
       let childrenJSX = []
       let brotherJSX = []
       // if (children?.length) {
@@ -441,6 +443,7 @@ function RenderCom({
       // overflow: "hidden",
       // position: style.position || "relative",
       position: style.position,
+      flex: style.flex,
       ...otherStyle,
       ...sizeStyle,
       ...marginStyle,
