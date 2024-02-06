@@ -248,6 +248,7 @@ class Transform {
   }
 
   transformComAry2(comAry: any, coms: any, { com: propsCom, parentCom: propsParentCom, isSameGroup = false }) {
+    const haslog = true
     const res = []
     // 设置了宽度百分百的宽度数组
     const widthAry = []
@@ -261,7 +262,7 @@ class Transform {
         res.push(com)
       } else {
         if (!com.flexDirection) {
-          console.log(1, "🚗 单组件")
+          haslog && console.log(1, "🚗 单组件")
           const style: any = {
             display: 'flex',
             flexDirection: com.flexDirection,
@@ -272,7 +273,7 @@ class Transform {
           const comStyle = comInfo.model.style
 
           if (comStyle.flexX) {
-            console.log(5, "🍎 单组件宽度100%")
+            haslog && console.log(5, "🍎 单组件宽度100%")
             comStyle.width = '100%'
             const styleWidth = comInfo.style.width
             widthAry.push(styleWidth)
@@ -283,48 +284,42 @@ class Transform {
             let marginRight
 
             if (isSameGroup) {
-              console.log(11, "🍎 单组件同时处理，右边距一定是0 - 观察")
+              haslog && console.log(11, "🍎 单组件同时处理，右边距一定是0 - 观察")
               if (propsCom.flexDirection === 'row') {
-                console.log(18, "🍎 单组件横向，右边距一定是0")
+                haslog && console.log(18, "🍎 单组件横向，右边距一定是0")
                 marginRight = 0
               } else {
-                console.log(19, "🍎 单组件纵向，计算右边距")
+                haslog && console.log(19, "🍎 单组件纵向，计算右边距")
                 marginRight = propsCom.width - com.marginLeft - com.width
               }
             } else {
               if (propsCom.flexDirection === 'row') {
-                console.log(37, "🍎 单组件非同时处理，横向，右边距一定是0")
-                marginRight = 0
+                haslog && console.log(37, "🍎 单组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
+                // marginRight = 0
+                marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
               } else {
-                console.log(12, "🍎 单组件非同时处理，正常计算右边距")
+                haslog && console.log(12, "🍎 单组件非同时处理，正常计算右边距")
                 marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
               }
               
             }
-
-            // if (marginRight === 734) {
-            //   console.log("isSameGroup: ", isSameGroup)
-            //   console.log("com: ", com)
-            //   console.log("propsCom: ", propsCom)
-            //   console.log("propsParentCom: ", propsParentCom)
-            // }
            
             style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
             
           } else {
-            console.log(6, "🍎 单组件宽度不需要处理")
+            haslog && console.log(6, "🍎 单组件宽度不需要处理")
             let marginRight
 
             if (isSameGroup) {
               if (propsCom.flexDirection === 'row') {
-                console.log(15, "🍎 单组件横向，右边距一定是0")
+                haslog && console.log(15, "🍎 单组件横向，右边距一定是0")
                 marginRight = 0
               } else {
-                console.log(16, "🍎 单组件纵向，计算右边距")
+                haslog && console.log(16, "🍎 单组件纵向，计算右边距")
                 marginRight = propsCom.width - com.marginLeft - com.width
               }
             } else {
-              console.log(17, "🍎 单组件非同时处理，正常计算右边距")
+              haslog && console.log(17, "🍎 单组件非同时处理，正常计算右边距 - 这里计算观察下可能有问题")
               marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
             }
 
@@ -336,10 +331,10 @@ class Transform {
             // console.log("comAry: ", comAry)
             // console.log("comIndex: ", comIndex)
             if (marginRight === com.marginLeft) {
-              console.log(7, "🍎 单组件居中")
+              haslog && console.log(7, "🍎 单组件居中")
               style.justifyContent = 'center'
             } else {
-              console.log(8, "🍎 单组件不居中", com.marginLeft)
+              haslog && console.log(8, "🍎 单组件不居中", com.marginLeft)
               style.marginLeft = com.marginLeft
             }
           }
@@ -349,10 +344,10 @@ class Transform {
             elements: com.elements
           })
         } else {
-          console.log(2, "🚗🚗 多组件")
+          haslog && console.log(2, "🚗🚗 多组件")
           const elements = com.elements
           if (elements.length !== 1 && this.isSameGroup(elements)) {
-            console.log(3, "🐶 同时处理 => ", elements)
+            haslog && console.log(3, "🐶 同时处理 => ", elements)
             const style: any = {
               display: 'flex',
               flexDirection: com.flexDirection,
@@ -365,7 +360,7 @@ class Transform {
             })
 
             if (relEles.some((ele) => ele.style.flex)) {
-              console.log(13, "🍌 多组件里有宽度100%的组件，这里区分下横着和竖着？")
+              haslog && console.log(13, "🍌 多组件里有宽度100%的组件，这里区分下横着和竖着？")
               const styleWidth = com.width
               widthAry.push(styleWidth)
               sumWidth = sumWidth + styleWidth
@@ -375,28 +370,37 @@ class Transform {
 
               if (isSameGroup) {
                 if (propsCom.flexDirection === 'row') {
-                  console.log(20, "🍌 多组件横向，右边距一定是0 -- 这里在观察下，应该是有问题，有100%组件了，一定是flex:xx")
+                  haslog && console.log(20, "🍌 多组件横向，右边距一定是0 -- 这里在观察下，应该是有问题，有100%组件了，一定是flex:xx")
                   marginRight = 0
                   // const styleWidth = com.width
                   // widthAry.push(styleWidth)
                   // sumWidth = sumWidth + styleWidth
                   // flexMap[widthAry.length - 1] = style
                 } else {
-                  console.log(21, "🍌 多组件纵向，计算右边距")
+                  haslog && console.log(21, "🍌 多组件纵向，计算右边距")
                   marginRight = propsCom.width - com.marginLeft - com.width
                 }
               } else {
                 if (propsCom.flexDirection === 'row') {
-                  console.log(36, "🍌 多组件非同时处理，横向，右边距一定是0")
+                  haslog && console.log(36, "🍌 多组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
+                  // marginRight = 0 // 临时测试一下
+                  marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+                  // if (com.marginTop === 20) {
+                  //   console.log("这里计算有问题")
+                  //   console.log("isSameGroup: ", isSameGroup)
+                  //   console.log("com: ", com)
+                  //   console.log("propsCom: ", propsCom)
+                  //   console.log("propsParentCom: ", propsParentCom)
+                  // }
                 } else {
-                  console.log(22, "🍌 多组件非同时处理，正常计算右边距", propsCom.flexDirection)
+                  haslog && console.log(22, "🍌 多组件非同时处理，正常计算右边距", propsCom.flexDirection)
                   marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
                 }
               }
             
               style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
             } else {
-              console.log(14, "🍌 多组件里没有宽度100%的组件")
+              haslog && console.log(14, "🍌 多组件里没有宽度100%的组件")
 
               let marginRight
 
@@ -404,20 +408,20 @@ class Transform {
                 if (propsCom.flexDirection === 'row') {
                   marginRight = 0
                 } else {
-                  console.log(24, "🍌 多组件纵向，计算右边距")
+                  haslog && console.log(24, "🍌 多组件纵向，计算右边距")
                   marginRight = propsCom.width - com.marginLeft - com.width
                 }
               } else {
-                console.log(25, "🍌 多组件非同时处理，正常计算右边距")
+                haslog && console.log(25, "🍌 多组件非同时处理，正常计算右边距")
                 marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
               }
   
               if (marginRight === com.marginLeft) {
-                console.log(9, "🍌 多组件居中")
+                haslog && console.log(9, "🍌 多组件居中")
                 style.justifyContent = 'center'
               } else {
-                console.log(10, "🍌 多组件不居中，设置width fit-content和marginLeft")
-                console.log("这里设定marginLeft: ", com.marginLeft)
+                haslog && console.log(10, "🍌 多组件不居中，设置width fit-content和marginLeft")
+                haslog && console.log("这里设定marginLeft: ", com.marginLeft)
                 style.marginLeft = com.marginLeft
                 style.width = 'fit-content'
               }
@@ -428,11 +432,11 @@ class Transform {
               elements: relEles
             })
           } else {
-            console.log(4, "🐱 分开处理 => ", elements)
+            haslog && console.log(4, "🐱 分开处理 => ", elements)
 
             if (com.flexDirection === 'row') {
-              console.log("🐦 当前信息 com: ", com)
-              console.log(23, "🐱 分开处理 - 横向 => ", elements)
+              haslog && console.log("🐦 当前信息 com: ", com)
+              haslog && console.log(23, "🐱 分开处理 - 横向 => ", elements)
               const style: any = {
                 display: 'flex',
                 flexDirection: com.flexDirection,
@@ -444,7 +448,7 @@ class Transform {
               })
 
               if (relEles.some((ele) => ele.style.flex)) {
-                console.log(27, "🐱 分开处理 - 里面有宽度100%的组件 => ")
+                haslog && console.log(27, "🐱 分开处理 - 里面有宽度100%的组件 => ")
                 const styleWidth = com.width
                 widthAry.push(styleWidth)
                 sumWidth = sumWidth + styleWidth
@@ -454,24 +458,24 @@ class Transform {
 
                 if (isSameGroup) {
                   if (propsCom.flexDirection === 'row') {
-                    console.log(28, "🐱 分开处理 - 右边距一定是0")
+                    haslog && console.log(28, "🐱 分开处理 - 右边距一定是0")
                     marginRight = 0
                     // const styleWidth = com.width
                     // widthAry.push(styleWidth)
                     // sumWidth = sumWidth + styleWidth
                     // flexMap[widthAry.length - 1] = style
                   } else {
-                    console.log(29, "🐱 分开处理 - 纵向，计算右边距")
+                    haslog && console.log(29, "🐱 分开处理 - 纵向，计算右边距")
                     marginRight = propsCom.width - com.marginLeft - com.width
                   }
                 } else {
-                  console.log(30, "🐱 分开处理 - 同时处理，正常计算右边距")
+                  haslog && console.log(30, "🐱 分开处理 - 同时处理，正常计算右边距")
                   marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
                 }
 
                 style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
               } else {
-                console.log(31, "🐱 分开处理 - 没有宽度100%的组件")
+                haslog && console.log(31, "🐱 分开处理 - 没有宽度100%的组件")
                 debugger
 
                 // let marginRight
@@ -504,7 +508,7 @@ class Transform {
                 elements: relEles
               })
             } else {
-              console.log(26, "🐱 分开处理 - 纵向 => ", elements)
+              haslog && console.log(26, "🐱 分开处理 - 纵向 => ", elements)
               const relEles = this.transformComAry2(elements.map((ele, index) => {
                 return {
                   ...ele,
