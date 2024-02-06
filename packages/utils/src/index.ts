@@ -178,8 +178,13 @@ class Transform {
           brother: []
         }
       }), { width: slot.style.width }), coms)
-      // console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
-      slot.comAry2 = this.transformComAry2(comAry2, coms, { width: slot.style.width, marginLeft: 0, flexDirection: 'row' })
+      console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
+      // todo
+      comAry2[0].isContainer = true
+      slot.comAry2 = this.transformComAry2(comAry2, coms, {
+        com: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
+        parentCom: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
+      })
       console.log("最终结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
@@ -193,16 +198,57 @@ class Transform {
     }
   }
 
-  transformComAry2(comAry: any, coms: any, { width, marginLeft, flexDirection }: any) {
+  // const arr = [
+  //   { tempElements: true },
+  //   { tempElements: false },
+  //   { tempElements: true },
+  // ];
+  
+  // let hasTempElements = true;
+  // let hasNoTempElements = true;
+  
+  // for (let i = 0; i < arr.length; i++) {
+  //   if (arr[i].tempElements) {
+  //     hasNoTempElements = false;
+  //   } else {
+  //     hasTempElements = false;
+  //   }
+  
+  //   if (!hasTempElements && !hasNoTempElements) {
+  //     break;
+  //   }
+  // }
+  
+  // const result = hasTempElements || hasNoTempElements;
+  
+  // console.log(result); // 输出 true
+
+  isSameGroup(elements) {
+    if (elements.length < 2) {
+      return true
+    }
+
+    let hasTempElements = false
+    let noTempElements = false
+
+    for (let i = 0; i < elements.length; i++) {
+      const ele = elements[i]
+      if (ele.tempElements) {
+        hasTempElements = true
+      } else {
+        noTempElements = true
+      }
+
+      if (hasTempElements && noTempElements) {
+        break
+      }
+    }
+
+    return hasTempElements !== noTempElements
+  }
+
+  transformComAry2(comAry: any, coms: any, { com: propsCom, parentCom: propsParentCom, isSameGroup = false }) {
     const res = []
-
-    const isRow = flexDirection === 'row'
-
-    // const haslog = comAry.length === 1
-
-    // haslog && console.log("🚀 comAry: ", comAry)
-    // haslog && console.log("🐯 容器信息: ", { width, marginLeft })
-
     // 设置了宽度百分百的宽度数组
     const widthAry = []
     // 上述数组的index对应com的style
@@ -210,136 +256,427 @@ class Transform {
     // 设置宽度百分百的com的总宽度
     let sumWidth = 0
 
-    comAry.forEach((com, index) => {
+    comAry.forEach((com) => {
       if (com.def) {
-        /**
-         * coms[com.id].model.style
-         * 没有height，即适应内容
-         * 
-         */
-        const { id } = com
-        const comInfo = coms[id]
-        const style = comInfo.model.style
-        if (style.height === "auto") {
-          // 引擎适应内容配置，会产生height:auto
-          style.height = 'fit-content'
-        }
-        // if (style.flexX === 1) {
-        //   // 组件设置了宽度100%
-        //   style.width = '100%'
-        //   const styleWidth = comInfo.style.width
-        //   widthAry.push(styleWidth)
-        //   sumWidth = sumWidth + styleWidth
-        //   flexMap[widthAry.length - 1] = style
-        // }
         res.push(com)
       } else {
-        // 行列
-        const style: any = {
-          display: 'flex',
-          marginTop: com.marginTop,
-          flexDirection: com.flexDirection,
-          // marginTop: com.marginTop,
-          // marginLeft: com.marginLeft
-        }
-
-        let nextWidth = com.width
-        let nextMarginLeft = 0
-
         if (!com.flexDirection) {
-          // 说明是单个组件外面套了一层div
-          const marginRight = width - com.marginLeft - com.width - marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
-          if (com.marginLeft + marginLeft === marginRight) {
-            // 说明是居中的
-            // TODO: 这里应该还有其它情况，比如两边是0？那可能是space-between
-            style.justifyContent = 'center'
-          } else {
-            // 不居中，设置左外间距
-            style.marginLeft = (com.marginLeft || 0) + marginLeft
+          console.log(1, "🚗 单组件")
+          const style: any = {
+            display: 'flex',
+            flexDirection: com.flexDirection,
+            marginTop: com.marginTop
           }
-          const ele = com.tempElements[0]
+          const ele = com.elements[0]
           const comInfo = coms[ele.id]
           const comStyle = comInfo.model.style
 
           if (comStyle.flexX) {
-            // haslog && console.log("🐱 com: ", com)
-            // haslog && console.log("🐶 marginRight: ", marginRight)
+            console.log(5, "🍎 单组件宽度100%")
             comStyle.width = '100%'
             const styleWidth = comInfo.style.width
             widthAry.push(styleWidth)
             sumWidth = sumWidth + styleWidth
             flexMap[widthAry.length - 1] = style
 
-            // if (marginRight === 200) {
-            //   const aaa = width - com.marginLeft - com.width - marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
-            //   console.log("这里还要减去左边的宽度", aaa)
-            //   console.log("marginRight: ", marginRight)
-            //   console.log("com: ", com)
-            //   console.log("com.marginLeft: ", com.marginLeft)
-            //   console.log("com.width: ", com.width)
-            //   console.log("容器 width: ", width)
-            //   console.log("容器 marginLeft: ", marginLeft)
-            //   console.log("容器 flexDirection: ", flexDirection)
-            //   console.log("comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0): ", comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0))
-            //   console.log("comAry.slice(index + 1): ", comAry.slice(index + 1))
-            // }
 
+            let marginRight
 
-          
+            if (isSameGroup) {
+              console.log(11, "🍎 单组件同时处理，右边距一定是0 - 观察")
+              if (propsCom.flexDirection === 'row') {
+                console.log(18, "🍎 单组件横向，右边距一定是0")
+                marginRight = 0
+              } else {
+                console.log(19, "🍎 单组件纵向，计算右边距")
+                marginRight = propsCom.width - com.marginLeft - com.width
+                console.log("marginRight: ", marginRight)
+              }
+            } else {
+              console.log(12, "🍎 单组件非同时处理，正常计算右边距")
+              marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+            }
+            style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+            
+          } else {
+            console.log(6, "🍎 单组件宽度不需要处理")
+            let marginRight
 
-            style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + marginLeft}px`
+            if (isSameGroup) {
+              if (propsCom.flexDirection === 'row') {
+                console.log(15, "🍎 单组件横向，右边距一定是0")
+                marginRight = 0
+              } else {
+                console.log(16, "🍎 单组件纵向，计算右边距")
+                marginRight = propsCom.width - com.marginLeft - com.width
+              }
+            } else {
+              console.log(17, "🍎 单组件非同时处理，正常计算右边距")
+              marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+            }
+
+            // console.log("isSameGroup: ", isSameGroup)
+            // console.log("com: ", com)
+            // console.log("propsCom: ", propsCom)
+            // console.log("propsParentCom: ", propsParentCom)
+            // console.log("marginRight: ", marginRight)
+            // console.log("comAry: ", comAry)
+            // console.log("comIndex: ", comIndex)
+            if (marginRight === com.marginLeft) {
+              console.log(7, "🍎 单组件居中")
+              style.justifyContent = 'center'
+            } else {
+              console.log(8, "🍎 单组件不居中", com.marginLeft)
+              style.marginLeft = com.marginLeft
+            }
           }
-
           res.push({
             id: com.id,
             style,
-            elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
+            elements: com.elements
           })
-
         } else {
-          if (com.flexDirection === 'column') {
-            // 如果是列，每一行单独计算
-            nextWidth = width
-            nextMarginLeft = com.marginLeft
+          console.log(2, "🚗🚗 多组件")
+          const elements = com.elements
+          if (elements.length !== 1 && this.isSameGroup(elements)) {
+            console.log(3, "🐶 同时处理 => ", elements)
+            const style: any = {
+              display: 'flex',
+              flexDirection: com.flexDirection
+            }
+            const relEles = this.transformComAry2(elements, coms, {
+              com,
+              parentCom: propsCom,
+              isSameGroup: true
+            })
+            const marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+            // console.log("com: ", com)
+            // console.log("propsCom: ", propsCom)
+            // console.log("propsParentCom: ", propsParentCom)
+            // console.log("marginRight: ", marginRight)
+
+            if (relEles.some((ele) => ele.style.flex)) {
+              console.log(13, "🍌 多组件里有宽度100%的组件，这里区分下横着和竖着？")
+              style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+            } else {
+              console.log(14, "🍌 多组件里没有宽度100%的组件")
+              if (marginRight === com.marginLeft) {
+                console.log(9, "🍌 多组件居中")
+                style.justifyContent = 'center'
+              } else {
+                console.log(10, "🍌 多组件不居中，设置width fit-content和marginLeft")
+                console.log("这里设定marginLeft: ", com.marginLeft)
+                style.marginLeft = com.marginLeft
+                style.width = 'fit-content'
+              }
+            }
             res.push({
               id: com.id,
               style,
-              elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
+              elements: relEles
             })
           } else {
-            const marginRight = width - com.marginLeft - com.width - marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
-            if (com.marginLeft + marginLeft === marginRight) {
-              // 说明是居中的
-              style.justifyContent = 'center'
-            } else {
-              // 不居中，设置左外间距
-              style.marginLeft = (com.marginLeft || 0) + marginLeft
-            }
-            const elements = this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
-            const hasFlexX = elements.some((ele) => ele.style.flex)
-
-            if (hasFlexX) {
-              style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + marginLeft}px`
-              widthAry.push(com.width)
-              sumWidth = sumWidth + com.width
-              flexMap[widthAry.length - 1] = style
-            }
-
-            res.push({
-              id: com.id,
-              style,
-              elements
+            console.log(4, "🐱 分开处理 => ", elements)
+            const relEles = this.transformComAry2(elements.map((ele, index) => {
+              return {
+                ...ele,
+                marginTop: !index ? ele.marginTop + com.marginTop : ele.marginTop, // 第一条需要处理高度问题
+                marginLeft: ele.marginLeft + com.marginLeft
+              }
+            }), coms, {
+              com: propsCom,
+              parentCom: propsParentCom
             })
+            res.push(...relEles)
+            console.log("分开处理的结果relEles: ", relEles)
           }
         }
-
-        // res.push({
-        //   id: com.id,
-        //   style,
-        //   elements: this.transformComAry2(com.elements, coms, { width: nextWidth, marginLeft: nextMarginLeft, flexDirection: com.flexDirection })
-        // })
       }
     })
+
+
+
+    // comAry.forEach((com, index) => {
+    //   /**
+    //    * com.isContainer 最外层容器
+    //    * com.flexDirection 非单个组件包裹
+    //    */
+    //   if (com.def) {
+
+    //     // console.log(1, "组件信息 com: ", com)
+    //     // console.log(2, "容器信息 com: ", { width, marginLeft, flexDirection })
+    //     res.push(com)
+    //     const comInfo = coms[com.id]
+    //     const comStyle = comInfo.model.style
+    //     const designStyle = comInfo.style
+    //     // console.log(3, "comStyle: ", comStyle)
+    //     // console.log(4, "designStyle: ", designStyle)
+    //     // const marginRight = width - designStyle.width - (comStyle.marginLeft || 0)
+    //     // console.log(5, "marginRight: ", marginRight)
+    //     // console.log(6, "designStyle.width: ", designStyle.width)
+    //     // console.log(7, "comStyle.marginLeft: ", comStyle.marginLeft)
+
+    //     // if ((comStyle.marginLeft || 0) === marginRight) {
+    //     //   // 居中
+    //     //   // comStyle.
+    //     //   console.log("这里居中", comInfo)
+    //     // }
+    //   } else {
+    //     if (!com.flexDirection) {
+    //       const style: any = {
+    //         display: 'flex',
+    //         marginTop: com.marginTop,
+    //         flexDirection: com.flexDirection,
+    //       }
+    //       // console.log("🚄 单组件: ", com)
+    //       const ele = com.elements[0]
+    //       const comInfo = coms[ele.id]
+    //       const comStyle = comInfo.model.style
+    //       // console.log("🚺 单组件样式: ", comStyle)
+
+    //       if (comStyle.flexX) {
+    //         // console.log("说明是设置了百分百，应该用爷爷节点来计算")
+    //         // console.log("👨 父亲节点: ", propsCom)
+    //         // console.log("👴 爷爷节点: ", propsParentCom)
+    //         comStyle.width = '100%'
+    //         const styleWidth = comInfo.style.width
+    //         widthAry.push(styleWidth)
+    //         sumWidth = sumWidth + styleWidth
+    //         flexMap[widthAry.length - 1] = style
+
+
+    //         console.log(11111, "style: ", style)
+    //         // style.width = '100%'
+
+    //         const isRow = propsCom.flexDirection === 'row'
+
+    //         const marginRight = propsParentCom.width - propsCom.marginLeft - com.width - com.marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
+
+
+
+    //         console.log("propsParentCom.width: ", propsParentCom.width)
+    //         console.log("propsCom.marginLeft: ", propsCom.marginLeft)
+    //         console.log("com.width: ", com.width)
+
+    //         console.log("🐯 marginRight: ", marginRight)
+
+    //         if (marginRight === propsCom.marginLeft + com.marginLeft) {
+    //           // console.log("🐭 居中 marginRight: ", marginRight)
+    //           style.justifyContent = 'center'
+    //         } else {
+    //           style.marginLeft = com.marginLeft
+    //         }
+
+    //         // console.log("propsCom: ", propsCom)
+    //         // console.log("propsParentCom: ", propsParentCom)
+
+    //         console.log("isRowisRow: ", isRow)
+    //         // if (isRow) {
+    //         //   style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + propsCom.marginLeft}px`
+    //         // }
+    //         // 修改测试
+    //         style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + propsCom.marginLeft}px`
+           
+            
+    //         // console.log("style.margin: ", style.margin)
+
+    //         res.push({
+    //           id: com.id,
+    //           style,
+    //           elements: this.transformComAry2(com.elements, coms, {
+    //             com,
+    //             parentCom: propsCom
+    //           })
+    //         })
+    //       } else {
+    //         const marginRight = propsCom.width - com.marginLeft - com.width
+
+    //         if (marginRight === com.marginLeft) {
+    //           style.justifyContent = 'center'
+    //         } else {
+    //           style.marginLeft = com.marginLeft
+    //         }
+    //         res.push({
+    //           id: com.id,
+    //           style,
+    //           elements: this.transformComAry2(com.elements, coms, {
+    //             com,
+    //             parentCom: propsCom
+    //           })
+    //         })
+    //       }
+    //     } else {
+    //       const style: any = {
+    //         display: 'flex',
+    //         marginTop: com.marginTop,
+    //         flexDirection: com.flexDirection,
+    //       }
+    //       if (com.flexDirection === 'column') {
+    //         // 如果有flexX可以进行拆行
+    //         // const marginRight = propsCom.width - com.marginLeft - com.width
+    //         // if (com.marginLeft === marginRight) {
+    //         //   style.alignItems = 'center'
+    //         // } else {
+    //         //   style.marginLeft = com.marginLeft
+    //         // }
+    //         const elements = this.transformComAry2(com.elements, coms, {
+    //           com,
+    //           parentCom: propsCom
+    //         })
+
+    //         // const hasFlex = elements.some((ele) => ele.style.flex)
+
+    //         // if (hasFlex) {
+    //         //   const marginRight = propsCom.width - com.marginLeft - com.width
+    //         //   if (com.marginLeft === marginRight) {
+    //         //     style.alignItems = 'center'
+    //         //   } else {
+    //         //     style.marginLeft = com.marginLeft
+    //         //     // style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+    //         //   }
+    //         //   console.log("com: ", com)
+    //         //   style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+    //         //   console.log("style.margin: ",  style.margin)
+    //         //   widthAry.push(com.width)
+    //         //   sumWidth = sumWidth + com.width
+    //         //   flexMap[widthAry.length - 1] = style
+    //         // }
+
+    //         // res.push({
+    //         //   id: com.id,
+    //         //   style,
+    //         //   elements,
+    //         //   isContainer: hasFlex ? false : com.isContainer
+    //         // })
+
+    //         // style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + propsCom.marginLeft}px`
+    //         // console.log("style.margin: ",  style.margin)
+    //         // style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+    //         // widthAry.push(com.width)
+    //         // sumWidth = sumWidth + com.width
+    //         // flexMap[widthAry.length - 1] = style
+
+    //         // 修改测试
+    //         const tempEles = []
+    //         let index = 0
+    //         let hasFlexX = false
+    //         elements.forEach((ele) => {
+    //           console.log("🍎 计算的ele: ", ele)
+    //           if (ele.style.flex) {
+    //             if (tempEles[index]) {
+    //               res.push({
+    //                 id: com.id,
+    //                 style,
+    //                 elements: tempEles[index],
+    //                 isContainer: com.isContainer
+    //               })
+    //               index = index + 1
+    //             }
+    //             hasFlexX = true
+    //             res.push(ele)
+    //           } else {
+    //             if (!tempEles[index]) {
+    //               tempEles[index] = []
+    //             }
+    //             tempEles[index].push(ele)
+    //           }
+    //         })
+
+    //         const marginRight = propsCom.width - com.marginLeft - com.width
+    //         if (com.marginLeft === marginRight) {
+    //           style.alignItems = 'center'
+    //         } else {
+    //           style.marginLeft = com.marginLeft
+    //         }
+
+    //         if (tempEles[index]) {
+    //           console.log("com: ", com)
+    //           console.log("tempEles[index]: ", tempEles[index])
+    //           console.log("是容器吗: ", com.isContainer)
+
+    //           const hasFlex = tempEles[index].some((ele) => ele.style.flex)
+
+    //           console.log("hasFlex: ", hasFlex)
+              
+    //           res.push({
+    //             id: com.id,
+    //             style,
+    //             elements: tempEles[index],
+    //             // isContainer: false,
+    //             isContainer: com.isContainer,
+    //             // isContainer: tempEles[index].some((ele) => ele.style.flex) ? false : com.isContainer
+    //           })
+    //         }
+
+    //       } else {
+    //         console.log("🚀 非组件 行内: ", com)
+    //         // const marginRight = propsCom.width - com.marginLeft - com.width
+    //         // if (com.marginLeft === marginRight) {
+    //         //   style.justifyContent = 'center'
+    //         // }
+
+    //         const elements = this.transformComAry2(com.elements, coms, {
+    //           com,
+    //           parentCom: propsCom
+    //         })
+    //         console.log("🚀 非组件 行内 elements: ", elements)
+    //         console.log("🚀 非组件 行内 是容器吗: ", com.isContainer)
+    //         const hasFlex = elements.some((ele) => ele.style.flex)
+    //         console.log("🚀 非组件行内 hasFlex: ", hasFlex)
+
+    //         if (hasFlex) {
+    //           const isRow = propsCom.flexDirection === 'row'
+    //           const marginRight = propsParentCom.width - propsCom.marginLeft - com.width - com.marginLeft - (isRow ? comAry.slice(index + 1).reduce((pre, cur) => pre + cur.width, 0) : 0) - (isRow ? comAry.slice(0, index).reduce((pre, cur) => pre + cur.width, 0) : 0)
+              
+    //           if (marginRight === propsCom.marginLeft + com.marginLeft) {
+    //             console.log("🐭 居中 marginRight: ", marginRight)
+    //             style.justifyContent = 'center'
+    //           } else {
+    //             style.marginLeft = com.marginLeft
+    //           }
+    //           console.log("🚀 计算margin: ")
+    //           console.log("com: ", com)
+    //           console.log("propsCom: ", propsCom)
+    //           console.log("propsParentCom: ", propsParentCom)
+    //           console.log("marginRight: ", marginRight)
+    //           style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft + propsCom.marginLeft}px`
+    //           console.log("style.margin: ",  style.margin)
+    //           // style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+    //           widthAry.push(com.width)
+    //           sumWidth = sumWidth + com.width
+    //           flexMap[widthAry.length - 1] = style
+              
+    //         } else {
+    //           const marginRight = propsCom.width - com.marginLeft - com.width
+              
+    //           console.log("com: ", com)
+    //           console.log("propsCom: ", propsCom)
+    //           console.log("propsParentCom: ", propsParentCom)
+    //           console.log(888, "marginRight: ", marginRight)
+
+    //           if (marginRight === com.marginLeft) {
+    //             console.log("是居中的", com.isContainer)
+    //             style.justifyContent = 'center'
+    //           } else {
+    //             style.marginLeft = com.marginLeft
+    //           }
+    //         }
+
+    //         res.push({
+    //           id: com.id,
+    //           style,
+    //           elements,
+    //           isContainer: com.isContainer
+    //         })
+            
+    //       }
+
+
+    //       return
+    //     }
+    //   }
+    // })
+
 
     if (widthAry.length) {
       const gcd = findGCD(widthAry)
@@ -350,107 +687,6 @@ class Transform {
     }
 
     return res
-
-    // comAry.forEach((com) => {
-    //   console.log(com, 'com')
-    //   if (com.def) {
-    //     console.log("❌ 组件: ", com)
-    //     res.push(com)
-    //   } else {
-    //     const { id, elements } = com
-    //     console.log("🌟 行列包裹div: ", com)
-    //     console.log("🌟 子元素(这里需要看看是否可以把行列再摘出来): ", elements)
-    //     const relEles = []
-    //     elements.forEach((ele) => {
-    //       if (ele.elements) {
-    //         if (ele.flexDirection === ele.parentFlexDirection) {
-    //           relEles.push(...this.transformComAry2(ele.elements, coms, { width: ele.width }))
-    //         }            
-    //       } else {
-    //         relEles.push(ele)
-    //       }
-    //     })
-
-    //     console.log("🏠 目前的宽度: ", width, width - com.width - com.marginLeft)
-    //     console.log("res push relEles: ", relEles)
-
-    //     res.push({
-    //       id,
-    //       elements: relEles,
-    //       style: {
-    //         display: 'flex',
-    //         flexDirection: com.flexDirection
-    //       }
-    //     })
-    //   }
-    // })
-
-    // console.log("✅ 结果: ", res)
-
-    // return res
-
-    // const res = []
-    // const widthAry = []
-    // const flexMap = {}
-    // let sumWidth = 0
-    // comAry.forEach((com, index) => {
-    //   if (com.def) {
-    //     // 组件
-    //     res.push(com)
-    //     const { id } = com
-    //     const comInfo = coms[id]
-    //     const style = comInfo.model.style
-    //     const styleWidth = comInfo.style.width
-    //     if (style.height === "auto") {
-    //       // 引擎适应内容配置，会产生height:auto
-    //       style.height = 'fit-content'
-    //     }
-    //     if (style.flexX === 1) {
-    //       widthAry.push(styleWidth)
-    //       sumWidth = sumWidth + styleWidth
-    //       flexMap[widthAry.length - 1] = style
-    //     }
-        
-    //   } else {
-    //     const { width: comWidth, marginLeft: comMarginLeft, marginTop: comMarginTop } = com
-    //     // 行列
-    //     const style: any = {
-    //       display: 'flex',
-    //       flexDirection: com.flexDirection,
-    //       marginTop: com.marginTop,
-    //       marginLeft: com.marginLeft
-    //     }
-
-    //     // const marginRight = width - comWidth - comMarginLeft
-
-    //     // if (com.flexDirection === 'row') {
-    //     //   // 这里是否考虑超出的问题
-          
-    //     //   console.log("marginRight: ", marginRight, { width, comWidth, comMarginLeft })
-    //     //   console.log("com: ", com)
-    //     //   console.log("当前容器宽度: ", width)
-    //     //   style.margin = `${comMarginTop}px ${marginRight}px 0px ${comMarginLeft}px`
-    //     // }
-
-    //     console.log("下一个： ", com.width)
-
-    //     res.push({
-    //       id: com.id,
-    //       style,
-    //       elements: this.transformComAry2(com.elements, coms, { width: com.width })
-    //     })
-    //   }
-    // })
-
-    // if (widthAry.length) {
-    //   const gcd = findGCD(widthAry)
-    //   widthAry.forEach((width, index) => {
-    //     const style = flexMap[index]
-    //     style.flex = width / gcd
-    //   })
-    // }
-
-    // return res
   }
 
   traverseElementsToSlotComAry(comAry: any, coms: any, nextType: any) {
@@ -528,6 +764,7 @@ export function traverseElements(elements: any, config: any) {
 }
 
 export function traverseElements2(elements, config) {
+  console.log("🚄 初始化 elements: ", elements)
   const traverseElements = new TraverseElements(elements, config)
   const res = traverseElements.getElements()
   return res
@@ -754,9 +991,9 @@ class TraverseElements {
             if (cEle.top >= ele.top + ele.height) {
               // 上下对比
               // 找是否有相同区间的
-              let sLeft = 0
-              let mWidth = 0
-              const { left: cLeft, width: cWidth } = cEle
+              // let sLeft = 0
+              // let mWidth = 0
+              // const { left: cLeft, width: cWidth } = cEle
               // let sIdx = -1
               // bottomEles.forEach(({left, width}, idx) => {
               //   if (left < sLeft) {
@@ -803,27 +1040,28 @@ class TraverseElements {
               //   }
               // }
 
-              if (!bottomEles.length) {
-                // 没有，直接push
-                bottomEles.push(cEle)
-                eleIdToInfo[cEle.id].topEles.push(ele)
-              } else {
-                const hasNoPush = bottomEles.some(({left, width}) => {
-                  return (cEle.left >= left && cEle.left <= left + width) || 
-                    (cEle.left + cEle.width >= left && cEle.left + cEle.width <= left + width) ||
-                    (left >= cEle.left && left <= cEle.left + cEle.width) ||
-                    (left + width >= cEle.left && left + width <= cEle.left + cEle.width)
-                })
+              // if (!bottomEles.length) {
+              //   // 没有，直接push
+              //   bottomEles.push(cEle)
+              //   eleIdToInfo[cEle.id].topEles.push(ele)
+              // } else {
+              //   const hasNoPush = bottomEles.some(({left, width}) => {
+              //     return (cEle.left >= left && cEle.left <= left + width) || 
+              //       (cEle.left + cEle.width >= left && cEle.left + cEle.width <= left + width) ||
+              //       (left >= cEle.left && left <= cEle.left + cEle.width) ||
+              //       (left + width >= cEle.left && left + width <= cEle.left + cEle.width)
+              //   })
 
-                if (!hasNoPush) {
-                  bottomEles.push(cEle)
-                  eleIdToInfo[cEle.id].topEles.push(ele)
-                }
-              }
+              //   if (!hasNoPush) {
+              //     bottomEles.push(cEle)
+              //     eleIdToInfo[cEle.id].topEles.push(ele)
+              //   }
+              // }
 
              
 
-
+              bottomEles.push(cEle)
+              eleIdToInfo[cEle.id].topEles.push(ele)
 
             } else {
               // 左右对比
@@ -1014,7 +1252,17 @@ class TraverseElements {
                     isBreak = true
                     break
                   } else {
-                    // 间距更大，忽略
+                    // 间距更大，忽略 TODO: 如果间距相同，左右成组
+                    // console.log(999, {
+                    //   ele,
+                    //   elePo,
+                    //   eleInfo,
+                    //   fEle,
+                    //   fElePo,
+                    //   fEleInfo,
+                    //   space,
+                    //   fSpace: fElePo.space
+                    // })
                   }
                 }
               }
@@ -1042,7 +1290,7 @@ class TraverseElements {
                     isBreak = true
                     break
                   } else {
-                    // 间距更大，忽略
+                    // 间距更大，忽略 TODO: 如果间距相同，左右成组
                   }
                 }
               } else {
@@ -1073,7 +1321,7 @@ class TraverseElements {
                       isBreak = true
                       break
                     } else {
-                      // 间距更大，忽略
+                      // 间距更大，忽略 TODO: 如果间距相同，左右成组
                     }
                   }
                 }
@@ -1146,8 +1394,8 @@ class TraverseElements {
         elements: newElements,
         top: minTop,
         left: minLeft,
-        height: maxHeight,
-        width: maxWdith
+        height: maxHeight - minTop,
+        width: maxWdith - minLeft
       }]
     }
 

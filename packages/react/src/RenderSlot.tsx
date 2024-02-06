@@ -85,6 +85,15 @@ function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inpu
         {elements.map((com: any) => {
           return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
         })}
+        {/* {com.isContainer ? (
+          <div style={{display: style.display, flexDirection: style.flexDirection, width: 'fit-content'}}>
+            {elements.map((com: any) => {
+              return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
+            })}
+          </div>
+        ) : elements.map((com: any) => {
+          return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
+        })} */}
       </div>
     )
   } else {
