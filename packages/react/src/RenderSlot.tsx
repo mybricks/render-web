@@ -127,7 +127,7 @@ export default function RenderSlot({
                                    }) {
   const {style, comAry, comAry2} = slot
 
-  if (style.layout === "absolute-smart" && comAry2) {
+  if (style.layout === "smart" && comAry2) {
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
