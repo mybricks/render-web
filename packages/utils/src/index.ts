@@ -275,6 +275,7 @@ class Transform {
           if (comStyle.flexX) {
             haslog && console.log(5, "🍎 单组件宽度100%")
             comStyle.width = '100%'
+            Reflect.deleteProperty(comStyle, 'maxWidth')
             const styleWidth = comInfo.style.width
             widthAry.push(styleWidth)
             sumWidth = sumWidth + styleWidth
@@ -300,7 +301,7 @@ class Transform {
               // haslog && console.log("propsParentCom: ", propsParentCom)
               // haslog && console.log("⬆️ style: ", style)
               // propsCom.flexDirection === 'row' // 观察
-              if (com.parentFlexDirection && com.parentFlexDirection === 'row') {
+              if (propsCom.flexDirection === 'row' && propsParentCom.flexDirection === 'row' && com.parentFlexDirection === 'row') {
                 haslog && console.log(37, "🍎 单组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
                 marginRight = 0
                 // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
@@ -406,8 +407,7 @@ class Transform {
                 // com.flexDirection === 'column' && com.parentFlexDirection === 'column'
                 // com.flexDirection === 'row' && com.parentFlexDirection === 'row'
 
-                if (com.flexDirection === com.parentFlexDirection) {
-                  const haslog = true
+                if ((com.flexDirection === com.parentFlexDirection) || com.parentFlexDirection === 'row') {
                   haslog && console.log(36, "🍌 多组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
                   marginRight = 0 // 智能布局，这里有大问题.json 需要设置为0
                   // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
@@ -501,6 +501,15 @@ class Transform {
                   }
                 } else {
                   haslog && console.log(30, "🐱 分开处理 - 同时处理，正常计算右边距")
+                  // haslog && console.log("⬇️ 这里计算有问题")
+                  // haslog && console.log("isSameGroup: ", isSameGroup)
+                  // haslog && console.log("com: ", com)
+                  // haslog && console.log("propsCom: ", propsCom)
+                  // haslog && console.log("propsParentCom: ", propsParentCom)
+                  // haslog && console.log("relEles: ", JSON.parse(JSON.stringify(relEles)))
+                  // haslog && console.log("elements: ", elements)
+                  // haslog && console.log("marginRight: ", marginRight)
+                  // haslog && console.log("⬆️ style: ", style)
                   marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
                 }
 
@@ -544,7 +553,7 @@ class Transform {
             } else {
               haslog && console.log(26, "🐱 分开处理 - 纵向 => ", elements)
 
-              console.log("看看这里有问题，需要设置style呀")
+              // console.log("看看这里有问题，需要设置style呀")
 
 
 
@@ -951,12 +960,12 @@ class Transform {
     //   }
     // })
 
-    console.log("widthAry: ", widthAry)
+    // console.log("widthAry: ", widthAry)
 
 
     if (widthAry.length) {
       const gcd = findGCD(widthAry)
-      console.log("gcd: ", gcd)
+      // console.log("gcd: ", gcd)
       widthAry.forEach((width, index) => {
         const style = flexMap[index]
         style.flex = width / gcd
