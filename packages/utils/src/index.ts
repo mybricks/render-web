@@ -248,7 +248,7 @@ class Transform {
   }
 
   transformComAry2(comAry: any, coms: any, { com: propsCom, parentCom: propsParentCom, isSameGroup = false }) {
-    const haslog = true
+    const haslog = false
     const res = []
     // 设置了宽度百分百的宽度数组
     const widthAry = []
@@ -293,10 +293,17 @@ class Transform {
                 marginRight = propsCom.width - com.marginLeft - com.width
               }
             } else {
-              if (propsCom.flexDirection === 'row') {
+              // haslog && console.log("⬇️ 这里计算有问题")
+              // haslog && console.log("isSameGroup: ", isSameGroup)
+              // haslog && console.log("com: ", com)
+              // haslog && console.log("propsCom: ", propsCom)
+              // haslog && console.log("propsParentCom: ", propsParentCom)
+              // haslog && console.log("⬆️ style: ", style)
+              // propsCom.flexDirection === 'row' // 观察
+              if (com.parentFlexDirection && com.parentFlexDirection === 'row') {
                 haslog && console.log(37, "🍎 单组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
-                // marginRight = 0
-                marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+                marginRight = 0
+                // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
               } else {
                 haslog && console.log(12, "🍎 单组件非同时处理，正常计算右边距")
                 marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
@@ -305,7 +312,7 @@ class Transform {
             }
            
             style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
-            
+            haslog && console.log(1, "style.margin: ", style.margin)
           } else {
             haslog && console.log(6, "🍎 单组件宽度不需要处理")
             let marginRight
@@ -361,6 +368,14 @@ class Transform {
 
             if (relEles.some((ele) => ele.style.flex)) {
               haslog && console.log(13, "🍌 多组件里有宽度100%的组件，这里区分下横着和竖着？")
+
+              if (com.flexDirection === 'column') {
+                haslog && console.log(40, "🍌 多组件 - 容器是纵向的，把flex数据干掉 => ")
+                relEles.forEach(ele => {
+                  Reflect.deleteProperty(ele.style, 'flex')
+                })
+              }
+
               const styleWidth = com.width
               widthAry.push(styleWidth)
               sumWidth = sumWidth + styleWidth
@@ -372,26 +387,31 @@ class Transform {
                 if (propsCom.flexDirection === 'row') {
                   haslog && console.log(20, "🍌 多组件横向，右边距一定是0 -- 这里在观察下，应该是有问题，有100%组件了，一定是flex:xx")
                   marginRight = 0
-                  // const styleWidth = com.width
-                  // widthAry.push(styleWidth)
-                  // sumWidth = sumWidth + styleWidth
-                  // flexMap[widthAry.length - 1] = style
                 } else {
                   haslog && console.log(21, "🍌 多组件纵向，计算右边距")
                   marginRight = propsCom.width - com.marginLeft - com.width
                 }
               } else {
-                if (propsCom.flexDirection === 'row') {
+                // if (propsCom.flexDirection === 'row') { 观察
+                // haslog && console.log("⬇️ 这里计算有问题")
+                // haslog && console.log("isSameGroup: ", isSameGroup)
+                // haslog && console.log("com: ", com)
+                // haslog && console.log("propsCom: ", propsCom)
+                // haslog && console.log("propsParentCom: ", propsParentCom)
+                // haslog && console.log("relEles: ", JSON.parse(JSON.stringify(relEles)))
+                // haslog && console.log("elements: ", elements)
+                // haslog && console.log("marginRight: ", marginRight)
+                // haslog && console.log("⬆️ style: ", style)
+
+                // com.flexDirection === 'column' && com.parentFlexDirection === 'column'
+                // com.flexDirection === 'row' && com.parentFlexDirection === 'row'
+
+                if (com.flexDirection === com.parentFlexDirection) {
+                  const haslog = true
                   haslog && console.log(36, "🍌 多组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
-                  // marginRight = 0 // 临时测试一下
-                  marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
-                  // if (com.marginTop === 20) {
-                  //   console.log("这里计算有问题")
-                  //   console.log("isSameGroup: ", isSameGroup)
-                  //   console.log("com: ", com)
-                  //   console.log("propsCom: ", propsCom)
-                  //   console.log("propsParentCom: ", propsParentCom)
-                  // }
+                  marginRight = 0 // 智能布局，这里有大问题.json 需要设置为0
+                  // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+                 
                 } else {
                   haslog && console.log(22, "🍌 多组件非同时处理，正常计算右边距", propsCom.flexDirection)
                   marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
@@ -399,6 +419,7 @@ class Transform {
               }
             
               style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+              haslog && console.log(2, "style.margin: ", style.margin)
             } else {
               haslog && console.log(14, "🍌 多组件里没有宽度100%的组件")
 
@@ -447,8 +468,18 @@ class Transform {
                 parentCom: propsParentCom
               })
 
+              haslog && console.log("结果 relEles: ", relEles)
+
               if (relEles.some((ele) => ele.style.flex)) {
                 haslog && console.log(27, "🐱 分开处理 - 里面有宽度100%的组件 => ")
+
+                if (com.flexDirection === 'column') {
+                  console.log(41, "🐱 分开处理 - 容器是纵向的，把flex数据干掉 => ")
+                  relEles.forEach(ele => {
+                    Reflect.deleteProperty(ele.style, 'flex')
+                  })
+                }
+
                 const styleWidth = com.width
                 widthAry.push(styleWidth)
                 sumWidth = sumWidth + styleWidth
@@ -474,32 +505,35 @@ class Transform {
                 }
 
                 style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+                haslog && console.log(3, "style.margin: ", style.margin)
               } else {
                 haslog && console.log(31, "🐱 分开处理 - 没有宽度100%的组件")
-                debugger
 
-                // let marginRight
+                let marginRight
 
-                // if (isSameGroup) {
-                //   if (propsCom.flexDirection === 'row') {
-                //     marginRight = 0
-                //   } else {
-                //     console.log(32, "🐱 分开处理 - 纵向，计算右边距")
-                //     marginRight = propsCom.width - com.marginLeft - com.width
-                //   }
-                // } else {
-                //   console.log(33, "🐱 分开处理 - 非同时处理，正常计算右边距")
-                //   marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
-                // }
+                if (isSameGroup) {
+                  if (propsCom.flexDirection === 'row') {
+                    marginRight = 0
+                  } else {
+                    marginRight = propsCom.width - com.marginLeft - com.width
+                  }
+                } else {
+                  marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+                }
     
-                // if (marginRight === com.marginLeft) {
-                //   console.log(34, "🐱 分开处理 - 居中")
-                //   style.justifyContent = 'center'
-                // } else {
-                //   console.log(35, "🐱 分开处理 - 不居中，设置width fit-content和marginLeft")
-                //   style.marginLeft = com.marginLeft
-                //   style.width = 'fit-content'
-                // }
+                if (marginRight === com.marginLeft) {
+                  style.justifyContent = 'center'
+                } else {
+                  style.marginLeft = com.marginLeft
+                  style.width = 'fit-content'
+                }
+
+                style.marginRight = marginRight
+                
+
+                console.log("这里有问题呀: ", marginRight)
+                console.log("relEles: ", relEles)
+
               }
 
               res.push({
@@ -509,17 +543,125 @@ class Transform {
               })
             } else {
               haslog && console.log(26, "🐱 分开处理 - 纵向 => ", elements)
-              const relEles = this.transformComAry2(elements.map((ele, index) => {
-                return {
-                  ...ele,
-                  marginTop: !index ? ele.marginTop + com.marginTop : ele.marginTop, // 第一条需要处理高度问题
-                  marginLeft: ele.marginLeft + com.marginLeft
+
+              console.log("看看这里有问题，需要设置style呀")
+
+
+
+              if (com.parentFlexDirection === 'column' || !com.parentFlexDirection) {
+                haslog && console.log(38, "🐱 分开处理 - 纵向 - 父节点是纵向（可以直接push） => ", elements)
+                const relEles = this.transformComAry2(elements.map((ele, index) => {
+                  return {
+                    ...ele,
+                    marginTop: !index ? ele.marginTop + com.marginTop : ele.marginTop, // 第一条需要处理高度问题
+                    marginLeft: ele.marginLeft + com.marginLeft
+                  }
+                }), coms, {
+                  com: propsCom,
+                  parentCom: propsParentCom
+                })
+                res.push(...relEles)
+              } else {
+                haslog && console.log(39, "🐱 分开处理 - 横向 - 父节点是横向（这里要自成一组） => ", elements)
+                const style: any = {
+                  display: 'flex',
+                  flexDirection: com.flexDirection,
+                  marginTop: com.marginTop
                 }
-              }), coms, {
-                com: propsCom,
-                parentCom: propsParentCom
-              })
-              res.push(...relEles)
+                const relEles = this.transformComAry2(elements, coms, {
+                  com: propsCom,
+                  parentCom: propsParentCom
+                })
+
+                if (relEles.some((ele) => ele.style.flex)) {
+                  if (com.flexDirection === 'column') {
+                    relEles.forEach(ele => {
+                      Reflect.deleteProperty(ele.style, 'flex')
+                    })
+                  }
+
+                  const styleWidth = com.width
+                  widthAry.push(styleWidth)
+                  sumWidth = sumWidth + styleWidth
+                  flexMap[widthAry.length - 1] = style
+
+                  let marginRight
+
+                  if (isSameGroup) {
+                    if (propsCom.flexDirection === 'row') {
+                      marginRight = 0
+                      // const styleWidth = com.width
+                      // widthAry.push(styleWidth)
+                      // sumWidth = sumWidth + styleWidth
+                      // flexMap[widthAry.length - 1] = style
+                    } else {
+                      marginRight = propsCom.width - com.marginLeft - com.width
+                    }
+                  } else {
+                    // propsCom.flexDirection === 'row' 观察
+                    // haslog && console.log("⬇️ 这里计算有问题")
+                    // haslog && console.log("isSameGroup: ", isSameGroup)
+                    // haslog && console.log("com: ", com)
+                    // haslog && console.log("propsCom: ", propsCom)
+                    // haslog && console.log("propsParentCom: ", propsParentCom)
+                    // haslog && console.log("relEles: ", JSON.parse(JSON.stringify(relEles)))
+                    // haslog && console.log("elements: ", elements)
+                    // haslog && console.log("marginRight: ", marginRight)
+                    // haslog && console.log("⬆️ style: ", style)
+                    if (com.parentFlexDirection !== com.flexDirection) {
+                      marginRight = 0 // 智能布局，这里有大问题.json 需要设置为0
+                      // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+                   
+                    } else {
+                      debugger
+                      marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+                    }
+                  }
+                
+                  style.margin = `${com.marginTop}px ${marginRight}px 0px ${com.marginLeft}px`
+                  haslog && console.log(4, "style.margin: ", style.margin)
+                } else {
+
+                  // let marginRight
+
+                  // if (isSameGroup) {
+                  //   if (propsCom.flexDirection === 'row') {
+                  //     marginRight = 0
+                  //   } else {
+                  //     console.log(24, "🍌 多组件纵向，计算右边距")
+                  //     marginRight = propsCom.width - com.marginLeft - com.width
+                  //   }
+                  // } else {
+                  //   console.log(25, "🍌 多组件非同时处理，正常计算右边距")
+                  //   marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+                  // }
+      
+                  // if (marginRight === com.marginLeft) {
+                  //   console.log(9, "🍌 多组件居中")
+                  //   style.justifyContent = 'center'
+                  // } else {
+                  //   console.log(10, "🍌 多组件不居中，设置width fit-content和marginLeft")
+                  //   console.log("这里设定marginLeft: ", com.marginLeft)
+                  //   style.marginLeft = com.marginLeft
+                  //   style.width = 'fit-content'
+                  // }
+                }
+
+
+                style.marginLeft = com.marginLeft
+
+                res.push({
+                  id: com.id,
+                  style,
+                  elements: relEles
+                })
+                
+              
+                
+
+
+
+              }
             }
           }
         }
@@ -809,9 +951,12 @@ class Transform {
     //   }
     // })
 
+    console.log("widthAry: ", widthAry)
+
 
     if (widthAry.length) {
       const gcd = findGCD(widthAry)
+      console.log("gcd: ", gcd)
       widthAry.forEach((width, index) => {
         const style = flexMap[index]
         style.flex = width / gcd
