@@ -37,7 +37,7 @@ function renderRstTraverseCom({com, index, env, getComDef, context, scope, input
   } else {
     const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
 
-    return jsx.jsx
+    return jsx?.jsx
   }
 }
 
@@ -99,7 +99,7 @@ function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inpu
   } else {
     const jsx: any = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
 
-    return jsx.jsx
+    return jsx?.jsx
   }
 
 }
@@ -144,7 +144,10 @@ export default function RenderSlot({
 
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
-    itemAry.push(getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: idx, _env, template, onError, logger, createPortal }))
+    const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: idx, _env, template, onError, logger, createPortal })
+    if (jsx) {
+      itemAry.push(jsx)
+    }
   })
 
   if (typeof wrapper === 'function') {
@@ -163,11 +166,34 @@ export default function RenderSlot({
 function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal }) {
   const {id, def, name, children, brother} = com
   const comInfo = context.getComInfo(id)
-  const { hasPermission } = env
-  const permissions = comInfo?.model?.permissions
+  const { hasPermission, permissions: envPermissions } = env
+  // const permissions = comInfo?.model?.permissions
 
-  if (permissions && typeof hasPermission === 'function' && !hasPermission(permissions.id)) {
-    return
+  // if (permissions && typeof hasPermission === 'function' && !hasPermission(permissions.id)) {
+  //   return
+  // }
+  const permissionsId = comInfo?.model?.permissions?.id
+  if (permissionsId && typeof hasPermission === 'function') {
+    if (!hasPermission(permissionsId)) {
+      const permission = envPermissions.find((p: any) => p.id === permissionsId)
+      if (permission?.register.noPrivilege === 'hintLink') {
+        return {
+          id,
+          name,
+          jsx: (
+            <div>
+              <a
+                href={permission.hintLink}
+                target="_blank"
+                style={{textDecoration: 'underline'}}
+              >{permission.register.title}</a>
+            </div>
+          ),
+          style: {}
+        }
+      }
+      return
+    }
   }
   const comDef = getComDef(def)
 
