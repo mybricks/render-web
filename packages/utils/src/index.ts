@@ -180,7 +180,7 @@ class Transform {
       }), { width: slot.style.width }), coms)
       console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
       // todo
-      comAry2[0].isContainer = true
+      // comAry2[0].isContainer = true
       slot.comAry2 = this.transformComAry2(comAry2, coms, {
         com: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
         parentCom: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
@@ -256,6 +256,15 @@ class Transform {
     const flexMap = {}
     // 设置宽度百分百的com的总宽度
     let sumWidth = 0
+
+    
+
+    // if (comAry.length > 1) {
+    //   横向是否可以合并？
+    //   console.log("初始的comAry: ", JSON.parse(JSON.stringify(comAry)))
+    //   console.log(propsCom, "propsCom")
+    //   console.log(propsParentCom, "propsParentCom")
+    // }
 
     comAry.forEach((com) => {
       if (com.def) {
@@ -569,13 +578,11 @@ class Transform {
                 } else {
                   style.marginLeft = com.marginLeft
                   style.width = 'fit-content'
+                  console.log("观察这里，可能出现的问题: ", marginRight)
+                  style.marginRight = marginRight
                 }
 
-                style.marginRight = marginRight
-                
-
-                console.log("这里有问题呀: ", marginRight)
-                console.log("relEles: ", relEles)
+                // console.log("relEles: ", relEles)
 
               }
 
