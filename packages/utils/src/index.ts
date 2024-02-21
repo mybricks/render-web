@@ -394,15 +394,6 @@ class Transform {
                 }
               } else {
                 // if (propsCom.flexDirection === 'row') { 观察
-                // haslog && console.log("⬇️ 这里计算有问题")
-                // haslog && console.log("isSameGroup: ", isSameGroup)
-                // haslog && console.log("com: ", com)
-                // haslog && console.log("propsCom: ", propsCom)
-                // haslog && console.log("propsParentCom: ", propsParentCom)
-                // haslog && console.log("relEles: ", JSON.parse(JSON.stringify(relEles)))
-                // haslog && console.log("elements: ", elements)
-                // haslog && console.log("marginRight: ", marginRight)
-                // haslog && console.log("⬆️ style: ", style)
 
                 // com.flexDirection === 'column' && com.parentFlexDirection === 'column'
                 // com.flexDirection === 'row' && com.parentFlexDirection === 'row'
@@ -440,6 +431,23 @@ class Transform {
               if (marginRight === com.marginLeft) {
                 haslog && console.log(9, "🍌 多组件居中")
                 style.justifyContent = 'center'
+                // haslog && console.log("⬇️ 这里计算有问题")
+                // haslog && console.log("isSameGroup: ", isSameGroup)
+                // haslog && console.log("com: ", com)
+                // haslog && console.log("propsCom: ", propsCom)
+                // haslog && console.log("propsParentCom: ", propsParentCom)
+                // haslog && console.log("relEles: ", JSON.parse(JSON.stringify(relEles)))
+                // haslog && console.log("elements: ", elements)
+                // haslog && console.log("marginRight: ", marginRight)
+                // haslog && console.log("⬆️ style: ", style)
+                // relEles = [
+                //   {
+                //     id: com.id,
+                //     style,
+                //     elements: relEles
+                //   }
+                // ]
+
               } else {
                 haslog && console.log(10, "🍌 多组件不居中，设置width fit-content和marginLeft")
                 haslog && console.log("这里设定marginLeft: ", com.marginLeft)
@@ -447,11 +455,37 @@ class Transform {
                 style.width = 'fit-content'
               }
             }
-            res.push({
-              id: com.id,
-              style,
-              elements: relEles
-            })
+
+            if (com.flexDirection === 'column' && style.justifyContent === 'center') {
+              haslog && console.log(42, "🍌 临时测试需要观察，如果多组件纵向并且居中了，那么需要多嵌套一层")
+              res.push({
+                id: com.id,
+                style: {
+                  display: 'flex',
+                  justifyContent: 'center',
+                },
+                // style,
+                elements: [
+                  {
+                    id: com.id,
+                    style,
+                    elements: relEles
+                  }
+                ]
+              })
+            } else {
+              res.push({
+                id: com.id,
+                style,
+                elements: relEles
+              })
+            }
+            
+            // res.push({
+            //   id: com.id,
+            //   style,
+            //   elements: relEles
+            // })
           } else {
             haslog && console.log(4, "🐱 分开处理 => ", elements)
 
