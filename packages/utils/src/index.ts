@@ -265,6 +265,7 @@ class Transform {
     // 设置宽度百分百的com的总宽度
     let sumWidth = 0
 
+    haslog && console.log("处理的comAry: ", comAry)
     
 
     // if (comAry.length > 1) {
@@ -283,7 +284,8 @@ class Transform {
           const style: any = {
             display: 'flex',
             flexDirection: com.flexDirection,
-            marginTop: com.marginTop
+            marginTop: com.marginTop,
+            height: 'fit-content'
           }
           const ele = com.elements[0]
           const comInfo = coms[ele.id]
@@ -376,7 +378,8 @@ class Transform {
             const style: any = {
               display: 'flex',
               flexDirection: com.flexDirection,
-              marginTop: com.marginTop
+              marginTop: com.marginTop,
+              height: 'fit-content'
             }
             const relEles = this.transformComAry2(elements, coms, {
               com,
@@ -512,7 +515,8 @@ class Transform {
               const style: any = {
                 display: 'flex',
                 flexDirection: com.flexDirection,
-                marginTop: com.marginTop
+                marginTop: com.marginTop,
+                height: 'fit-content'
               }
               const relEles = this.transformComAry2(elements, coms, {
                 com: propsCom,
@@ -624,7 +628,8 @@ class Transform {
                 const style: any = {
                   display: 'flex',
                   flexDirection: com.flexDirection,
-                  marginTop: com.marginTop
+                  marginTop: com.marginTop,
+                  height: 'fit-content'
                 }
                 const relEles = this.transformComAry2(elements, coms, {
                   com: propsCom,
