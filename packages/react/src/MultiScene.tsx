@@ -261,6 +261,8 @@ export default function MultiScene ({json, options}) {
         }
       }
 
+      options.scenesLoaded?.(scenes.json)
+
       if (openType) {
         Object.entries(scenesMap).forEach(([key, scenes]: any) => {
           if (key === sceneId) {

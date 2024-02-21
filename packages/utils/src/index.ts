@@ -116,16 +116,16 @@ class Transform {
         const { id: preId, slots: preSlots } = preCom
         const { id: curId, slots: curSlots } = curCom
   
-        if (preSlots) {
-          Object.entries(preSlots).forEach(([slotId, slot]) => {
-            this.transformSlotComAry(slot, coms)
-          })
-        }
-        if (curSlots) {
-          Object.entries(curSlots).forEach(([slotId, slot]) => {
-            this.transformSlotComAry(slot, coms)
-          })
-        }
+        // if (preSlots) {
+        //   Object.entries(preSlots).forEach(([slotId, slot]) => {
+        //     this.transformSlotComAry(slot, coms)
+        //   })
+        // }
+        // if (curSlots) {
+        //   Object.entries(curSlots).forEach(([slotId, slot]) => {
+        //     this.transformSlotComAry(slot, coms)
+        //   })
+        // }
   
         const preStyle = coms[preId].model.style
         const preTop = preStyle.top
@@ -139,6 +139,14 @@ class Transform {
         }
     
         return preTop - curTop
+      })
+
+      comAry.forEach(({slots}) => {
+        if (slots) {
+          Object.entries(slots).forEach(([slotId, slot]) => {
+            this.transformSlotComAry(slot, coms)
+          })
+        }
       })
 
       // slot.comAry2 = this.traverseElementsToSlotComAry(traverseElements(resultComAry.map((com) => {

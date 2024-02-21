@@ -131,7 +131,7 @@ export default function RenderSlot({
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle, display: 'inline-block'}}>
         {/* {comAry2.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
         })} */}
