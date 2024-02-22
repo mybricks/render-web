@@ -376,9 +376,15 @@ export function useMyBricksRenderContext () {
   return context
 }
 
-import { transformToJSON } from "../../utils/src"
+import { transformToJSON, transformSingleToJSON } from "../../utils/src"
 
-export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) {
+export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions) {
+  let json = toJson
+
+  // 调试或搭建态需要处理
+  if (options.env.edit || options.env.runtime?.debug) {
+    json = JSON.parse(JSON.stringify(toJson))
+  }
   if (!json) {
     return null
   } else {
@@ -393,6 +399,9 @@ export function render(json: ToJSON | MultiSceneToJSON, options: RenderOptions) 
     } else {
       if (json.slot) {
         // 检查一下这个json.type的判断能否去掉
+        if (options.env.edit && json.type === 'module') {
+          transformSingleToJSON(json)
+        }
         jsx = <Main json={json} options={options} root={json.type === 'module' ? false : true}/>
       }
     }

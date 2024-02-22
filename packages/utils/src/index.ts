@@ -62,9 +62,15 @@ export function transformToJSON(toJSON: ToJSON) {
         }
       })
     }
+    
+    // TODO: 临时写死的，等引擎提供数据
+    const transform = new Transform()
+
     if (modules) {
       Object.entries(modules).forEach(([key, module]: any) => {
         const { json } = module
+        transform.transformSlotComAry(json.slot, json.coms)
+
         if (comsReg) {
           Object.assign(json.coms, comsReg)
         }
@@ -79,8 +85,7 @@ export function transformToJSON(toJSON: ToJSON) {
         }
       })
     }
-    // TODO: 临时写死的，等引擎提供数据
-    const transform = new Transform()
+
     scenes.forEach((scene: any) => {
       transform.transformSlotComAry(scene.slot, scene.coms)
 
@@ -100,6 +105,11 @@ export function transformToJSON(toJSON: ToJSON) {
   }
 
   return toJSON
+}
+
+export function transformSingleToJSON(toJSON: any) {
+  const transform = new Transform()
+  transform.transformSlotComAry(toJSON.slot, toJSON.coms)
 }
 
 class Transform {
@@ -347,7 +357,8 @@ class Transform {
               }
             } else {
               haslog && console.log(17, "🍎 单组件非同时处理，正常计算右边距 - 这里计算观察下可能有问题")
-              marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+              // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
+              marginRight = propsCom.width - com.width - com.marginLeft
             }
 
             // console.log("isSameGroup: ", isSameGroup)
@@ -1644,6 +1655,8 @@ class TraverseElements {
                   if (comparable) {
                     if (space < fElePo.space) {
                       console.log(`✅ 没有相交 间距更小 有-当前${ele.id} 有-被对比${fEle.id}`)
+                      // 删除当前
+                      eleGroup[elePo.idx1].splice(elePo.idx2, 1)
                       // 删除被对比
                       eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
                       // 和被对比成组
