@@ -33,8 +33,9 @@ export default function Main({json, options, style = {}, className = '', root = 
   
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
     const { env, debug } = options
-    if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene') {
-      // style.minHeight = 800;
+    const slot = json.slot
+    if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene' && slot) {
+      style.minHeight = slot.style.height;
     }
 
     return {
@@ -42,7 +43,7 @@ export default function Main({json, options, style = {}, className = '', root = 
       onError: _context.onError,
       logger: _context.logger,
       getComDef: (def: any) => _context.getComDef(def),
-      slot: json.slot,
+      slot,
       _context
     }
   }, [])
