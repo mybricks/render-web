@@ -117,7 +117,7 @@ class Transform {
   comIdToSlotComMap = {}
 
   constructor() {
-    console.log("toJSON相关计算")
+    // console.log("toJSON相关计算")
   }
 
   transformSlotComAry(slot, coms) {
@@ -170,12 +170,12 @@ class Transform {
           brother: []
         }
       }), { width: slot.style.width }), coms)
-      console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
+      // console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
       slot.comAry2 = this.transformComAry2(comAry2, coms, {
         com: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
         parentCom: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
       })
-      console.log("最终结果: ", slot.comAry2)
+      // console.log("最终结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
         const { slots } = com
@@ -354,8 +354,13 @@ class Transform {
                 // com.flexDirection === 'column' && com.parentFlexDirection === 'column'
                 // com.flexDirection === 'row' && com.parentFlexDirection === 'row'
 
+                // console.log("com: ", com)
+                //   console.log("propsCom: ", propsCom)
+                //   console.log("propsParentCom: ", propsParentCom)
+
+                  // && (JSON.stringify(propsCom) !== JSON.stringify(propsParentCom))
                 // TODO:外层特殊处理
-                if (((com.flexDirection === com.parentFlexDirection) || com.parentFlexDirection === 'row') && (JSON.stringify(propsCom) !== JSON.stringify(propsParentCom))) {
+                if (((com.flexDirection === com.parentFlexDirection) || com.parentFlexDirection === 'row') && com.flexDirection === 'row') {
                   haslog && console.log(36, "🍌 多组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
                   marginRight = 0 // 智能布局，这里有大问题.json 需要设置为0
                   // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
@@ -668,7 +673,7 @@ class Transform {
 }
 
 export function traverseElements2(elements, config) {
-  console.log("🚄 初始化 elements: ", elements)
+  // console.log("🚄 初始化 elements: ", elements)
   const traverseElements = new TraverseElements(elements, config)
   const res = traverseElements.getElements()
   return res
@@ -676,7 +681,7 @@ export function traverseElements2(elements, config) {
 
 class TraverseElements {
   constructor(private elements, private config) {
-    console.log("通用元素计算")
+    // console.log("通用元素计算")
   }
 
   getElements() {
@@ -1118,7 +1123,7 @@ class TraverseElements {
               // 没有当前
               if (!fElePo) {
                 // 没有被对比
-                console.log(`✅ 没有相交 没有-当前${ele.id} 没有-被对比${fEle.id}`) // 直接push合并即可
+                // console.log(`✅ 没有相交 没有-当前${ele.id} 没有-被对比${fEle.id}`) // 直接push合并即可
                 const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
 
                 if (comparable) {
@@ -1140,7 +1145,7 @@ class TraverseElements {
                 const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
                 if (comparable) {
                   if (space < fElePo.space) {
-                    console.log(`✅ 没有相交 间距更小 没有-当前${ele.id} 有-被对比${fEle.id}`)
+                    // console.log(`✅ 没有相交 间距更小 没有-当前${ele.id} 有-被对比${fEle.id}`)
                     // 删除被对比
                     eleGroup[fElePo.idx1].splice(fElePo.idx2, 1)
                     // 和被对比成组
@@ -1178,7 +1183,7 @@ class TraverseElements {
                 const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
                 if (comparable) {
                   if (space < elePo.space) {
-                    console.log(`✅ 没有相交 间距更小 有-当前${ele.id} 没有-被对比${fEle.id}`)
+                    // console.log(`✅ 没有相交 间距更小 有-当前${ele.id} 没有-被对比${fEle.id}`)
                     // 删除当前
                     eleGroup[elePo.idx1].splice(elePo.idx2, 1)
                     // 和被对比成组
@@ -1209,7 +1214,7 @@ class TraverseElements {
                   const { eles, idxMap, space, comparable } = sortEles({ele, eleInfo, fEle, fEleInfo, direction: key})
                   if (comparable) {
                     if (space < fElePo.space) {
-                      console.log(`✅ 没有相交 间距更小 有-当前${ele.id} 有-被对比${fEle.id}`)
+                      // console.log(`✅ 没有相交 间距更小 有-当前${ele.id} 有-被对比${fEle.id}`)
                       // 删除当前
                       eleGroup[elePo.idx1].splice(elePo.idx2, 1)
                       // 删除被对比
@@ -1240,7 +1245,7 @@ class TraverseElements {
           }
         }
         if (!isBreak) {
-          console.log(`✅ 单独 ${ele.id}`)
+          // console.log(`✅ 单独 ${ele.id}`)
           eleGroup.push([ele])
           eleIdToPosition[ele.id] = {
             idx1: eleGroup.length - 1,
