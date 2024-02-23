@@ -354,7 +354,8 @@ class Transform {
                 // com.flexDirection === 'column' && com.parentFlexDirection === 'column'
                 // com.flexDirection === 'row' && com.parentFlexDirection === 'row'
 
-                if ((com.flexDirection === com.parentFlexDirection) || com.parentFlexDirection === 'row') {
+                // TODO:外层特殊处理
+                if (((com.flexDirection === com.parentFlexDirection) || com.parentFlexDirection === 'row') && (JSON.stringify(propsCom) !== JSON.stringify(propsParentCom))) {
                   haslog && console.log(36, "🍌 多组件非同时处理，横向，右边距一定是0 - 这里计算观察下可能有问题")
                   marginRight = 0 // 智能布局，这里有大问题.json 需要设置为0
                   // marginRight = propsCom.width - propsCom.marginLeft - com.width - com.marginLeft
