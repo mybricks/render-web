@@ -326,6 +326,10 @@ function RenderCom({
 
   const slotsProxy = new Proxy(slots, {
     get(target, slotId: string) {
+      const slot = slots[slotId]
+      if (!slot) {
+        return
+      }
       // const props = context.get({comId: id, slotId, scope: null})
 
       let currentScope;
@@ -353,7 +357,6 @@ function RenderCom({
 
       return {
         render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style, scope }) {
-          const slot = slots[slotId]
           const paramsScope = params?.scope
           if (paramsScope) {
             currentScope = {
