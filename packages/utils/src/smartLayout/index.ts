@@ -64,6 +64,7 @@ export interface DefaultLayoutConfig extends LayoutConfig {
 }
 
 export default function smartLayout(elements: Array<Element>, layoutConfig: LayoutConfig) {
+  // console.log("执行smartLayout: ", { elements, layoutConfig })
   return combination(
     elements,
     {

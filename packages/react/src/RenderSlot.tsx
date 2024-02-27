@@ -720,9 +720,9 @@ function getClasses({style, id}) {
 
 function getSizeStyle({style}) {
   const sizeStyle: any = {}
-  const {width, height, maxWidth} = style
+  const {width, height, maxWidth, flexX} = style
 
-  if (!width) {
+  if (!width && !flexX) {
     sizeStyle.width = "100%"
   } else if (isNumber(width)) {
     sizeStyle.width = width + "px"
@@ -747,11 +747,18 @@ function getMarginStyle({style}) {
   const marginStyle: any = {}
   const {
     width,
+    margin,
     marginTop,
     marginLeft,
     marginRight,
     marginBottom
   } = style
+
+  if (margin) {
+    return {
+      margin
+    }
+  }
 
   if (isNumber(marginTop)) {
     marginStyle.marginTop = marginTop + "px"

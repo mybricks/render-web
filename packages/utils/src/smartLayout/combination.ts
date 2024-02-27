@@ -10,7 +10,6 @@ import type { Element, Elements, DefaultLayoutConfig as LayoutConfig } from './'
  *  
  * 对比元素只需要先向右，再向下对比即可
  */
-
 export default function combination(elements: Elements, layoutConfig: LayoutConfig) {
   // 先处理包含和相交的关系
   const initElements = handleIntersectionsAndInclusions(sortByTopLeft(elements))
@@ -19,10 +18,43 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
   return calculateLayoutData(finalElements, layoutConfig)
 }
 
+function findGCD(arr) {
+  // 找到数组中的最小值
+  const min = Math.min(...arr);
+
+  // 初始化公约数为最小值
+  let gcd = min;
+
+  // 从最小值开始递减，直到找到最大公约数
+  while (gcd > 1) {
+    let isGCD = true;
+
+    // 检查数组中的每个元素是否能被公约数整除
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] % gcd !== 0) {
+        isGCD = false;
+        break;
+      }
+    }
+
+    // 如果所有元素都能被公约数整除，则找到最大公约数
+    if (isGCD) {
+      break;
+    }
+
+    // 否则，继续递减公约数
+    gcd--;
+  }
+
+  return gcd;
+}
+
 function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
   const finalElements = []
   const { top, left, width, flexDirection } = layoutConfig.style
+  // console.log(0, "容器样式信息: ", layoutConfig.style)
   if (flexDirection === "column") {
+    // console.log(1, "👇👇 纵向排列，一行一个组件", elements)
     // 纵向排列，只需要计算纵向
     // 横向需要判断flex布局
     let currentTop = top
@@ -31,66 +63,109 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       const marginTop = style.top - currentTop
       const marginRight = width - style.left - left - style.width
 
-      if (style.left === marginRight) {
-        // 有居中的话，需要多套一层
-        if (style.flexDirection) {
-          // 说明是成组了
-          finalElements.push({
-            id,
-            elements: element.elements,
-            style: {
-              marginTop,
-              display: "flex",
-              flexDirection: style.flexDirection,
-              justifyContent: 'center'
-            }
-          })
+      if (!style.flexX) {
+        // console.log(1, 1, "没有铺满")
+        if (style.left === marginRight) {
+          // console.log(1, 1, "居中")
+          // 有居中的话，需要多套一层
+          if (style.flexDirection) {
+            // console.log(1, 1, 1, "成组")
+            // 说明是成组了
+            finalElements.push({
+              id,
+              elements: element.elements,
+              style: {
+                marginTop,
+                display: "flex",
+                flexDirection: style.flexDirection,
+                justifyContent: 'center'
+              }
+            })
+          } else {
+            // console.log(1, 1, 2, "单组件")
+            // 单个组件
+            finalElements.push({
+              id,
+              elements: [{
+                id,
+                style: {
+                  width: style.width,
+                  height: style.height,
+                  // 临时
+                  backgroundColor: style.backgroundColor
+                }
+  
+              }],
+              style: {
+                marginTop,
+                display: "flex",
+                justifyContent: 'center',
+              },
+            })
+          }
         } else {
-          // 单个组件
-          finalElements.push({
-            id,
-            elements: [{
+          // console.log(1, 2, "不居中")
+          // 不居中，不用多套一层，正常设置marginLeft即可
+          if (style.flexDirection) {
+            // console.log(1, 2, 1, "成组")
+            // 说明是成组了
+            finalElements.push({
+              id,
+              elements: element.elements,
+              style: {
+                marginTop,
+                marginLeft: style.left - left,
+                display: "flex",
+                flexDirection: style.flexDirection,
+                // 临时
+                backgroundColor: style.backgroundColor
+              }
+            })
+          } else {
+            // console.log(1, 2, 2, "单组件")
+            // 单个组件
+            finalElements.push({
               id,
               style: {
                 width: style.width,
                 height: style.height,
+                marginTop,
+                marginLeft: style.left - left,
                 // 临时
                 backgroundColor: style.backgroundColor
               }
-
-            }],
-            style: {
-              marginTop,
-              display: "flex",
-              justifyContent: 'center',
-            },
-          })
+            })
+          }
         }
       } else {
-        // 不居中，不用多套一层，正常设置marginLeft即可
+        // console.log(1, 2, "有铺满")
+        const marginLeft = style.left - left
         if (style.flexDirection) {
-          // 说明是成组了
+          // console.log(11111, 2, "成组", element)
           finalElements.push({
             id,
-            elements: element.elements,
             style: {
-              marginTop,
-              marginLeft: style.left - left,
-              display: "flex",
+              width: 'auto',
+              // TODO，是否需要设置最小width？
+              // height: style.height,
+              margin: `${marginTop}px ${marginRight}px 0px ${marginLeft}px`,
+              display: 'flex',
               flexDirection: style.flexDirection,
               // 临时
               backgroundColor: style.backgroundColor
-            }
+            },
+            elements: element.elements
           })
         } else {
-          // 单个组件
+          // console.log(1, 3, "单组件")
+          
           finalElements.push({
             id,
             style: {
-              width: style.width,
+              width: 'auto',
+              // TODO，是否需要设置最小width？
               height: style.height,
-              marginTop,
-              marginLeft: style.left - left,
+              margin: `${marginTop}px ${marginRight}px 0px ${marginLeft}px`,
               // 临时
               backgroundColor: style.backgroundColor
             }
@@ -98,32 +173,117 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
         }
       }
 
+
+
       currentTop = currentTop + marginTop + style.height
     })
+
+    return finalElements
   } else {
+    // 设置了宽度百分百的宽度数组
+    const flexXWidths = []
+    // 上述数组的index对应com的style
+    const flexXIndexToStyleMap = {}
+    // 设置宽度百分百的com的总宽度
+    let flexXSumWidth = 0
+
+
+    // console.log(2, "👉👉 横向排列，一行多个组件", elements)
     // 横向排列，只需要计算横向
     let currentLeft = left
 
-    elements.forEach((element) => {
-      const marginLeft = element.style.left - currentLeft
-      finalElements.push({
-        id: element.id,
-        style: {
-          width: element.style.width,
-          height: element.style.height,
-          marginTop: element.style.top - top,
-          marginLeft,
-          // 临时
-          backgroundColor: element.style.backgroundColor
+    elements.forEach((element, index) => {
+      const { id, style } = element
+      const marginLeft = style.left - currentLeft
+      const marginTop = style.top - top
+
+      if (!style.flexX) {
+        // console.log(11)
+        if (style.flexDirection) {
+          // console.log(2, 1, "成组")
+          finalElements.push({
+            id,
+            style: {
+              marginTop,
+              marginLeft,
+              display: 'flex',
+              flexDirection: style.flexDirection,
+            },
+            elements: element.elements,
+          })
+        } else {
+          // console.log(2, 2, "单个组件", element)
+          finalElements.push({
+            id: element.id,
+            style: {
+              width: style.width,
+              height: style.height,
+              marginTop,
+              marginLeft,
+              // 临时
+              backgroundColor: style.backgroundColor
+            }
+          })
         }
-      })
-
+      } else {
+        // console.log(22)
+        flexXWidths.push(style.width)
+        flexXSumWidth = flexXSumWidth + style.width
+        flexXIndexToStyleMap[flexXWidths.length - 1] = index
+  
+        if (style.flexDirection) {
+          // console.log(33, element, "横向铺满 成组")
+          // debugger
+          finalElements.push({
+            id,
+            style: {
+              display: 'flex',
+              flexDirection: style.flexDirection,
+              // height: style.height,
+              margin: `${marginTop}px 0px 0px ${marginLeft}px`,
+            },
+            elements: element.elements
+          })
+        } else {
+          // console.log(44, element, "横向铺满 单组件")
+          finalElements.push({
+            id,
+            style: {
+              // width: 'auto',
+              // flexX: 1,
+              // width: style.width,
+              // TODO，是否需要设置最小width？
+              height: style.height,
+              margin: `${marginTop}px 0px 0px ${marginLeft}px`,
+              // 临时
+              backgroundColor: style.backgroundColor
+            }
+          })
+        }
+      }
       currentLeft = currentLeft + marginLeft + element.style.width
-
     })
+
+
+    if (flexXWidths.length) {
+      // 横向可能存在多个铺满组件，需要计算flex值
+      const gcd = findGCD(flexXWidths)
+      // console.log("gcd: ", gcd)
+      flexXWidths.forEach((width, index) => {
+        // const style = flexXIndexToStyleMap[index]
+        const style = finalElements[flexXIndexToStyleMap[index]].style
+        style.flex = width / gcd
+      })
+    }
+
+
+
+    return finalElements
   }
 
-  return finalElements
+  // console.log("finalElements: ", finalElements)
+
+  // return finalElements
 }
 
 /**
@@ -132,9 +292,11 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
 function getCombinationElements(elements: Elements) {
   // 计算元素的相邻关系
   const elementIdToAdjacency = getElementAdjacency(elements)
+  // console.log("elements: ", elements.map(e => e.id))
+  // console.log("elementIdToAdjacency: ", elementIdToAdjacency)
 
   // 拆分结果
-  const combinationElements = []
+  let combinationElements = []
   // 通过元素ID查询当前位置信息
   const elementIdToPosition = {}
 
@@ -179,52 +341,132 @@ function getCombinationElements(elements: Elements) {
       //   combinationElements.push(element)
       // }
     } else {
-      for (let i = 0; i < spaceSort.length; i++) {
-        const directionAdjacency = spaceSort[i]
-        const direction = directionAdjacency.direction
-
-        if (directionAdjacency.intersect) {
-          continue
-        }
-
-        const comparedElementAdjacency = elementIdToAdjacency[directionAdjacency.element.id]
-
-        if (direction === 'right') {
-          // 被对比元素最小是left就可以
-          if (comparedElementAdjacency.min && !comparedElementAdjacency.min.intersect && comparedElementAdjacency.min.direction === 'left' && !comparedElementAdjacency.single && !elementIdToPosition[elementID]) {
-            // console.log(111, "合并", [elementID, directionAdjacency.element.id])
-            combinationElements.push([element, directionAdjacency.element])
-            const idx1 = combinationElements.length - 1
-            elementIdToPosition[elementID] = {
-              idx1,
-              idx2: 0
-            }
-            elementIdToPosition[directionAdjacency.element.id] = {
-              idx1,
-              idx2: 1
-            }
-            break
+      if (!elementIdToPosition[elementID] && !elementIdToPosition[min.element.id] && !elementIdToAdjacency[min.element.id].single) {
+        if (elementID === elementIdToAdjacency[min.element.id].min.element.id) {
+          // console.log(`元素${elementID}的最小相邻元素: `, elementID, min.element.id, elementIdToAdjacency[min.element.id].min.element.id)
+          // console.log("合并: ", [element.id, min.element.id])
+          combinationElements.push([element, min.element])
+          const idx1 = combinationElements.length - 1
+          elementIdToPosition[elementID] = {
+            idx1,
+            idx2: 0
           }
-        } else if (direction === 'bottom') {
-          // 被对比元素最小是top就可以
-          if (comparedElementAdjacency.min && !comparedElementAdjacency.min.intersect && comparedElementAdjacency.min.direction === 'top' && !comparedElementAdjacency.single && !elementIdToPosition[elementID]) {
-            // console.log(222, "合并", [elementID, directionAdjacency.element.id])
-            combinationElements.push([element, directionAdjacency.element])
-            const idx1 = combinationElements.length - 1
-            elementIdToPosition[elementID] = {
-              idx1,
-              idx2: 0
-            }
-            elementIdToPosition[directionAdjacency.element.id] = {
-              idx1,
-              idx2: 1
-            }
-            break
+          elementIdToPosition[min.element.id] = {
+            idx1,
+            idx2: 1,
           }
         }
       }
+
+      // for (let i = 0; i < spaceSort.length; i++) {
+      //   const directionAdjacency = spaceSort[i]
+      //   const direction = directionAdjacency.direction
+
+      //   if (directionAdjacency.intersect) {
+      //     continue
+      //   }
+
+      //   const comparedElementAdjacency = elementIdToAdjacency[directionAdjacency.element.id]
+
+      //   if (direction === 'right') {
+      //     // 被对比元素最小是left就可以
+      //     if (comparedElementAdjacency.min && !comparedElementAdjacency.min.intersect && comparedElementAdjacency.min.direction === 'left' && !comparedElementAdjacency.single && !elementIdToPosition[elementID]) {
+      //       // console.log(111, "合并", [elementID, directionAdjacency.element.id])
+      //       const comparedElementPosition = elementIdToPosition[directionAdjacency.element.id]
+      //       const space = comparedElementAdjacency.min.space
+      //       if (!comparedElementPosition) {
+      //         // 被对比的没有，直接合并
+      //         combinationElements.push([element, directionAdjacency.element])
+      //         const idx1 = combinationElements.length - 1
+      //         elementIdToPosition[elementID] = {
+      //           idx1,
+      //           idx2: 0,
+      //           space
+      //         }
+      //         elementIdToPosition[directionAdjacency.element.id] = {
+      //           idx1,
+      //           idx2: 1,
+      //           space
+      //         }
+      //         break
+      //       } else {
+      //         // 有被对比的，需要对比space
+      //         if (comparedElementPosition.space > space) {
+      //           // 当前的更小，替换
+      //           // 删除原来被对比的
+      //           const [element0, element1] =  combinationElements[comparedElementPosition.idx1]
+      //           Reflect.deleteProperty(elementIdToPosition, element0.id)
+      //           Reflect.deleteProperty(elementIdToPosition, element1.id)
+      //           combinationElements[comparedElementPosition.idx1] = null
+      //           combinationElements.push([element, directionAdjacency.element])
+      //           const idx1 = combinationElements.length - 1
+      //           elementIdToPosition[elementID] = {
+      //             idx1,
+      //             idx2: 0,
+      //             space
+      //           }
+      //           elementIdToPosition[directionAdjacency.element.id] = {
+      //             idx1,
+      //             idx2: 1,
+      //             space
+      //           }
+      //           break
+      //         }
+      //       }
+      //     }
+      //   } else if (direction === 'bottom') {
+      //     // 被对比元素最小是top就可以
+      //     if (comparedElementAdjacency.min && !comparedElementAdjacency.min.intersect && comparedElementAdjacency.min.direction === 'top' && !comparedElementAdjacency.single && !elementIdToPosition[elementID]) {
+      //       // console.log(222, "合并", [elementID, directionAdjacency.element.id])
+      //       const comparedElementPosition = elementIdToPosition[directionAdjacency.element.id]
+      //       const space = comparedElementAdjacency.min.space
+
+      //       if (!comparedElementPosition) {
+      //         // 被对比的没有，直接合并
+      //         combinationElements.push([element, directionAdjacency.element])
+      //         const idx1 = combinationElements.length - 1
+      //         elementIdToPosition[elementID] = {
+      //           idx1,
+      //           idx2: 0,
+      //           space
+      //         }
+      //         elementIdToPosition[directionAdjacency.element.id] = {
+      //           idx1,
+      //           idx2: 1,
+      //           space
+      //         }
+      //         break
+      //       } else {
+      //         // 有被对比的，需要对比space
+      //         if (comparedElementPosition.space > space) {
+      //           // 当前的更小，替换
+      //           // 删除原来被对比的
+      //           const [element0, element1] =  combinationElements[comparedElementPosition.idx1]
+      //           Reflect.deleteProperty(elementIdToPosition, element0.id)
+      //           Reflect.deleteProperty(elementIdToPosition, element1.id)
+      //           combinationElements[comparedElementPosition.idx1] = null
+      //           combinationElements.push([element, directionAdjacency.element])
+      //           const idx1 = combinationElements.length - 1
+      //           elementIdToPosition[elementID] = {
+      //             idx1,
+      //             idx2: 0,
+      //             space
+      //           }
+      //           elementIdToPosition[directionAdjacency.element.id] = {
+      //             idx1,
+      //             idx2: 1,
+      //             space
+      //           }
+      //           break
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
     }
   })
+
+  combinationElements = combinationElements.filter((c) => c)
 
   elements.forEach((element) => {
     if (!elementIdToPosition[element.id]) {
@@ -232,11 +474,18 @@ function getCombinationElements(elements: Elements) {
     }
   })
 
+  // console.log("🔥 分组结果: ", combinationElements.map((e) => {
+  //   if (Array.isArray(e)) {
+  //     return e.map((e) => e.id)
+  //   }
+  //   return e?.id
+  // }))
+
   if (elements.length !== combinationElements.length) {
     return getCombinationElements(sortByTopLeft(convertedToElements(combinationElements)))
   }
 
-  return convertedToElements(combinationElements)
+  return convertedToElements(sortByTopLeft(combinationElements))
 }
 
 /**
@@ -262,6 +511,7 @@ function convertedToElements(elements: Array<Element | Elements>) {
           width,
           height,
           flexDirection,
+          flexX: element.find((element) => element.style.flexX) ? 1 : null
         },
         elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
       })
@@ -460,25 +710,25 @@ export function getElementAdjacency(elements: Elements) {
     // 被对比的反方向不是的话，就去除
     if (value.bottom) {
       const comparedElementAdjacency = elementIdToAdjacency[value.bottom.element.id]
-      if (comparedElementAdjacency.top.element.id !== key) {
+      if (!comparedElementAdjacency.top || comparedElementAdjacency.top.element.id !== key) {
         value.bottom = null
       }
     }
     if (value.top) {
       const comparedElementAdjacency = elementIdToAdjacency[value.top.element.id]
-      if (comparedElementAdjacency.bottom.element.id !== key) {
+      if (!comparedElementAdjacency.bottom || comparedElementAdjacency.bottom.element.id !== key) {
         value.top = null
       }
     }
     if (value.left) {
       const comparedElementAdjacency = elementIdToAdjacency[value.left.element.id]
-      if (comparedElementAdjacency.right.element.id !== key) {
+      if (!comparedElementAdjacency.right || comparedElementAdjacency.right.element.id !== key) {
         value.left = null
       }
     }
     if (value.right) {
       const comparedElementAdjacency = elementIdToAdjacency[value.right.element.id]
-      if (comparedElementAdjacency.left.element.id !== key) {
+      if (!comparedElementAdjacency.left || comparedElementAdjacency.left.element.id !== key) {
         value.right = null
       }
     }

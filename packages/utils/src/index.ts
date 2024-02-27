@@ -1,3 +1,5 @@
+import smartLayout from "./smartLayout";
+
 interface ToJSON {
   [key: string]: any
 }
@@ -152,29 +154,155 @@ class Transform {
         }
       })
 
-      const comAry2 = this.traverseElementsToSlotComAry2(traverseElements2(resultComAry.map((com) => {
+      // console.log("计算数组初始化 resultComAry: ", resultComAry.map((com) => {
+      //   const id = com.id
+      //   const comInfo = coms[id]
+      //   const style = comInfo.model.style
+      //   const calculateStyle = comInfo.style
+
+      //   comIdToSlotComMap[id] = com
+  
+      //   return {
+      //     id,
+      //     style: {
+      //       width: calculateStyle.width || 0,
+      //       height: calculateStyle.height || 0,
+      //       top: style.top || 0,
+      //       left: style.left || 0,
+      //       flexX: style.flexX
+      //     }
+      //   }
+      // }))
+
+
+      const comAry2 = smartLayout(resultComAry.map((com) => {
         const id = com.id
         const comInfo = coms[id]
         const style = comInfo.model.style
         const calculateStyle = comInfo.style
 
         comIdToSlotComMap[id] = com
-  
+
         return {
           id,
-          width: calculateStyle.width || 0,
-          height: calculateStyle.height || 0,
-          top: style.top || 0,
-          left: style.left || 0,
-          children: [],
-          brother: []
+          style: {
+            width: calculateStyle.width || 0,
+            height: calculateStyle.height || 0,
+            top: style.top || 0,
+            left: style.left || 0,
+            flexX: style.flexX
+          }
         }
-      }), { width: slot.style.width }), coms)
-      // console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
-      slot.comAry2 = this.transformComAry2(comAry2, coms, {
-        com: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
-        parentCom: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
-      })
+
+      }), { style: { width: slot.style.width }})
+
+
+
+      const traverseElementsToSlotComAry3 = (comAry) => {
+        const result = []
+        comAry.forEach((com) => {
+          const { id, style, elements } = com
+
+          if (Array.isArray(elements)) {
+            Reflect.deleteProperty(style, 'height')
+            result.push({
+              ...com,
+              elements: traverseElementsToSlotComAry3(elements)
+            })
+          } else {
+            const modelStyle = coms[id].model.style
+            modelStyle.position = 'relative'
+            // modelStyle.marginTop = style.marginTop
+            // modelStyle.marginLeft = style.marginLeft
+
+            // console.log(com, 'com', coms[id])
+            // console.log(style, 'style')
+            // console.log("modelStyle: ", JSON.parse(JSON.stringify(modelStyle)))
+            if (modelStyle.height === 'auto') {
+              modelStyle.height = 'fit-content'
+            }
+
+            if (style.flex) {
+              modelStyle.flex = style.flex
+              modelStyle.margin = style.margin
+              Reflect.deleteProperty(modelStyle, "width")
+              Reflect.deleteProperty(modelStyle, "maxWidth")
+            } else if (style.width === 'auto') {
+              modelStyle.margin = style.margin
+              modelStyle.width = 'auto'
+              Reflect.deleteProperty(modelStyle, "maxWidth")
+            } else {
+              modelStyle.marginTop = style.marginTop
+              modelStyle.marginLeft = style.marginLeft
+            }
+            result.push(comIdToSlotComMap[id])
+          }
+        })
+    
+        return result
+      }
+
+      // console.log(" 🚀 最终结果前 comAry2: ", comAry2)
+
+      slot.comAry2 = traverseElementsToSlotComAry3(comAry2)
+
+      // console.log(" 🏆 最终 comAry2 结果: ", slot.comAry2)
+
+      
+    
+
+      // const comAry2 = this.traverseElementsToSlotComAry2(traverseElements2(resultComAry.map((com) => {
+      //   const id = com.id
+      //   const comInfo = coms[id]
+      //   const style = comInfo.model.style
+      //   const calculateStyle = comInfo.style
+
+      //   comIdToSlotComMap[id] = com
+  
+      //   return {
+      //     id,
+      //     width: calculateStyle.width || 0,
+      //     height: calculateStyle.height || 0,
+      //     top: style.top || 0,
+      //     left: style.left || 0,
+      //     children: [],
+      //     brother: []
+      //   }
+      // }), { width: slot.style.width }), coms)
+      // // console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
+      // slot.comAry2 = this.transformComAry2(comAry2, coms, {
+      //   com: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
+      //   parentCom: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
+      // })
+
+      // const comAry3 = this.traverseElementsToSlotComAry2(traverseElements2(resultComAry.map((com) => {
+      //   const id = com.id
+      //   const comInfo = coms[id]
+      //   const style = comInfo.model.style
+      //   const calculateStyle = comInfo.style
+
+      //   comIdToSlotComMap[id] = com
+  
+      //   return {
+      //     id,
+      //     width: calculateStyle.width || 0,
+      //     height: calculateStyle.height || 0,
+      //     top: style.top || 0,
+      //     left: style.left || 0,
+      //     children: [],
+      //     brother: []
+      //   }
+      // }), { width: slot.style.width }), coms)
+      // // console.log("🛹 开始处理comAry2: ", JSON.parse(JSON.stringify(comAry2)))
+      // slot.comAry3 = this.transformComAry2(comAry3, coms, {
+      //   com: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
+      //   parentCom: { width: slot.style.width, marginLeft: 0, marginTop: 0, flexDirection: 'row' },
+      // })
+
+      // console.log("之前的结果是: ", comAry3)
+
+
+      
       // console.log("最终结果: ", slot.comAry2)
     } else {
       comAry.forEach((com) => {
