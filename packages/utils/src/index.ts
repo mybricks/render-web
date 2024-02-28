@@ -188,8 +188,8 @@ class Transform {
           style: {
             width: calculateStyle.width,
             height: calculateStyle.height,
-            top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : style.top,
-            left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : style.left,
+            top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : (style.top || 0),
+            left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
             flexX: style.flexX
           },
           constraints: comInfo.constraints
