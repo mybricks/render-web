@@ -222,6 +222,9 @@ class Transform {
             if (modelStyle.height === 'auto') {
               modelStyle.height = 'fit-content'
             }
+            if (modelStyle.flexY === 1) {
+              Reflect.deleteProperty(modelStyle, "height")
+            }
 
             if (style.flex) {
               modelStyle.flex = style.flex
