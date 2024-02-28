@@ -189,7 +189,7 @@ export function deepCopy(obj: any, cache: any = []) {
     copy
   })
 
-  Object.keys(obj).forEach(key => {
+  Object.getOwnPropertyNames(obj).forEach(key => {
     const descriptor = Object.getOwnPropertyDescriptor(obj, key)
 
     if (descriptor && typeof descriptor.get === 'function') {

@@ -444,7 +444,7 @@ function RenderCom({
       // --- 2023.3.22 只有固定布局才需要通过设置zIndex达到置顶效果，自由布局不需要设置zIndex，否则永远在最上层
       otherStyle.zIndex = 1000;
     } else if (style.position === 'absolute') {
-      otherStyle.zIndex = 1
+      otherStyle.zIndex = 10
     }
   }
 
