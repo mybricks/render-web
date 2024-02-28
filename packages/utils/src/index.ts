@@ -186,12 +186,13 @@ class Transform {
         return {
           id,
           style: {
-            width: calculateStyle.width || 0,
-            height: calculateStyle.height || 0,
-            top: style.top || 0,
-            left: style.left || 0,
+            width: calculateStyle.width,
+            height: calculateStyle.height,
+            top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : style.top,
+            left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : style.left,
             flexX: style.flexX
-          }
+          },
+          constraints: comInfo.constraints
         }
 
       }), { style: { width: slot.style.width }})

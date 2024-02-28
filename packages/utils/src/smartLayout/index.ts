@@ -1,5 +1,19 @@
 import combination from "./combination";
 
+interface Constraint {
+  /**
+   * 如何对齐
+   */
+  type: "center" | "middle";
+  /**
+   * 对齐 画布｜组件 的ID
+   */
+  ref: {
+    type: "slot" | "com";
+    id: string
+  }
+}
+
 /**
  * 元素信息
  */
@@ -29,12 +43,28 @@ export interface Element {
      */
     left: number;
     /**
+     * 距右边距离 - 右对齐
+     */
+    right?: number;
+    /**
+     * 距下边距离 - 下对齐
+     */
+    bottom?: number;
+    /**
      * 是否X轴填充
      */
     flexX: 1;
-
+    /**
+     * 横向、纵向排列
+     */
     flexDirection?: "row" | "column";
-
+    /**
+     * 约束条件
+     */
+    constraints?: Constraint[];
+    /**
+     * 临时测试用
+     */
     backgroundColor?: string;
   };
   /**

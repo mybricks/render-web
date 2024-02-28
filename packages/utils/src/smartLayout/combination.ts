@@ -54,6 +54,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
   const { top, left, width, flexDirection } = layoutConfig.style
   // console.log(0, "容器样式信息: ", layoutConfig.style)
   if (flexDirection === "column") {
+    elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top)
     // console.log(1, "👇👇 纵向排列，一行一个组件", elements)
     // 纵向排列，只需要计算纵向
     // 横向需要判断flex布局
@@ -180,6 +181,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
 
     return finalElements
   } else {
+    elements.sort((preElement, curElement) => preElement.style.left - curElement.style.left)
     // 设置了宽度百分百的宽度数组
     const flexXWidths = []
     // 上述数组的index对应com的style
@@ -295,6 +297,11 @@ function getCombinationElements(elements: Elements) {
   // console.log("elements: ", elements.map(e => e.id))
   // console.log("elementIdToAdjacency: ", elementIdToAdjacency)
 
+  // if (elementIdToAdjacency['A,F,B,G,L,O,Q,R,C,H,M,P,D,I,N']) {
+  //   console.log("elements: ", elements.map(e => e.id))
+  //   console.log("elementIdToAdjacency: ", elementIdToAdjacency)
+  // }
+
   // 拆分结果
   let combinationElements = []
   // 通过元素ID查询当前位置信息
@@ -304,12 +311,12 @@ function getCombinationElements(elements: Elements) {
     const elementID = element.id
     const elementAdjacency = elementIdToAdjacency[elementID]
     const {
-      top,
-      right,
-      bottom,
-      left,
+      // top,
+      // right,
+      // bottom,
+      // left,
       min,
-      spaceSort,
+      // spaceSort,
       single
     } = elementAdjacency
 
@@ -345,6 +352,12 @@ function getCombinationElements(elements: Elements) {
         if (elementID === elementIdToAdjacency[min.element.id].min.element.id) {
           // console.log(`元素${elementID}的最小相邻元素: `, elementID, min.element.id, elementIdToAdjacency[min.element.id].min.element.id)
           // console.log("合并: ", [element.id, min.element.id])
+
+          // if (element.id === 'C,H,M,P,D,I,N' && min.element.id === 'E,J,S,K,T') {
+          //   console.log("合并: ", [element.id, min.element.id])
+          //   console.log("elementIdToAdjacency: ", elementIdToAdjacency)
+          // }
+
           combinationElements.push([element, min.element])
           const idx1 = combinationElements.length - 1
           elementIdToPosition[elementID] = {
@@ -662,6 +675,7 @@ export function getElementAdjacency(elements: Elements) {
       left,
       right,
       bottom,
+      single: !left && !right,
       // min,
       // spaceSort: [right, bottom].filter((direction) => direction).sort((pre, cur) => {
       //   return pre.space - cur.space
@@ -701,11 +715,8 @@ export function getElementAdjacency(elements: Elements) {
     // }
   })
 
-  const haslog = elements.length === 6
-
   Object.entries(elementIdToAdjacency).forEach(([key, value]) => {
-
-    value.single = !value.left && !value.right
+    // value.single = !value.left && !value.right
 
     // 被对比的反方向不是的话，就去除
     if (value.bottom) {
@@ -736,20 +747,20 @@ export function getElementAdjacency(elements: Elements) {
     const min = [value.right, value.bottom, value.left, value.top].reduce((preDirection, curDirection) => {
       let pre, cur
 
-      if (preDirection && !preDirection?.intersect) {
+      const preComparedElement = elementIdToAdjacency[preDirection?.element.id]
+      if (preComparedElement && !preDirection.intersect && !preComparedElement.single) {
         // 首先有pre且对比方向上不能相交
-        const comparedElement = elementIdToAdjacency[preDirection.element.id]
-        const comparedDirection = comparedElement[REVERSE_DIRECTION_MAP[preDirection.direction]] as Adjacency
+        const comparedDirection = preComparedElement[REVERSE_DIRECTION_MAP[preDirection.direction]] as Adjacency
 
         if (!comparedDirection.intersect) {
           pre = preDirection
         }
       }
 
-      if (curDirection && !curDirection?.intersect) {
+      const curComparedElement = elementIdToAdjacency[curDirection?.element.id]
+      if (curComparedElement && !curDirection.intersect && !curComparedElement.single) {
         // 首先有pre且对比方向上不能相交
-        const comparedElement = elementIdToAdjacency[curDirection.element.id]
-        const comparedDirection = comparedElement[REVERSE_DIRECTION_MAP[curDirection.direction]] as Adjacency
+        const comparedDirection = curComparedElement[REVERSE_DIRECTION_MAP[curDirection.direction]] as Adjacency
 
         if (!comparedDirection.intersect) {
           cur = curDirection
@@ -789,9 +800,9 @@ export function getElementAdjacency(elements: Elements) {
 
     value.min = min
 
-    value.spaceSort = [value.right, value.bottom].filter((direction) => direction).sort((pre, cur) => {
-      return pre.space - cur.space
-    })
+    // value.spaceSort = [value.right, value.bottom].filter((direction) => direction).sort((pre, cur) => {
+    //   return pre.space - cur.space
+    // })
   })
 
   return elementIdToAdjacency
