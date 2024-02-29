@@ -16,54 +16,7 @@ import ErrorBoundary from "./ErrorBoundary";
 
 const css = lazyCss.locals
 
-function renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}) {
-  const { type } = com
-
-  if (type) {
-    const { items, style } = com
-    if (type === 'row') {
-      return (
-        <div key={index} style={{display: 'flex', flexDirection: 'row', ...style}}>
-          {items.map((com, index) => renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
-        </div>
-      )
-    } else if (type === 'column') {
-      return (
-        <div key={index} style={{display: 'flex', flexDirection: 'column', ...style}}>
-          {items.map((com, index) => renderRstTraverseCom({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
-        </div>
-      )
-    }
-  } else {
-    const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
-
-    return jsx?.jsx
-  }
-}
-
 function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}) {
-  // const { type } = com
-
-  // if (type) {
-  //   const { items, style } = com
-  //   if (type === 'row') {
-  //     return (
-  //       <div key={index} style={{display: 'flex', flexDirection: 'row', ...style}}>
-  //         {items.map((com, index) => renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
-  //       </div>
-  //     )
-  //   } else if (type === 'column') {
-  //     return (
-  //       <div key={index} style={{display: 'flex', flexDirection: 'column', ...style}}>
-  //         {items.map((com, index) => renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}))}
-  //       </div>
-  //     )
-  //   }
-  // } else {
-  //   const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
-
-  //   return jsx.jsx
-  // }
 
   const { id, elements, style } = com
 
@@ -72,28 +25,10 @@ function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inpu
       <div
         key={id}
         style={style}
-        // style={{
-        //   display: 'flex',
-        //   // width: com.width,
-        //   // height: com.height,
-        //   marginLeft: com.marginLeft,
-        //   marginRight: com.marginRight,
-        //   marginTop: com.marginTop,
-        //   flexDirection: com.flexDirection
-        // }}
       >
         {elements.map((com: any) => {
           return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
         })}
-        {/* {com.isContainer ? (
-          <div style={{display: style.display, flexDirection: style.flexDirection, width: 'fit-content'}}>
-            {elements.map((com: any) => {
-              return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
-            })}
-          </div>
-        ) : elements.map((com: any) => {
-          return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
-        })} */}
       </div>
     )
   } else {
@@ -132,9 +67,6 @@ export default function RenderSlot({
     const slotStyle = paramsStyle || style;
     return (
       <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle, display: 'inline-block'}}>
-        {/* {comAry2.map((rstTraverseElement: any, index: any) => {
-          return renderRstTraverseCom({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
-        })} */}
         {comAry2.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
         })}
@@ -204,20 +136,6 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
 
     if (props) {
       const comKey = id + (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
-      // let childrenJSX = []
-      // let brotherJSX = []
-      // if (children?.length) {
-      //   {children.forEach((child: any, index: any) => {
-      //     const jsx = renderRstTraverseCom({ com: child, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal })
-      //     childrenJSX.push(jsx)
-      //   })}
-      // }
-      // if (brother?.length) {
-      //   {brother.forEach((bro: any, index: any) => {
-      //     const jsx = renderRstTraverseCom({ com: bro, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal })
-      //     brotherJSX.push(jsx)
-      //   })}
-      // }
       return {
         id,
         jsx: <RenderCom key={comKey} com={com}
@@ -231,8 +149,6 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                         onError={onError}
                         logger={logger}
                         createPortal={createPortal}>
-                          {/* {childrenJSX}
-                          {brotherJSX} */}
                           </RenderCom>,
         name,
         inputs: props.inputsCallable,
@@ -620,9 +536,13 @@ function calSlotStyles(style, hasParamsStyle, root) {
     backgroundRepeat,
     backgroundSize,
     position,
+    rowGap,
+    columnGap,
     ...otherStyle
   } = style;
   let slotStyle = {
+    rowGap,
+    columnGap,
     paddingLeft: paddingLeft || 0,
     paddingTop: paddingTop || 0,
     paddingRight: paddingRight || 0,
