@@ -7,6 +7,9 @@ interface ToJSON {
 export function transformToJSON(toJSON: ToJSON) {
   const { global, modules, scenes } = toJSON 
   if (!scenes) {
+    if (toJSON.slot) {
+      return transformSingleToJSON(toJSON)
+    }
     return toJSON
   }
   if (global) {
@@ -85,6 +88,7 @@ export function transformToJSON(toJSON: ToJSON) {
 export function transformSingleToJSON(toJSON: any) {
   const transform = new Transform()
   transform.transformSlotComAry(toJSON.slot, toJSON.coms)
+  return toJSON
 }
 
 class Transform {
