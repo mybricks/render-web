@@ -382,9 +382,9 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
   let json = toJson
 
   // 调试或搭建态需要处理
-  if (options.env.edit || options.env.runtime?.debug) {
-    json = JSON.parse(JSON.stringify(toJson))
-  }
+  // if (options.env.edit || options.env.runtime?.debug) {
+  //   json = JSON.parse(JSON.stringify(toJson))
+  // }
   if (!json) {
     return null
   } else {
@@ -394,14 +394,14 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
         options.env = deepCopy(options.env)
         // TODO：需不需要把runtime.debug删了，这里弹窗是这样判断是否在调试环境的
       }
-      transformToJSON(json);
+      // transformToJSON(json);
       jsx = <MultiScene json={json} options={options}/>
     } else {
       if (json.slot) {
         // 检查一下这个json.type的判断能否去掉
-        if (options.env.edit && json.type === 'module') {
-          transformSingleToJSON(json)
-        }
+        // if (options.env.edit && json.type === 'module') {
+        //   transformSingleToJSON(json)
+        // }
         jsx = <Main json={json} options={options} root={json.type === 'module' ? false : true}/>
       }
     }
