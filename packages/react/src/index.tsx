@@ -376,7 +376,9 @@ export function useMyBricksRenderContext () {
   return context
 }
 
-import { transformToJSON, transformSingleToJSON } from "../../utils/src"
+import { transformToJSON } from "../../utils/src"
+
+export { transformToJSON }
 
 export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions) {
   let json = toJson
