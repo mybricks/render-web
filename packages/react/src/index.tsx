@@ -505,57 +505,6 @@ function transformJSON (json: MultiSceneToJSON) {
       })
     }
     scenes.forEach((scene: any) => {
-      const { layoutTemplate } = scene.slot
-      if (Array.isArray(layoutTemplate)) {
-        const preComAry = scene.slot.comAry
-        const coms = scene.coms
-
-        const traverseComAry = (comAry: any) => {
-          const result = traverseElements(comAry)
-          const depthTraversal = (items: any) => {
-            items.forEach((item: any, index: any) => {
-              if (item.type) {
-                depthTraversal(item.items)
-              } else {
-                const id = item.id
-                const children = item.children
-                const modelStyle = coms[id].model.style
-                modelStyle.position = 'relative'
-                children.forEach((child: any, index: any) => {
-                  const modelStyle = coms[child.id].model.style
-                  modelStyle.position = 'absolute'
-                  modelStyle.top = child.top
-                  modelStyle.left = child.left
-                  children[index] = preComAry.find((com: any) => com.id === child.id)
-                })
-                items[index] = {
-                  ...preComAry.find((com: any) => com.id === id),
-                  children
-                }
-              }
-            })
-          }
-
-          depthTraversal(result)
-
-          return result
-        }
-
-        const resultComAry = traverseComAry(layoutTemplate.map((item) => {
-          const com = item.comAry[0]
-          const style = com.style
-          return {
-            id: com.id,
-            width: style.width,
-            height: style.height,
-            top: style.marginTop || 0,
-            left: style.marginLeft || 0,
-            children: []
-          }
-        }))
-
-        scene.slot.layoutTemplate = resultComAry
-      }
       if (comsReg) {
         Object.assign(scene.coms, comsReg)
       }
