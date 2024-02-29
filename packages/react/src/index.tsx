@@ -385,7 +385,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
 
   // 调试或搭建态需要处理
   if (options.env.edit || options.env.runtime?.debug) {
-    json = JSON.parse(JSON.stringify(toJson))
+    // json = JSON.parse(JSON.stringify(toJson))
   }
   if (!json) {
     return null
