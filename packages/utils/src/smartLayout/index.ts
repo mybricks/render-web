@@ -23,6 +23,10 @@ export interface Element {
    */
   id: string;
   /**
+   * TODO: 临时样式信息，之后看是否可以优化，用于单组件和分组后组件合并时的重新计算间距等
+   */
+  tempStyle?: any;
+  /**
    * 样式信息
    */
   style: {

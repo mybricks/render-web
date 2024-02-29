@@ -178,8 +178,6 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
 
       currentTop = currentTop + marginTop + style.height
     })
-
-    return finalElements
   } else {
     elements.sort((preElement, curElement) => preElement.style.left - curElement.style.left)
     // 设置了宽度百分百的宽度数组
@@ -277,15 +275,14 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
         style.flex = width / gcd
       })
     }
-
-
-
-    return finalElements
   }
 
-  // console.log("finalElements: ", finalElements)
-
-  // return finalElements
+  return finalElements.map((element, index) => {
+    return {
+      ...element,
+      tempStyle: elements[index].style
+    }
+  })
 }
 
 /**
@@ -515,6 +512,8 @@ function convertedToElements(elements: Array<Element | Elements>) {
       const width = Math.max(element0.style.left + element0.style.width - left, element1.style.left + element1.style.width - left)
       const height = Math.max(element0.style.top + element0.style.height - top, element1.style.top + element1.style.height - top)
       const flexDirection = height >= element0.style.height + element1.style.height ? "column" : "row"
+      const element0FlexDirection = element0.style.flexDirection
+      const element1FlexDirection = element1.style.flexDirection
 
       convertedElements.push({
         id: `${element0.id},${element1.id}`,
@@ -526,7 +525,7 @@ function convertedToElements(elements: Array<Element | Elements>) {
           flexDirection,
           flexX: element.find((element) => element.style.flexX) ? 1 : null
         },
-        elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
+        elements: calculateLayoutData((element0FlexDirection || element1FlexDirection) && element1FlexDirection === flexDirection ? [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style})) : element, { style: { width, flexDirection, top, left } })
       })
     } else {
       // 直接push
