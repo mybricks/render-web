@@ -50,6 +50,7 @@ function findGCD(arr) {
 }
 
 function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
+  // console.log("开始计算 elements: ", elements.map((e) => e.id))
   const finalElements = []
   const { top, left, width, flexDirection } = layoutConfig.style
   // console.log(0, "容器样式信息: ", layoutConfig.style)
@@ -62,7 +63,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
     elements.forEach((element) => {
       const { id, style } = element
       const marginTop = style.top - currentTop
-      const marginRight = width - style.left - left - style.width
+      const marginRight = width - (style.left - left) - style.width
 
       if (!style.flexX) {
         // console.log(1, 1, "没有铺满")
@@ -276,6 +277,13 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       })
     }
   }
+
+  // console.log("计算结果: ", finalElements.map((element, index) => {
+  //   return {
+  //     ...element,
+  //     tempStyle: elements[index].style
+  //   }
+  // }))
 
   return finalElements.map((element, index) => {
     return {
@@ -514,7 +522,24 @@ function convertedToElements(elements: Array<Element | Elements>) {
       const flexDirection = height >= element0.style.height + element1.style.height ? "column" : "row"
       const element0FlexDirection = element0.style.flexDirection
       const element1FlexDirection = element1.style.flexDirection
+      // console.log(1, "当前方向: ", flexDirection)
+      // console.log(2, "ele0方向: ", element0FlexDirection, element0)
+      // console.log(3, "ele1方向: ", element1FlexDirection, element1)
+      // console.log(4, "是否合并: ", !!((element0FlexDirection || element1FlexDirection) && (element1FlexDirection === flexDirection)) )
+      // console.log(5, "当前计算的内容: ", (element0FlexDirection || element1FlexDirection) && element1FlexDirection === flexDirection ? [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style})) : element)
 
+      let calculateElements = element
+      if (!element0FlexDirection && !element1FlexDirection) {
+
+      } else {
+        if (element0FlexDirection === flexDirection) {
+          calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
+        } else if (element1FlexDirection === flexDirection) {
+          calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+        }
+      }
+
+      
       convertedElements.push({
         id: `${element0.id},${element1.id}`,
         style: {
@@ -525,7 +550,8 @@ function convertedToElements(elements: Array<Element | Elements>) {
           flexDirection,
           flexX: element.find((element) => element.style.flexX) ? 1 : null
         },
-        elements: calculateLayoutData((element0FlexDirection || element1FlexDirection) && element1FlexDirection === flexDirection ? [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style})) : element, { style: { width, flexDirection, top, left } })
+        // elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
+        elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left } })
       })
     } else {
       // 直接push

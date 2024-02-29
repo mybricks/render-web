@@ -192,7 +192,7 @@ class Transform {
             left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
             flexX: style.flexX
           },
-          constraints: comInfo.constraints
+          // constraints: comInfo.constraints
         }
 
       }), { style: { width: slot.style.width }})
