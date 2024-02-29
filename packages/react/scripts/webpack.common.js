@@ -9,7 +9,7 @@ const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
   // mode: 'production',
-  entry: './src/index.tsx',
+  entry: './src/build.ts',
   output: {
     globalObject: 'this',
     filename: 'index.min.js',
