@@ -94,7 +94,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                   width: style.width,
                   height: style.height,
                   // 临时
-                  backgroundColor: style.backgroundColor
+                  // backgroundColor: style.backgroundColor
                 }
   
               }],
@@ -120,7 +120,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                 display: "flex",
                 flexDirection: style.flexDirection,
                 // 临时
-                backgroundColor: style.backgroundColor
+                // backgroundColor: style.backgroundColor
               }
             })
           } else {
@@ -134,7 +134,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                 marginTop,
                 marginLeft: style.left - left,
                 // 临时
-                backgroundColor: style.backgroundColor
+                // backgroundColor: style.backgroundColor
               }
             })
           }
@@ -154,7 +154,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               display: 'flex',
               flexDirection: style.flexDirection,
               // 临时
-              backgroundColor: style.backgroundColor
+              // backgroundColor: style.backgroundColor
             },
             elements: element.elements
           })
@@ -169,7 +169,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               height: style.height,
               margin: `${marginTop}px ${marginRight}px 0px ${marginLeft}px`,
               // 临时
-              backgroundColor: style.backgroundColor
+              // backgroundColor: style.backgroundColor
             }
           })
         }
@@ -222,7 +222,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               marginTop,
               marginLeft,
               // 临时
-              backgroundColor: style.backgroundColor
+              // backgroundColor: style.backgroundColor
             }
           })
         }
@@ -257,7 +257,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               height: style.height,
               margin: `${marginTop}px 0px 0px ${marginLeft}px`,
               // 临时
-              backgroundColor: style.backgroundColor
+              // backgroundColor: style.backgroundColor
             }
           })
         }
@@ -541,7 +541,9 @@ function convertedToElements(elements: Array<Element | Elements>) {
 
       
       convertedElements.push({
-        id: `${element0.id},${element1.id}`,
+        // 临时
+        // id: `${element0.id},${element1.id}`,
+        id: element0.id,
         style: {
           top,
           left,

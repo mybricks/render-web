@@ -60,14 +60,14 @@ export default function RenderSlot({
                                      onError,
                                      logger
                                    }) {
-  const {style, comAry, comAry2} = slot
+  const {style, comAry, layoutTemplate} = slot
 
-  if (style.layout === "smart" && comAry2) {
+  if (style.layout === "smart" && layoutTemplate) {
     const paramsStyle = params?.style;
     const slotStyle = paramsStyle || style;
     return (
       <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle, display: 'inline-block'}}>
-        {comAry2.map((rstTraverseElement: any, index: any) => {
+        {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
         })}
       </div>

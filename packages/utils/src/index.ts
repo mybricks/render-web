@@ -150,6 +150,7 @@ class Transform {
         const result = []
         comAry.forEach((com) => {
           const { id, style, elements } = com
+          Reflect.deleteProperty(com, "tempStyle")
 
           if (Array.isArray(elements)) {
             Reflect.deleteProperty(style, 'height')
@@ -187,7 +188,7 @@ class Transform {
         return result
       }
 
-      slot.comAry2 = traverseElementsToSlotComAry3(comAry2)
+      slot.layoutTemplate = traverseElementsToSlotComAry3(comAry2)
     } else {
       comAry.forEach((com) => {
         const { slots } = com
