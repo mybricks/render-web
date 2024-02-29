@@ -929,7 +929,7 @@ export default function executor(opts, {observable}) {
       },
       _notifyBindings,
       logger,
-      onError: debug ? (error) => onError({comId, error}) : onError
+      onError: debug ? (error) => onError({comId, error, title: com.title}) : onError
     }
 
     frameProps[key] = rtn
@@ -1048,7 +1048,7 @@ export default function executor(opts, {observable}) {
               _notifyBindings: props._notifyBindings,
               _inputsCallable: props._inputsCallable,
               logger,
-              onError: debug ? (error) => onError({comId, error}) : onError
+              onError: debug ? (error) => onError({comId, error, title: jsCom.title}) : onError
             })
           }
 
@@ -1362,7 +1362,7 @@ export default function executor(opts, {observable}) {
             outputs: props.outputs,
             _inputsCallable: props._inputsCallable,
             logger,
-            onError: debug ? (error) => onError({comId: id, error}) : onError
+            onError: debug ? (error) => onError({comId: id, error, title: jsCom.title}) : onError
           })
         }
       })
