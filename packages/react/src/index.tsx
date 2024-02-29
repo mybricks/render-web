@@ -376,7 +376,7 @@ export function useMyBricksRenderContext () {
   return context
 }
 
-import { transformToJSON, transformSingleToJSON } from "../../utils/src"
+import { transformToJSON } from "../../utils/src"
 
 export { transformToJSON }
 
@@ -396,13 +396,15 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
         options.env = deepCopy(options.env)
         // TODO：需不需要把runtime.debug删了，这里弹窗是这样判断是否在调试环境的
       }
-      transformToJSON(json);
+      // console.time("xxx")
+      // transformToJSON(json);
+      // console.timeEnd("xxx")
       jsx = <MultiScene json={json} options={options}/>
     } else {
       if (json.slot) {
         // 检查一下这个json.type的判断能否去掉
         if (options.env.edit && json.type === 'module') {
-          transformSingleToJSON(json)
+          // transformSingleToJSON(json)
         }
         jsx = <Main json={json} options={options} root={json.type === 'module' ? false : true}/>
       }
@@ -462,65 +464,65 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
  * 这段逻辑有没有可能再生成tojson的时候调一下，渲染时能够更轻
  * 向外暴露 transformJSON 函数？
  */
-function transformJSON (json: MultiSceneToJSON) {
-  // console.log("render json: ", JSON.parse(JSON.stringify(json)))
-  const { global, modules, scenes } = json
+// function transformJSON (json: MultiSceneToJSON) {
+//   // console.log("render json: ", JSON.parse(JSON.stringify(json)))
+//   const { global, modules, scenes } = json
 
-  if (global) {
-    const { comsReg, consReg, pinRels, fxFrames, pinProxies } = global
-    if (comsReg) {
-      Object.keys(comsReg).forEach((key) => {
-        comsReg[key].global = true
-      })
-    }
-    if (Array.isArray(fxFrames)) {
-      fxFrames.forEach((fxFrame) => {
-        if (comsReg) {
-          Object.assign(fxFrame.coms, comsReg)
-        }
-        if (consReg) {
-          Object.assign(fxFrame.cons, consReg)
-        }
-        if (pinRels) {
-          Object.assign(fxFrame.pinRels, pinRels)
-        }
-        if (pinProxies) {
-          Object.assign(fxFrame.pinProxies, pinProxies)
-        }
-      })
-    }
-    if (modules) {
-      Object.entries(modules).forEach(([key, module]: any) => {
-        const { json } = module
-        if (comsReg) {
-          Object.assign(json.coms, comsReg)
-        }
-        if (consReg) {
-          Object.assign(json.cons, consReg)
-        }
-        if (pinRels) {
-          Object.assign(json.pinRels, pinRels)
-        }
-        if (pinProxies) {
-          Object.assign(json.pinProxies, pinProxies)
-        }
-      })
-    }
-    scenes.forEach((scene: any) => {
-      if (comsReg) {
-        Object.assign(scene.coms, comsReg)
-      }
-      if (consReg) {
-        Object.assign(scene.cons, consReg)
-      }
-      if (pinRels) {
-        Object.assign(scene.pinRels, pinRels)
-      }
-      if (pinProxies) {
-        Object.assign(scene.pinProxies, pinProxies)
-      }
-    })
-  }
-}
+//   if (global) {
+//     const { comsReg, consReg, pinRels, fxFrames, pinProxies } = global
+//     if (comsReg) {
+//       Object.keys(comsReg).forEach((key) => {
+//         comsReg[key].global = true
+//       })
+//     }
+//     if (Array.isArray(fxFrames)) {
+//       fxFrames.forEach((fxFrame) => {
+//         if (comsReg) {
+//           Object.assign(fxFrame.coms, comsReg)
+//         }
+//         if (consReg) {
+//           Object.assign(fxFrame.cons, consReg)
+//         }
+//         if (pinRels) {
+//           Object.assign(fxFrame.pinRels, pinRels)
+//         }
+//         if (pinProxies) {
+//           Object.assign(fxFrame.pinProxies, pinProxies)
+//         }
+//       })
+//     }
+//     if (modules) {
+//       Object.entries(modules).forEach(([key, module]: any) => {
+//         const { json } = module
+//         if (comsReg) {
+//           Object.assign(json.coms, comsReg)
+//         }
+//         if (consReg) {
+//           Object.assign(json.cons, consReg)
+//         }
+//         if (pinRels) {
+//           Object.assign(json.pinRels, pinRels)
+//         }
+//         if (pinProxies) {
+//           Object.assign(json.pinProxies, pinProxies)
+//         }
+//       })
+//     }
+//     scenes.forEach((scene: any) => {
+//       if (comsReg) {
+//         Object.assign(scene.coms, comsReg)
+//       }
+//       if (consReg) {
+//         Object.assign(scene.cons, consReg)
+//       }
+//       if (pinRels) {
+//         Object.assign(scene.pinRels, pinRels)
+//       }
+//       if (pinProxies) {
+//         Object.assign(scene.pinProxies, pinProxies)
+//       }
+//     })
+//   }
+// }
 
 export * from "./observable"
