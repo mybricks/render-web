@@ -708,7 +708,7 @@ export default function MultiScene ({json, options}) {
             if (output.id === 'apply') {
               scenes.parentScope?.outputs[output.id](value)
             } else {
-              if (scenes.type !== 'module') {
+              if (scenes.type !== 'module' && disableAutoRun) {
                 scenes.show = false
                 scenes.todo = []
                 scenes._refs = null
