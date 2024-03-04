@@ -360,7 +360,8 @@ function RenderCom({
       // --- 2023.3.22 只有固定布局才需要通过设置zIndex达到置顶效果，自由布局不需要设置zIndex，否则永远在最上层
       otherStyle.zIndex = 1000;
     } else if (style.position === 'absolute') {
-      otherStyle.zIndex = 10
+      // otherStyle.zIndex = 10 // 这里再观察一下，目前设置1是和引擎保持一致的
+      otherStyle.zIndex = 1
     }
   }
 
