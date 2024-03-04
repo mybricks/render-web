@@ -256,7 +256,7 @@ export default function executor(opts, {observable}) {
   }
 
   function exeCons({logProps, cons, val, curScope, fromCon, notifyAll, fromCom, isAutoRun}: any) {
-    if (!_isNestedRender && debug && JsonType !== 'module') {
+    if (!_isNestedRender && debug) {
       // 开启断点的连线先执行
       cons.sort((a: any, b: any) => {
         if (a.isBreakpoint && !b.isBreakpoint) {
@@ -282,7 +282,7 @@ export default function executor(opts, {observable}) {
       if (!_isNestedRender && debug && inReg.isIgnored) {
         return
       }
-      if (!_isNestedRender && debug && JsonType !== 'module' && _context.debuggerPanel?.hasBreakpoint(inReg)) {
+      if (!_isNestedRender && debug && _context.debuggerPanel?.hasBreakpoint(inReg)) {
         let hasLog = true
         await _context.debuggerPanel?.wait(inReg, () => {
           hasLog = false
