@@ -68,7 +68,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       if (!style.flexX) {
         // console.log(1, 1, "没有铺满")
         // TODO: constraints，目前这个属性还有问题，
-        if (style.left === marginRight || style.constraints?.find((constraint) => constraint.type === 'center')) {
+        if (style.left === marginRight) { //  || style.constraints?.find((constraint) => constraint.type === 'center')
           // console.log(1, 1, "居中")
           // 有居中的话，需要多套一层
           if (style.flexDirection) {
