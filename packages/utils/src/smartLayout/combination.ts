@@ -52,18 +52,27 @@ function findGCD(arr) {
 function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
   // console.log("开始计算 elements: ", elements.map((e) => e.id))
   const finalElements = []
-  const { top, left, width, flexDirection } = layoutConfig.style
+  const { root } = layoutConfig
+  const { top, left, height, width, flexDirection } = layoutConfig.style
   // console.log(0, "容器样式信息: ", layoutConfig.style)
   if (flexDirection === "column") {
+    const elementsLastIndex = elements.length - 1
     elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top)
     // console.log(1, "👇👇 纵向排列，一行一个组件", elements)
     // 纵向排列，只需要计算纵向
     // 横向需要判断flex布局
     let currentTop = top
-    elements.forEach((element) => {
+    elements.forEach((element, index) => {
+      // 只有纵向排列的才需要计算marginBottom来实现距底功能
+      const isLastElement = elementsLastIndex === index
+      let marginBottom = 0
       const { id, style } = element
       const marginTop = style.top - currentTop
       const marginRight = width - (style.left - left) - style.width
+
+      if (isLastElement && !root) {
+        marginBottom = height - style.height - style.top
+      }
 
       if (!style.widthFull) {
         // console.log(1, 1, "没有铺满")
@@ -79,6 +88,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               elements: element.elements,
               style: {
                 marginTop,
+                marginBottom,
                 display: "flex",
                 flexDirection: style.flexDirection,
                 justifyContent: 'center'
@@ -126,6 +136,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                 }],
                 style: {
                   marginTop,
+                  marginBottom,
                   minWidth: style.width,
                   display: "flex",
                   justifyContent: 'center',
@@ -146,6 +157,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                 }],
                 style: {
                   marginTop,
+                  marginBottom,
                   display: "flex",
                   justifyContent: 'center',
                 },
@@ -163,6 +175,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               elements: element.elements,
               style: {
                 marginTop,
+                marginBottom,
                 marginLeft: style.left - left,
                 display: "flex",
                 flexDirection: style.flexDirection,
@@ -202,6 +215,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                 }],
                 style: {
                   marginTop,
+                  marginBottom,
                   marginLeft: style.left - left,
                   minWidth: style.width,
                 },
@@ -213,6 +227,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                   width: style.width,
                   height: style.height,
                   marginTop,
+                  marginBottom,
                   marginLeft: style.left - left,
                   // 临时
                   // backgroundColor: style.backgroundColor
@@ -232,7 +247,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               width: 'auto',
               // TODO，是否需要设置最小width？
               // height: style.height,
-              margin: `${marginTop}px ${marginRight}px 0px ${marginLeft}px`,
+              margin: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px`,
               display: 'flex',
               flexDirection: style.flexDirection,
               // 临时
@@ -249,7 +264,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               width: 'auto',
               // TODO，是否需要设置最小width？
               height: style.height,
-              margin: `${marginTop}px ${marginRight}px 0px ${marginLeft}px`,
+              margin: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px`,
               // 临时
               // backgroundColor: style.backgroundColor
             }
@@ -670,7 +685,8 @@ function convertedToElements(elements: Array<Element | Elements>) {
           widthFull: element.find((element) => element.style.widthFull) ? 1 : null
         },
         // elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
-        elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left } })
+        // 分组后距底一定是0，所以root设置为true，不需要计算
+        elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true })
       })
     } else {
       // 直接push

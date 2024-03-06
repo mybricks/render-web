@@ -97,7 +97,7 @@ class Transform {
 
   constructor() {}
 
-  transformSlotComAry(slot, coms) {
+  transformSlotComAry(slot, coms, root = true) {
     const { comIdToSlotComMap } = this
     const { comAry } = slot
   
@@ -124,7 +124,7 @@ class Transform {
       comAry.forEach(({slots}) => {
         if (slots) {
           Object.entries(slots).forEach(([slotId, slot]) => {
-            this.transformSlotComAry(slot, coms)
+            this.transformSlotComAry(slot, coms, false)
           })
         }
       })
@@ -152,7 +152,7 @@ class Transform {
           },
         }
 
-      }), { style: { width: slot.style.width }})
+      }), { style: { width: slot.style.width, height: slot.style.height }, root })
 
       const traverseElementsToSlotComAry3 = (comAry) => {
         const result = []
@@ -168,6 +168,8 @@ class Transform {
             })
           } else {
             const modelStyle = coms[id].model.style
+            modelStyle.width = style.width
+            modelStyle.height = style.height
             modelStyle.position = 'relative'
             if (modelStyle.heightAuto) {
               modelStyle.height = 'auto'
@@ -199,6 +201,8 @@ class Transform {
               modelStyle.marginTop = style.marginTop
               modelStyle.marginLeft = style.marginLeft
             }
+
+            modelStyle.marginBottom = style.marginBottom
             result.push(comIdToSlotComMap[id])
           }
         })
@@ -212,7 +216,7 @@ class Transform {
         const { slots } = com
         if (slots) {
           Object.entries(slots).forEach(([slotId, slot]) => {
-            this.transformSlotComAry(slot, coms)
+            this.transformSlotComAry(slot, coms, false)
           })
         }
       })

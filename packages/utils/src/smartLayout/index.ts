@@ -89,10 +89,16 @@ export type Elements = Element[]
 
 interface LayoutStyle {
   width: number;
+  height: number;
 }
 
 interface LayoutConfig {
-  style: LayoutStyle
+  style: LayoutStyle;
+
+  /**
+   * 是否根slot，画布不参与高度的计算
+   */
+  root: boolean;
 }
 
 interface DefaultLayoutStyle extends LayoutStyle {
@@ -115,7 +121,8 @@ export default function smartLayout(elements: Array<Element>, layoutConfig: Layo
         top: 0,
         left: 0,
         flexDirection: "column" // 页面默认是纵向排列
-      }
+      },
+      root: layoutConfig.root
     }
   )
 }
