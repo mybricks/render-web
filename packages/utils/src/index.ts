@@ -167,10 +167,9 @@ class Transform {
           } else {
             const modelStyle = coms[id].model.style
             modelStyle.position = 'relative'
-            // 这里需要观察一下，目前会导致表格计算出问题
-            // if (modelStyle.height === 'auto') {
-            //   modelStyle.height = 'fit-content'
-            // }
+            if (modelStyle.height === 'auto') {
+              modelStyle.height = 'fit-content'
+            }
             if (modelStyle.flexY === 1) {
               Reflect.deleteProperty(modelStyle, "height")
             }
