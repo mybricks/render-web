@@ -124,12 +124,12 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                   id,
                   style: {
                     minWidth: style.width,
+                    maxWidth: style.width,
                   },
                   elements: [{
                     id,
                     style: {
                       width: "fit-content",
-                      maxWidth: style.width,
                       height: style.height,
                     },
                   }]
@@ -218,6 +218,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                   marginBottom,
                   marginLeft: style.left - left,
                   minWidth: style.width,
+                  maxWidth: style.width,
                 },
               })
             } else {
@@ -340,7 +341,8 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               style: {
                 marginTop,
                 marginLeft,
-                minWidth: style.width
+                minWidth: style.width,
+                maxWidth: style.width,
               },
             })
 
