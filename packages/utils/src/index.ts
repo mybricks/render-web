@@ -143,6 +143,8 @@ class Transform {
             height: calculateStyle.height,
             top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : (style.top || 0),
             left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
+            // right: style.right,
+            // bottom: style.bottom,
             flexX: style.flexX,
             constraints: comInfo.constraints
           },
@@ -165,9 +167,10 @@ class Transform {
           } else {
             const modelStyle = coms[id].model.style
             modelStyle.position = 'relative'
-            if (modelStyle.height === 'auto') {
-              modelStyle.height = 'fit-content'
-            }
+            // 这里需要观察一下，目前会导致表格计算出问题
+            // if (modelStyle.height === 'auto') {
+            //   modelStyle.height = 'fit-content'
+            // }
             if (modelStyle.flexY === 1) {
               Reflect.deleteProperty(modelStyle, "height")
             }
