@@ -57,7 +57,11 @@ export interface Element {
     /**
      * 是否X轴填充
      */
-    flexX: 1;
+    widthFull?: boolean;
+    /**
+     * 是否X轴自适应
+     */
+    widthAuto?: boolean;
     /**
      * 横向、纵向排列
      */

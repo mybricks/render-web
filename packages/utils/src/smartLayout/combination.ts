@@ -65,7 +65,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       const marginTop = style.top - currentTop
       const marginRight = width - (style.left - left) - style.width
 
-      if (!style.flexX) {
+      if (!style.widthFull) {
         // console.log(1, 1, "没有铺满")
         // TODO: constraints，目前这个属性还有问题，
         if (style.left === marginRight || style.constraints?.find((constraint) => constraint.type === 'center' && constraint.ref.type === 'slot')) {
@@ -87,24 +87,70 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
           } else {
             // console.log(1, 1, 2, "单组件")
             // 单个组件
-            finalElements.push({
-              id,
-              elements: [{
-                id,
-                style: {
-                  width: style.width,
-                  height: style.height,
-                  // 临时
-                  // backgroundColor: style.backgroundColor
-                }
+            // finalElements.push({
+            //   id,
+            //   elements: [{
+            //     id,
+            //     style: {
+            //       width: style.width,
+            //       height: style.height,
+            //       // 临时
+            //       // backgroundColor: style.backgroundColor
+            //     }
   
-              }],
-              style: {
-                marginTop,
-                display: "flex",
-                justifyContent: 'center',
-              },
-            })
+            //   }],
+            //   style: {
+            //     marginTop,
+            //     display: "flex",
+            //     justifyContent: 'center',
+            //   },
+            // })
+
+            if (style.widthAuto) {
+              // 适应内容多套一层
+              finalElements.push({
+                id,
+                elements: [{
+                  id,
+                  style: {
+                    minWidth: style.width,
+                  },
+                  elements: [{
+                    id,
+                    style: {
+                      width: "fit-content",
+                      maxWidth: style.width,
+                      height: style.height,
+                    },
+                  }]
+                }],
+                style: {
+                  marginTop,
+                  minWidth: style.width,
+                  display: "flex",
+                  justifyContent: 'center',
+                },
+              })
+            } else {
+              finalElements.push({
+                id,
+                elements: [{
+                  id,
+                  style: {
+                    width: style.width,
+                    height: style.height,
+                    // 临时
+                    // backgroundColor: style.backgroundColor
+                  }
+    
+                }],
+                style: {
+                  marginTop,
+                  display: "flex",
+                  justifyContent: 'center',
+                },
+              })
+            }
           }
         } else {
           // console.log(1, 2, "不居中")
@@ -127,17 +173,52 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
           } else {
             // console.log(1, 2, 2, "单组件")
             // 单个组件
-            finalElements.push({
-              id,
-              style: {
-                width: style.width,
-                height: style.height,
-                marginTop,
-                marginLeft: style.left - left,
-                // 临时
-                // backgroundColor: style.backgroundColor
-              }
-            })
+            // finalElements.push({
+            //   id,
+            //   style: {
+            //     width: style.width,
+            //     height: style.height,
+            //     marginTop,
+            //     marginLeft: style.left - left,
+            //     // 临时
+            //     // backgroundColor: style.backgroundColor
+            //   }
+            // })
+
+            if (style.widthAuto) {
+              // 多套一层
+              finalElements.push({
+                id,
+                elements: [{
+                  id,
+                  style: {
+                    width: "fit-content",
+                    height: style.height,
+                    maxWidth: style.width,
+                    // 临时
+                    // backgroundColor: style.backgroundColor
+                  }
+    
+                }],
+                style: {
+                  marginTop,
+                  marginLeft: style.left - left,
+                  minWidth: style.width,
+                },
+              })
+            } else {
+              finalElements.push({
+                id,
+                style: {
+                  width: style.width,
+                  height: style.height,
+                  marginTop,
+                  marginLeft: style.left - left,
+                  // 临时
+                  // backgroundColor: style.backgroundColor
+                }
+              })
+            }
           }
         }
       } else {
@@ -161,7 +242,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
           })
         } else {
           // console.log(1, 3, "单组件")
-          
+
           finalElements.push({
             id,
             style: {
@@ -199,7 +280,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       const marginLeft = style.left - currentLeft
       const marginTop = style.top - top
 
-      if (!style.flexX) {
+      if (!style.widthFull) {
         // console.log(11)
         if (style.flexDirection) {
           // console.log(2, 1, "成组")
@@ -215,17 +296,52 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
           })
         } else {
           // console.log(2, 2, "单个组件", element)
-          finalElements.push({
-            id: element.id,
-            style: {
-              width: style.width,
-              height: style.height,
-              marginTop,
-              marginLeft,
-              // 临时
-              // backgroundColor: style.backgroundColor
-            }
-          })
+          // finalElements.push({
+          //   id: element.id,
+          //   style: {
+          //     width: style.width,
+          //     height: style.height,
+          //     marginTop,
+          //     marginLeft,
+          //     // 临时
+          //     // backgroundColor: style.backgroundColor
+          //   }
+          // })
+
+          if (style.widthAuto) {
+            finalElements.push({
+              id,
+              elements: [{
+                id,
+                style: {
+                  width: "fit-content",
+                  maxWidth: style.width,
+                  height: style.height,
+                  // 临时
+                  // backgroundColor: style.backgroundColor
+                }
+  
+              }],
+              style: {
+                marginTop,
+                marginLeft,
+                minWidth: style.width
+              },
+            })
+
+          } else {
+            finalElements.push({
+              id: element.id,
+              style: {
+                width: style.width,
+                height: style.height,
+                marginTop,
+                marginLeft,
+                // 临时
+                // backgroundColor: style.backgroundColor
+              }
+            })
+          }
         }
       } else {
         // console.log(22)
@@ -551,7 +667,7 @@ function convertedToElements(elements: Array<Element | Elements>) {
           width,
           height,
           flexDirection,
-          flexX: element.find((element) => element.style.flexX) ? 1 : null
+          widthFull: element.find((element) => element.style.widthFull) ? 1 : null
         },
         // elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
         elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left } })

@@ -145,7 +145,8 @@ class Transform {
             left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
             // right: style.right,
             // bottom: style.bottom,
-            flexX: style.flexX,
+            widthFull: style.widthFull,
+            widthAuto: style.widthAuto,
             constraints: comInfo.constraints
           },
         }
@@ -174,6 +175,13 @@ class Transform {
               Reflect.deleteProperty(modelStyle, "height")
             }
 
+            // widthAuto 适应内容
+            // widthFull 填充
+            if (modelStyle.widthAuto) {
+              modelStyle.maxWidth = modelStyle.width
+              modelStyle.width = "fit-content"
+            }
+
             if (style.flex) {
               modelStyle.flex = style.flex
               modelStyle.margin = style.margin
@@ -182,7 +190,7 @@ class Transform {
             } else if (style.width === 'auto') {
               modelStyle.margin = style.margin
               modelStyle.width = 'auto'
-              Reflect.deleteProperty(modelStyle, "maxWidth")
+              Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
             } else {
               modelStyle.marginTop = style.marginTop
               modelStyle.marginLeft = style.marginLeft
