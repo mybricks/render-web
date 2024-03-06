@@ -147,6 +147,7 @@ class Transform {
             // bottom: style.bottom,
             widthFull: style.widthFull,
             widthAuto: style.widthAuto,
+            heightAuto: style.heightAuto,
             constraints: comInfo.constraints
           },
         }
@@ -168,12 +169,15 @@ class Transform {
           } else {
             const modelStyle = coms[id].model.style
             modelStyle.position = 'relative'
-            if (modelStyle.height === 'auto') {
-              modelStyle.height = 'fit-content'
+            if (modelStyle.heightAuto) {
+              modelStyle.height = 'auto'
             }
-            if (modelStyle.flexY === 1) {
-              Reflect.deleteProperty(modelStyle, "height")
-            }
+            // if (modelStyle.height === 'auto') {
+            //   modelStyle.height = 'fit-content'
+            // }
+            // if (modelStyle.flexY === 1) {
+            //   Reflect.deleteProperty(modelStyle, "height")
+            // }
 
             // widthAuto 适应内容
             // widthFull 填充

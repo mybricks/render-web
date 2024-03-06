@@ -63,6 +63,10 @@ export interface Element {
      */
     widthAuto?: boolean;
     /**
+     * 是否Y轴自适应
+     */
+    heightAuto?: boolean;
+    /**
      * 横向、纵向排列
      */
     flexDirection?: "row" | "column";
