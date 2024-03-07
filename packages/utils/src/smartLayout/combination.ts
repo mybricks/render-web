@@ -275,6 +275,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
         // const style = flexXIndexToStyleMap[index]
         const style = finalElements[flexXIndexToStyleMap[index]].style
         style.flex = width / gcd
+        style.overflowX = 'hidden'
       })
     }
   }
