@@ -551,7 +551,7 @@ function convertedToElements(elements: Array<Element | Elements>) {
           width,
           height,
           flexDirection,
-          flexX: element.find((element) => element.style.widthFull) ? 1 : null
+          widthFull: element.find((element) => element.style.widthFull) ? 1 : null
         },
         // elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
         elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true })
