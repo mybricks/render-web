@@ -642,7 +642,7 @@ function getClasses({style, id}) {
 
 function getSizeStyle({style}) {
   const sizeStyle: any = {}
-  const {width, height, maxWidth, flexX} = style
+  const {width, height, maxWidth, flexX, minWidth} = style
 
   if (!width && !flexX) {
     sizeStyle.width = "100%"
@@ -660,6 +660,10 @@ function getSizeStyle({style}) {
 
   if (maxWidth) {
     sizeStyle.maxWidth = maxWidth
+  }
+
+  if (minWidth) {
+    sizeStyle.minWidth = minWidth
   }
 
   return sizeStyle

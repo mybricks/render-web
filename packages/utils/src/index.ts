@@ -385,6 +385,7 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       if (modelStyle.widthAuto) {
         modelStyle.maxWidth = "fit-content"
         modelStyle.width = "fit-content"
+        modelStyle.minWidth = style.width
       }
       // if (modelStyle.widthAuto) {
       //   modelStyle.maxWidth = modelStyle.width
