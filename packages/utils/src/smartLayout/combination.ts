@@ -64,17 +64,8 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
     let currentTop = top
     elements.forEach((element, index) => {
       const { id, style } = element
-      if (id === 'u_AaKmj') {
-        console.log("element: ", element)
-      }
       const marginTop = style.top - currentTop
       const marginRight = width - (style.left - left) - style.width
-      if (id === 'u_AaKmj') {
-        console.log(0, "容器样式信息: ", layoutConfig.style)
-        console.log("style.widthFull: ", style.widthFull)
-        console.log("style.left: ", style.left)
-        console.log("marginRight: ", marginRight)
-      }
       const isLastElement = elementsLastIndex === index
       // 只有纵向排列的才需要计算marginBottom来实现距底功能
       let marginBottom = 0
@@ -85,7 +76,9 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       if (!style.widthFull) {
         // console.log(1, 1, "没有铺满")
         // TODO: constraints，目前这个属性还有问题，
-        if (((style.left - left) === marginRight) || style.constraints?.find((constraint) => constraint.type === 'center' && constraint.ref.type === 'slot')) {
+        // ((style.left - left) === marginRight)
+        // 误差范围为-1 -> 1
+        if (Math.abs(style.left - left - marginRight) <= 1) { // || style.constraints?.find((constraint) => constraint.type === 'center' && constraint.ref.type === 'slot')
           // console.log(1, 1, "居中")
           // 有居中的话，需要多套一层
           if (style.flexDirection) {
