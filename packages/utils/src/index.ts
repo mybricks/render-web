@@ -413,3 +413,7 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
 
   return result
 }
+
+
+export { isNumber } from "./type";
+export { convertToUnderscore } from "./regexp";
