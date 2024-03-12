@@ -1,0 +1,12 @@
+{
+  "name": "@mybricks/render-types",
+  "version": "0.0.1",
+  "description": "",
+  "types": "index.d.ts",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "csstype": "^3.1.3"
+  }
+}
