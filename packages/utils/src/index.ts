@@ -201,8 +201,9 @@ class Transform {
               modelStyle.width = 'auto'
               Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
             } else {
-              modelStyle.marginTop = style.marginTop
-              modelStyle.marginLeft = style.marginLeft
+              modelStyle.margin = `${style.marginTop}px 0px 0px ${style.marginLeft}px`
+              // modelStyle.marginTop = style.marginTop
+              // modelStyle.marginLeft = style.marginLeft
             }
 
             modelStyle.marginBottom = style.marginBottom
@@ -402,8 +403,9 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
         modelStyle.width = 'auto'
         Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
       } else {
-        modelStyle.marginTop = style.marginTop
-        modelStyle.marginLeft = style.marginLeft
+        modelStyle.margin = `${style.marginTop}px 0px 0px ${style.marginLeft}px`
+        // modelStyle.marginTop = style.marginTop
+        // modelStyle.marginLeft = style.marginLeft
       }
 
       modelStyle.marginBottom = style.marginBottom
