@@ -10,5 +10,8 @@
     "./src/**/*",
     
     "./scripts/*"
+  ],
+  "exclude": [
+    "./src/template"
   ]
 }

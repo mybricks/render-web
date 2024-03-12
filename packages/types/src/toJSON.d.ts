@@ -4,46 +4,51 @@ export interface ToJSON {
   /** 场景信息数组 */
   scenes: Array<ToBaseJSON>
   /**
-   * 逻辑编排卡片信息
+   * 逻辑编排卡片信息列表
    */
-  frames: Array<{
-    /** id对应场景ID */
-    id: string;
-    /** 逻辑编排卡片信息列表 */
-    diagrams: Array<{
-      starter: {
-        /** 类型 */
-        type: string; // TODO: 稍后看是否要修改 "com" | "xxx"
-        /** 对应组件ID */
-        comId: string;
-        /** 对应事件即输出项ID */
-        pinId: string;
-      }
-      /** 逻辑连线信息 */
-      conAry: Array<{
-        /** 唯一ID，没有实际意义 */
+  frames: Array<Frame>
+}
+
+/**
+ * 逻辑编排卡片信息
+ */
+export interface Frame {
+  /** id对应场景ID */
+  id: string;
+  /** 逻辑编排卡片信息列表 */
+  diagrams: Array<{
+    starter: {
+      /** 类型 */
+      type: string; // TODO: 稍后看是否要修改 "com" | "xxx"
+      /** 对应组件ID */
+      comId: string;
+      /** 对应事件即输出项ID */
+      pinId: string;
+    }
+    /** 逻辑连线信息 */
+    conAry: Array<{
+      /** 唯一ID，没有实际意义 */
+      id: string;
+      /** 输出信息 */
+      from: {
+        /** 对应outputID */
         id: string;
-        /** 输出信息 */
-        from: {
-          /** 对应outputID */
+        /** 谁输出的 */
+        parent: {
+          /** ID 目前是组件 */
           id: string;
-          /** 谁输出的 */
-          parent: {
-            /** ID 目前是组件 */
-            id: string;
-          }
         }
-        /** 输入信息 */
-        to: {
-          /** 对应inputID */
+      }
+      /** 输入信息 */
+      to: {
+        /** 对应inputID */
+        id: string;
+        /** 谁的输入 */
+        parent: {
+          /** ID 目前是组件 */
           id: string;
-          /** 谁的输入 */
-          parent: {
-            /** ID 目前是组件 */
-            id: string;
-          }
         }
-      }>
+      }
     }>
   }>
 }
