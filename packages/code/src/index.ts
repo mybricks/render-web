@@ -983,123 +983,41 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
             filePath,
           });
           return `
-            /** ${component.title} 111 */
+            /** ${component.title} */
             render_${convertToUnderscore(component.def.namespace)}_${comId}(value)
           `
         }
         const outputIds = Object.keys(componentOutputs)
-        const outputCount = outputIds.length
 
-        // 一个直接执行
-        if (outputCount === 1) {
-          // 不开分支
-          const outputId = outputIds[0]
-          const outputCount = componentOutputs[outputId].length
-          if (outputCount === 1) {
-            // 不开分支
-            const {
-              importComponent,
-              filePath,
-              componentCode,
-            } = generateJsComponentCode({
-              comId: comId,
-              filePath: parentFilePath,
-              scene
-            }, { inputs: [pinId], outputs: [outputId] });
-    
-            replaceImportComponent =
-              replaceImportComponent + importComponent + "\n";
-    
-            tsxArray.push({
-              code: componentCode,
-              filePath,
-            });
+        const {
+          importComponent,
+          filePath,
+          componentCode,
+        } = generateJsComponentCode({
+          comId: comId,
+          filePath: parentFilePath,
+          scene
+        }, { inputs: [pinId], outputs: outputIds });
 
-            return  `
-              /** ${component.title} - ${comId} 222 */
-              render_${convertToUnderscore(component.def.namespace)}_${comId}({
+        replaceImportComponent =
+          replaceImportComponent + importComponent + "\n";
+
+        tsxArray.push({
+          code: componentCode,
+          filePath,
+        });
+        return `
+          /** ${component.title} - ${comId} */
+          render_${convertToUnderscore(component.def.namespace)}_${comId}({
+            ${Object.keys(componentOutputs).map((outputId) => {
+              return `
                 ${outputId}(value: unknown) {
                   ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
                 }
-              })(value)
-            `
-            // return `
-            //   asyncPipe(
-            //     /** ${component.title} - ${comId} 222 */
-            //     render_${convertToUnderscore(component.def.namespace)}_${comId},
-            //     ${generateNextEventCode(componentOutputs[outputId][0], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-            //   )(value)
-            // `
-          } else {
-            const {
-              importComponent,
-              filePath,
-              componentCode,
-            } = generateJsComponentCode({
-              comId: comId,
-              filePath: parentFilePath,
-              scene
-            }, { inputs: [pinId], outputs: [outputId] });
-    
-            replaceImportComponent =
-              replaceImportComponent + importComponent + "\n";
-    
-            tsxArray.push({
-              code: componentCode,
-              filePath,
-            });
-
-            return `
-              /** ${component.title} - ${comId} 666 */
-              render_${convertToUnderscore(component.def.namespace)}_${comId}({
-                ${outputId}(value: unknown) {
-                  ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-                }
-              })(value)
-            `
-
-            // return `
-            //   asyncPipe(
-            //     /** ${component.title} - ${comId} 666 */
-            //     render_${convertToUnderscore(component.def.namespace)}_${comId}({
-            //       ${outputId}(value: unknown) {
-            //         ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-            //       }
-            //     }),
-            //   )(value)
-            // `
-          }
-        } else {
-          const {
-            importComponent,
-            filePath,
-            componentCode,
-          } = generateJsComponentCode({
-            comId: comId,
-            filePath: parentFilePath,
-            scene
-          }, { inputs: [pinId], outputs: outputIds });
-  
-          replaceImportComponent =
-            replaceImportComponent + importComponent + "\n";
-  
-          tsxArray.push({
-            code: componentCode,
-            filePath,
-          });
-          return `
-            /** ${component.title} - ${comId} 333 */
-            render_${convertToUnderscore(component.def.namespace)}_${comId}({
-              ${Object.keys(componentOutputs).map((outputId) => {
-                return `
-                  ${outputId}(value: unknown) {
-                    ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-                  }
-                `
-              })}
-            })(value)
-          `
-        }
+              `
+            })}
+          })(value)
+        `
       }).join('\n')
     } else {
       const { comId, pinId } = nexts
@@ -1136,82 +1054,44 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           filePath,
         });
         return `
-          /** ${component.title} 444 */
+          /** ${component.title} */
           render_${convertToUnderscore(component.def.namespace)}_${comId}
         `
       }
 
       const outputIds = Object.keys(componentOutputs)
-      const outputCount = outputIds.length
 
-      if (outputCount === 1) {
-        const outputId = outputIds[0]
-        // 不开分支
-        const {
-          importComponent,
-          filePath,
-          componentCode,
-        } = generateJsComponentCode({
-          comId: comId,
-          filePath: parentFilePath,
-          scene
-        }, { inputs: [pinId], outputs: [outputId] });
+      // 开分支
+      const {
+        importComponent,
+        filePath,
+        componentCode,
+      } = generateJsComponentCode({
+        comId: comId,
+        filePath: parentFilePath,
+        scene
+      }, { inputs: [pinId], outputs: outputIds });
 
-        replaceImportComponent =
-          replaceImportComponent + importComponent + "\n";
+      replaceImportComponent =
+        replaceImportComponent + importComponent + "\n";
 
-        tsxArray.push({
-          code: componentCode,
-          filePath,
-        });
+      tsxArray.push({
+        code: componentCode,
+        filePath,
+      });
 
-        return `
-          /** ${component.title} - ${comId} 999 */
-          render_${convertToUnderscore(component.def.namespace)}_${comId}({
-            ${outputId}(value: unknown) {
-              ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-            }
-          })(value)
-        `
-
-        // return `
-        //   /** ${component.title} - ${comId} 999 */
-        //   render_${convertToUnderscore(component.def.namespace)}_${comId},
-        //   ${generateNextEventCode(componentOutputs[outputIds[0]], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-        // `
-      } else {
-        // 开分支
-        const {
-          importComponent,
-          filePath,
-          componentCode,
-        } = generateJsComponentCode({
-          comId: comId,
-          filePath: parentFilePath,
-          scene
-        }, { inputs: [pinId], outputs: outputIds });
-
-        replaceImportComponent =
-          replaceImportComponent + importComponent + "\n";
-
-        tsxArray.push({
-          code: componentCode,
-          filePath,
-        });
-
-        return `
-          /** ${component.title} - ${comId} 555 */
-          render_${convertToUnderscore(component.def.namespace)}_${comId}({
-            ${Object.keys(componentOutputs).map((outputId) => {
-              return `
-                ${outputId}(value: unknown) {
-                  ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-                }
-              `
-            })}
-          })
-        `
-      }
+      return `
+        /** ${component.title} - ${comId} */
+        render_${convertToUnderscore(component.def.namespace)}_${comId}({
+          ${Object.keys(componentOutputs).map((outputId) => {
+            return `
+              ${outputId}(value: unknown) {
+                ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+              }
+            `
+          })}
+        })
+      `
     }
   }
 
@@ -1233,80 +1113,37 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           const waitInputs = promiseComponentsMap[comId]
           const componentOutputs = executeIdToOutputsMap[comId]
           const outputIds = Object.keys(componentOutputs)
-          const outputCount = outputIds.length
 
-          let nextCode = ''
+          const {
+            importComponent,
+            filePath,
+            componentCode,
+          } = generateJsComponentCode({
+            comId: comId,
+            filePath: parentFilePath,
+            scene
+          }, { inputs: waitInputs, outputs: outputIds });
+  
+          replaceImportComponent =
+            replaceImportComponent + importComponent + "\n";
+  
+          tsxArray.push({
+            code: componentCode,
+            filePath,
+          });
 
-          if (outputCount === 1) {
-            // 不开分支
-            const {
-              importComponent,
-              filePath,
-              componentCode,
-            } = generateJsComponentCode({
-              comId: comId,
-              filePath: parentFilePath,
-              scene
-            }, { inputs: waitInputs, outputs: outputIds });
-    
-            replaceImportComponent =
-              replaceImportComponent + importComponent + "\n";
-    
-            tsxArray.push({
-              code: componentCode,
-              filePath,
-            });
-
-            nextCode = `
-              /** ${component.title} - ${comId} 888 */
-              render_${convertToUnderscore(component.def.namespace)}_${comId}({
-                ${Object.keys(componentOutputs).map((outputId) => {
-                  return `
-                    ${outputId}(value: unknown) {
-                      ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-                    }
-                  `
-                })}
-              })
-            `
-
-            // nextCode = `
-            //   /** ${component.title} - ${comId} 888 */
-            //   render_${convertToUnderscore(component.def.namespace)}_${comId},
-            //   ${generateEventCode(componentOutputs[outputIds[0]], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-            // `
-          } else {
-            const {
-              importComponent,
-              filePath,
-              componentCode,
-            } = generateJsComponentCode({
-              comId: comId,
-              filePath: parentFilePath,
-              scene
-            }, { inputs: waitInputs, outputs: outputIds });
-    
-            replaceImportComponent =
-              replaceImportComponent + importComponent + "\n";
-    
-            tsxArray.push({
-              code: componentCode,
-              filePath,
-            });
-
-            nextCode = `
-              /** ${component.title} - ${comId} */
-              render_${convertToUnderscore(component.def.namespace)}_${comId}({
-                ${Object.keys(componentOutputs).map((outputId) => {
-                  return `
-                    ${outputId}(value: unknown) {
-                      ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-                    }
-                  `
-                })}
-              })
-            `
-          }
+          const nextCode = `
+            /** ${component.title} - ${comId} */
+            render_${convertToUnderscore(component.def.namespace)}_${comId}({
+              ${Object.keys(componentOutputs).map((outputId) => {
+                return `
+                  ${outputId}(value: unknown) {
+                    ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+                  }
+                `
+              })}
+            })
+          `
 
           useAsyncPipe = true
 
