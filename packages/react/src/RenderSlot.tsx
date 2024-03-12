@@ -632,6 +632,10 @@ function calSlotClasses(slotStyle) {
 function getClasses({style, id}) {
   const classes = [id, css.com]
 
+  // 临时兼容
+  if (style.flex === 1 && !style.widthFull) {
+    classes.push(css.flex)
+  }
   // 暂时去除，应该没有这个属性了
   // if (style.flex === 1) {
   //   classes.push(css.flex)
