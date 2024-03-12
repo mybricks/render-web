@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "es5",
+    "esModuleInterop": true,
+    "strict": true,
+
+    "types": ["node"]
+  },
+  "include": [
+    "./src/**/*",
+    
+    "./scripts/*"
+  ]
+}

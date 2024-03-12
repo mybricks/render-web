@@ -1,0 +1,21 @@
+{
+  "name": "@mybricks/render-code",
+  "version": "0.0.1",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "ts-node --transpile-only test.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.2"
+  },
+  "dependencies": {
+    "@mybricks/render-utils": "^0.0.1",
+    "fs-extra": "^11.2.0"
+  }
+}
