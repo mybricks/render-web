@@ -276,7 +276,9 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
         modelStyle.width = 'auto'
         Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
       } else {
-        modelStyle.margin = `${style.marginTop}px 0px 0px ${style.marginLeft}px`
+        if (!modelStyle.margin) {
+          modelStyle.margin = `${style.marginTop || 0}px ${style.marginRight || 0}px ${style.marginBottom || 0}px ${style.marginLeft || 0}px`
+        }
         // modelStyle.marginTop = style.marginTop
         // modelStyle.marginLeft = style.marginLeft
       }
