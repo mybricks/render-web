@@ -94,140 +94,6 @@ export function transformSingleToJSON(toJSON: any) {
   return toJSON
 }
 
-class Transform {
-
-  comIdToSlotComMap = {}
-
-  constructor() {}
-
-  transformSlotComAry(slot, coms, root = true) {
-    const { comIdToSlotComMap } = this
-    const { comAry } = slot
-  
-    // TODO: 目前引擎可以通过这个字段来判断是否智能布局
-    if (slot.style.layout === "smart") {
-      const resultComAry = comAry.sort((preCom, curCom) => {
-        const { id: preId } = preCom
-        const { id: curId } = curCom
-  
-        const preStyle = coms[preId].model.style
-        const preTop = preStyle.top
-        const preLeft = preStyle.left
-        const curStyle = coms[curId].model.style
-        const curTop = curStyle.top
-        const curLeft = curStyle.left
-    
-        if (preTop === curTop) {
-          return preLeft - curLeft
-        }
-    
-        return preTop - curTop
-      })
-
-      comAry.forEach(({slots}) => {
-        if (slots) {
-          Object.entries(slots).forEach(([slotId, slot]) => {
-            this.transformSlotComAry(slot, coms, false)
-          })
-        }
-      })
-      const comAry2 = smartLayout(resultComAry.map((com) => {
-        const id = com.id
-        const comInfo = coms[id]
-        const style = comInfo.model.style
-        const calculateStyle = comInfo.style
-
-        comIdToSlotComMap[id] = com
-
-        return {
-          id,
-          style: {
-            width: calculateStyle.width,
-            height: calculateStyle.height,
-            top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : (style.top || 0),
-            left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
-            // right: style.right,
-            // bottom: style.bottom,
-            widthFull: style.widthFull,
-            widthAuto: style.widthAuto,
-            heightAuto: style.heightAuto,
-            constraints: comInfo.constraints
-          },
-        }
-
-      }), { style: { width: slot.style.width, height: slot.style.height }, root })
-
-      const traverseElementsToSlotComAry3 = (comAry) => {
-        const result = []
-        comAry.forEach((com) => {
-          const { id, style, elements } = com
-          Reflect.deleteProperty(com, "tempStyle")
-
-          if (Array.isArray(elements)) {
-            Reflect.deleteProperty(style, 'height')
-            result.push({
-              ...com,
-              elements: traverseElementsToSlotComAry3(elements)
-            })
-          } else {
-            const modelStyle = coms[id].model.style
-            modelStyle.width = style.width
-            modelStyle.height = style.height
-            modelStyle.position = 'relative'
-            if (modelStyle.heightAuto) {
-              modelStyle.height = 'auto'
-            }
-            // if (modelStyle.height === 'auto') {
-            //   modelStyle.height = 'fit-content'
-            // }
-            // if (modelStyle.flexY === 1) {
-            //   Reflect.deleteProperty(modelStyle, "height")
-            // }
-
-            // widthAuto 适应内容
-            // widthFull 填充
-            if (modelStyle.widthAuto) {
-              modelStyle.maxWidth = modelStyle.width
-              modelStyle.width = "fit-content"
-            }
-
-            if (style.flex) {
-              modelStyle.flex = style.flex
-              modelStyle.margin = style.margin
-              Reflect.deleteProperty(modelStyle, "width")
-              Reflect.deleteProperty(modelStyle, "maxWidth")
-            } else if (style.width === 'auto') {
-              modelStyle.margin = style.margin
-              modelStyle.width = 'auto'
-              Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
-            } else {
-              modelStyle.margin = `${style.marginTop}px 0px 0px ${style.marginLeft}px`
-              // modelStyle.marginTop = style.marginTop
-              // modelStyle.marginLeft = style.marginLeft
-            }
-
-            modelStyle.marginBottom = style.marginBottom
-            result.push(comIdToSlotComMap[id])
-          }
-        })
-    
-        return result
-      }
-
-      slot.layoutTemplate = traverseElementsToSlotComAry3(comAry2)
-    } else {
-      comAry.forEach((com) => {
-        const { slots } = com
-        if (slots) {
-          Object.entries(slots).forEach(([slotId, slot]) => {
-            this.transformSlotComAry(slot, coms, false)
-          })
-        }
-      })
-    }
-  }
-}
-
 function transformSlotComAry(slot, coms, root = true) {
   const comIdToSlotComMap = {}
   const { comAry } = slot
@@ -372,7 +238,14 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       modelStyle.height = style.height
       modelStyle.position = 'relative'
       if (modelStyle.heightAuto) {
-        modelStyle.height = 'auto'
+        // modelStyle.height = 'auto'
+        // modelStyle.maxHeight = "fit-content"
+        // modelStyle.height = "fit-content"
+        Reflect.deleteProperty(modelStyle, "height")
+        modelStyle.minHeight = style.height
+        modelStyle.display = 'flex'
+        modelStyle.flexDirection = 'column'
+        // 一级子元素设置flex：1
       }
       // if (modelStyle.height === 'auto') {
       //   modelStyle.height = 'fit-content'
@@ -384,7 +257,7 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       // widthAuto 适应内容
       // widthFull 填充
       if (modelStyle.widthAuto) {
-        modelStyle.maxWidth = "fit-content"
+        // modelStyle.maxWidth = "fit-content"
         modelStyle.width = "fit-content"
         modelStyle.minWidth = style.width
       }

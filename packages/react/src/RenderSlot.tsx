@@ -399,6 +399,7 @@ function RenderCom({
       // position: style.position || "relative",
       position: style.position,
       flex: style.flex,
+      flexDirection: style.flexDirection,
       ...otherStyle,
       ...sizeStyle,
       ...marginStyle,
@@ -636,6 +637,10 @@ function getClasses({style, id}) {
   if (style.flex === 1 && !style.widthFull) {
     classes.push(css.flex)
   }
+
+  if (style.heightAuto) {
+    classes.push(css.comHeightAuto)
+  }
   // 暂时去除，应该没有这个属性了
   // if (style.flex === 1) {
   //   classes.push(css.flex)
@@ -646,7 +651,7 @@ function getClasses({style, id}) {
 
 function getSizeStyle({style}) {
   const sizeStyle: any = {}
-  const {width, height, maxWidth, flexX, minWidth} = style
+  const {width, height, maxWidth, flexX, minWidth, minHeight} = style
 
   if (!width && !flexX) {
     sizeStyle.width = "100%"
@@ -668,6 +673,10 @@ function getSizeStyle({style}) {
 
   if (minWidth) {
     sizeStyle.minWidth = minWidth
+  }
+
+  if (minHeight) {
+    sizeStyle.minHeight = minHeight
   }
 
   return sizeStyle
