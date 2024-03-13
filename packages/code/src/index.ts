@@ -225,17 +225,21 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
   let replaceRenderComponent = "";
   let replaceFunction = ''
   let replaceFunctionUtils = ''
+  let replaceGlobalContext = 'import globalContext from "@/globalContext"'
 
   SceneCodeArray.forEach((item) => {
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
 
     if (events) {
-      events.forEach(({ codeAry, functionCode, importComponent, useAsyncPipe }: any) => {
+      events.forEach(({ codeAry, functionCode, importComponent, useAsyncPipe, useGlobalContext }: any) => {
         replaceImportComponent = replaceImportComponent + importComponent
         replaceFunction = replaceFunction + functionCode
         tsxArray.push(...codeAry)
         if (useAsyncPipe) {
           replaceFunctionUtils = 'import { asyncPipe, createPromise } from "@/utils";'
+        }
+        if (useGlobalContext) {
+          replaceGlobalContext = 'import globalContext from "@/globalContext";'
         }
       })
     }
@@ -279,12 +283,15 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
           // 当前文件需要import该组件
           replaceImportComponent = replaceImportComponent + importComponent
           if (events) {
-            events.forEach(({ codeAry, functionCode, importComponent, useAsyncPipe }: any) => {
+            events.forEach(({ codeAry, functionCode, importComponent, useAsyncPipe, useGlobalContext }: any) => {
               replaceImportComponent = replaceImportComponent + importComponent
               replaceFunction = replaceFunction + functionCode
              
               if (useAsyncPipe) {
                 replaceFunctionUtils = 'import { asyncPipe, createPromise } from "@/utils";'
+              }
+              if (useGlobalContext) {
+                replaceGlobalContext = 'import globalContext from "@/globalContext";'
               }
             })
           }
@@ -298,6 +305,7 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
 
   const componentCode = `import React from "react";
 
+    ${replaceGlobalContext}
     ${replaceFunctionUtils}
     ${replaceImportComponent}
 
@@ -389,14 +397,13 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     const connectionId = `${id}-${outputId}`;
     const connections = cons[connectionId];
     if (connections) {
-      /** 这里的value未来也许可以用schema？反正现在是没有的 */
-      propsCode = propsCode + `${outputId}: (value: unknown) => void;\n`;
-      eventCode =
-        eventCode + ` ${outputId}={render_${convertToUnderscore(componentFolderName)}_${outputId}}`;
-
       const diagram = frame.diagrams.find(({ starter }) => starter.comId === id && starter.pinId === outputId)
 
       if (diagram) {
+        /** 这里的value未来也许可以用schema？反正现在是没有的 */
+        propsCode = propsCode + `${outputId}: (value: unknown) => void;\n`;
+        eventCode =
+          eventCode + ` ${outputId}={render_${convertToUnderscore(componentFolderName)}_${outputId}}`;
         events.push(generateEventCode(diagram, { scene, filePath: parentFilePath }))
       }
     }
@@ -469,12 +476,14 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     const { data, style, inputs, outputs, ${
       slots ? "slots" : ""
     } } = useMemo(() => {
-      const _inputRegs: { [key: string | symbol]: (value: unknown) => void } = {};
+      const _inputRegs: {
+        [key: string | symbol]: (value: unknown) => void;
+      } = {};
       const inputs = new Proxy(
         {},
         {
           get(_, key) {
-            return (fn: (value: unknown) => void) => {
+            return (fn: (value: unknown, outputs?: unknown) => void) => {
               _inputRegs[key] = fn;
             };
           },
@@ -688,7 +697,136 @@ function calSlotClasses(style: any) {
 
 
 
-// TODO: JS计算代码拼装
+/** JS计算代码拼装，无状态版 */
+// function generateJsComponentCode({
+//   comId: id,
+//   filePath,
+//   scene
+// }: {
+//   comId: string;
+//   filePath: string;
+//   scene: ToBaseJSON
+// }, { inputs: propsInputs, outputs: propsOutputs }: { inputs: Array<string>, outputs: Array<string> }) {
+//   const { coms, pinRels } = scene
+//   const {
+//     title,
+//     def: { namespace, version },
+//     model: { data },
+//     outputs,
+//   } = coms[id];
+//   const componentFolderName = `${namespace}_${id}`;
+//   const componentFunctionName = `render_${convertToUnderscore(
+//     componentFolderName,
+//   )}`;
+//   const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
+
+  
+//   /**
+//    * 运行时分三种情况
+//    * 1. 没有输出
+//    * 2. 有一个输出
+//    * 3. 多个输出
+//    */
+
+//   let propsCode = ''
+//   let runtimeCode = ''
+//   const propsOutputsLength = propsOutputs.length
+//   if (!propsOutputsLength) {
+//     // 没有输出
+//     propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
+    
+//     const [inputId, nextInputId] = propsInputs[0].split('.')
+//     const nextRels = pinRels[`${id}-${inputId}`]
+    
+//     runtimeCode = `
+//       runtime({
+//         env: globalContext.env,
+//         inputs: {
+//           ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: () => void`)}}` : ''}) => void) {
+//             func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}() {}`)}}` : ''})
+//           }
+//         },
+//         ${outputs.length ? `outputs: {
+//           ${outputs.map((outputId) => `${outputId}(){}`).join()}
+//         },` : ''}
+//         data: ${JSON.stringify(data)},
+//       });
+//     `
+//   } else if (propsOutputsLength === -1) {
+//     // 目前用不到这段逻辑，因为即使只有一个输出项，也可能被重复执行的可能性，例如 循环执行
+//     // 一个输出
+//     propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
+  
+//     const [inputId, nextInputId] = propsInputs[0].split('.')
+//     const nextRels = pinRels[`${id}-${inputId}`]
+
+//     runtimeCode = `
+//       return new Promise((resolve) => {
+//         runtime({
+//           env: globalContext.env,
+//           inputs: {
+//             ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
+//               func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}}` : ''})
+//             }
+//           },
+//           outputs: {
+//             ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}
+//           },
+//           data: ${JSON.stringify(data)},
+//         })
+//       })
+//     `
+//   } else {
+//     // 多个输出
+//     propsCode = `{${propsOutputs.filter((id) => id).map((outputId) => {
+//       return `${outputId}`
+//     }).join()}}: {${propsOutputs.filter((id) => id).map((outputId) => {
+//       return `${outputId}: (value: unknown) => void`
+//     }).join()}}`
+
+//     const [inputId, nextInputId] = propsInputs[0].split('.')
+//     const nextRels = pinRels[`${id}-${inputId}`]
+
+//     runtimeCode = `
+//       return (${propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`}) => {
+//         runtime({
+//           env: globalContext.env,
+//           inputs: {
+//             ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
+//               func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? '' : '() {}'}`)}}` : ''})
+//             }
+//           },
+//           outputs: {
+//             ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? '' : '() {}'}`)}
+//           },
+//           data: ${JSON.stringify(data)},
+//         })
+//       }
+//     `
+//   }
+
+//   const componentCode = `import globalContext from "@/globalContext";
+
+//     /** 原子组件代码 */
+//     const runtime = globalContext.getComponentDefinition({
+//       namespace: "${namespace}",
+//       version: "${version}",
+//     }).runtime;
+
+//     /** ${title} */
+//     export function render_${convertToUnderscore(namespace)}_${id}(${propsCode}) {
+//       ${runtimeCode}
+//     }
+//   `
+
+//   return {
+//     importComponent,
+//     filePath: `${filePath}/${componentFolderName}/index.ts`,
+//     componentCode,
+//   };
+// }
+
+/** JS计算代码拼装，有状态版 */
 function generateJsComponentCode({
   comId: id,
   filePath,
@@ -704,98 +842,112 @@ function generateJsComponentCode({
     def: { namespace, version },
     model: { data },
     outputs,
+    inputs,
   } = coms[id];
   const componentFolderName = `${namespace}_${id}`;
   const componentFunctionName = `render_${convertToUnderscore(
     componentFolderName,
   )}`;
   const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
+  const propsCode = `props?: {${outputs.map((outputId) => `${outputId}?: (value?: unknown) => void`).join(";")};[key: string | symbol]: any;}`
+  
 
   
-  /**
-   * 运行时分三种情况
-   * 1. 没有输出
-   * 2. 有一个输出
-   * 3. 多个输出
-   */
+    const multipleInputIdMap: {[key: string]: Array<string>} = {}
+    inputs.forEach((inputId) => {
+      const [realInputId, paramId] = inputId.split(".")
 
-  let propsCode = ''
-  let runtimeCode = ''
-  const propsOutputsLength = propsOutputs.length
-  if (!propsOutputsLength) {
-    // 没有输出
-    propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
-    
-    const [inputId, nextInputId] = propsInputs[0].split('.')
-    const nextRels = pinRels[`${id}-${inputId}`]
-    
-    runtimeCode = `
-      runtime({
-        env: globalContext.env,
-        inputs: {
-          ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: () => void`)}}` : ''}) => void) {
-            func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}() {}`)}}` : ''})
-          }
-        },
-        ${outputs.length ? `outputs: {
-          ${outputs.map((outputId) => `${outputId}(){}`).join()}
-        },` : ''}
-        data: ${JSON.stringify(data)},
-      });
-    `
-  } else if (propsOutputsLength === -1) {
-    // 目前用不到这段逻辑，因为即使只有一个输出项，也可能被重复执行的可能性，例如 循环执行
-    // 一个输出
-    propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
-  
-    const [inputId, nextInputId] = propsInputs[0].split('.')
-    const nextRels = pinRels[`${id}-${inputId}`]
-
-    runtimeCode = `
-      return new Promise((resolve) => {
-        runtime({
-          env: globalContext.env,
-          inputs: {
-            ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
-              func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}}` : ''})
-            }
-          },
-          outputs: {
-            ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}
-          },
-          data: ${JSON.stringify(data)},
-        })
-      })
-    `
-  } else {
-    // 多个输出
-    propsCode = `{${propsOutputs.filter((id) => id).map((outputId) => {
-      return `${outputId}`
-    }).join()}}: {${propsOutputs.filter((id) => id).map((outputId) => {
-      return `${outputId}: (value: unknown) => void`
-    }).join()}}`
-
-    const [inputId, nextInputId] = propsInputs[0].split('.')
-    const nextRels = pinRels[`${id}-${inputId}`]
-
-    runtimeCode = `
-      return (${propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`}) => {
-        runtime({
-          env: globalContext.env,
-          inputs: {
-            ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
-              func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? '' : '() {}'}`)}}` : ''})
-            }
-          },
-          outputs: {
-            ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? '' : '() {}'}`)}
-          },
-          data: ${JSON.stringify(data)},
-        })
+      if (paramId) {
+        /** 有符号 . 隔开，说明是多输入 */
+        (multipleInputIdMap[realInputId] = multipleInputIdMap[realInputId] || []).push(paramId)
       }
-    `
-  }
+    })
 
+    
+    const waitForInputs = `${Object.entries(multipleInputIdMap).map(([inputId, paramIds]) => {
+      return `
+      ${inputId}: {
+        value: {},
+        count: ${paramIds.length}
+      }`
+    })}`
+
+    const inputRegs = `
+      ${waitForInputs ? `const waitForInputs: {
+        /** 多输入的输入项ID */
+        [key: string]: {
+          /** 最终输入的对象值，临时存储 */
+          value: { [key: string]: any };
+          /** 多输入个数 */
+          count: number;
+        };
+      } = {
+        ${waitForInputs}
+      }` : ""}
+      const _inputRegs: {
+        ${Object.entries(multipleInputIdMap).map(([inputId, paramIds]) => {
+          return paramIds.map((paramId) => {
+            return `["${inputId}.${paramId}"]: (value: unknown) => void`
+          }).join(";\n")
+        })}
+        [key: string | symbol]: (value: unknown) => void;
+      } = {
+        ${Object.entries(multipleInputIdMap).map(([inputId, paramIds]) => {
+          return paramIds.map((paramId) => {
+            return `["${inputId}.${paramId}"](value: unknown) {
+              const waitForInput = waitForInputs["${inputId}"]
+              const { value: realValue, count } = waitForInput
+              realValue["${paramId}"] = value
+              if (Object.keys(realValue).length === count) {
+                _inputRegs["${inputId}"](realValue)
+                waitForInput.value = {}
+              }
+            }`
+          })
+        })}
+      };
+    `
+
+  // const pidx = pinId.indexOf('.')
+  //   const result = {
+  //     pinId,
+  //     value,
+  //     isReady: true,
+  //     isMultipleInput: false,
+  //     cb: null
+  //   }
+  //   if (component && pidx !== -1) {
+  //     const valueBarrierKey = component.id + `${curScope?.id ? `-${curScope.id}` : ''}`
+  //     // 多输入
+  //     const { inputs } = component
+  //     const finalPinId = pinId.substring(0, pidx)
+  //     result.pinId = finalPinId
+  //     const paramId = pinId.substring(pidx + 1)
+  //     let barrier = _valueBarrier[valueBarrierKey]
+  //     if (!barrier) {
+  //       barrier = _valueBarrier[valueBarrierKey] = {}
+  //     }
+  //     barrier[paramId] = val
+  //     const regExp = new RegExp(`${finalPinId}.`)
+  //     const allPins: string[] = inputs.filter((pin: string) => {
+  //       return !!pin.match(regExp)
+  //     })
+
+  //     if (Object.keys(barrier).length === allPins.length) {
+  //       // 多输入全部到达
+  //       result.value = barrier
+  //       result.isMultipleInput = true
+  //       result.cb = () => {
+  //         Reflect.deleteProperty(_valueBarrier, valueBarrierKey)
+  //       }
+  //     } else {
+  //       result.isReady = false
+  //     }
+
+  // const _inputRegs: {
+  //   [key: string | symbol]: (value: unknown) => void;
+  // } = {};
+  
   const componentCode = `import globalContext from "@/globalContext";
 
     /** 原子组件代码 */
@@ -806,7 +958,46 @@ function generateJsComponentCode({
 
     /** ${title} */
     export function render_${convertToUnderscore(namespace)}_${id}(${propsCode}) {
-      ${runtimeCode}
+      if (!globalContext.scenesMap["${scene.id}"].componentPropsMap["${id}"]) {
+        ${inputRegs}
+        const outputs = new Proxy(
+          {},
+          {
+            ownKeys() {
+              return [${outputs.map((outputId) => `"${outputId}"`).join()}]
+            },
+            getOwnPropertyDescriptor() {
+              return {
+                enumerable: true,
+                configurable: true
+              };
+            },
+            get(_, key) {
+              return props?.[key] || function () {};
+            },
+          },
+        );
+        const inputs = new Proxy(
+          {},
+          {
+            get(_, key) {
+              return (fn: (value: unknown, outputs?: unknown) => void) => {
+                _inputRegs[key] = (value: unknown) => fn(value, outputs);
+              };
+            },
+          },
+        );
+        const data = ${JSON.stringify(data)};
+
+        runtime({ env: globalContext.env, inputs, outputs, data });
+
+        globalContext.scenesMap["${scene.id}"].componentPropsMap["${id}"] = {
+          _inputRegs,
+          inputs,
+          outputs,
+          data,
+        }
+      }
     }
   `
 
@@ -899,10 +1090,11 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
 
   const tsxArray: any = []
   let useAsyncPipe = false
+  let useGlobalContext = false
 
   let replaceImportComponent = ''
 
-  const { coms } = scene
+  const { coms, pinRels } = scene
   const { starter, conAry } = diagram
   /** 组件ID -> outputID -> 被执行输入的组件列表 */
   const executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}} = {}
@@ -942,100 +1134,260 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
   const component = coms[comId]
 
   /** 需要等待的组件输入列表 */
-  const promiseComponentsMap: {[key: string]: Array<string>} = {}
+  // const promiseComponentsMap: {[key: string]: Array<string>} = {}
 
+  // 有状态版本
+  // const generateNextEventCode = (
+  //   nexts: Array<{comId: string, pinId: string}> | {comId: string, pinId: string},
+  //   { executeIdToOutputsMap, executeComIdToInputCountMap }: { executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}}, executeComIdToInputCountMap: {[key: string]: number} }
+  // ): string => {
+  //   if (Array.isArray(nexts)) {
+  //     return nexts.map(({ comId, pinId }) => {
+  //       const component = coms[comId]
+  //       if (!component.def.rtType) {
+  //         useGlobalContext = true
+  //         /** ui组件、单输入，在连线过程中一定是依赖pinRels来输出的 */
+  //         const nextRels = pinRels[`${comId}-${pinId}`]
+  //         if (!nextRels) {
+  //           // 没有下一步，直接输出
+  //           return `
+  //           /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value)`
+  //         } else {
+  //           return `
+  //           /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value, {
+  //             ${nextRels.map((outputId) => {
+  //               const nexts = executeIdToOutputsMap[comId]?.[outputId]
+  //               if (nexts) {
+  //                 return `${outputId}(value: unknown) {
+  //                   ${generateNextEventCode(nexts, { executeIdToOutputsMap, executeComIdToInputCountMap })}
+  //                 }`
+  //               } else {
+  //                 return `${outputId}() {}`
+  //               }
+  //             })}
+  //           })`
+  //         }
+  //       }
+  //       const waitForInputs = executeComIdToInputCountMap[comId] > 1
+
+  //       if (waitForInputs) {
+  //         if (!promiseComponentsMap[comId]) {
+  //           promiseComponentsMap[comId] = [pinId]
+  //         } else {
+  //           promiseComponentsMap[comId].push(pinId)
+  //         }
+  //         return `${comId}_${convertToUnderscore(pinId)}.resolve(value)`
+  //       }
+  //       const componentOutputs = executeIdToOutputsMap[comId]
+
+  //       if (!componentOutputs) {
+  //         /** 没有下一步，直接执行就结束了 */
+  //         const {
+  //           importComponent,
+  //           filePath,
+  //           componentCode,
+  //         } = generateJsComponentCode({
+  //           comId: comId,
+  //           filePath: parentFilePath,
+  //           scene
+  //         }, { inputs: [pinId], outputs: [] });
+  
+  //         replaceImportComponent =
+  //           replaceImportComponent + importComponent + "\n";
+  
+  //         tsxArray.push({
+  //           code: componentCode,
+  //           filePath,
+  //         });
+  //         return `
+  //           /** ${component.title} - ${comId} */
+  //           render_${convertToUnderscore(component.def.namespace)}_${comId}(value)
+  //         `
+  //       }
+  //       const outputIds = Object.keys(componentOutputs)
+
+  //       const {
+  //         importComponent,
+  //         filePath,
+  //         componentCode,
+  //       } = generateJsComponentCode({
+  //         comId: comId,
+  //         filePath: parentFilePath,
+  //         scene
+  //       }, { inputs: [pinId], outputs: outputIds });
+
+  //       replaceImportComponent =
+  //         replaceImportComponent + importComponent + "\n";
+
+  //       tsxArray.push({
+  //         code: componentCode,
+  //         filePath,
+  //       });
+
+  //       return `
+  //         /** ${component.title} - ${comId} */
+  //         render_${convertToUnderscore(component.def.namespace)}_${comId}({
+  //           ${Object.keys(componentOutputs).map((outputId) => {
+  //             return `
+  //               ${outputId}(value: unknown) {
+  //                 ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+  //               }
+  //             `
+  //           })}
+  //         })(value)
+  //       `
+  //     }).join('\n')
+  //   } else {
+  //     /** 目前的实现 应该不会走到这里面来了 */
+  //     const { comId, pinId } = nexts
+  //     const component = coms[comId]
+  //     if (!component.def.rtType) {
+  //       return `"还未实现"`
+  //     }
+      
+  //     const waitForInputs = executeComIdToInputCountMap[comId] > 1
+
+  //     if (waitForInputs) {
+  //       if (!promiseComponentsMap[comId]) {
+  //         promiseComponentsMap[comId] = [pinId]
+  //       } else {
+  //         promiseComponentsMap[comId].push(pinId)
+  //       }
+  //       return `${comId}_${convertToUnderscore(pinId)}.resolve`
+  //     }
+      
+  //     const componentOutputs = executeIdToOutputsMap[comId]
+
+  //     if (!componentOutputs) {
+  //       /** 没有下一步，直接执行就结束了 */
+  //       const {
+  //         importComponent,
+  //         filePath,
+  //         componentCode,
+  //       } = generateJsComponentCode({
+  //         comId: comId,
+  //         filePath: parentFilePath,
+  //         scene
+  //       }, { inputs: [pinId], outputs: [] });
+
+  //       replaceImportComponent =
+  //         replaceImportComponent + importComponent + "\n";
+
+  //       tsxArray.push({
+  //         code: componentCode,
+  //         filePath,
+  //       });
+  //       return `
+  //         /** ${component.title} - ${comId} */
+  //         render_${convertToUnderscore(component.def.namespace)}_${comId}
+  //       `
+  //     }
+
+  //     const outputIds = Object.keys(componentOutputs)
+
+  //     // 开分支
+  //     const {
+  //       importComponent,
+  //       filePath,
+  //       componentCode,
+  //     } = generateJsComponentCode({
+  //       comId: comId,
+  //       filePath: parentFilePath,
+  //       scene
+  //     }, { inputs: [pinId], outputs: outputIds });
+
+  //     replaceImportComponent =
+  //       replaceImportComponent + importComponent + "\n";
+
+  //     tsxArray.push({
+  //       code: componentCode,
+  //       filePath,
+  //     });
+
+  //     return `
+  //       /** ${component.title} - ${comId} */
+  //       render_${convertToUnderscore(component.def.namespace)}_${comId}({
+  //         ${Object.keys(componentOutputs).map((outputId) => {
+  //           return `
+  //             ${outputId}(value: unknown) {
+  //               ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+  //             }
+  //           `
+  //         })}
+  //       })
+  //     `
+  //   }
+  // }
+
+
+
+  /** 记录已经import进来的组件ID */
+  const importComponentIdMap: {[key: string]: true} = {}
+  /** 顶部执行的组件列表 */
+  const topComponent: Array<string> = []
+  /** 记录已经在顶部执行的组件ID */
+  const topComponentIdMap: {[key: string]: true} = {}
+
+
+  // 无状态版本
   const generateNextEventCode = (
-    nexts: Array<{comId: string, pinId: string}> | {comId: string, pinId: string},
+    nexts: Array<{comId: string, pinId: string}>,
     { executeIdToOutputsMap, executeComIdToInputCountMap }: { executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}}, executeComIdToInputCountMap: {[key: string]: number} }
   ): string => {
-    if (Array.isArray(nexts)) {
-      return nexts.map(({ comId, pinId }) => {
-        const waitForInputs = executeComIdToInputCountMap[comId] > 1
-
-        if (waitForInputs) {
-          if (!promiseComponentsMap[comId]) {
-            promiseComponentsMap[comId] = [pinId]
-          } else {
-            promiseComponentsMap[comId].push(pinId)
-          }
-          return `${comId}_${convertToUnderscore(pinId)}.resolve(value)`
-        }
-
-        const component = coms[comId]
-        const componentOutputs = executeIdToOutputsMap[comId]
-        if (!componentOutputs) {
-          /** 没有下一步，直接执行就结束了 */
-          const {
-            importComponent,
-            filePath,
-            componentCode,
-          } = generateJsComponentCode({
-            comId: comId,
-            filePath: parentFilePath,
-            scene
-          }, { inputs: [pinId], outputs: [] });
-  
-          replaceImportComponent =
-            replaceImportComponent + importComponent + "\n";
-  
-          tsxArray.push({
-            code: componentCode,
-            filePath,
-          });
-          return `
-            /** ${component.title} */
-            render_${convertToUnderscore(component.def.namespace)}_${comId}(value)
-          `
-        }
-        const outputIds = Object.keys(componentOutputs)
-
-        const {
-          importComponent,
-          filePath,
-          componentCode,
-        } = generateJsComponentCode({
-          comId: comId,
-          filePath: parentFilePath,
-          scene
-        }, { inputs: [pinId], outputs: outputIds });
-
-        replaceImportComponent =
-          replaceImportComponent + importComponent + "\n";
-
-        tsxArray.push({
-          code: componentCode,
-          filePath,
-        });
-        return `
-          /** ${component.title} - ${comId} */
-          render_${convertToUnderscore(component.def.namespace)}_${comId}({
-            ${Object.keys(componentOutputs).map((outputId) => {
-              return `
-                ${outputId}(value: unknown) {
-                  ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-                }
-              `
-            })}
-          })(value)
-        `
-      }).join('\n')
-    } else {
-      const { comId, pinId } = nexts
-      const waitForInputs = executeComIdToInputCountMap[comId] > 1
-
-      if (waitForInputs) {
-        if (!promiseComponentsMap[comId]) {
-          promiseComponentsMap[comId] = [pinId]
-        } else {
-          promiseComponentsMap[comId].push(pinId)
-        }
-        return `${comId}_${convertToUnderscore(pinId)}.resolve`
-      }
+    return nexts.map(({ comId, pinId }) => {
       const component = coms[comId]
+      if (!component.def.rtType) {
+        /** 目前ui组件没有多输入的情况 */
+        useGlobalContext = true
+        /** ui组件、单输入，在连线过程中一定是依赖pinRels来输出的 */
+        const nextRels = pinRels[`${comId}-${pinId}`]
+        if (!nextRels) {
+          // 没有下一步，直接输出
+          return `
+          /** 执行 ${component.title} - ${comId} - ${pinId} */
+          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value)`
+        } else {
+          return `
+          /** 执行 ${component.title} - ${comId} - ${pinId} */
+          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value, {
+            ${nextRels.map((outputId) => {
+              const nexts = executeIdToOutputsMap[comId]?.[outputId]
+              if (nexts) {
+                return `${outputId}(value: unknown) {
+                  ${generateNextEventCode(nexts, { executeIdToOutputsMap, executeComIdToInputCountMap })}
+                }`
+              } else {
+                return `${outputId}() {}`
+              }
+            })}
+          })`
+        }
+      }
+
+  //     const waitForInputs = executeComIdToInputCountMap[comId] > 1
+
+  //     if (waitForInputs) {
+  //       if (!promiseComponentsMap[comId]) {
+  //         promiseComponentsMap[comId] = [pinId]
+  //       } else {
+  //         promiseComponentsMap[comId].push(pinId)
+  //       }
+  //       return `${comId}_${convertToUnderscore(pinId)}.resolve`
+  //     }
+
+      
+      /** 
+       * 只有计算组件，在有多个输入项的情况下，会全部展示出来
+       * 每个输入项，只能被连接一次（否则，所有组件都需要提前声明了）
+       */
+      const { inputs } = component
       const componentOutputs = executeIdToOutputsMap[comId]
 
-      if (!componentOutputs) {
-        /** 没有下一步，直接执行就结束了 */
+      if (!importComponentIdMap[comId]) {
+        importComponentIdMap[comId] = true
+        /** 没有导入过的组件 */
         const {
           importComponent,
           filePath,
@@ -1047,38 +1399,63 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
         }, { inputs: [pinId], outputs: [] });
 
         replaceImportComponent =
-          replaceImportComponent + importComponent + "\n";
+        replaceImportComponent + importComponent + "\n";
 
         tsxArray.push({
           code: componentCode,
           filePath,
         });
+      }
+
+      if (!componentOutputs) {
+        /** 没有下一步，直接执行就结束了 */
+        if (inputs.length > 1) {
+          if (!topComponentIdMap[comId]) {
+            topComponentIdMap[comId] = true
+            /** 输入项大于1，说明需要把函数提前执行 */
+            topComponent.push(`
+              /** ${component.title} - ${comId} */
+              render_${convertToUnderscore(component.def.namespace)}_${comId}();
+            `)
+          }
+          return `
+            /** 执行 ${component.title} - ${comId} - ${pinId} */
+            globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+          `
+        }
+
         return `
-          /** ${component.title} */
-          render_${convertToUnderscore(component.def.namespace)}_${comId}
+          /** ${component.title} - ${comId} */
+          render_${convertToUnderscore(component.def.namespace)}_${comId}();
+
+          /** 执行 ${component.title} - ${comId} - ${pinId} */
+          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
         `
       }
 
-      const outputIds = Object.keys(componentOutputs)
+      if (inputs.length > 1) {
+        if (!topComponentIdMap[comId]) {
+          topComponentIdMap[comId] = true
+          /** 输入项大于1，说明需要把函数提前执行 */
+          topComponent.push(`
+            /** ${component.title} - ${comId} */
+            render_${convertToUnderscore(component.def.namespace)}_${comId}({
+              ${Object.keys(componentOutputs).map((outputId) => {
+                return `
+                  ${outputId}(value: unknown) {
+                    ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+                  }
+                `
+              })}
+            })
+          `)
+        }
 
-      // 开分支
-      const {
-        importComponent,
-        filePath,
-        componentCode,
-      } = generateJsComponentCode({
-        comId: comId,
-        filePath: parentFilePath,
-        scene
-      }, { inputs: [pinId], outputs: outputIds });
-
-      replaceImportComponent =
-        replaceImportComponent + importComponent + "\n";
-
-      tsxArray.push({
-        code: componentCode,
-        filePath,
-      });
+        return `
+          /** 执行 ${component.title} - ${comId} - ${pinId} */
+          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+        `
+      }
 
       return `
         /** ${component.title} - ${comId} */
@@ -1091,79 +1468,94 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
             `
           })}
         })
+
+        /** 执行 ${component.title} - ${comId} - ${pinId} */
+        globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
       `
-    }
+    }).join('\n')
   }
 
   const eventCode = generateNextEventCode(executeIdToOutputsMap[starter.comId][starter.pinId], { executeIdToOutputsMap, executeComIdToInputCountMap })
+  // 有状态版本
+  // const functionCode = `
+  //     /** ${component.title} - ${comId} - ${pinId} 事件 */
+  //     function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
+  //       ${Object.keys(promiseComponentsMap).map((comId) => {
+  //         const waitInputs = promiseComponentsMap[comId]
+
+  //         return waitInputs.map((inputId) => {
+  //           return `const ${comId}_${convertToUnderscore(inputId)} = createPromise();`
+  //         }).join("\n")
+  //       })}
+  //       ${eventCode}
+
+  //       ${Object.keys(promiseComponentsMap).map((comId) => {
+  //         const component = coms[comId]
+  //         const waitInputs = promiseComponentsMap[comId]
+  //         const componentOutputs = executeIdToOutputsMap[comId]
+  //         const outputIds = Object.keys(componentOutputs)
+
+  //         const {
+  //           importComponent,
+  //           filePath,
+  //           componentCode,
+  //         } = generateJsComponentCode({
+  //           comId: comId,
+  //           filePath: parentFilePath,
+  //           scene
+  //         }, { inputs: waitInputs, outputs: outputIds });
+  
+  //         replaceImportComponent =
+  //           replaceImportComponent + importComponent + "\n";
+  
+  //         tsxArray.push({
+  //           code: componentCode,
+  //           filePath,
+  //         });
+
+  //         const nextCode = `
+  //           /** ${component.title} - ${comId} */
+  //           render_${convertToUnderscore(component.def.namespace)}_${comId}({
+  //             ${Object.keys(componentOutputs).map((outputId) => {
+  //               return `
+  //                 ${outputId}(value: unknown) {
+  //                   ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+  //                 }
+  //               `
+  //             })}
+  //           })
+  //         `
+
+  //         useAsyncPipe = true
+
+  //         return `
+  //           asyncPipe(
+  //             /** 等待 ${component.title} 多输入到达 */
+  //             Promise.all([${waitInputs.map((inputId) => {
+  //               return `${comId}_${convertToUnderscore(inputId)}`
+  //             }).join()}]),
+  //             ${nextCode}
+  //           )();
+  //         `
+  //       })}
+        
+  //     }
+  // `
+
+  // 无状态版本
   const functionCode = `
       /** ${component.title} - ${comId} - ${pinId} 事件 */
       function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
-        ${Object.keys(promiseComponentsMap).map((comId) => {
-          const waitInputs = promiseComponentsMap[comId]
+        ${topComponent.join("\n")}
 
-          return waitInputs.map((inputId) => {
-            return `const ${comId}_${convertToUnderscore(inputId)} = createPromise();`
-          }).join("\n")
-        })}
         ${eventCode}
-
-        ${Object.keys(promiseComponentsMap).map((comId) => {
-          const component = coms[comId]
-          const waitInputs = promiseComponentsMap[comId]
-          const componentOutputs = executeIdToOutputsMap[comId]
-          const outputIds = Object.keys(componentOutputs)
-
-          const {
-            importComponent,
-            filePath,
-            componentCode,
-          } = generateJsComponentCode({
-            comId: comId,
-            filePath: parentFilePath,
-            scene
-          }, { inputs: waitInputs, outputs: outputIds });
-  
-          replaceImportComponent =
-            replaceImportComponent + importComponent + "\n";
-  
-          tsxArray.push({
-            code: componentCode,
-            filePath,
-          });
-
-          const nextCode = `
-            /** ${component.title} - ${comId} */
-            render_${convertToUnderscore(component.def.namespace)}_${comId}({
-              ${Object.keys(componentOutputs).map((outputId) => {
-                return `
-                  ${outputId}(value: unknown) {
-                    ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-                  }
-                `
-              })}
-            })
-          `
-
-          useAsyncPipe = true
-
-          return `
-            asyncPipe(
-              /** 等待 ${component.title} 多输入到达 */
-              Promise.all([${waitInputs.map((inputId) => {
-                return `${comId}_${convertToUnderscore(inputId)}`
-              }).join()}]),
-              ${nextCode}
-            )();
-          `
-        })}
-        
       }
   `
   return {
     codeAry: tsxArray,
     functionCode,
     importComponent: replaceImportComponent,
-    useAsyncPipe
+    useAsyncPipe,
+    useGlobalContext
   }
 }

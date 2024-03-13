@@ -13,7 +13,9 @@ interface ComponentProps {
   data: object;
   style?: object;
   slots?: object;
-  _inputRegs: { [key: string | symbol]: (value: unknown) => void };
+  _inputRegs: {
+    [key: string | symbol]: (value: unknown) => void;
+  };
   [key: string]: unknown;
 }
 

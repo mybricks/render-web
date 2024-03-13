@@ -90,6 +90,8 @@ export interface ToBaseJSON {
         namespace: string;
         /** 版本号 */
         version: string;
+        /** 类型 - 没有rtType的是ui组件 */
+        rtType?: "js" | "js-autorun"
       }
       /** 组件名称 */
       title: string;
@@ -102,6 +104,8 @@ export interface ToBaseJSON {
       }
       /** 输出项ID列表 */
       outputs: Array<string>;
+      /** 输入项ID列表 */
+      inputs: Array<string>;
     }
   }
   /** 逻辑面板连线信息 */
