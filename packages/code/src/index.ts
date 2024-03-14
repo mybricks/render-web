@@ -1132,9 +1132,10 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
                 if (finishPinParentKey) {
                   nexts = nexts.filter((next) => next.startPinParentKey === finishPinParentKey)
                 }
-                return `${outputId}(value: unknown) {
-                  ${generateNextEventCode2(nexts, { executeIdToNextMap })}
-                }`
+                const nextEventCode = generateNextEventCode2(nexts, { executeIdToNextMap })
+                return nextEventCode ? `${outputId}(value: unknown) {
+                  ${nextEventCode}
+                }` : `${outputId}(){}`
               } else {
                 return `${outputId}() {}`
               }
