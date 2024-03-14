@@ -1000,23 +1000,18 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
   };
 }
 
-/** 处理事件 - 卡片 */
+/** 处理UI组件事件 - 卡片 */
 function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath }: { scene: ToBaseJSON, filePath: string}) {
   /** 
    * 事件卡片一定只有一个开头
    * 已知启始节点
    */
-
-  const tsxArray: any = []
-
   let replaceImportComponent = ''
-
+  const tsxArray: any = []
   const { coms, pinRels } = scene
   const { starter, conAry } = diagram
-
   const { comId, pinId } = starter
   const component = coms[comId]
-
 
   if (!conAry.length) {
     /** 没有连线信息 */
@@ -1032,45 +1027,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
     }
   }
 
-
-  /** 组件ID -> outputID -> 被执行输入的组件列表 */
-  // const executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}} = {}
-  /** 记录组件ID对应被触发输入的个数 */
-  // const executeComIdToInputCountMap: {[key: string]: number} = {}
-
-  // conAry.forEach((con) => {
-  //   const { from, to } = con
-  //   const { id: outputId, parent: { id: fromComId } } = from;
-  //   const { id: inputId, parent: { id: toComId } } = to;
-
-  //   let comOutputsMap = executeIdToOutputsMap[fromComId]
-
-  //   if (!comOutputsMap) {
-  //     comOutputsMap = executeIdToOutputsMap[fromComId] = {}
-  //   }
-
-  //   let comOutputs = comOutputsMap[outputId]
-
-  //   if (!comOutputs) {
-  //     comOutputs = comOutputsMap[outputId] = []
-  //   }
-
-  //   comOutputs.push({
-  //     comId: toComId,
-  //     pinId: inputId
-  //   })
-
-  //   if (!executeComIdToInputCountMap[toComId]) {
-  //     executeComIdToInputCountMap[toComId] = 1
-  //   } else {
-  //     executeComIdToInputCountMap[toComId] = executeComIdToInputCountMap[toComId] + 1
-  //   }
-  // })
-
-  
   const executeIdToNextMap: any = {}
-
-
   conAry.forEach((con) => {
     const { from, to, finishPinParentKey, startPinParentKey } = con
     const { id: outputId, parent: { id: fromComId } } = from;
@@ -1139,9 +1096,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           })`
         }
       }
-
-      
-
       /** 
        * 只有计算组件，在有多个输入项的情况下，会全部展示出来
        * 每个输入项，只能被连接一次（否则，所有组件都需要提前声明了）
@@ -1239,70 +1193,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
   }
 
   const eventCode = generateNextEventCode2(executeIdToNextMap[starter.comId][starter.pinId], { executeIdToNextMap })
-
-  // 有状态版本
-  // const functionCode = `
-  //     /** ${component.title} - ${comId} - ${pinId} 事件 */
-  //     function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
-  //       ${Object.keys(promiseComponentsMap).map((comId) => {
-  //         const waitInputs = promiseComponentsMap[comId]
-
-  //         return waitInputs.map((inputId) => {
-  //           return `const ${comId}_${convertToUnderscore(inputId)} = createPromise();`
-  //         }).join("\n")
-  //       })}
-  //       ${eventCode}
-
-  //       ${Object.keys(promiseComponentsMap).map((comId) => {
-  //         const component = coms[comId]
-  //         const waitInputs = promiseComponentsMap[comId]
-  //         const componentOutputs = executeIdToOutputsMap[comId]
-  //         const outputIds = Object.keys(componentOutputs)
-
-  //         const {
-  //           importComponent,
-  //           filePath,
-  //           componentCode,
-  //         } = generateJsComponentCode({
-  //           comId: comId,
-  //           filePath: parentFilePath,
-  //           scene
-  //         }, { inputs: waitInputs, outputs: outputIds });
-  
-  //         replaceImportComponent =
-  //           replaceImportComponent + importComponent + "\n";
-  
-  //         tsxArray.push({
-  //           code: componentCode,
-  //           filePath,
-  //         });
-
-  //         const nextCode = `
-  //           /** ${component.title} - ${comId} */
-  //           render_${convertToUnderscore(component.def.namespace)}_${comId}({
-  //             ${Object.keys(componentOutputs).map((outputId) => {
-  //               return `
-  //                 ${outputId}(value: unknown) {
-  //                   ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-  //                 }
-  //               `
-  //             })}
-  //           })
-  //         `
-
-  //         return `
-  //           asyncPipe(
-  //             /** 等待 ${component.title} 多输入到达 */
-  //             Promise.all([${waitInputs.map((inputId) => {
-  //               return `${comId}_${convertToUnderscore(inputId)}`
-  //             }).join()}]),
-  //             ${nextCode}
-  //           )();
-  //         `
-  //       })}
-        
-  //     }
-  // `
 
   // 无状态版本
   const functionCode = `
