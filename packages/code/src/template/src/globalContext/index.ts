@@ -14,7 +14,7 @@ interface ComponentProps {
   style?: object;
   slots?: object;
   _inputRegs: {
-    [key: string | symbol]: (value: unknown) => void;
+    [key: string | symbol]: (value: unknown, outputs?: unknown) => void;
   };
   [key: string]: unknown;
 }

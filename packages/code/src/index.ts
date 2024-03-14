@@ -409,8 +409,6 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     }
   });
 
-  
-
   let replaceImportComponent = "";
   let replaceSlots = "";
 
@@ -1087,6 +1085,10 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
 
 /** 处理事件 - 卡片 */
 function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath }: { scene: ToBaseJSON, filePath: string}) {
+  /** 
+   * 事件卡片一定只有一个开头
+   * 已知启始节点
+   */
 
   const tsxArray: any = []
   let useAsyncPipe = false
@@ -1096,42 +1098,90 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
 
   const { coms, pinRels } = scene
   const { starter, conAry } = diagram
+
+  const { comId, pinId } = starter
+  const component = coms[comId]
+
+
+  if (!conAry.length) {
+    /** 没有连线信息 */
+    return {
+      codeAry: [],
+      functionCode: `
+        /** ${component.title} - ${comId} - ${pinId} 事件 */
+        function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
+
+        }
+      `,
+      importComponent: replaceImportComponent,
+      useAsyncPipe,
+      useGlobalContext
+    }
+  }
+
+
   /** 组件ID -> outputID -> 被执行输入的组件列表 */
-  const executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}} = {}
+  // const executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}} = {}
   /** 记录组件ID对应被触发输入的个数 */
-  const executeComIdToInputCountMap: {[key: string]: number} = {}
+  // const executeComIdToInputCountMap: {[key: string]: number} = {}
+
+  // conAry.forEach((con) => {
+  //   const { from, to } = con
+  //   const { id: outputId, parent: { id: fromComId } } = from;
+  //   const { id: inputId, parent: { id: toComId } } = to;
+
+  //   let comOutputsMap = executeIdToOutputsMap[fromComId]
+
+  //   if (!comOutputsMap) {
+  //     comOutputsMap = executeIdToOutputsMap[fromComId] = {}
+  //   }
+
+  //   let comOutputs = comOutputsMap[outputId]
+
+  //   if (!comOutputs) {
+  //     comOutputs = comOutputsMap[outputId] = []
+  //   }
+
+  //   comOutputs.push({
+  //     comId: toComId,
+  //     pinId: inputId
+  //   })
+
+  //   if (!executeComIdToInputCountMap[toComId]) {
+  //     executeComIdToInputCountMap[toComId] = 1
+  //   } else {
+  //     executeComIdToInputCountMap[toComId] = executeComIdToInputCountMap[toComId] + 1
+  //   }
+  // })
+
+  
+  const executeIdToNextMap: any = {}
+
 
   conAry.forEach((con) => {
-    const { from, to } = con
+    const { from, to, finishPinParentKey, startPinParentKey } = con
     const { id: outputId, parent: { id: fromComId } } = from;
     const { id: inputId, parent: { id: toComId } } = to;
 
-    let comOutputsMap = executeIdToOutputsMap[fromComId]
+    let comNextMap = executeIdToNextMap[fromComId]
 
-    if (!comOutputsMap) {
-      comOutputsMap = executeIdToOutputsMap[fromComId] = {}
+    if (!comNextMap) {
+      comNextMap = executeIdToNextMap[fromComId] = {}
     }
 
-    let comOutputs = comOutputsMap[outputId]
+    let comOutputs = comNextMap[outputId]
 
     if (!comOutputs) {
-      comOutputs = comOutputsMap[outputId] = []
+      comOutputs = comNextMap[outputId] = []
     }
 
     comOutputs.push({
       comId: toComId,
-      pinId: inputId
+      pinId: inputId,
+      finishPinParentKey,
+      startPinParentKey
     })
-
-    if (!executeComIdToInputCountMap[toComId]) {
-      executeComIdToInputCountMap[toComId] = 1
-    } else {
-      executeComIdToInputCountMap[toComId] = executeComIdToInputCountMap[toComId] + 1
-    }
   })
-
-  const { comId, pinId } = starter
-  const component = coms[comId]
 
   /** 需要等待的组件输入列表 */
   // const promiseComponentsMap: {[key: string]: Array<string>} = {}
@@ -1332,13 +1382,148 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
 
 
   // 无状态版本
-  const generateNextEventCode = (
-    nexts: Array<{comId: string, pinId: string}>,
-    { executeIdToOutputsMap, executeComIdToInputCountMap }: { executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}}, executeComIdToInputCountMap: {[key: string]: number} }
+  // const generateNextEventCode = (
+  //   nexts: Array<{comId: string, pinId: string}>,
+  //   { executeIdToOutputsMap, executeComIdToInputCountMap }: { executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}}, executeComIdToInputCountMap: {[key: string]: number} }
+  // ): string => {
+  //   return nexts.map(({ comId, pinId }) => {
+  //     const component = coms[comId]
+  //     if (!component.def.rtType) {
+  //       /** 目前ui组件没有多输入的情况 */
+  //       useGlobalContext = true
+  //       /** ui组件、单输入，在连线过程中一定是依赖pinRels来输出的 */
+  //       const nextRels = pinRels[`${comId}-${pinId}`]
+  //       if (!nextRels) {
+  //         // 没有下一步，直接输出
+  //         return `
+  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value)`
+  //       } else {
+  //         return `
+  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value, {
+  //           ${nextRels.map((outputId) => {
+  //             const nexts = executeIdToOutputsMap[comId]?.[outputId]
+  //             if (nexts) {
+  //               return `${outputId}(value: unknown) {
+  //                 ${generateNextEventCode(nexts, { executeIdToOutputsMap, executeComIdToInputCountMap })}
+  //               }`
+  //             } else {
+  //               return `${outputId}() {}`
+  //             }
+  //           })}
+  //         })`
+  //       }
+  //     }
+      
+  //     /** 
+  //      * 只有计算组件，在有多个输入项的情况下，会全部展示出来
+  //      * 每个输入项，只能被连接一次（否则，所有组件都需要提前声明了）
+  //      */
+  //     const { inputs } = component
+  //     const componentOutputs = executeIdToOutputsMap[comId]
+
+  //     if (!importComponentIdMap[comId]) {
+  //       importComponentIdMap[comId] = true
+  //       /** 没有导入过的组件 */
+  //       const {
+  //         importComponent,
+  //         filePath,
+  //         componentCode,
+  //       } = generateJsComponentCode({
+  //         comId: comId,
+  //         filePath: parentFilePath,
+  //         scene
+  //       }, { inputs: [pinId], outputs: [] });
+
+  //       replaceImportComponent =
+  //       replaceImportComponent + importComponent + "\n";
+
+  //       tsxArray.push({
+  //         code: componentCode,
+  //         filePath,
+  //       });
+  //     }
+
+  //     if (!componentOutputs) {
+  //       /** 没有下一步，直接执行就结束了 */
+  //       if (inputs.length > 1) {
+  //         if (!topComponentIdMap[comId]) {
+  //           topComponentIdMap[comId] = true
+  //           /** 输入项大于1，说明需要把函数提前执行 */
+  //           topComponent.push(`
+  //             /** ${component.title} - ${comId} */
+  //             render_${convertToUnderscore(component.def.namespace)}_${comId}();
+  //           `)
+  //         }
+  //         return `
+  //           /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+  //         `
+  //       }
+
+  //       return `
+  //         /** ${component.title} - ${comId} */
+  //         render_${convertToUnderscore(component.def.namespace)}_${comId}();
+
+  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+  //       `
+  //     }
+
+  //     if (inputs.length > 1) {
+  //       if (!topComponentIdMap[comId]) {
+  //         topComponentIdMap[comId] = true
+  //         /** 输入项大于1，说明需要把函数提前执行 */
+  //         topComponent.push(`
+  //           /** ${component.title} - ${comId} */
+  //           render_${convertToUnderscore(component.def.namespace)}_${comId}({
+  //             ${Object.keys(componentOutputs).map((outputId) => {
+  //               return `
+  //                 ${outputId}(value: unknown) {
+  //                   ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+  //                 }
+  //               `
+  //             })}
+  //           })
+  //         `)
+  //       }
+
+  //       return `
+  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+  //       `
+  //     }
+
+  //     return `
+  //       /** ${component.title} - ${comId} */
+  //       render_${convertToUnderscore(component.def.namespace)}_${comId}({
+  //         ${Object.keys(componentOutputs).map((outputId) => {
+  //           return `
+  //             ${outputId}(value: unknown) {
+  //               ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+  //             }
+  //           `
+  //         })}
+  //       })
+
+  //       /** 执行 ${component.title} - ${comId} - ${pinId} */
+  //       globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+  //     `
+  //   }).join('\n')
+  // }
+
+  // const eventCode = generateNextEventCode(executeIdToOutputsMap[starter.comId][starter.pinId], { executeIdToOutputsMap, executeComIdToInputCountMap })
+
+  const generateNextEventCode2 = (
+    nexts: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>,
+    { executeIdToNextMap }: { executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}} }
   ): string => {
-    return nexts.map(({ comId, pinId }) => {
+    return nexts.map(({ comId, pinId, finishPinParentKey, startPinParentKey }) => {
       const component = coms[comId]
-      if (!component.def.rtType) {
+      if (!component.def.rtType || component.def.namespace === "mybricks.core-comlib.var") {
+        /** 变量组件的特殊处理 */
+
         /** 目前ui组件没有多输入的情况 */
         useGlobalContext = true
         /** ui组件、单输入，在连线过程中一定是依赖pinRels来输出的 */
@@ -1353,10 +1538,13 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           /** 执行 ${component.title} - ${comId} - ${pinId} */
           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value, {
             ${nextRels.map((outputId) => {
-              const nexts = executeIdToOutputsMap[comId]?.[outputId]
+              let nexts = executeIdToNextMap[comId]?.[outputId]
               if (nexts) {
+                if (finishPinParentKey) {
+                  nexts = nexts.filter((next) => next.startPinParentKey === finishPinParentKey)
+                }
                 return `${outputId}(value: unknown) {
-                  ${generateNextEventCode(nexts, { executeIdToOutputsMap, executeComIdToInputCountMap })}
+                  ${generateNextEventCode2(nexts, { executeIdToNextMap })}
                 }`
               } else {
                 return `${outputId}() {}`
@@ -1366,24 +1554,14 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
         }
       }
 
-  //     const waitForInputs = executeComIdToInputCountMap[comId] > 1
-
-  //     if (waitForInputs) {
-  //       if (!promiseComponentsMap[comId]) {
-  //         promiseComponentsMap[comId] = [pinId]
-  //       } else {
-  //         promiseComponentsMap[comId].push(pinId)
-  //       }
-  //       return `${comId}_${convertToUnderscore(pinId)}.resolve`
-  //     }
-
       
+
       /** 
        * 只有计算组件，在有多个输入项的情况下，会全部展示出来
        * 每个输入项，只能被连接一次（否则，所有组件都需要提前声明了）
        */
       const { inputs } = component
-      const componentOutputs = executeIdToOutputsMap[comId]
+      const componentOutputs = executeIdToNextMap[comId]
 
       if (!importComponentIdMap[comId]) {
         importComponentIdMap[comId] = true
@@ -1427,7 +1605,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
         return `
           /** ${component.title} - ${comId} */
           render_${convertToUnderscore(component.def.namespace)}_${comId}();
-
           /** 执行 ${component.title} - ${comId} - ${pinId} */
           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
         `
@@ -1443,7 +1620,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
               ${Object.keys(componentOutputs).map((outputId) => {
                 return `
                   ${outputId}(value: unknown) {
-                    ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+                    ${generateNextEventCode2(componentOutputs[outputId], { executeIdToNextMap })}
                   }
                 `
               })}
@@ -1463,7 +1640,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           ${Object.keys(componentOutputs).map((outputId) => {
             return `
               ${outputId}(value: unknown) {
-                ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
+                ${generateNextEventCode2(componentOutputs[outputId], { executeIdToNextMap })}
               }
             `
           })}
@@ -1472,10 +1649,11 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
         /** 执行 ${component.title} - ${comId} - ${pinId} */
         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
       `
-    }).join('\n')
+    }).join("\n")
   }
 
-  const eventCode = generateNextEventCode(executeIdToOutputsMap[starter.comId][starter.pinId], { executeIdToOutputsMap, executeComIdToInputCountMap })
+  const eventCode = generateNextEventCode2(executeIdToNextMap[starter.comId][starter.pinId], { executeIdToNextMap })
+
   // 有状态版本
   // const functionCode = `
   //     /** ${component.title} - ${comId} - ${pinId} 事件 */

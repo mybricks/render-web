@@ -49,6 +49,9 @@ export interface Frame {
           id: string;
         }
       }
+      /** 相同实例的节点，才会有以下信息，用于连接输入和输出 */
+      finishPinParentKey?: string;
+      startPinParentKey?: string;
     }>
   }>
 }

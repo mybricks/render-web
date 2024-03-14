@@ -1,6 +1,9 @@
 /** TODO: 组件库来源 现在是临时的 */
 import type { ReactNode } from "react";
 
+// @ts-ignore
+import comlibCore from "@mybricks/comlib-core";
+
 export type ComponentDefinitionMap = {
   [key: string]: {
     namespace: string;
@@ -157,6 +160,15 @@ export function getComponentDefinition() {
     Reflect.deleteProperty(window, "fangzhouComDef");
   if (Reflect.has(window, "MybricksComDef"))
     Reflect.deleteProperty(window, "MybricksComDef");
+
+  /** 引擎自带的组件库 */
+  comlibCore.comAray.forEach(({ namespace, version, runtime }: any) => {
+    componentDefinitionMap[`${namespace}-${version}`] = {
+      namespace,
+      version,
+      runtime,
+    };
+  });
 
   return componentDefinitionMap;
 }
