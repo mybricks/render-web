@@ -198,7 +198,7 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
     SceneCodeArray.push(...generateComponentCode(comAry, { scene, frame, filePath: scenePath }))
   }
 
-  let replaceImportComponent = "";
+  const replaceImportComponents = new Set<string>();
   let replaceRenderComponent = "";
   let replaceFunction = ''
 
@@ -206,8 +206,11 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
 
     if (events) {
-      events.forEach(({ codeAry, functionCode, importComponent }: any) => {
-        replaceImportComponent = replaceImportComponent + importComponent
+      events.forEach(({ codeAry, functionCode, importComponents }: any) => {
+        importComponents.forEach((importComponent: string) => {
+          replaceImportComponents.add(importComponent)
+        })
+
         replaceFunction = replaceFunction + functionCode
         tsxArray.push(...codeAry)
       })
@@ -216,7 +219,7 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
     replaceRenderComponent = replaceRenderComponent + renderComponent + "\n";
 
     if (importComponent) {
-      replaceImportComponent = replaceImportComponent + importComponent
+      replaceImportComponents.add(importComponent)
       tsxArray.push({
         code: componentCode,
         filePath,
@@ -250,10 +253,12 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
 
         if (!next) {
           // 当前文件需要import该组件
-          replaceImportComponent = replaceImportComponent + importComponent
+          replaceImportComponents.add(importComponent)
           if (events) {
-            events.forEach(({ codeAry, functionCode, importComponent }: any) => {
-              replaceImportComponent = replaceImportComponent + importComponent
+            events.forEach(({ codeAry, functionCode, importComponents }: any) => {
+              importComponents.forEach((importComponent: string) => {
+                replaceImportComponents.add(importComponent)
+              })
               replaceFunction = replaceFunction + functionCode
             })
           }
@@ -264,12 +269,11 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
       }
     })
   }
-
   const componentCode = `import React from "react";
 
     import globalContext from "@/globalContext";
 
-    ${replaceImportComponent}
+    ${Array.from(replaceImportComponents).join("")}
 
     import css from "@/scenes/index.less"
 
@@ -354,7 +358,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
   const events: Array<{
     codeAry: Array<{code: string, filePath: string}>
     functionCode: string
-    importComponent: string
+    importComponents: Array<string>
   }> = []
 
   outputs.forEach((outputId) => {
@@ -373,20 +377,16 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     }
   });
 
-  let replaceImportComponent = "";
+  const replaceImportComponents = new Set<string>();
   let replaceSlots = "";
 
-  const slotComponents: any = [];
+  const slotComponents: any = [];// 
 
-  // TODO: 组件插槽处理
   if (slots) {
     Object.entries(slots).forEach(([key, slot]) => {
       const result = generateSlotComponentCode(slot, { filePath, frame, scene });
-
       slotComponents.push(result);
-
-      replaceImportComponent =
-        replaceImportComponent + result.importComponent + "\n";
+      replaceImportComponents.add(result.importComponent)
       replaceSlots =
         replaceSlots +
         `case "${key}":
@@ -416,7 +416,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
 
   const componentCode = `import React, { useMemo } from "react";
 
-  ${replaceImportComponent}
+  ${Array.from(replaceImportComponents).join("")}
 
   import globalContext from "@/globalContext";
   import { sceneContext } from "@/scenes/scene_${sceneId}";
@@ -607,7 +607,7 @@ function getComponentStyle(style: any) {
 /** 插槽的style */
 function calSlotStyles(style: any) {
   Reflect.deleteProperty(style, "layout");
-  // TODO
+  // TODO: 这里观察一下
 
 
   Reflect.deleteProperty(style, "height");
@@ -940,20 +940,22 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
     slotComponents.push(...generateComponentCode(comAry, { scene, frame, filePath: filePath }))
   }
 
-  let replaceImportComponent = "";
+  const replaceImportComponents = new Set<string>();
   let replaceRenderComponent = "";
   let replaceFunction = "";
 
   function deepSlots(slots: any, next = 0) {
     slots.forEach((slot: any) => {
-      const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = slot
+      const { importComponents, importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = slot
       if (!next) {
         replaceRenderComponent = replaceRenderComponent + renderComponent + "\n";
       }
       if (importComponent) {
-        replaceImportComponent = replaceImportComponent + importComponent+ "\n";
-        events?.forEach(({ functionCode, importComponent }: any) => {
-          replaceImportComponent = replaceImportComponent + importComponent
+        replaceImportComponents.add(importComponent)
+        events?.forEach(({ functionCode, importComponents }: any) => {
+          importComponents.forEach((importComponent: string) => {
+            replaceImportComponents.add(importComponent)
+          })
           replaceFunction = replaceFunction + functionCode
         })
       } else if (codeArray) {
@@ -968,7 +970,7 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
 
   import { sceneContext } from "@/scenes/scene_${scene.id}";
 
-  ${replaceImportComponent}
+  ${Array.from(replaceImportComponents).join("")}
 
   import css from "@/scenes/index.less"
 
@@ -1006,7 +1008,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
    * 事件卡片一定只有一个开头
    * 已知启始节点
    */
-  let replaceImportComponent = ''
+  const importComponents = new Set<string>()
   const tsxArray: any = []
   const { coms, pinRels } = scene
   const { starter, conAry } = diagram
@@ -1023,7 +1025,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
 
         }
       `,
-      importComponent: replaceImportComponent,
+      importComponents: [],
     }
   }
 
@@ -1116,8 +1118,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           scene
         });
 
-        replaceImportComponent =
-        replaceImportComponent + importComponent + "\n";
+        importComponents.add(importComponent)
 
         tsxArray.push({
           code: componentCode,
@@ -1206,6 +1207,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
   return {
     codeAry: tsxArray,
     functionCode,
-    importComponent: replaceImportComponent,
+    importComponents: Array.from(importComponents),
   }
 }

@@ -17,6 +17,8 @@ export interface Frame {
   id: string;
   /** 逻辑编排卡片信息列表 */
   diagrams: Array<{
+    /** 场景卡片名称（没什么用） */
+    title: string;
     starter: {
       /** 类型 */
       type: string; // TODO: 稍后看是否要修改 "com" | "xxx"
