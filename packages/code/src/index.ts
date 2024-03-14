@@ -199,8 +199,32 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
   }
 
   const replaceImportComponents = new Set<string>();
+  const replaceUseReactHooks = new Set<string>();
   let replaceRenderComponent = "";
-  let replaceFunction = ''
+  let replaceFunction = "";
+  let replaceUseEffect = "";
+
+  const { diagrams } = frame
+
+  /** TODO: 引擎会提供特殊的标识来识别场景卡片 - 这里是场景打开，写到react生命周期中 */
+  const useEffectDiagram = diagrams.find((diagram) => diagram.title === "主场景")
+  if (useEffectDiagram) {
+    const { codeAry, functionCode, importComponents } = generateEventCode({...useEffectDiagram!, starter: { comId: scene.id, pinId: 'open', type: 'frame'}}, { scene, filePath: scenePath })
+    if (functionCode) {
+      importComponents.forEach((importComponent) => {
+        replaceImportComponents.add(importComponent)
+      })
+      tsxArray.push(...codeAry)
+      replaceUseEffect = `
+        useEffect(() => {
+          const value = undefined;
+          ${functionCode}
+        }, [])
+      `
+      replaceUseReactHooks.add("useEffect")
+    }
+  }
+  
 
   SceneCodeArray.forEach((item) => {
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
@@ -269,7 +293,7 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
       }
     })
   }
-  const componentCode = `import React from "react";
+  const componentCode = `import React, { ${Array.from(replaceUseReactHooks).join()} } from "react";
 
     import globalContext from "@/globalContext";
 
@@ -283,6 +307,7 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
 
     /** ${title} */
     export function Scene_${id} () {
+      ${replaceUseEffect}
       return <div className={\`slot ${calSlotClasses(style).reduce(
         (p, c) => (p ? p + ` \${${c}}` : `\${${c}}`),
         "",
@@ -1002,33 +1027,9 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
   };
 }
 
-/** 处理UI组件事件 - 卡片 */
-function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath }: { scene: ToBaseJSON, filePath: string}) {
-  /** 
-   * 事件卡片一定只有一个开头
-   * 已知启始节点
-   */
-  const importComponents = new Set<string>()
-  const tsxArray: any = []
-  const { coms, pinRels } = scene
-  const { starter, conAry } = diagram
-  const { comId, pinId } = starter
-  const component = coms[comId]
-
-  if (!conAry.length) {
-    /** 没有连线信息 */
-    return {
-      codeAry: [],
-      functionCode: `
-        /** ${component.title} - ${comId} - ${pinId} 事件 */
-        function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
-
-        }
-      `,
-      importComponents: [],
-    }
-  }
-
+/** 事件卡片 、 主场景 代码生成 */
+function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath }: { scene: ToBaseJSON, filePath: string }) {
+  const { conAry, starter } = diagram
   const executeIdToNextMap: any = {}
   conAry.forEach((con) => {
     const { from, to, finishPinParentKey, startPinParentKey } = con
@@ -1054,6 +1055,49 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
       startPinParentKey
     })
   })
+
+  const { codeAry, eventCode, importComponents } = generateEventInternalCode(diagram, { scene, filePath: parentFilePath, executeIdToNextMap })
+
+  const { type } = starter
+  if (type === "com") {
+    const { comId, pinId } = starter
+    const component = scene.coms[comId]
+    return {
+      codeAry,
+      importComponents,
+      functionCode: `
+        /** ${component.title} - ${comId} - ${pinId} 事件 */
+        function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
+          ${eventCode}
+        }
+      `
+    }
+  } else if (type === "frame") {
+    return {
+      codeAry,
+      functionCode: eventCode,
+      importComponents
+    }
+  }
+
+
+  return {
+    codeAry: [],
+    functionCode: "",
+    importComponents: []
+  }
+}
+
+/** 卡片内部逻辑 - 通用 */
+function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath, executeIdToNextMap }: { scene: ToBaseJSON, filePath: string, executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}}}) {
+  /** 
+   * 事件卡片一定只有一个开头
+   * 已知启始节点
+   */
+  const importComponents = new Set<string>()
+  const tsxArray: any = []
+  const { coms, pinRels } = scene
+  const { starter } = diagram
 
   /** 记录已经import进来的组件ID */
   const importComponentIdMap: {[key: string]: true} = {}
@@ -1193,20 +1237,16 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
     }).join("\n")
   }
 
-  const eventCode = generateNextEventCode2(executeIdToNextMap[starter.comId][starter.pinId], { executeIdToNextMap })
+  const nexts = executeIdToNextMap[starter.comId]?.[starter.pinId]
+  const eventCode = nexts && generateNextEventCode2(nexts, { executeIdToNextMap })
 
-  // 无状态版本
-  const functionCode = `
-      /** ${component.title} - ${comId} - ${pinId} 事件 */
-      function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
-        ${topComponent.join("\n")}
-
-        ${eventCode}
-      }
-  `
   return {
     codeAry: tsxArray,
-    functionCode,
+    eventCode: eventCode ? `
+      ${topComponent.join("\n")}
+
+      ${eventCode}
+    ` : "",
     importComponents: Array.from(importComponents),
   }
 }
