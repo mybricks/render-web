@@ -201,8 +201,6 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
   let replaceImportComponent = "";
   let replaceRenderComponent = "";
   let replaceFunction = ''
-  let replaceFunctionUtils = ''
-  let replaceGlobalContext = 'import globalContext from "@/globalContext"'
 
   SceneCodeArray.forEach((item) => {
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
@@ -945,7 +943,6 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
   let replaceImportComponent = "";
   let replaceRenderComponent = "";
   let replaceFunction = "";
-  let replaceFunctionUtils = "";
 
   function deepSlots(slots: any, next = 0) {
     slots.forEach((slot: any) => {
@@ -967,10 +964,10 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
 
   deepSlots(slotComponents)
 
-  // TODO generateUiComponentCode 应该再给出connection信息
   const componentCode = `import React from "react";
 
-  ${replaceFunctionUtils}
+  import { sceneContext } from "@/scenes/scene_${scene.id}";
+
   ${replaceImportComponent}
 
   import css from "@/scenes/index.less"
