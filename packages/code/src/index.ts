@@ -846,11 +846,8 @@ function generateJsComponentCode({
   const componentFunctionName = `render_${convertToUnderscore(
     componentFolderName,
   )}`;
-  const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
-  const propsCode = `props?: {${outputs.map((outputId) => `${outputId}?: (value?: unknown) => void`).join(";")};[key: string | symbol]: any;}`
-  
-
-  
+    const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
+    const propsCode = `props?: {${outputs.length ? outputs.map((outputId) => `${outputId}?: (value?: unknown) => void`).join(";"): ""} [key: string | symbol]: any}`
     const multipleInputIdMap: {[key: string]: Array<string>} = {}
     inputs.forEach((inputId) => {
       const [realInputId, paramId] = inputId.split(".")
