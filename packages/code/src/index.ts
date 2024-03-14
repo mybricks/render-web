@@ -15,7 +15,7 @@ async function prettierFormatBabelTS(code: string) {
  * 当前仅考虑 多场景 toJSON.scenes
  */
 export async function generateCode(toJSON: ToJSON) {
-  /** 临时工程代码存放地址 */
+  /** TODO: 临时工程代码存放地址 */
   const tempProjectPath = path.resolve(__dirname, "tmp/react2");
   fse.emptyDirSync(tempProjectPath)
   // const tempProjectPath = path.resolve(__dirname, `tmp/${Math.random()}`);
@@ -34,10 +34,6 @@ export async function generateCode(toJSON: ToJSON) {
     "src/globalContext/index.ts",
   );
   /** 全局上下文代码 */
-  // const globalContextCode = generateGlobalContextCode({
-  //   code: fse.readFileSync(globalContextPath, "utf-8"),
-  //   scenes,
-  // });
   const globalContextCode = await prettierFormatBabelTS(generateGlobalContextCode({
     code: fse.readFileSync(globalContextPath, "utf-8"),
     scenes,
@@ -48,7 +44,6 @@ export async function generateCode(toJSON: ToJSON) {
 
 
   /** 导出场景入口代码 */
-  // const scenesIndexCode = generateScenesIndexCode({scenes});
   const scenesIndexCode = await prettierFormatBabelTS(generateScenesIndexCode({scenes}));
   /** 写入导出场景入口代码 */
   fse.writeFileSync(
@@ -59,7 +54,6 @@ export async function generateCode(toJSON: ToJSON) {
 
 
   /** 应用入口代码 */
-  // const appCode = generateAppCode({ scenes });
   const appCode = await prettierFormatBabelTS(generateAppCode({ scenes }));
   /** 写入应用入口代码 */
   fse.writeFileSync(
@@ -78,20 +72,6 @@ export async function generateCode(toJSON: ToJSON) {
    */
   const tsxArray = generateSceneTsxCode({ scenes, frames });
   /** 写入场景代码 */
-  // tsxArray.forEach(({ filePath, code }) => {
-  //   const absoluteFilePath = path.resolve(
-  //     tempProjectPath,
-  //     `src/scenes/${filePath}`,
-  //   );
-  //   fse.ensureDirSync(path.dirname(absoluteFilePath));
-  //   fse.writeFileSync(
-  //     path.resolve(tempProjectPath, absoluteFilePath),
-  //     code,
-  //     "utf-8",
-  //   );
-  // });
-
-
   await Promise.all(tsxArray.map(async ({ filePath, code }) => {
     const absoluteFilePath = path.resolve(
       tempProjectPath,
@@ -105,9 +85,6 @@ export async function generateCode(toJSON: ToJSON) {
       "utf-8",
     );
   }));
-
-  /** 美化代码 */
-  // execSync(`npx prettier --write ${tempProjectPath}`);
 }
 
 /**
@@ -173,7 +150,7 @@ function generateAppCode({ scenes }: { scenes: ToBaseJSON[] }) {
       <>
       ${scenes.reduce(
         (p, c) =>
-          p + `{/* ${c.title} */}\n{scenesMap['${c.id}'] && <Scene_${c.id} />}`,
+          p + `{/* ${c.title} */}\n{scenesMap['${c.id}'].show && <Scene_${c.id} />}`,
         "",
       )}
       </>
@@ -231,16 +208,10 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
 
     if (events) {
-      events.forEach(({ codeAry, functionCode, importComponent, useAsyncPipe, useGlobalContext }: any) => {
+      events.forEach(({ codeAry, functionCode, importComponent }: any) => {
         replaceImportComponent = replaceImportComponent + importComponent
         replaceFunction = replaceFunction + functionCode
         tsxArray.push(...codeAry)
-        if (useAsyncPipe) {
-          replaceFunctionUtils = 'import { asyncPipe, createPromise } from "@/utils";'
-        }
-        if (useGlobalContext) {
-          replaceGlobalContext = 'import globalContext from "@/globalContext";'
-        }
       })
     }
 
@@ -283,16 +254,9 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
           // 当前文件需要import该组件
           replaceImportComponent = replaceImportComponent + importComponent
           if (events) {
-            events.forEach(({ codeAry, functionCode, importComponent, useAsyncPipe, useGlobalContext }: any) => {
+            events.forEach(({ codeAry, functionCode, importComponent }: any) => {
               replaceImportComponent = replaceImportComponent + importComponent
               replaceFunction = replaceFunction + functionCode
-             
-              if (useAsyncPipe) {
-                replaceFunctionUtils = 'import { asyncPipe, createPromise } from "@/utils";'
-              }
-              if (useGlobalContext) {
-                replaceGlobalContext = 'import globalContext from "@/globalContext";'
-              }
             })
           }
         }
@@ -305,11 +269,13 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
 
   const componentCode = `import React from "react";
 
-    ${replaceGlobalContext}
-    ${replaceFunctionUtils}
+    import globalContext from "@/globalContext";
+
     ${replaceImportComponent}
 
     import css from "@/scenes/index.less"
+
+    export const sceneContext = globalContext.getScene("${id}");
 
     ${replaceFunction}
 
@@ -455,6 +421,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
   ${replaceImportComponent}
 
   import globalContext from "@/globalContext";
+  import { sceneContext } from "@/scenes/scene_${sceneId}";
   import { observable } from "@/observable";
 
   import css from "@/scenes/index.less";
@@ -499,14 +466,13 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
       const style = observable(${JSON.stringify(style)});
       ${slots ? replaceSlots : ""}
 
-      globalContext.scenesMap["${sceneId}"].componentPropsMap["${id}"] = {
+      sceneContext.setComponent("${id}", {
         data,
         style,
-        inputs,
+        inputs: _inputRegs,
         outputs,
-        _inputRegs,
         ${slots ? "slots" : ""}
-      };
+      })
 
       return {
         data,
@@ -833,8 +799,8 @@ function generateJsComponentCode({
   comId: string;
   filePath: string;
   scene: ToBaseJSON
-}, { inputs: propsInputs, outputs: propsOutputs }: { inputs: Array<string>, outputs: Array<string> }) {
-  const { coms, pinRels } = scene
+}) {
+  const { coms } = scene
   const {
     title,
     def: { namespace, version },
@@ -847,7 +813,7 @@ function generateJsComponentCode({
     componentFolderName,
   )}`;
     const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
-    const propsCode = `props?: {${outputs.length ? outputs.map((outputId) => `${outputId}?: (value?: unknown) => void`).join(";"): ""} [key: string | symbol]: any}`
+    const propsCode = `props?: {${outputs.length ? outputs.map((outputId) => `${outputId}?: (value?: unknown) => void`).join(";") + ";": ""} [key: string | symbol]: any}`
     const multipleInputIdMap: {[key: string]: Array<string>} = {}
     inputs.forEach((inputId) => {
       const [realInputId, paramId] = inputId.split(".")
@@ -902,48 +868,9 @@ function generateJsComponentCode({
         })}
       };
     `
-
-  // const pidx = pinId.indexOf('.')
-  //   const result = {
-  //     pinId,
-  //     value,
-  //     isReady: true,
-  //     isMultipleInput: false,
-  //     cb: null
-  //   }
-  //   if (component && pidx !== -1) {
-  //     const valueBarrierKey = component.id + `${curScope?.id ? `-${curScope.id}` : ''}`
-  //     // 多输入
-  //     const { inputs } = component
-  //     const finalPinId = pinId.substring(0, pidx)
-  //     result.pinId = finalPinId
-  //     const paramId = pinId.substring(pidx + 1)
-  //     let barrier = _valueBarrier[valueBarrierKey]
-  //     if (!barrier) {
-  //       barrier = _valueBarrier[valueBarrierKey] = {}
-  //     }
-  //     barrier[paramId] = val
-  //     const regExp = new RegExp(`${finalPinId}.`)
-  //     const allPins: string[] = inputs.filter((pin: string) => {
-  //       return !!pin.match(regExp)
-  //     })
-
-  //     if (Object.keys(barrier).length === allPins.length) {
-  //       // 多输入全部到达
-  //       result.value = barrier
-  //       result.isMultipleInput = true
-  //       result.cb = () => {
-  //         Reflect.deleteProperty(_valueBarrier, valueBarrierKey)
-  //       }
-  //     } else {
-  //       result.isReady = false
-  //     }
-
-  // const _inputRegs: {
-  //   [key: string | symbol]: (value: unknown) => void;
-  // } = {};
   
   const componentCode = `import globalContext from "@/globalContext";
+  import { sceneContext } from "@/scenes/scene_${scene.id}";
 
     /** 原子组件代码 */
     const runtime = globalContext.getComponentDefinition({
@@ -953,7 +880,7 @@ function generateJsComponentCode({
 
     /** ${title} */
     export function render_${convertToUnderscore(namespace)}_${id}(${propsCode}) {
-      if (!globalContext.scenesMap["${scene.id}"].componentPropsMap["${id}"]) {
+      if (!sceneContext.getComponent("id")) {
         ${inputRegs}
         const outputs = new Proxy(
           {},
@@ -986,12 +913,11 @@ function generateJsComponentCode({
 
         runtime({ env: globalContext.env, inputs, outputs, data });
 
-        globalContext.scenesMap["${scene.id}"].componentPropsMap["${id}"] = {
-          _inputRegs,
-          inputs,
+        sceneContext.setComponent("${id}", {
+          inputs: _inputRegs,
           outputs,
           data,
-        }
+        });
       }
     }
   `
@@ -1029,12 +955,9 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
       }
       if (importComponent) {
         replaceImportComponent = replaceImportComponent + importComponent+ "\n";
-        events?.forEach(({ functionCode, importComponent, useAsyncPipe }: any) => {
+        events?.forEach(({ functionCode, importComponent }: any) => {
           replaceImportComponent = replaceImportComponent + importComponent
           replaceFunction = replaceFunction + functionCode
-          if (useAsyncPipe) {
-            replaceFunctionUtils = 'import { asyncPipe, createPromise } from "@/utils";'
-          }
         })
       } else if (codeArray) {
         deepSlots(codeArray, 1)
@@ -1088,8 +1011,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
    */
 
   const tsxArray: any = []
-  let useAsyncPipe = false
-  let useGlobalContext = false
 
   let replaceImportComponent = ''
 
@@ -1111,8 +1032,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
         }
       `,
       importComponent: replaceImportComponent,
-      useAsyncPipe,
-      useGlobalContext
     }
   }
 
@@ -1180,196 +1099,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
     })
   })
 
-  /** 需要等待的组件输入列表 */
-  // const promiseComponentsMap: {[key: string]: Array<string>} = {}
-
-  // 有状态版本
-  // const generateNextEventCode = (
-  //   nexts: Array<{comId: string, pinId: string}> | {comId: string, pinId: string},
-  //   { executeIdToOutputsMap, executeComIdToInputCountMap }: { executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}}, executeComIdToInputCountMap: {[key: string]: number} }
-  // ): string => {
-  //   if (Array.isArray(nexts)) {
-  //     return nexts.map(({ comId, pinId }) => {
-  //       const component = coms[comId]
-  //       if (!component.def.rtType) {
-  //         useGlobalContext = true
-  //         /** ui组件、单输入，在连线过程中一定是依赖pinRels来输出的 */
-  //         const nextRels = pinRels[`${comId}-${pinId}`]
-  //         if (!nextRels) {
-  //           // 没有下一步，直接输出
-  //           return `
-  //           /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value)`
-  //         } else {
-  //           return `
-  //           /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value, {
-  //             ${nextRels.map((outputId) => {
-  //               const nexts = executeIdToOutputsMap[comId]?.[outputId]
-  //               if (nexts) {
-  //                 return `${outputId}(value: unknown) {
-  //                   ${generateNextEventCode(nexts, { executeIdToOutputsMap, executeComIdToInputCountMap })}
-  //                 }`
-  //               } else {
-  //                 return `${outputId}() {}`
-  //               }
-  //             })}
-  //           })`
-  //         }
-  //       }
-  //       const waitForInputs = executeComIdToInputCountMap[comId] > 1
-
-  //       if (waitForInputs) {
-  //         if (!promiseComponentsMap[comId]) {
-  //           promiseComponentsMap[comId] = [pinId]
-  //         } else {
-  //           promiseComponentsMap[comId].push(pinId)
-  //         }
-  //         return `${comId}_${convertToUnderscore(pinId)}.resolve(value)`
-  //       }
-  //       const componentOutputs = executeIdToOutputsMap[comId]
-
-  //       if (!componentOutputs) {
-  //         /** 没有下一步，直接执行就结束了 */
-  //         const {
-  //           importComponent,
-  //           filePath,
-  //           componentCode,
-  //         } = generateJsComponentCode({
-  //           comId: comId,
-  //           filePath: parentFilePath,
-  //           scene
-  //         }, { inputs: [pinId], outputs: [] });
-  
-  //         replaceImportComponent =
-  //           replaceImportComponent + importComponent + "\n";
-  
-  //         tsxArray.push({
-  //           code: componentCode,
-  //           filePath,
-  //         });
-  //         return `
-  //           /** ${component.title} - ${comId} */
-  //           render_${convertToUnderscore(component.def.namespace)}_${comId}(value)
-  //         `
-  //       }
-  //       const outputIds = Object.keys(componentOutputs)
-
-  //       const {
-  //         importComponent,
-  //         filePath,
-  //         componentCode,
-  //       } = generateJsComponentCode({
-  //         comId: comId,
-  //         filePath: parentFilePath,
-  //         scene
-  //       }, { inputs: [pinId], outputs: outputIds });
-
-  //       replaceImportComponent =
-  //         replaceImportComponent + importComponent + "\n";
-
-  //       tsxArray.push({
-  //         code: componentCode,
-  //         filePath,
-  //       });
-
-  //       return `
-  //         /** ${component.title} - ${comId} */
-  //         render_${convertToUnderscore(component.def.namespace)}_${comId}({
-  //           ${Object.keys(componentOutputs).map((outputId) => {
-  //             return `
-  //               ${outputId}(value: unknown) {
-  //                 ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-  //               }
-  //             `
-  //           })}
-  //         })(value)
-  //       `
-  //     }).join('\n')
-  //   } else {
-  //     /** 目前的实现 应该不会走到这里面来了 */
-  //     const { comId, pinId } = nexts
-  //     const component = coms[comId]
-  //     if (!component.def.rtType) {
-  //       return `"还未实现"`
-  //     }
-      
-  //     const waitForInputs = executeComIdToInputCountMap[comId] > 1
-
-  //     if (waitForInputs) {
-  //       if (!promiseComponentsMap[comId]) {
-  //         promiseComponentsMap[comId] = [pinId]
-  //       } else {
-  //         promiseComponentsMap[comId].push(pinId)
-  //       }
-  //       return `${comId}_${convertToUnderscore(pinId)}.resolve`
-  //     }
-      
-  //     const componentOutputs = executeIdToOutputsMap[comId]
-
-  //     if (!componentOutputs) {
-  //       /** 没有下一步，直接执行就结束了 */
-  //       const {
-  //         importComponent,
-  //         filePath,
-  //         componentCode,
-  //       } = generateJsComponentCode({
-  //         comId: comId,
-  //         filePath: parentFilePath,
-  //         scene
-  //       }, { inputs: [pinId], outputs: [] });
-
-  //       replaceImportComponent =
-  //         replaceImportComponent + importComponent + "\n";
-
-  //       tsxArray.push({
-  //         code: componentCode,
-  //         filePath,
-  //       });
-  //       return `
-  //         /** ${component.title} - ${comId} */
-  //         render_${convertToUnderscore(component.def.namespace)}_${comId}
-  //       `
-  //     }
-
-  //     const outputIds = Object.keys(componentOutputs)
-
-  //     // 开分支
-  //     const {
-  //       importComponent,
-  //       filePath,
-  //       componentCode,
-  //     } = generateJsComponentCode({
-  //       comId: comId,
-  //       filePath: parentFilePath,
-  //       scene
-  //     }, { inputs: [pinId], outputs: outputIds });
-
-  //     replaceImportComponent =
-  //       replaceImportComponent + importComponent + "\n";
-
-  //     tsxArray.push({
-  //       code: componentCode,
-  //       filePath,
-  //     });
-
-  //     return `
-  //       /** ${component.title} - ${comId} */
-  //       render_${convertToUnderscore(component.def.namespace)}_${comId}({
-  //         ${Object.keys(componentOutputs).map((outputId) => {
-  //           return `
-  //             ${outputId}(value: unknown) {
-  //               ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-  //             }
-  //           `
-  //         })}
-  //       })
-  //     `
-  //   }
-  // }
-
-
-
   /** 记录已经import进来的组件ID */
   const importComponentIdMap: {[key: string]: true} = {}
   /** 顶部执行的组件列表 */
@@ -1377,163 +1106,26 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
   /** 记录已经在顶部执行的组件ID */
   const topComponentIdMap: {[key: string]: true} = {}
 
-
-  // 无状态版本
-  // const generateNextEventCode = (
-  //   nexts: Array<{comId: string, pinId: string}>,
-  //   { executeIdToOutputsMap, executeComIdToInputCountMap }: { executeIdToOutputsMap: {[key: string]: {[key: string]: Array<{comId: string,pinId: string}>}}, executeComIdToInputCountMap: {[key: string]: number} }
-  // ): string => {
-  //   return nexts.map(({ comId, pinId }) => {
-  //     const component = coms[comId]
-  //     if (!component.def.rtType) {
-  //       /** 目前ui组件没有多输入的情况 */
-  //       useGlobalContext = true
-  //       /** ui组件、单输入，在连线过程中一定是依赖pinRels来输出的 */
-  //       const nextRels = pinRels[`${comId}-${pinId}`]
-  //       if (!nextRels) {
-  //         // 没有下一步，直接输出
-  //         return `
-  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value)`
-  //       } else {
-  //         return `
-  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value, {
-  //           ${nextRels.map((outputId) => {
-  //             const nexts = executeIdToOutputsMap[comId]?.[outputId]
-  //             if (nexts) {
-  //               return `${outputId}(value: unknown) {
-  //                 ${generateNextEventCode(nexts, { executeIdToOutputsMap, executeComIdToInputCountMap })}
-  //               }`
-  //             } else {
-  //               return `${outputId}() {}`
-  //             }
-  //           })}
-  //         })`
-  //       }
-  //     }
-      
-  //     /** 
-  //      * 只有计算组件，在有多个输入项的情况下，会全部展示出来
-  //      * 每个输入项，只能被连接一次（否则，所有组件都需要提前声明了）
-  //      */
-  //     const { inputs } = component
-  //     const componentOutputs = executeIdToOutputsMap[comId]
-
-  //     if (!importComponentIdMap[comId]) {
-  //       importComponentIdMap[comId] = true
-  //       /** 没有导入过的组件 */
-  //       const {
-  //         importComponent,
-  //         filePath,
-  //         componentCode,
-  //       } = generateJsComponentCode({
-  //         comId: comId,
-  //         filePath: parentFilePath,
-  //         scene
-  //       }, { inputs: [pinId], outputs: [] });
-
-  //       replaceImportComponent =
-  //       replaceImportComponent + importComponent + "\n";
-
-  //       tsxArray.push({
-  //         code: componentCode,
-  //         filePath,
-  //       });
-  //     }
-
-  //     if (!componentOutputs) {
-  //       /** 没有下一步，直接执行就结束了 */
-  //       if (inputs.length > 1) {
-  //         if (!topComponentIdMap[comId]) {
-  //           topComponentIdMap[comId] = true
-  //           /** 输入项大于1，说明需要把函数提前执行 */
-  //           topComponent.push(`
-  //             /** ${component.title} - ${comId} */
-  //             render_${convertToUnderscore(component.def.namespace)}_${comId}();
-  //           `)
-  //         }
-  //         return `
-  //           /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //           globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
-  //         `
-  //       }
-
-  //       return `
-  //         /** ${component.title} - ${comId} */
-  //         render_${convertToUnderscore(component.def.namespace)}_${comId}();
-
-  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
-  //       `
-  //     }
-
-  //     if (inputs.length > 1) {
-  //       if (!topComponentIdMap[comId]) {
-  //         topComponentIdMap[comId] = true
-  //         /** 输入项大于1，说明需要把函数提前执行 */
-  //         topComponent.push(`
-  //           /** ${component.title} - ${comId} */
-  //           render_${convertToUnderscore(component.def.namespace)}_${comId}({
-  //             ${Object.keys(componentOutputs).map((outputId) => {
-  //               return `
-  //                 ${outputId}(value: unknown) {
-  //                   ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-  //                 }
-  //               `
-  //             })}
-  //           })
-  //         `)
-  //       }
-
-  //       return `
-  //         /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //         globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
-  //       `
-  //     }
-
-  //     return `
-  //       /** ${component.title} - ${comId} */
-  //       render_${convertToUnderscore(component.def.namespace)}_${comId}({
-  //         ${Object.keys(componentOutputs).map((outputId) => {
-  //           return `
-  //             ${outputId}(value: unknown) {
-  //               ${generateNextEventCode(componentOutputs[outputId], { executeIdToOutputsMap, executeComIdToInputCountMap })}
-  //             }
-  //           `
-  //         })}
-  //       })
-
-  //       /** 执行 ${component.title} - ${comId} - ${pinId} */
-  //       globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
-  //     `
-  //   }).join('\n')
-  // }
-
-  // const eventCode = generateNextEventCode(executeIdToOutputsMap[starter.comId][starter.pinId], { executeIdToOutputsMap, executeComIdToInputCountMap })
-
   const generateNextEventCode2 = (
     nexts: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>,
     { executeIdToNextMap }: { executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}} }
   ): string => {
-    return nexts.map(({ comId, pinId, finishPinParentKey, startPinParentKey }) => {
+    return nexts.map(({ comId, pinId, finishPinParentKey }) => {
       const component = coms[comId]
       if (!component.def.rtType || component.def.namespace === "mybricks.core-comlib.var") {
         /** 变量组件的特殊处理 */
-
         /** 目前ui组件没有多输入的情况 */
-        useGlobalContext = true
         /** ui组件、单输入，在连线过程中一定是依赖pinRels来输出的 */
         const nextRels = pinRels[`${comId}-${pinId}`]
         if (!nextRels) {
           // 没有下一步，直接输出
           return `
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value)`
+          sceneContext.getComponent("${comId}").inputs["${pinId}"](value)`
         } else {
           return `
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value, {
+          sceneContext.getComponent("${comId}").inputs["${pinId}"](value, {
             ${nextRels.map((outputId) => {
               let nexts = executeIdToNextMap[comId]?.[outputId]
               if (nexts) {
@@ -1571,7 +1163,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           comId: comId,
           filePath: parentFilePath,
           scene
-        }, { inputs: [pinId], outputs: [] });
+        });
 
         replaceImportComponent =
         replaceImportComponent + importComponent + "\n";
@@ -1595,7 +1187,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           }
           return `
             /** 执行 ${component.title} - ${comId} - ${pinId} */
-            globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+            sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
           `
         }
 
@@ -1603,7 +1195,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
           /** ${component.title} - ${comId} */
           render_${convertToUnderscore(component.def.namespace)}_${comId}();
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+          sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
         `
       }
 
@@ -1627,7 +1219,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
 
         return `
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+          sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
         `
       }
 
@@ -1644,7 +1236,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
         })
 
         /** 执行 ${component.title} - ${comId} - ${pinId} */
-        globalContext.scenesMap["${scene.id}"].componentPropsMap["${comId}"]._inputRegs["${pinId}"](value);
+        sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
       `
     }).join("\n")
   }
@@ -1701,8 +1293,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
   //           })
   //         `
 
-  //         useAsyncPipe = true
-
   //         return `
   //           asyncPipe(
   //             /** 等待 ${component.title} 多输入到达 */
@@ -1730,7 +1320,5 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
     codeAry: tsxArray,
     functionCode,
     importComponent: replaceImportComponent,
-    useAsyncPipe,
-    useGlobalContext
   }
 }

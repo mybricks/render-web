@@ -13,7 +13,7 @@ interface ComponentProps {
   data: object;
   style?: object;
   slots?: object;
-  _inputRegs: {
+  inputs: {
     [key: string | symbol]: (value: unknown, outputs?: unknown) => void;
   };
   [key: string]: unknown;
@@ -57,6 +57,18 @@ class GlobalContext {
   } = {
     /** replace scenesMap */
   };
+  /** 获取当前场景上下文 */
+  getScene(sceneId: string) {
+    return {
+      ...this.scenesMap[sceneId],
+      getComponent(componentId: string) {
+        return this.componentPropsMap[componentId];
+      },
+      setComponent(componentId: string, componentProps: ComponentProps) {
+        this.componentPropsMap[componentId] = componentProps;
+      },
+    };
+  }
 
   /** 
    * env 组件内部使用 
