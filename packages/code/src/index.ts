@@ -206,10 +206,12 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
 
   const { diagrams } = frame
 
-  /** TODO: 引擎会提供特殊的标识来识别场景卡片 - 这里是场景打开，写到react生命周期中 */
-  const useEffectDiagram = diagrams.find((diagram) => diagram.title === "主场景")
+  /** 根据卡片的frameId找到当前场景的主卡片 */
+  const useEffectDiagram = diagrams.find(({ starter }) => {
+    return starter.type === "frame" && starter.frameId === id
+  })
   if (useEffectDiagram) {
-    const { codeAry, functionCode, importComponents } = generateEventCode({...useEffectDiagram!, starter: { comId: scene.id, pinId: 'open', type: 'frame'}}, { scene, filePath: scenePath })
+    const { codeAry, functionCode, importComponents } = generateEventCode(useEffectDiagram, { scene, filePath: scenePath })
     if (functionCode) {
       importComponents.forEach((importComponent) => {
         replaceImportComponents.add(importComponent)
@@ -224,7 +226,6 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
       replaceUseReactHooks.add("useEffect")
     }
   }
-  
 
   SceneCodeArray.forEach((item) => {
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
@@ -390,7 +391,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     const connectionId = `${id}-${outputId}`;
     const connections = cons[connectionId];
     if (connections) {
-      const diagram = frame.diagrams.find(({ starter }) => starter.comId === id && starter.pinId === outputId)
+      const diagram = frame.diagrams.find(({ starter }) => starter.type === "com" && starter.comId === id && starter.pinId === outputId)
 
       if (diagram) {
         /** 这里的value未来也许可以用schema？反正现在是没有的 */
@@ -1238,8 +1239,20 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
     }).join("\n")
   }
 
-  const nexts = executeIdToNextMap[starter.comId]?.[starter.pinId]
-  const eventCode = nexts && generateNextEventCode2(nexts, { executeIdToNextMap })
+  let eventCode = "";
+
+  /** TODO: 如果是多输入的话，是不是code拼起来就好了？- 一会儿观察一下作用域插槽那块 */
+  if (starter.type === "com") {
+    const nexts = executeIdToNextMap[starter.comId]?.[starter.pinId]
+    eventCode = nexts && generateNextEventCode2(nexts, { executeIdToNextMap })
+  } else {
+    // 目前就 com 和 frame
+    const { frameId, pinAry } = starter
+    pinAry.forEach(({ id }) => {
+      const nexts = executeIdToNextMap[frameId]?.[id]
+      nexts && (eventCode = eventCode + generateNextEventCode2(nexts, { executeIdToNextMap }))
+    })
+  }
 
   return {
     codeAry: tsxArray,

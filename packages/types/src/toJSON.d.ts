@@ -21,11 +21,23 @@ export interface Frame {
     title: string;
     starter: {
       /** 类型 */
-      type: string; // TODO: 稍后看是否要修改 "com" | "xxx"
+      type: "com"; 
       /** 对应组件ID */
       comId: string;
       /** 对应事件即输出项ID */
       pinId: string;
+    } | {
+      /** 类型 */
+      type: "frame";
+       /** 对应frameID */
+      frameId: string;
+      /** 对应多个输入列表 */
+      pinAry: Array<{
+        /** 输入ID */
+        id: string;
+        /** 输入标题 */
+        title: string;
+      }>
     }
     /** 逻辑连线信息 */
     conAry: Array<{
