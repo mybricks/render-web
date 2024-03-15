@@ -51,7 +51,8 @@ class GlobalContext {
   scenesMap: {
     [key: string]: {
       show: boolean;
-      todo: string[];
+      todoList: Array<{ pinId: string; value: unknown }>;
+      inputsData: { [key: string]: unknown };
       componentPropsMap: { [key: string]: ComponentProps };
     };
   } = {
@@ -59,13 +60,34 @@ class GlobalContext {
   };
   /** 获取当前场景上下文 */
   getScene(sceneId: string) {
+    const scene = this.scenesMap[sceneId];
     return {
-      ...this.scenesMap[sceneId],
+      get show() {
+        return scene.show;
+      },
+      set show(show: boolean) {
+        scene.show = show;
+      },
+      setInputData(inputId: string, value: unknown) {
+        scene.inputsData[inputId] = value;
+      },
+      getInputData(inputId: string) {
+        return scene.inputsData[inputId]
+      },
+      getTodo() {
+        return scene.todoList;
+      },
+      setTodo(todo: { pinId: string; value: unknown }) {
+        scene.todoList.push(todo);
+      },
+      clearTodo() {
+        scene.todoList = [];
+      },
       getComponent(componentId: string) {
-        return this.componentPropsMap[componentId];
+        return scene.componentPropsMap[componentId];
       },
       setComponent(componentId: string, componentProps: ComponentProps) {
-        this.componentPropsMap[componentId] = componentProps;
+        scene.componentPropsMap[componentId] = componentProps;
       },
     };
   }
@@ -79,6 +101,15 @@ class GlobalContext {
     runtime: true,
     i18n(value: unknown) {
       return value;
+    },
+    canvas: {
+      open: (sceneId: string) => {
+        const scene = this.getScene(sceneId);
+        if (!scene.show) {
+          scene.show = true;
+          this.scenesRefresh((prev) => prev + 1);
+        }
+      },
     },
   };
 }
