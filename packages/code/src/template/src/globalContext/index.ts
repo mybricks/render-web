@@ -16,6 +16,9 @@ interface ComponentProps {
   inputs: {
     [key: string | symbol]: (value: unknown, outputs?: unknown) => void;
   };
+  outputs: {
+    [key: string | symbol]: (value?: unknown) => void;
+  };
   [key: string]: unknown;
 }
 
@@ -42,10 +45,10 @@ class GlobalContext {
   }
 
   /** 场景 刷新 */
-  private scenesRefresh: (value: SetStateAction<number>) => void = () => {};
+  private scenesRefresh: () => void = () => {};
   /** 场景 设置场景刷新state */
   setScenesRefresh(scenesRefresh: (value: SetStateAction<number>) => void) {
-    this.scenesRefresh = scenesRefresh;
+    this.scenesRefresh = () => scenesRefresh((prev) => prev + 1);
   }
   /** 场景 映射关系 */
   scenesMap: {
@@ -53,11 +56,13 @@ class GlobalContext {
       show: boolean;
       todoList: Array<{ pinId: string; value: unknown }>;
       inputsData: { [key: string]: unknown };
+      fromComponentProps: ComponentProps | null;
       componentPropsMap: { [key: string]: ComponentProps };
     };
   } = {
     /** replace scenesMap */
   };
+  
   /** 获取当前场景上下文 */
   getScene(sceneId: string) {
     const scene = this.scenesMap[sceneId];
@@ -68,20 +73,24 @@ class GlobalContext {
       set show(show: boolean) {
         scene.show = show;
       },
+      close: () => {
+        if (scene.show) {
+          scene.show = false;
+          scene.fromComponentProps = null;
+          this.scenesRefresh();
+        }
+      },
+      setFromComponentProps(componentProps: ComponentProps) {
+        scene.fromComponentProps = componentProps;
+      },
+      getFromComponentProps() {
+        return scene.fromComponentProps;
+      },
       setInputData(inputId: string, value: unknown) {
         scene.inputsData[inputId] = value;
       },
       getInputData(inputId: string) {
-        return scene.inputsData[inputId]
-      },
-      getTodo() {
-        return scene.todoList;
-      },
-      setTodo(todo: { pinId: string; value: unknown }) {
-        scene.todoList.push(todo);
-      },
-      clearTodo() {
-        scene.todoList = [];
+        return scene.inputsData[inputId];
       },
       getComponent(componentId: string) {
         return scene.componentPropsMap[componentId];
@@ -91,10 +100,26 @@ class GlobalContext {
       },
     };
   }
+  /** 打开场景 */
+  openScene(sceneId: string) {
+    const scene = this.scenesMap[sceneId];
+    if (!scene.show) {
+      scene.show = true;
+      this.scenesRefresh();
+    }
+  }
+  /** 关闭场景 */
+  closeScene(sceneId: string) {
+    const scene = this.scenesMap[sceneId];
+    if (scene.show) {
+      scene.show = false;
+      this.scenesRefresh();
+    }
+  }
 
-  /** 
-   * env 组件内部使用 
-   * 
+  /**
+   * env 组件内部使用
+   *
    * TODO: 这里应该外部配置的
    */
   env = {
@@ -104,11 +129,7 @@ class GlobalContext {
     },
     canvas: {
       open: (sceneId: string) => {
-        const scene = this.getScene(sceneId);
-        if (!scene.show) {
-          scene.show = true;
-          this.scenesRefresh((prev) => prev + 1);
-        }
+        this.openScene(sceneId);
       },
     },
   };

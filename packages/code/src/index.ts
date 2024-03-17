@@ -107,8 +107,10 @@ function generateGlobalContextCode({
           /** ${c.title} */
           "${c.id}": {
             show: ${!p ? "true" : "false"},
-            todo: [],
-            componentPropsMap: {}
+            todoList: [],
+            inputsData: {},
+            componentPropsMap: {},
+            fromComponentProps: null,
           }
         `;
       return p ? `${p},\n${mapStr}` : mapStr;
@@ -185,8 +187,8 @@ function generateSceneTsxCode({ scenes, frames }: { scenes: ToBaseJSON[], frames
 function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"][0]}) {
   const tsxArray: Array<{ code: string; filePath: string }> = [];
   /** 场景内组件代码数组 */
-  const SceneCodeArray = [];
-  const { id, title, slot, coms } = scene;
+  const SceneCodeArray: any = [];
+  const { id, title, slot, type } = scene;
   const { style, comAry, layoutTemplate } = slot;
   const scenePath = `scene_${id}`;
 
@@ -217,16 +219,56 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
         replaceImportComponents.add(importComponent)
       })
       tsxArray.push(...codeAry)
+      // if (!type) {
+        
+      // } else if (type === "popup") {
+        
+      // }
+
       replaceUseEffect = `
-        useEffect(() => {
-          const value = undefined;
-          ${functionCode}
-        }, [])
-      `
+          useEffect(() => {
+            const value = sceneContext.getInputData("open");
+            ${functionCode}
+          }, [])
+        `
+      
       replaceUseReactHooks.add("useEffect")
     }
   }
 
+  const variableEventCodes = diagrams.filter(({ starter }) => {
+    return starter.type === "var"
+  }).map((diagram) => {
+    const {
+      importComponent,
+      filePath,
+      componentCode,
+    } = generateJsComponentCode({
+      // @ts-ignore
+      comId: diagram.starter.comId,
+      filePath: scenePath,
+      scene
+    });
+
+    replaceImportComponents.add(importComponent)
+    tsxArray.push({
+      code: componentCode,
+      filePath,
+    });
+
+    return generateEventCode(diagram, { scene, filePath: scenePath })
+  }).map(({ codeAry, importComponents, functionCode }) => {
+    importComponents.forEach((importComponent) => {
+      replaceImportComponents.add(importComponent)
+    })
+    tsxArray.push(...codeAry)
+    replaceFunction = replaceFunction + functionCode
+
+    return {
+      codeAry, importComponents, functionCode
+    }
+  })
+  
   SceneCodeArray.forEach((item) => {
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
 
@@ -440,6 +482,8 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     );`;
   }
 
+  const isPopup = namespace === "mybricks.basic-comlib.popup";
+
   const componentCode = `import React, { useMemo } from "react";
 
   ${Array.from(replaceImportComponents).join("")}
@@ -514,7 +558,15 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
       )}\`} style={${JSON.stringify(getComponentStyle(style))}}>
         <Runtime env={globalContext.env} data={data} style={style} inputs={inputs} outputs={outputs} ${
           slots ? "slots={slots}" : ""
-        } />
+        }
+        ${isPopup ? `_env={{
+          currentScenes: {
+            close() {
+              sceneContext.close();
+            },
+          },
+        }}` : ""}
+        />
       </div>
     )
   }`;
@@ -824,13 +876,14 @@ function generateJsComponentCode({
   filePath: string;
   scene: ToBaseJSON
 }) {
-  const { coms } = scene
+  const { coms, pinProxies } = scene
   const {
     title,
-    def: { namespace, version },
+    def: { namespace, version, rtType },
     model: { data },
     outputs,
     inputs,
+    _inputs,
   } = coms[id];
   const componentFolderName = `${namespace}_${id}`;
   const componentFunctionName = `render_${convertToUnderscore(
@@ -892,7 +945,11 @@ function generateJsComponentCode({
         })}
       };
     `
-  
+  /** 场景切换 */
+  const isScene = namespace === "mybricks.core-comlib.scenes";
+  /** 变量 */
+  const isVar = namespace === "mybricks.core-comlib.var";
+
   const componentCode = `import globalContext from "@/globalContext";
   import { sceneContext } from "@/scenes/scene_${scene.id}";
 
@@ -928,14 +985,43 @@ function generateJsComponentCode({
           {
             get(_, key) {
               return (fn: (value: unknown, outputs?: unknown) => void) => {
-                _inputRegs[key] = (value: unknown) => fn(value, outputs);
+                _inputRegs[key] = (value: unknown, relOutputs?: unknown) =>
+                  fn(value, relOutputs || outputs);
               };
             },
           },
         );
         const data = ${JSON.stringify(data)};
 
-        runtime({ env: globalContext.env, inputs, outputs, data });
+        runtime({
+          env: globalContext.env,
+          inputs,
+          outputs,
+          data,
+          ${isScene ? `_inputsCallable: {
+            _open: (value: unknown) => {
+              const scene = globalContext.getScene("${pinProxies[`${id}-_open`].frameId}");
+              scene.setInputData("open", value);
+              scene.setFromComponentProps({
+                inputs: _inputRegs,
+                outputs,
+                data,
+              });
+            },
+            ${""
+            //   _inputs.map((_inputId) => { // TODO:后面再看，目前没必要这样解析
+            //   const { type, frameId, pinId } = pinProxies[`${id}-${_inputId}`]
+            //   return `${_inputId}: (value: unknown) => {
+            //     scene.setTodo({ pinId: "${pinId}", value })
+            //   }`
+            // }).join()
+            }
+          },
+          ` : ""}
+          ${/** TODO: 变量绑定相关 */isVar ? `
+          _notifyBindings() {}
+          ` : ""}
+        });
 
         sceneContext.setComponent("${id}", {
           inputs: _inputRegs,
@@ -1031,11 +1117,15 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
 /** 事件卡片 、 主场景 代码生成 */
 function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath }: { scene: ToBaseJSON, filePath: string }) {
   const { conAry, starter } = diagram
+  const { cons } = scene
   const executeIdToNextMap: any = {}
   conAry.forEach((con) => {
     const { from, to, finishPinParentKey, startPinParentKey } = con
-    const { id: outputId, parent: { id: fromComId } } = from;
-    const { id: inputId, parent: { id: toComId } } = to;
+    const { id: outputId, parent: { id: fromComId, type: fromType } } = from;
+    const { id: inputId, parent: { id: toComId, type: toType } } = to;
+    // TODO: 这里后面再改，还有fx的情况没有处理
+    const toCons = cons[`${fromType === 'frame' ? "_rootFrame_" : fromComId}-${outputId}`]
+    const inReg = toCons.find((con) => con.pinId === inputId)
 
     let comNextMap = executeIdToNextMap[fromComId]
 
@@ -1049,12 +1139,21 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
       comOutputs = comNextMap[outputId] = []
     }
 
-    comOutputs.push({
-      comId: toComId,
-      pinId: inputId,
-      finishPinParentKey,
-      startPinParentKey
-    })
+    if (inReg.type === "com") {
+      comOutputs.push({
+        comId: toComId,
+        pinId: inputId,
+        finishPinParentKey,
+        startPinParentKey
+      })
+    } else if (inReg.type === "frame") {
+      comOutputs.push({
+        frameId: inReg.frameId,
+        pinId: inputId,
+        finishPinParentKey,
+        startPinParentKey
+      })
+    }
   })
 
   const { codeAry, eventCode, importComponents } = generateEventInternalCode(diagram, { scene, filePath: parentFilePath, executeIdToNextMap })
@@ -1071,6 +1170,24 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
         function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
           ${eventCode}
         }
+      `
+    }
+  } else if (type === "var") {
+    const { comId, pinId } = starter
+    const component = scene.coms[comId]
+
+    /** 变量比较特殊，需要在外层提前执行 */
+
+    return {
+      codeAry,
+      importComponents,
+      functionCode: `
+        /** ${component.title} - ${comId} - ${pinId} 事件 */
+        render_${convertToUnderscore(component.def.namespace)}_${comId}({
+          ${pinId}(value: unknown) {
+            ${eventCode}
+          }
+        })
       `
     }
   } else if (type === "frame") {
@@ -1090,7 +1207,7 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
 }
 
 /** 卡片内部逻辑 - 通用 */
-function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath, executeIdToNextMap }: { scene: ToBaseJSON, filePath: string, executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}}}) {
+function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath, executeIdToNextMap }: { scene: ToBaseJSON, filePath: string, executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, frameId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}}}) {
   /** 
    * 事件卡片一定只有一个开头
    * 已知启始节点
@@ -1108,10 +1225,16 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
   const topComponentIdMap: {[key: string]: true} = {}
 
   const generateNextEventCode2 = (
-    nexts: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>,
-    { executeIdToNextMap }: { executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}} }
+    nexts: Array<{comId: string, frameId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>,
+    { executeIdToNextMap }: { executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, frameId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}} }
   ): string => {
-    return nexts.map(({ comId, pinId, finishPinParentKey }) => {
+    return nexts.map(({ comId, frameId, pinId, finishPinParentKey }) => {
+      if (frameId) {
+        // TODO: 判断场景和FX？
+        return `sceneContext.getFromComponentProps()?.outputs["${pinId}"](value);
+          ${/** popup场景输出不是apply的话默认关闭 */ pinId !== "apply" ? "sceneContext.close();" : ""}
+        `
+      }
       const component = coms[comId]
       if (!component.def.rtType || component.def.namespace === "mybricks.core-comlib.var") {
         /** 变量组件的特殊处理 */
@@ -1242,7 +1365,8 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
   let eventCode = "";
 
   /** TODO: 如果是多输入的话，是不是code拼起来就好了？- 一会儿观察一下作用域插槽那块 */
-  if (starter.type === "com") {
+  // ["com", "var"].includes(starter.type) - 看下ts配置
+  if (starter.type === "com" || starter.type === "var") {
     const nexts = executeIdToNextMap[starter.comId]?.[starter.pinId]
     eventCode = nexts && generateNextEventCode2(nexts, { executeIdToNextMap })
   } else {

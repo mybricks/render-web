@@ -58,6 +58,8 @@ export interface Frame {
         parent: {
           /** ID 目前是组件 */
           id: string;
+          /** 类型 */
+          type: "com" | "frame";
         }
       }
       /** 输入信息 */
@@ -68,6 +70,8 @@ export interface Frame {
         parent: {
           /** ID 目前是组件 */
           id: string;
+          /** 类型 */
+          type: "com" | "frame";
         }
       }
       /** 相同实例的节点，才会有以下信息，用于连接输入和输出 */

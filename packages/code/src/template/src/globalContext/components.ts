@@ -8,7 +8,7 @@ export type ComponentDefinitionMap = {
   [key: string]: {
     namespace: string;
     version: string;
-    runtime: <T>(props: T) => ReactNode;
+    runtime: (props: any) => ReactNode;
   };
 };
 
