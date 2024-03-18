@@ -240,9 +240,9 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       if (modelStyle.heightAuto) {
         // modelStyle.height = 'auto'
         // modelStyle.maxHeight = "fit-content"
-        // modelStyle.height = "fit-content"
-        Reflect.deleteProperty(modelStyle, "height")
-        modelStyle.minHeight = style.height
+        modelStyle.height = "fit-content"
+        // Reflect.deleteProperty(modelStyle, "height")
+        // modelStyle.minHeight = style.height
         modelStyle.display = 'flex'
         modelStyle.flexDirection = 'column'
         // 一级子元素设置flex：1
@@ -259,7 +259,9 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       if (modelStyle.widthAuto) {
         // modelStyle.maxWidth = "fit-content"
         modelStyle.width = "fit-content"
-        modelStyle.minWidth = style.width
+        // 左右布局，适应内容的文本，会把右侧元素挤出画布
+        modelStyle.flexShrink = 1
+        // modelStyle.minWidth = style.width
       }
       // if (modelStyle.widthAuto) {
       //   modelStyle.maxWidth = modelStyle.width
