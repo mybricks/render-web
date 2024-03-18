@@ -269,7 +269,7 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
     }
   })
   
-  SceneCodeArray.forEach((item) => {
+  SceneCodeArray.forEach((item: any) => {
     const { importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = item
 
     if (events) {
@@ -1231,8 +1231,9 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
     return nexts.map(({ comId, frameId, pinId, finishPinParentKey }) => {
       if (frameId) {
         // TODO: 判断场景和FX？
-        return `sceneContext.getFromComponentProps()?.outputs["${pinId}"](value);
-          ${/** popup场景输出不是apply的话默认关闭 */ pinId !== "apply" ? "sceneContext.close();" : ""}
+        return `/** 场景输出 - ${pinId} */
+        sceneContext.getFromComponentProps()?.outputs["${pinId}"](value);
+          ${/** popup场景输出不是apply的话默认关闭 */ pinId !== "apply" ? "/** 关闭当前场景 */\nsceneContext.close();" : ""}
         `
       }
       const component = coms[comId]
