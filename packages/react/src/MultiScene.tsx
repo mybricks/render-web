@@ -697,6 +697,8 @@ export default function MultiScene ({json, options}) {
       },
       ref: options.ref((_refs) => {
         // console.log(`场景注册_refs -> ${id}`)
+        /** 整站搭建需求 */
+        _refs.canvas = env.canvas
         scenes._refs = _refs
         const todo = scenes.todo
         const { inputs, outputs } = _refs
