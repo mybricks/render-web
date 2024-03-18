@@ -64,7 +64,8 @@ export default function RenderSlot({
 
   if (style.layout === "smart" && layoutTemplate) {
     const paramsStyle = params?.style;
-    const slotStyle = paramsStyle || style;
+    // const slotStyle = paramsStyle || style;
+    const slotStyle = Object.assign(style, paramsStyle || {})
     return (
       <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle, display: 'inline-block'}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
@@ -86,7 +87,9 @@ export default function RenderSlot({
     return wrapper(itemAry)
   } else {
     const paramsStyle = params?.style;
-    const slotStyle = paramsStyle || style;
+    // const slotStyle = paramsStyle || style;
+    const slotStyle = Object.assign(style, paramsStyle || {})
+
     return (
       <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
