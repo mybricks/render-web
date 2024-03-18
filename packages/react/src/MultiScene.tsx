@@ -266,7 +266,7 @@ export default function MultiScene ({json, options}) {
       if (openType) {
         Object.entries(scenesMap).forEach(([key, scenes]: any) => {
           if (key === sceneId) {
-            if (openType === 'blank') {
+            if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
               scenes.useEntryAnimation = true
             } else {
               scenes.useEntryAnimation = false
@@ -293,7 +293,7 @@ export default function MultiScene ({json, options}) {
         })
       } else {
         if (!scenes.show) {
-          if (openType === 'blank') {
+          if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
             scenes.useEntryAnimation = true
           } else {
             scenes.useEntryAnimation = false
