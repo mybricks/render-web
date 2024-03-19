@@ -1,5 +1,14 @@
 import * as CSS from "csstype";
 
+/** 组件模型样式信息 */
+export interface ComponentStyle extends CSS.Properties {
+  /** 风格化配置样式 */
+  styleAry?: Array<{
+    css: CSS.Properties;
+    selector: string;
+  }>
+}
+
 export interface ToJSON {
   /** 场景信息数组 */
   scenes: Array<ToBaseJSON>
@@ -146,7 +155,7 @@ export interface ToBaseJSON {
         /** 数据源 - 这里是任意就行了 */
         data: any;
         /** 样式 */
-        style: CSS.Properties;
+        style: ComponentStyle;
       }
       /** 输出项ID列表 */
       outputs: Array<string>;

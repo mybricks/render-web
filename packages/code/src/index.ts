@@ -425,6 +425,11 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     frameId,
     parentComId
   } = coms[id];
+  
+  const { styleAry } = style
+  if (Array.isArray(styleAry)) {
+    console.log("处理风格化样式 styleAry: ", styleAry)
+  }
 
   /** 在作用域插槽里 */
   const isScope = frameId && parentComId;
