@@ -52,9 +52,8 @@ function findGCD(arr) {
 function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
   // console.log("开始计算 elements: ", elements.map((e) => e.id))
   const finalElements = []
-  const { root } = layoutConfig
+  const { root, isNotAutoGroup } = layoutConfig
   const { top, left, height, width, flexDirection } = layoutConfig.style
-  // console.log(0, "容器样式信息: ", layoutConfig.style)
   if (flexDirection === "column") {
     const elementsLastIndex = elements.length - 1
     elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top)
@@ -77,8 +76,11 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
         // console.log(1, 1, "没有铺满")
         // TODO: constraints，目前这个属性还有问题，
         // ((style.left - left) === marginRight)
-        // 误差范围为-1 -> 1
-        if (Math.abs(style.left - left - marginRight) <= 1) { // || style.constraints?.find((constraint) => constraint.type === 'center' && constraint.ref.type === 'slot')
+        /**
+         * 居中计算的 误差范围为-1 -> 1
+         * 不是自动成组的才可以计算居中关系
+         */
+        if (Math.abs(style.left - left - marginRight) <= 1 && isNotAutoGroup && !style.flexDirection) { // || style.constraints?.find((constraint) => constraint.type === 'center' && constraint.ref.type === 'slot')
           // console.log(1, 1, "居中")
           // 有居中的话，需要多套一层
           if (style.flexDirection) {
@@ -568,7 +570,7 @@ function convertedToElements(elements: Array<Element | Elements>) {
           widthFull: element.find((element) => element.style.widthFull) ? 1 : null
         },
         // elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
-        elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true })
+        elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true, isNotAutoGroup: false })
       })
     } else {
       // 直接push

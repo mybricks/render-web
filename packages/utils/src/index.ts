@@ -149,7 +149,11 @@ function transformSlotComAry(slot, coms, root = true) {
         },
       }
 
-    }), { style: { width: slot.style.width, height: slot.style.height }, root })
+    }), { style: { width: slot.style.width, height: slot.style.height }, root, isNotAutoGroup: true })
+
+    /** 删除插槽样式里的宽高属性 */
+    Reflect.deleteProperty(slot.style, "width")
+    Reflect.deleteProperty(slot.style, "height")
 
     // const traverseElementsToSlotComAry3 = (comAry) => {
     //   const result = []

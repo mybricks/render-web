@@ -96,9 +96,15 @@ interface LayoutConfig {
   style: LayoutStyle;
 
   /**
-   * 是否根slot，画布不参与高度的计算
+   * 是否根slot，画布不参与高度的计算 - 这里的root目前主要是计算marginBottom的
    */
   root: boolean;
+
+  /** 
+   * TODO: 再来个字段，判断是否可以计算居中关系
+   * 代表不是自动成组的，自动成组的元素内部不再自动计算居中关系
+   */
+  isNotAutoGroup: boolean;
 }
 
 interface DefaultLayoutStyle extends LayoutStyle {
@@ -122,7 +128,8 @@ export default function smartLayout(elements: Array<Element>, layoutConfig: Layo
         left: 0,
         flexDirection: "column" // 页面默认是纵向排列
       },
-      root: layoutConfig.root
+      root: layoutConfig.root,
+      isNotAutoGroup: layoutConfig.isNotAutoGroup
     }
   )
 }
