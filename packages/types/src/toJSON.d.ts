@@ -79,6 +79,16 @@ export interface Frame {
       startPinParentKey?: string;
     }>
   }>
+  /** 组件 - 作用域插槽卡片 */
+  coms: {
+    /** 组件ID */
+    [key: string]: {
+      /** 组件ID */
+      id: string;
+      /** 逻辑编排卡片信息 */
+      frames: Array<Frame>;
+    }
+  }
 }
 
 /** 插槽，体现组件排列信息、结构 */
@@ -96,6 +106,8 @@ export interface Slot {
   comAry: Array<ComponentNode>;
   /** 插槽内智能布局后组件树结构信息 */
   layoutTemplate: Array<DomNode | ComponentNode>;
+  /** 类型，用于判断是否作用域插槽 */
+  type?: "scope";
 }
 
 export type Slots = {
@@ -142,6 +154,10 @@ export interface ToBaseJSON {
       inputs: Array<string>;
       /** 私有输入项ID列表，从pinProxies读取相应的frame */
       _inputs: Array<string>;
+      /** 如果在作用域插槽内 - 插槽ID */
+      frameId?: string;
+      /** 如果在作用域插槽内 - 该插槽的父组件ID */
+      parentComId?: string;
     }
   }
   /** 逻辑面板连线信息 */

@@ -332,7 +332,15 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
         }
         deepSlots(slotComponents, 1)
       } else {
-        deepSlots(codeArray, next)
+        if (slot.code && slot.filePath) {
+          // TODO: 后面再看吧
+          tsxArray.push({
+            code: slot.code,
+            filePath: slot.filePath,
+          })
+        } else if (Array.isArray(codeArray)) {
+          deepSlots(codeArray, next)
+        }
       }
     })
   }
@@ -414,10 +422,15 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     title,
     model: { data, style },
     outputs,
+    frameId,
+    parentComId
   } = coms[id];
 
+  /** 在作用域插槽里 */
+  const isScope = frameId && parentComId;
+
   /** 运行时组件代码的入参类型定义 */
-  let propsCode = "";
+  let propsCode = `${frameId && parentComId ? "id: string;" : ""}`;
   /** 如果输出项ID有对应的连线信息，就有入参 */
   let eventCode = "";
 
@@ -439,8 +452,8 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
         /** 这里的value未来也许可以用schema？反正现在是没有的 */
         propsCode = propsCode + `${outputId}: (value: unknown) => void;\n`;
         eventCode =
-          eventCode + ` ${outputId}={render_${convertToUnderscore(componentFolderName)}_${outputId}}`;
-        events.push(generateEventCode(diagram, { scene, filePath: parentFilePath }))
+          eventCode + (isScope ? ` ${outputId}={(value) => render_${convertToUnderscore(componentFolderName)}_${outputId}(value, id)}` : ` ${outputId}={render_${convertToUnderscore(componentFolderName)}_${outputId}}`);
+          events.push(generateEventCode(diagram, { scene, filePath: parentFilePath }))
       }
     }
   });
@@ -452,7 +465,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
 
   if (slots) {
     Object.entries(slots).forEach(([key, slot]) => {
-      const result = generateSlotComponentCode(slot, { filePath, frame, scene });
+      const result = generateSlotComponentCode(slot, { comId: id, filePath, frame, scene });
       slotComponents.push(result);
       replaceImportComponents.add(result.importComponent)
       replaceSlots =
@@ -465,10 +478,15 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     replaceSlots = `const slots = new Proxy(
       {},
       {
-        get(target, slotId) {
+        get(target, slotId: string) {
           return {
-            render() {
-              let jsx = <></>;
+            render(params?: SlotProps) {
+              const key = params?.key;
+              let jsx = (
+                <div key={key} className={css.error}>
+                  {\`组件(${namespace})插槽(\${slotId})未找到。\`}
+                </div>
+              );
               switch (slotId) {
                 ${replaceSlots}
                 default:
@@ -491,6 +509,8 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
   import globalContext from "@/globalContext";
   import { sceneContext } from "@/scenes/scene_${sceneId}";
   import { observable } from "@/observable";
+
+  import type { SlotProps } from "@/type";
 
   import css from "@/scenes/index.less";
 
@@ -517,7 +537,8 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
         {
           get(_, key) {
             return (fn: (value: unknown, outputs?: unknown) => void) => {
-              _inputRegs[key] = fn;
+              _inputRegs[key] = (value: unknown, relOutputs?: unknown) =>
+                fn(value, relOutputs || outputs);
             };
           },
         },
@@ -534,7 +555,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
       const style = observable(${JSON.stringify(style)});
       ${slots ? replaceSlots : ""}
 
-      sceneContext.setComponent("${id}", {
+      sceneContext.setComponent(${frameId && parentComId ? "props.id" : `"${id}"`}, {
         data,
         style,
         inputs: _inputRegs,
@@ -572,7 +593,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
   }`;
   const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
   const renderComponent = `{/* ${title}-${id} */}
-  <${componentFunctionName} ${eventCode}/>\n`;
+  <${componentFunctionName} ${frameId && parentComId ? `id={\`${parentComId}-${frameId}-${id}-\${id}\`}` : ""} ${eventCode}/>\n`;
 
   return {
     importComponent,
@@ -884,13 +905,17 @@ function generateJsComponentCode({
     outputs,
     inputs,
     _inputs,
+    frameId,
+    parentComId
   } = coms[id];
+  /** 说明在作用域插槽内 */
+  const isScope = frameId && parentComId
   const componentFolderName = `${namespace}_${id}`;
   const componentFunctionName = `render_${convertToUnderscore(
     componentFolderName,
   )}`;
     const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
-    const propsCode = `props?: {${outputs.length ? outputs.map((outputId) => `${outputId}?: (value?: unknown) => void`).join(";") + ";": ""} [key: string | symbol]: any}`
+    const propsCode = `props${isScope ? "" : "?"}: {${isScope ? "id: string;" : ""}${outputs.length ? outputs.map((outputId) => `${outputId}?: (value?: unknown) => void`).join(";") + ";": ""} [key: string | symbol]: any}`
     const multipleInputIdMap: {[key: string]: Array<string>} = {}
     inputs.forEach((inputId) => {
       const [realInputId, paramId] = inputId.split(".")
@@ -961,7 +986,7 @@ function generateJsComponentCode({
 
     /** ${title} */
     export function render_${convertToUnderscore(namespace)}_${id}(${propsCode}) {
-      if (!sceneContext.getComponent("id")) {
+      if (!sceneContext.getComponent(${isScope ? "props.id" : `"${id}"`})) {
         ${inputRegs}
         const outputs = new Proxy(
           {},
@@ -1023,7 +1048,7 @@ function generateJsComponentCode({
           ` : ""}
         });
 
-        sceneContext.setComponent("${id}", {
+        sceneContext.setComponent(${isScope ? "props.id" : `"${id}"`}, {
           inputs: _inputRegs,
           outputs,
           data,
@@ -1039,17 +1064,19 @@ function generateJsComponentCode({
   };
 }
 
-function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene, frame }: { filePath: string, scene: ToBaseJSON, frame: Frame }) {
+function generateSlotComponentCode(slot: Slot, { comId, filePath: parentFilePath, scene, frame }: { comId: string, filePath: string, scene: ToBaseJSON, frame: Frame }) {
   const slotComponents: any = [];
-  const { id, title, comAry, style, layoutTemplate } = slot;
+  const { id, title, comAry, style, layoutTemplate, type } = slot;
   const filePath = `${parentFilePath}/slots/${id}`;
+  const nextFrame = frame.coms[comId].frames.find((frame) => frame.id === slot.id) || frame
+  const isScope = type === "scope";
 
   if (style.layout === 'smart') {
     /** 智能布局，使用 layoutTemplate */
-    slotComponents.push(...generateComponentCode(layoutTemplate, { scene, frame, filePath: filePath }))
+    slotComponents.push(...generateComponentCode(layoutTemplate, { scene, frame: nextFrame, filePath: filePath }))
   } else {
     /** 非智能布局 使用 comAry */
-    slotComponents.push(...generateComponentCode(comAry, { scene, frame, filePath: filePath }))
+    slotComponents.push(...generateComponentCode(comAry, { scene, frame: nextFrame, filePath: filePath }))
   }
 
   const replaceImportComponents = new Set<string>();
@@ -1078,24 +1105,71 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
 
   deepSlots(slotComponents)
 
-  const componentCode = `import React from "react";
+  let replaceUseEffect = "";
+  let replaceUseReactHooks = new Set<string>(["useMemo"]);
+
+  /** 根据卡片的frameId找到当前场景的主卡片，且必须是作用域卡片 */
+  const useEffectDiagram = isScope && nextFrame?.diagrams.find(({ starter }) => {
+    return starter.type === "frame" && starter.frameId === id
+  })
+  if (useEffectDiagram && useEffectDiagram.starter.type === "frame") {
+    const pinAry = useEffectDiagram.starter.pinAry;
+    const { codeAry, functionCode, importComponents } = generateEventCode(useEffectDiagram, { scene, filePath, slotId: id, comId })
+    if (functionCode) {
+      importComponents.forEach((importComponent) => {
+        replaceImportComponents.add(importComponent)
+      })
+      slotComponents.push({codeArray: codeAry})
+
+      replaceUseEffect = `
+          useEffect(() => {
+            if (inputValues) {
+              const { ${pinAry.map(({ id }) => id).join()} } = inputValues;
+              ${functionCode}
+            }
+          }, [inputValues])
+
+          useEffect(() => {
+            return () => {
+              console.log("销毁")
+            }
+          }, [])
+        `
+      
+      replaceUseReactHooks.add("useEffect")
+    }
+  }
+
+  const componentCode = `import React, { ${Array.from(replaceUseReactHooks).join()} } from "react";
 
   import { sceneContext } from "@/scenes/scene_${scene.id}";
 
   ${Array.from(replaceImportComponents).join("")}
+
+  import type { SlotProps } from "@/type";
 
   import css from "@/scenes/index.less"
 
   ${replaceFunction}
 
   /** ${title} */
-  export function Slot_${id} () {
-    return <div className={\`slot ${calSlotClasses(style).reduce(
-      (p, c) => (p ? p + ` \${${c}}` : `\${${c}}`),
-      "",
-    )}\`} style={${JSON.stringify(
-      calSlotStyles(style),
-    )}}>${replaceRenderComponent}</div>
+  export function Slot_${id} ({ inputValues }: SlotProps) {
+    const { id } = useMemo(() => {
+      return {
+        id: String(Math.random()),
+      };
+    }, []);
+
+    ${replaceUseEffect}
+
+    return useMemo(() => {
+      return <div className={\`slot ${calSlotClasses(style).reduce(
+        (p, c) => (p ? p + ` \${${c}}` : `\${${c}}`),
+        "",
+      )}\`} style={${JSON.stringify(
+        calSlotStyles(style),
+      )}}>${replaceRenderComponent}</div>
+    }, []);
   }
   `;
 
@@ -1103,7 +1177,7 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
   const componentFunctionName = `Slot_${componentFolderName}`;
 
   const importComponent = `import { ${componentFunctionName} } from "./slots/${componentFolderName}";`;
-  const renderComponent = `/** ${title}-${id} */ <${componentFunctionName} />\n`;
+  const renderComponent = `/** ${title}-${id} */ <${componentFunctionName} key={key} {...params} />\n`;
 
   return {
     importComponent,
@@ -1115,7 +1189,7 @@ function generateSlotComponentCode(slot: Slot, { filePath: parentFilePath, scene
 }
 
 /** 事件卡片 、 主场景 代码生成 */
-function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath }: { scene: ToBaseJSON, filePath: string }) {
+function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath, slotId, comId }: { isEvent?: boolean, scene: ToBaseJSON, filePath: string, slotId?: string, comId?: string }) {
   const { conAry, starter } = diagram
   const { cons } = scene
   const executeIdToNextMap: any = {}
@@ -1124,7 +1198,9 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
     const { id: outputId, parent: { id: fromComId, type: fromType } } = from;
     const { id: inputId, parent: { id: toComId, type: toType } } = to;
     // TODO: 这里后面再改，还有fx的情况没有处理
-    const toCons = cons[`${fromType === 'frame' ? "_rootFrame_" : fromComId}-${outputId}`]
+    // 传入 slotId 说明是插槽的入参
+    /** fromComId === scene.id ? "_rootFrame_" 这个表示是场景的输入 */
+    const toCons = cons[`${fromType === 'frame' ? (fromComId === scene.id ? "_rootFrame_" : `${comId}-${fromComId}`) : fromComId}-${outputId}`]
     const inReg = toCons.find((con) => con.pinId === inputId)
 
     let comNextMap = executeIdToNextMap[fromComId]
@@ -1162,12 +1238,16 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
   if (type === "com") {
     const { comId, pinId } = starter
     const component = scene.coms[comId]
+    const { frameId, parentComId } = component;
+
+    const isScope = frameId && parentComId;
+
     return {
       codeAry,
       importComponents,
       functionCode: `
         /** ${component.title} - ${comId} - ${pinId} 事件 */
-        function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
+        function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown${isScope ? ", id: string" : ""}) {
           ${eventCode}
         }
       `
@@ -1177,12 +1257,12 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
     const component = scene.coms[comId]
 
     /** 变量比较特殊，需要在外层提前执行 */
-
+    console.log("render 计算组件: ", 111)
     return {
       codeAry,
       importComponents,
       functionCode: `
-        /** ${component.title} - ${comId} - ${pinId} 事件 */
+        /** ${component.title} - ${comId} - ${pinId} 事件 111 */
         render_${convertToUnderscore(component.def.namespace)}_${comId}({
           ${pinId}(value: unknown) {
             ${eventCode}
@@ -1226,17 +1306,23 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
 
   const generateNextEventCode2 = (
     nexts: Array<{comId: string, frameId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>,
-    { executeIdToNextMap }: { executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, frameId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}} }
+    { inputId, executeIdToNextMap }: { inputId?: string, executeIdToNextMap: {[key: string]: {[key: string]: Array<{comId: string, frameId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>}} }
   ): string => {
+    const valueCode = inputId || "value";
     return nexts.map(({ comId, frameId, pinId, finishPinParentKey }) => {
       if (frameId) {
         // TODO: 判断场景和FX？
         return `/** 场景输出 - ${pinId} */
-        sceneContext.getFromComponentProps()?.outputs["${pinId}"](value);
+        sceneContext.getFromComponentProps()?.outputs["${pinId}"](${valueCode});
           ${/** popup场景输出不是apply的话默认关闭 */ pinId !== "apply" ? "/** 关闭当前场景 */\nsceneContext.close();" : ""}
         `
       }
       const component = coms[comId]
+      const { frameId: slotId, parentComId } = component
+      const isScope = slotId && parentComId
+      const realComponentKey = isScope ? `\`${parentComId}-${slotId}-${comId}-\${id}\`` : `"${comId}"`
+      // const realComponentKey = componentKey.replace("{comId}", comId);
+      
       if (!component.def.rtType || component.def.namespace === "mybricks.core-comlib.var") {
         /** 变量组件的特殊处理 */
         /** 目前ui组件没有多输入的情况 */
@@ -1246,11 +1332,11 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
           // 没有下一步，直接输出
           return `
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          sceneContext.getComponent("${comId}").inputs["${pinId}"](value)`
+          sceneContext.getComponent(${realComponentKey}).inputs["${pinId}"](${valueCode})`
         } else {
           return `
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          sceneContext.getComponent("${comId}").inputs["${pinId}"](value, {
+          sceneContext.getComponent(${realComponentKey}).inputs["${pinId}"](${valueCode}, {
             ${nextRels.map((outputId) => {
               let nexts = executeIdToNextMap[comId]?.[outputId]
               if (nexts) {
@@ -1301,28 +1387,31 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
         if (inputs.length > 1) {
           if (!topComponentIdMap[comId]) {
             topComponentIdMap[comId] = true
+            console.log("render 计算组件: ", 222)
             /** 输入项大于1，说明需要把函数提前执行 */
             topComponent.push(`
               /** ${component.title} - ${comId} */
               render_${convertToUnderscore(component.def.namespace)}_${comId}();
             `)
           }
+
           return `
             /** 执行 ${component.title} - ${comId} - ${pinId} */
-            sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
+            sceneContext.getComponent(${realComponentKey}).inputs["${pinId}"](${valueCode});
           `
         }
 
         return `
           /** ${component.title} - ${comId} */
-          render_${convertToUnderscore(component.def.namespace)}_${comId}();
+          render_${convertToUnderscore(component.def.namespace)}_${comId}(${isScope ? `{ id: ${realComponentKey} }` : ""});
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
+          sceneContext.getComponent(${realComponentKey}).inputs["${pinId}"](${valueCode});
         `
       }
 
       if (inputs.length > 1) {
         if (!topComponentIdMap[comId]) {
+          console.log("render 计算组件: ", 444)
           topComponentIdMap[comId] = true
           /** 输入项大于1，说明需要把函数提前执行 */
           topComponent.push(`
@@ -1341,13 +1430,13 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
 
         return `
           /** 执行 ${component.title} - ${comId} - ${pinId} */
-          sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
+          sceneContext.getComponent(${realComponentKey}).inputs["${pinId}"](${valueCode});
         `
       }
 
       return `
         /** ${component.title} - ${comId} */
-        render_${convertToUnderscore(component.def.namespace)}_${comId}({
+        render_${convertToUnderscore(component.def.namespace)}_${comId}({${isScope ? `id: "${realComponentKey}",` : ""}
           ${Object.keys(componentOutputs).map((outputId) => {
             return `
               ${outputId}(value: unknown) {
@@ -1358,7 +1447,7 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
         })
 
         /** 执行 ${component.title} - ${comId} - ${pinId} */
-        sceneContext.getComponent("${comId}").inputs["${pinId}"](value);
+        sceneContext.getComponent(${realComponentKey}).inputs["${pinId}"](${valueCode});
       `
     }).join("\n")
   }
@@ -1375,7 +1464,7 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
     const { frameId, pinAry } = starter
     pinAry.forEach(({ id }) => {
       const nexts = executeIdToNextMap[frameId]?.[id]
-      nexts && (eventCode = eventCode + generateNextEventCode2(nexts, { executeIdToNextMap }))
+      nexts && (eventCode = eventCode + generateNextEventCode2(nexts, { executeIdToNextMap, inputId: id }))
     })
   }
 
