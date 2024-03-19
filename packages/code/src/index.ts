@@ -619,7 +619,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     }, [])
 
     return (
-      <div className={\`${getComponentClasses().reduce(
+      <div id="${id}" className={\`${getComponentClasses().reduce(
         (p, c) => (p ? p + ` \${${c}}` : `\${${c}}`),
         "",
       )}\`} style={${JSON.stringify(getComponentStyle(style))}}>
