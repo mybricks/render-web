@@ -98,7 +98,11 @@ export async function generateCode(toJSON: ToJSON) {
    * html入口文件代码 
    * 当前仅组件风格化
    */
-  const indexEjsCode = await prettier.format(fse.readFileSync(indexEjsCodePath, "utf-8").replace("<!-- replace-component-styleTags -->", generateStyleTagsCode(toJSON)), { parser: "html" })
+  const indexEjsCode = await prettier.format(fse.readFileSync(indexEjsCodePath, "utf-8")
+    .replace("<!-- replace-component-styleTags -->", generateStyleTagsCode(toJSON))
+    /** TODO: 临时 */
+    .replace("<!-- replace-dependencies -->", '<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>'), { parser: "html" })
+    
   /** 写html入口文件 */
   fse.writeFileSync(indexEjsCodePath, indexEjsCode, "utf-8");
 }
@@ -773,6 +777,9 @@ function calSlotStyles(style: any) {
 
   Reflect.deleteProperty(style, "height");
   Reflect.deleteProperty(style, "width");
+  Reflect.deleteProperty(style, "widthFact");
+  Reflect.deleteProperty(style, "heightFact");
+  
 
   return style;
 }
