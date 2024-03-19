@@ -486,7 +486,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     codeAry: Array<{code: string, filePath: string}>
     functionCode: string
     importComponents: Array<string>
-  }> = []
+  }> = [];
 
   outputs.forEach((outputId) => {
     const connectionId = `${id}-${outputId}`;

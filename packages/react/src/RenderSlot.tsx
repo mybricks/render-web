@@ -403,6 +403,7 @@ function RenderCom({
       position: style.position,
       flex: style.flex,
       flexDirection: style.flexDirection,
+      flexShrink: style.flexShrink,
       ...otherStyle,
       ...sizeStyle,
       ...marginStyle,
