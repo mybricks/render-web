@@ -236,7 +236,7 @@ function getTsxArray({scene, frame}: {scene: ToBaseJSON, frame: ToJSON["frames"]
     }
   }
 
-  const variableEventCodes = diagrams.filter(({ starter }) => {
+  diagrams.filter(({ starter }) => {
     return starter.type === "var"
   }).map((diagram) => {
     const {
@@ -1073,20 +1073,56 @@ function generateSlotComponentCode(slot: Slot, { comId, filePath: parentFilePath
 
   if (style.layout === 'smart') {
     /** 智能布局，使用 layoutTemplate */
-    slotComponents.push(...generateComponentCode(layoutTemplate, { scene, frame: nextFrame, filePath: filePath }))
+    slotComponents.push(...generateComponentCode(layoutTemplate, { scene, frame: nextFrame, filePath }))
   } else {
     /** 非智能布局 使用 comAry */
-    slotComponents.push(...generateComponentCode(comAry, { scene, frame: nextFrame, filePath: filePath }))
+    slotComponents.push(...generateComponentCode(comAry, { scene, frame: nextFrame, filePath }))
   }
 
   const replaceImportComponents = new Set<string>();
   let replaceRenderComponent = "";
   let replaceFunction = "";
+  let replaceVarFunction = "";
+
+  nextFrame.diagrams.filter(({ starter }) => {
+    return starter.type === "var"
+  }).map((diagram) => {
+    const {
+      importComponent,
+      filePath: jsFilePath,
+      componentCode,
+    } = generateJsComponentCode({
+      // @ts-ignore
+      comId: diagram.starter.comId,
+      filePath,
+      scene
+    });
+
+    replaceImportComponents.add(importComponent)
+    slotComponents.push({codeArray: [{code: componentCode, filePath: jsFilePath}]})
+    // tsxArray.push({
+    //   code: componentCode,
+    //   filePath,
+    // });
+
+    return generateEventCode(diagram, { scene, filePath })
+  }).map(({ codeAry, importComponents, functionCode }) => {
+    importComponents.forEach((importComponent) => {
+      replaceImportComponents.add(importComponent)
+    })
+    // tsxArray.push(...codeAry)
+    slotComponents.push({codeArray: codeAry})
+    replaceVarFunction = replaceVarFunction + functionCode
+
+    return {
+      codeAry, importComponents, functionCode
+    }
+  })
 
   function deepSlots(slots: any, next = 0) {
     slots.forEach((slot: any) => {
       const { importComponents, importComponent, renderComponent, slotComponents, filePath, componentCode, codeArray, events } = slot
-      if (!next) {
+      if (!next && renderComponent) {
         replaceRenderComponent = replaceRenderComponent + renderComponent + "\n";
       }
       if (importComponent) {
@@ -1148,15 +1184,17 @@ function generateSlotComponentCode(slot: Slot, { comId, filePath: parentFilePath
 
   import type { SlotProps } from "@/type";
 
-  import css from "@/scenes/index.less"
+  import css from "@/scenes/index.less";
 
   ${replaceFunction}
 
   /** ${title} */
   export function Slot_${id} ({ inputValues }: SlotProps) {
     const { id } = useMemo(() => {
+      const id = String(Math.random());
+      ${replaceVarFunction}
       return {
-        id: String(Math.random()),
+        id
       };
     }, []);
 
@@ -1239,7 +1277,6 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
     const { comId, pinId } = starter
     const component = scene.coms[comId]
     const { frameId, parentComId } = component;
-
     const isScope = frameId && parentComId;
 
     return {
@@ -1255,15 +1292,16 @@ function generateEventCode(diagram: Frame['diagrams'][0], { scene, filePath: par
   } else if (type === "var") {
     const { comId, pinId } = starter
     const component = scene.coms[comId]
-
+    const { frameId, parentComId } = component;
+    const isScope = frameId && parentComId;
     /** 变量比较特殊，需要在外层提前执行 */
-    console.log("render 计算组件: ", 111)
+
     return {
       codeAry,
       importComponents,
       functionCode: `
-        /** ${component.title} - ${comId} - ${pinId} 事件 111 */
-        render_${convertToUnderscore(component.def.namespace)}_${comId}({
+        /** ${component.title} - ${comId} - ${pinId} 事件 */
+        render_${convertToUnderscore(component.def.namespace)}_${comId}({${isScope ? `id: \`${parentComId}-${frameId}-${comId}-\${id}\`,` : ""}
           ${pinId}(value: unknown) {
             ${eventCode}
           }
@@ -1387,11 +1425,10 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
         if (inputs.length > 1) {
           if (!topComponentIdMap[comId]) {
             topComponentIdMap[comId] = true
-            console.log("render 计算组件: ", 222)
             /** 输入项大于1，说明需要把函数提前执行 */
             topComponent.push(`
               /** ${component.title} - ${comId} */
-              render_${convertToUnderscore(component.def.namespace)}_${comId}();
+              render_${convertToUnderscore(component.def.namespace)}_${comId}(${isScope ? `{ id: ${realComponentKey} }` : ""});
             `)
           }
 
@@ -1411,12 +1448,11 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
 
       if (inputs.length > 1) {
         if (!topComponentIdMap[comId]) {
-          console.log("render 计算组件: ", 444)
           topComponentIdMap[comId] = true
           /** 输入项大于1，说明需要把函数提前执行 */
           topComponent.push(`
             /** ${component.title} - ${comId} */
-            render_${convertToUnderscore(component.def.namespace)}_${comId}({
+            render_${convertToUnderscore(component.def.namespace)}_${comId}({${isScope ? `id: ${realComponentKey},` : ""}
               ${Object.keys(componentOutputs).map((outputId) => {
                 return `
                   ${outputId}(value: unknown) {
@@ -1436,7 +1472,7 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
 
       return `
         /** ${component.title} - ${comId} */
-        render_${convertToUnderscore(component.def.namespace)}_${comId}({${isScope ? `id: "${realComponentKey}",` : ""}
+        render_${convertToUnderscore(component.def.namespace)}_${comId}({${isScope ? `id: ${realComponentKey},` : ""}
           ${Object.keys(componentOutputs).map((outputId) => {
             return `
               ${outputId}(value: unknown) {
