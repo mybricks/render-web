@@ -1,11 +1,16 @@
 import * as CSS from "csstype";
 
+export type Style = CSS.Properties;
+
 /** 组件模型样式信息 */
-export interface ComponentStyle extends CSS.Properties {
+export interface ComponentStyle extends Style {
   /** 风格化配置样式 */
   styleAry?: Array<{
-    css: CSS.Properties;
+    css: Style;
+    /** css选择器 */
     selector: string;
+    /** TODO: 是否全局？后面补充 */
+    global?: boolean;
   }>
 }
 
@@ -197,7 +202,7 @@ export interface DomNode {
   /** 唯一ID，没有实际意义 */
   id: string;
   /** 样式 */
-  style: CSS.Properties;
+  style: Style;
   /** 智能布局dom节点或组件节点数组 */
   elements: Array<DomNode | ComponentNode>
 }

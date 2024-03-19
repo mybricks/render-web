@@ -295,4 +295,4 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
 
 
 export { isNumber } from "./type";
-export { convertToUnderscore } from "./regexp";
+export { convertToUnderscore, convertCamelToHyphen } from "./regexp";

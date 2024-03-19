@@ -2,9 +2,9 @@ import path from "path";
 import fse from "fs-extra";
 import * as prettier from "prettier";
 
-import type { ToJSON, ToBaseJSON, DomNode, ComponentNode, Slot, Frame } from "@mybricks/render-types"
+import type { ToJSON, ToBaseJSON, DomNode, ComponentNode, Slot, Frame, Style } from "@mybricks/render-types"
 
-import { isNumber, convertToUnderscore } from "@mybricks/render-utils/src";
+import { isNumber, convertToUnderscore, convertCamelToHyphen } from "@mybricks/render-utils/src";
 
 async function prettierFormatBabelTS(code: string) {
   return await prettier.format(code, { parser: "babel-ts" })
@@ -85,6 +85,52 @@ export async function generateCode(toJSON: ToJSON) {
       "utf-8",
     );
   }));
+
+
+  /** html文件地址 */
+  const indexEjsCodePath = path.resolve(
+    tempProjectPath,
+    "templates/index.ejs",
+  );
+
+
+  /** 
+   * html入口文件代码 
+   * 当前仅组件风格化
+   */
+  const indexEjsCode = await prettier.format(fse.readFileSync(indexEjsCodePath, "utf-8").replace("<!-- replace-component-styleTags -->", generateStyleTagsCode(toJSON)), { parser: "html" })
+  /** 写html入口文件 */
+  fse.writeFileSync(indexEjsCodePath, indexEjsCode, "utf-8");
+}
+
+/** 组件风格化代码 */
+function generateStyleTagsCode(toJSON: ToJSON) {
+  /** TODO: 还有模块等等需要处理 */
+  const { scenes } = toJSON;
+  let styleTagsCode = "";
+  scenes.forEach(({ coms }) => {
+    Object.entries(coms).forEach(([id, component]) => {
+      const { styleAry } = component.model.style
+      if (Array.isArray(styleAry)) {
+        let innerHtml = "";
+        styleAry.forEach(({css, selector, global}) => {
+          if (selector === ':root') {
+            selector = '> *:first-child'
+          }
+          if (Array.isArray(selector)) {
+            selector.forEach((selector) => {
+              innerHtml = innerHtml + getStyleInnerText({id, css, selector, global})
+            })
+          } else {
+            innerHtml = innerHtml + getStyleInnerText({id, css, selector, global})
+          }
+        })
+        styleTagsCode = styleTagsCode + `<style id="${id}">${innerHtml}</style>`
+      }
+    })
+  })
+
+  return styleTagsCode;
 }
 
 /**
@@ -425,11 +471,6 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     frameId,
     parentComId
   } = coms[id];
-  
-  const { styleAry } = style
-  if (Array.isArray(styleAry)) {
-    console.log("处理风格化样式 styleAry: ", styleAry)
-  }
 
   /** 在作用域插槽里 */
   const isScope = frameId && parentComId;
@@ -606,8 +647,24 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     filePath: `${filePath}/index.tsx`,
     componentCode,
     slotComponents,
-    events
+    events,
   };
+}
+
+function getStyleInnerText ({ id, css, selector, global }: { id: string, css: Style, selector: string, global?: boolean }) {
+  return `
+    ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+      ${Object.entries(css).map(([key, value]) => {
+        // TODO: 单位转换？
+        // if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+        //   value = pxToRem(value)
+        // } else if (configPxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+        //   value = pxToVw(value)
+        // }
+        return `${convertCamelToHyphen(key)}: ${value};`;
+      })}
+    }
+  `
 }
 
 
@@ -979,6 +1036,8 @@ function generateJsComponentCode({
   const isScene = namespace === "mybricks.core-comlib.scenes";
   /** 变量 */
   const isVar = namespace === "mybricks.core-comlib.var";
+  /** 当前输入 TODO 处理完样式来搞这个 */
+  const isFrameInput = namespace === "mybricks.core-comlib.frame-input"
 
   const componentCode = `import globalContext from "@/globalContext";
   import { sceneContext } from "@/scenes/scene_${scene.id}";
@@ -1073,7 +1132,7 @@ function generateSlotComponentCode(slot: Slot, { comId, filePath: parentFilePath
   const slotComponents: any = [];
   const { id, title, comAry, style, layoutTemplate, type } = slot;
   const filePath = `${parentFilePath}/slots/${id}`;
-  const nextFrame = frame.coms[comId].frames.find((frame) => frame.id === slot.id) || frame
+  const nextFrame = frame.coms[comId]?.frames.find((frame) => frame.id === slot.id) || frame
   const isScope = type === "scope";
 
   if (style.layout === 'smart') {
@@ -1503,9 +1562,11 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
   } else {
     // 目前就 com 和 frame
     const { frameId, pinAry } = starter
+    const notScope = starter.frameId === scene.id
+
     pinAry.forEach(({ id }) => {
       const nexts = executeIdToNextMap[frameId]?.[id]
-      nexts && (eventCode = eventCode + generateNextEventCode2(nexts, { executeIdToNextMap, inputId: id }))
+      nexts && (eventCode = eventCode + generateNextEventCode2(nexts, { executeIdToNextMap, inputId: notScope ? void 0 : id }))
     })
   }
 
