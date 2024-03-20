@@ -94,7 +94,7 @@ export function transformSingleToJSON(toJSON: any) {
   return toJSON
 }
 
-function transformSlotComAry(slot, coms, root = true) {
+function transformSlotComAry(slot, coms, root = true, com?) {
   const comIdToSlotComMap = {}
   const { comAry } = slot
 
@@ -118,10 +118,11 @@ function transformSlotComAry(slot, coms, root = true) {
       return preTop - curTop
     })
 
-    comAry.forEach(({slots}) => {
+    comAry.forEach((com) => {
+      const { slots } = com
       if (slots) {
         Object.entries(slots).forEach(([slotId, slot]) => {
-          transformSlotComAry(slot, coms, false)
+          transformSlotComAry(slot, coms, false, com)
         })
       }
     })
@@ -151,9 +152,11 @@ function transformSlotComAry(slot, coms, root = true) {
 
     }), { style: { width: slot.style.width, height: slot.style.height }, root, isNotAutoGroup: true })
 
-    /** 删除插槽样式里的宽高属性 */
-    Reflect.deleteProperty(slot.style, "width")
-    Reflect.deleteProperty(slot.style, "height")
+    if (com) {
+      /** 删除插槽样式里的宽高属性 */
+      Reflect.deleteProperty(slot.style, "width")
+      Reflect.deleteProperty(slot.style, "height")
+    }
 
     // const traverseElementsToSlotComAry3 = (comAry) => {
     //   const result = []
@@ -217,7 +220,7 @@ function transformSlotComAry(slot, coms, root = true) {
       const { slots } = com
       if (slots) {
         Object.entries(slots).forEach(([slotId, slot]) => {
-          transformSlotComAry(slot, coms, false)
+          transformSlotComAry(slot, coms, false, com)
         })
       }
     })
