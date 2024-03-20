@@ -186,14 +186,34 @@ function transformSlotComAry(slot, coms, root = true, com?) {
     }
     slot.layoutTemplate = traverseElementsToSlotComAry(comAry2, coms, comIdToSlotComMap)
   } else {
+    /** 非智能布局，删除插槽的宽高 */
+    if (com) {
+      Reflect.deleteProperty(slot.style, "width")
+      Reflect.deleteProperty(slot.style, "height")
+    }
     comAry.forEach((com) => {
       const { slots } = com
+      const component = coms[com.id]
       if (slots) {
-        const component = coms[com.id]
         const isroot = component.model.style.heightAuto
         Object.entries(slots).forEach(([slotId, slot]) => {
           transformSlotComAry(slot, coms, isroot, com)
         })
+      }
+
+      /** 非智能布局，也需要判断宽高的配置 */
+      const style = component.model.style
+
+      if (style.heightAuto) {
+        style.height = "fit-content"
+      } else if (style.heightFull) {
+        style.height = "100%"
+      }
+
+      if (style.widthAuto) {
+        style.width = "fit-content"
+      } else if (style.widthFull) {
+        style.width = "100%"
       }
     })
   }
