@@ -184,68 +184,6 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         Reflect.deleteProperty(slot.style, "width")
       }
     }
-    /** 删除插槽样式里的宽高属性 */
-    // Reflect.deleteProperty(slot.style, "width")
-    // Reflect.deleteProperty(slot.style, "height")
-
-
-
-    // const traverseElementsToSlotComAry3 = (comAry) => {
-    //   const result = []
-    //   comAry.forEach((com) => {
-    //     const { id, style, elements } = com
-    //     Reflect.deleteProperty(com, "tempStyle")
-
-    //     if (Array.isArray(elements)) {
-    //       Reflect.deleteProperty(style, 'height')
-    //       result.push({
-    //         ...com,
-    //         elements: traverseElementsToSlotComAry3(elements)
-    //       })
-    //     } else {
-    //       const modelStyle = coms[id].model.style
-    //       modelStyle.width = style.width
-    //       modelStyle.height = style.height
-    //       modelStyle.position = 'relative'
-    //       if (modelStyle.heightAuto) {
-    //         modelStyle.height = 'auto'
-    //       }
-    //       // if (modelStyle.height === 'auto') {
-    //       //   modelStyle.height = 'fit-content'
-    //       // }
-    //       // if (modelStyle.flexY === 1) {
-    //       //   Reflect.deleteProperty(modelStyle, "height")
-    //       // }
-
-    //       // widthAuto 适应内容
-    //       // widthFull 填充
-    //       if (modelStyle.widthAuto) {
-    //         modelStyle.maxWidth = modelStyle.width
-    //         modelStyle.width = "fit-content"
-    //       }
-
-    //       if (style.flex) {
-    //         modelStyle.flex = style.flex
-    //         modelStyle.margin = style.margin
-    //         Reflect.deleteProperty(modelStyle, "width")
-    //         Reflect.deleteProperty(modelStyle, "maxWidth")
-    //       } else if (style.width === 'auto') {
-    //         modelStyle.margin = style.margin
-    //         modelStyle.width = 'auto'
-    //         Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
-    //       } else {
-    //         modelStyle.marginTop = style.marginTop
-    //         modelStyle.marginLeft = style.marginLeft
-    //       }
-
-    //       modelStyle.marginBottom = style.marginBottom
-    //       result.push(comIdToSlotComMap[id])
-    //     }
-    //   })
-  
-    //   return result
-    // }
-
     slot.layoutTemplate = traverseElementsToSlotComAry(comAry2, coms, comIdToSlotComMap)
   } else {
     comAry.forEach((com) => {
@@ -269,9 +207,21 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
 
     if (Array.isArray(elements)) {
       Reflect.deleteProperty(style, 'height')
+      const realElements = traverseElementsToSlotComAry(elements, coms, comIdToSlotComMap)
+      if (realElements.filter((element) => {
+        const { id, def, style } = element
+        if (def) {
+          const style = coms[id].model.style
+          return style.width === "fit-content"
+        } else {
+          return style.width === "fit-content"
+        }
+      }).length === realElements.length) {
+        style.width = "fit-content"
+      }
       result.push({
         ...com,
-        elements: traverseElementsToSlotComAry(elements, coms, comIdToSlotComMap)
+        elements: realElements
       })
     } else {
       const modelStyle = coms[id].model.style
