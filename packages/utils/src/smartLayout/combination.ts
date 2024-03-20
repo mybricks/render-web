@@ -65,12 +65,12 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       const { id, style } = element
       const marginTop = style.top - currentTop
       const marginRight = width - (style.left - left) - style.width
-      const isLastElement = elementsLastIndex === index
+      // const isLastElement = elementsLastIndex === index
       // 只有纵向排列的才需要计算marginBottom来实现距底功能
       let marginBottom = 0
-      if (isLastElement && !root) {
-        marginBottom = height - style.height - style.top
-      }
+      // if (isLastElement && !root) {
+      //   marginBottom = height - style.height - style.top
+      // }
 
       if (!style.widthFull) {
         // console.log(1, 1, "没有铺满")
