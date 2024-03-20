@@ -121,8 +121,10 @@ function transformSlotComAry(slot, coms, root = true, com?) {
     comAry.forEach((com) => {
       const { slots } = com
       if (slots) {
+        const component = coms[com.id]
+        const isroot = component.model.style.heightAuto
         Object.entries(slots).forEach(([slotId, slot]) => {
-          transformSlotComAry(slot, coms, false, com)
+          transformSlotComAry(slot, coms, isroot, com)
         })
       }
     })
@@ -154,9 +156,39 @@ function transformSlotComAry(slot, coms, root = true, com?) {
 
     if (com) {
       /** 删除插槽样式里的宽高属性 */
-      Reflect.deleteProperty(slot.style, "width")
-      Reflect.deleteProperty(slot.style, "height")
+      
+
+      const component = coms[com.id]
+      const { style } = component.model
+
+      // 现在数据有问题，缺width、height属性
+      if (!style.heightAuto && !style.heightFull) {
+        // console.log("定高，不删除插槽的高度")
+        slot.style.overflowY = "hidden"
+      } else if (style.heightAuto) {
+        // console.log("高度自适应")
+        Reflect.deleteProperty(slot.style, "height")
+      } else {
+        // console.log("高度铺满")
+        Reflect.deleteProperty(slot.style, "height")
+      }
+
+      if (!style.widthAuto && !style.widthFull) {
+        // console.log("定宽，不删除插槽的宽度")
+        slot.style.overflowX = "hidden"
+      } else if (style.widthAuto) {
+        // console.log("宽度自适应")
+        Reflect.deleteProperty(slot.style, "width")
+      } else {
+        // console.log("宽度铺满")
+        Reflect.deleteProperty(slot.style, "width")
+      }
     }
+    /** 删除插槽样式里的宽高属性 */
+    // Reflect.deleteProperty(slot.style, "width")
+    // Reflect.deleteProperty(slot.style, "height")
+
+
 
     // const traverseElementsToSlotComAry3 = (comAry) => {
     //   const result = []
@@ -219,8 +251,10 @@ function transformSlotComAry(slot, coms, root = true, com?) {
     comAry.forEach((com) => {
       const { slots } = com
       if (slots) {
+        const component = coms[com.id]
+        const isroot = component.model.style.heightAuto
         Object.entries(slots).forEach(([slotId, slot]) => {
-          transformSlotComAry(slot, coms, false, com)
+          transformSlotComAry(slot, coms, isroot, com)
         })
       }
     })
