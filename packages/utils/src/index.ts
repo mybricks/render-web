@@ -280,6 +280,7 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
         modelStyle.margin = style.margin
         Reflect.deleteProperty(modelStyle, "width")
         Reflect.deleteProperty(modelStyle, "maxWidth")
+        modelStyle.minWidth = style.minWidth
       } else if (style.width === 'auto') {
         modelStyle.margin = style.margin
         modelStyle.width = 'auto'
