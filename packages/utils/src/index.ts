@@ -227,8 +227,10 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
 
     if (Array.isArray(elements)) {
       Reflect.deleteProperty(style, 'height')
+      console.log(style, "style")
       const realElements = traverseElementsToSlotComAry(elements, coms, comIdToSlotComMap)
-      if (realElements.filter((element) => {
+      // 居中不需要设置fit-content
+      if (style.justifyContent !== "center" && realElements.filter((element) => {
         const { id, def, style } = element
         if (def) {
           const style = coms[id].model.style
