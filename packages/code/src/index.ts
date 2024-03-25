@@ -530,8 +530,8 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
       {
         get(target, slotId: string) {
           return {
-            render(params?: SlotProps) {
-              const key = params?.key;
+            render(params?: SlotRenderProps) {
+              const { key, ...slotProps } = params || {};
               let jsx = (
                 <div key={key} className={css.error}>
                   {\`组件(${namespace})插槽(\${slotId})未找到。\`}
@@ -560,7 +560,7 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
   import { sceneContext } from "@/scenes/scene_${sceneId}";
   import { observable } from "@/observable";
 
-  import type { SlotProps } from "@/type";
+  import type { SlotRenderProps } from "@/type";
 
   import css from "@/scenes/index.less";
 
@@ -1286,7 +1286,7 @@ function generateSlotComponentCode(slot: Slot, { comId, filePath: parentFilePath
   const componentFunctionName = `Slot_${componentFolderName}`;
 
   const importComponent = `import { ${componentFunctionName} } from "./slots/${componentFolderName}";`;
-  const renderComponent = `/** ${title}-${id} */ <${componentFunctionName} key={key} {...params} />\n`;
+  const renderComponent = `/** ${title}-${id} */\n<${componentFunctionName} key={key} {...slotProps} />\n`;
 
   return {
     importComponent,
