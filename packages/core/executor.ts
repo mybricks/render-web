@@ -227,7 +227,13 @@ export default function executor(opts, {observable}) {
         if (inReg.direction === 'inner-input') {
           // const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
           // TODO
-          const proxyFn = _frameOutputProxy[nextScope?.id + '-' + inReg.pinId] || _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
+
+          // console.log('inReg: ', inReg)
+          // console.log('nextScope: ', nextScope)
+          // console.log('第一个: ', inReg.frameKey + '-' + inReg.pinId, _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId])
+          // console.log('第二个: ', inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId, _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId])
+
+          const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId] || _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId]
           if (proxyFn) {
             proxyFn(val)
           }
@@ -1230,9 +1236,15 @@ export default function executor(opts, {observable}) {
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
               return
             }
-            // TODO: 
+            // TODO: 这里还需要多关注一下
+            // console.log("注册_frameOutputProxy: ", {comId, slotId, scope})
+            _frameOutputProxy[`${comId}-${slotId}-${scope?.parent?.id}-${name}`] = fn
             _frameOutputProxy[key + '-' + name] = fn
             _frameOutputProxy[slotKey + '-' + name] = fn
+            // console.log("_frameOutputProxy fn 1: ", key + '-' + name)
+            // console.log("_frameOutputProxy fn 2: ", slotKey + '-' + name)
+            // console.log("_frameOutputProxy fn 3: ", `${comId}-${slotId}-${scope.parent.id}-${name}`)
+            // console.log("_frameOutputProxy all: ", _frameOutputProxy)
             //_outputRegs[name] = fn
           }
         }
