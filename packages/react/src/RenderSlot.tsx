@@ -67,7 +67,7 @@ export default function RenderSlot({
     // const slotStyle = paramsStyle || style;
     const slotStyle = Object.assign(style, paramsStyle || {})
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle, display: 'inline-block'}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
         })}
