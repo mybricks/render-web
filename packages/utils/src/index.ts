@@ -227,7 +227,6 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
 
     if (Array.isArray(elements)) {
       Reflect.deleteProperty(style, 'height')
-      console.log(style, "style")
       const realElements = traverseElementsToSlotComAry(elements, coms, comIdToSlotComMap)
       // 居中不需要设置fit-content
       if (style.justifyContent !== "center" && realElements.filter((element) => {
@@ -247,8 +246,10 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       })
     } else {
       const modelStyle = coms[id].model.style
-      modelStyle.width = style.width
-      modelStyle.height = style.height
+      // modelStyle.width = style.width
+      // modelStyle.height = style.height
+      modelStyle.width = coms[id].style.width
+      modelStyle.height = coms[id].style.height
       modelStyle.position = 'relative'
       if (modelStyle.heightAuto) {
         // modelStyle.height = 'auto'
