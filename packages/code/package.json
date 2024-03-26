@@ -10,12 +10,13 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@mybricks/render-types": "^0.0.1",
     "@types/fs-extra": "^11.0.4",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.2"
   },
   "dependencies": {
-    "@mybricks/render-utils": "^0.0.1",
+    "@mybricks/render-utils": "^0.0.4",
     "fs-extra": "^11.2.0",
     "prettier": "^3.2.5"
   }

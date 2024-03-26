@@ -4,7 +4,7 @@ import * as prettier from "prettier";
 
 import type { ToJSON, ToBaseJSON, DomNode, ComponentNode, Slot, Frame, Style } from "@mybricks/render-types"
 
-import { isNumber, convertToUnderscore, convertCamelToHyphen } from "@mybricks/render-utils/src";
+import { isNumber, convertToUnderscore, convertCamelToHyphen } from "@mybricks/render-utils";
 
 async function prettierFormatBabelTS(code: string) {
   return await prettier.format(code, { parser: "babel-ts" })
@@ -492,6 +492,9 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
     importComponents: Array<string>
   }> = [];
 
+  /** 事件导出 */
+  let eventsCodeAry: Array<{id: string, functionName: string}> = []
+
   outputs.forEach((outputId) => {
     const connectionId = `${id}-${outputId}`;
     const connections = cons[connectionId];
@@ -501,12 +504,23 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
       if (diagram) {
         /** 这里的value未来也许可以用schema？反正现在是没有的 */
         propsCode = propsCode + `${outputId}: (value: unknown) => void;\n`;
+        eventsCodeAry.push({id: outputId, functionName: `render_${convertToUnderscore(componentFolderName)}_${outputId}`})
         eventCode =
           eventCode + (isScope ? ` ${outputId}={(value) => render_${convertToUnderscore(componentFolderName)}_${outputId}(value, id)}` : ` ${outputId}={render_${convertToUnderscore(componentFolderName)}_${outputId}}`);
-          events.push(generateEventCode(diagram, { scene, filePath: parentFilePath }))
+          events.push(generateUiEventCode(diagram, { scene, filePath: `${filePath}/events/${outputId}`}))
+          // events.push(generateUiEventCode(diagram, { scene, filePath: parentFilePath }))
       }
     }
   });
+
+  if (eventsCodeAry.length) {
+    events[0].codeAry.push({
+      code: eventsCodeAry.map(({ id, functionName }) => {
+        return `export { ${functionName} } from "./${id}";`
+      }).join("\n"),
+      filePath: `${filePath}/events/index.ts`
+    })
+  }
 
   const replaceImportComponents = new Set<string>();
   let replaceSlots = "";
@@ -640,8 +654,10 @@ function generateUiComponentCode(component: ComponentNode, { filePath: parentFil
         />
       </div>
     )
-  }`;
-  const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
+  }
+  ${eventsCodeAry.length ? 'export * from "./events";' : ""}
+  `;
+  const importComponent = `import { ${componentFunctionName}${eventsCodeAry.length ? `, ${eventsCodeAry.map(({functionName}) => functionName).join()}` : ""} } from "./${componentFolderName}";`;
   const renderComponent = `{/* ${title}-${id} */}
   <${componentFunctionName} ${frameId && parentComId ? `id={\`${parentComId}-${frameId}-${id}-\${id}\`}` : ""} ${eventCode}/>\n`;
 
@@ -824,137 +840,6 @@ function calSlotClasses(style: any) {
 
   return rtn;
 }
-
-
-
-/** JS计算代码拼装，无状态版 */
-// function generateJsComponentCode({
-//   comId: id,
-//   filePath,
-//   scene
-// }: {
-//   comId: string;
-//   filePath: string;
-//   scene: ToBaseJSON
-// }, { inputs: propsInputs, outputs: propsOutputs }: { inputs: Array<string>, outputs: Array<string> }) {
-//   const { coms, pinRels } = scene
-//   const {
-//     title,
-//     def: { namespace, version },
-//     model: { data },
-//     outputs,
-//   } = coms[id];
-//   const componentFolderName = `${namespace}_${id}`;
-//   const componentFunctionName = `render_${convertToUnderscore(
-//     componentFolderName,
-//   )}`;
-//   const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
-
-  
-//   /**
-//    * 运行时分三种情况
-//    * 1. 没有输出
-//    * 2. 有一个输出
-//    * 3. 多个输出
-//    */
-
-//   let propsCode = ''
-//   let runtimeCode = ''
-//   const propsOutputsLength = propsOutputs.length
-//   if (!propsOutputsLength) {
-//     // 没有输出
-//     propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
-    
-//     const [inputId, nextInputId] = propsInputs[0].split('.')
-//     const nextRels = pinRels[`${id}-${inputId}`]
-    
-//     runtimeCode = `
-//       runtime({
-//         env: globalContext.env,
-//         inputs: {
-//           ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: () => void`)}}` : ''}) => void) {
-//             func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}() {}`)}}` : ''})
-//           }
-//         },
-//         ${outputs.length ? `outputs: {
-//           ${outputs.map((outputId) => `${outputId}(){}`).join()}
-//         },` : ''}
-//         data: ${JSON.stringify(data)},
-//       });
-//     `
-//   } else if (propsOutputsLength === -1) {
-//     // 目前用不到这段逻辑，因为即使只有一个输出项，也可能被重复执行的可能性，例如 循环执行
-//     // 一个输出
-//     propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
-  
-//     const [inputId, nextInputId] = propsInputs[0].split('.')
-//     const nextRels = pinRels[`${id}-${inputId}`]
-
-//     runtimeCode = `
-//       return new Promise((resolve) => {
-//         runtime({
-//           env: globalContext.env,
-//           inputs: {
-//             ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
-//               func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}}` : ''})
-//             }
-//           },
-//           outputs: {
-//             ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}
-//           },
-//           data: ${JSON.stringify(data)},
-//         })
-//       })
-//     `
-//   } else {
-//     // 多个输出
-//     propsCode = `{${propsOutputs.filter((id) => id).map((outputId) => {
-//       return `${outputId}`
-//     }).join()}}: {${propsOutputs.filter((id) => id).map((outputId) => {
-//       return `${outputId}: (value: unknown) => void`
-//     }).join()}}`
-
-//     const [inputId, nextInputId] = propsInputs[0].split('.')
-//     const nextRels = pinRels[`${id}-${inputId}`]
-
-//     runtimeCode = `
-//       return (${propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`}) => {
-//         runtime({
-//           env: globalContext.env,
-//           inputs: {
-//             ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
-//               func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? '' : '() {}'}`)}}` : ''})
-//             }
-//           },
-//           outputs: {
-//             ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? '' : '() {}'}`)}
-//           },
-//           data: ${JSON.stringify(data)},
-//         })
-//       }
-//     `
-//   }
-
-//   const componentCode = `import globalContext from "@/globalContext";
-
-//     /** 原子组件代码 */
-//     const runtime = globalContext.getComponentDefinition({
-//       namespace: "${namespace}",
-//       version: "${version}",
-//     }).runtime;
-
-//     /** ${title} */
-//     export function render_${convertToUnderscore(namespace)}_${id}(${propsCode}) {
-//       ${runtimeCode}
-//     }
-//   `
-
-//   return {
-//     importComponent,
-//     filePath: `${filePath}/${componentFolderName}/index.ts`,
-//     componentCode,
-//   };
-// }
 
 /** JS计算代码拼装，有状态版 */
 function generateJsComponentCode({
@@ -1585,5 +1470,393 @@ function generateEventInternalCode(diagram: Frame['diagrams'][0], { scene, fileP
       ${eventCode}
     ` : "",
     importComponents: Array.from(importComponents),
+  }
+}
+
+/** 只ui组件事件输出卡片代码生成 */
+function generateUiEventCode(diagram: Frame['diagrams'][0], { scene, filePath: parentFilePath }: { scene: ToBaseJSON, filePath: string }) {
+  /** 
+   * 事件卡片一定只有一个开头
+   * 已知启始节点
+   */
+  const { coms, pinRels } = scene
+  const { conAry, starter } = diagram
+  const importComponents = new Set<string>()
+  const tsxArray: any = []
+  const functionAry: any = []  
+  const executeIdToNextMap: any = {}
+
+  /** 计算组件ID对应的下一步连接 */
+  conAry.forEach((con) => {
+    const { from, to, finishPinParentKey, startPinParentKey } = con
+    const { id: outputId, parent: { id: fromComId } } = from;
+    const { id: inputId, parent: { id: toComId } } = to;
+
+    let comNextMap = executeIdToNextMap[fromComId]
+
+    if (!comNextMap) {
+      comNextMap = executeIdToNextMap[fromComId] = {}
+    }
+
+    let comOutputs = comNextMap[outputId]
+
+    if (!comOutputs) {
+      comOutputs = comNextMap[outputId] = []
+    }
+
+    comOutputs.push({
+      comId: toComId,
+      pinId: inputId,
+      finishPinParentKey,
+      startPinParentKey
+    })
+  })
+
+  const generateJsComponentCode22222 = ({
+    comId: id,
+    filePath,
+    scene
+  }: {
+    comId: string;
+    filePath: string;
+    scene: ToBaseJSON
+  }, { inputs: propsInputs, outputs: propsOutputs }: { inputs: Array<string>, outputs: Array<string> }) => {
+    const { coms, pinRels } = scene
+    const {
+      title,
+      def: { namespace, version },
+      model: { data },
+      outputs,
+    } = coms[id];
+    const componentFolderName = `${namespace}_${id}`;
+    const componentFunctionName = `render_${convertToUnderscore(
+      componentFolderName,
+    )}`;
+    const importComponent = `import { ${componentFunctionName} } from "./${componentFolderName}";`;
+  
+    
+    /**
+     * 运行时分三种情况
+     * 1. 没有输出
+     * 2. 有一个输出
+     * 3. 多个输出
+     */
+    /** 导入的工具等 */
+    let importCode = 'import globalContext from "@/globalContext";'
+    /** 入参 */
+    let propsCode = ''
+    /** 运行代码 */
+    let runtimeCode = ''
+    const propsOutputsLength = propsOutputs.length
+    if (!propsOutputsLength) {
+      // 没有输出
+      // propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
+      
+      propsCode = `value: unknown`
+
+      const [inputId, nextInputId] = propsInputs[0].split('.')
+      const nextRels = pinRels[`${id}-${inputId}`]
+
+
+      runtimeCode = `
+      runtime({
+        env: globalContext.env,
+        inputs: {
+          ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: () => void`)}}` : ''}) => void) {
+            func(value${nextRels ? `, {${nextRels.map((outputId) => `${outputId}() {}`)}}` : ''})
+          }
+        },
+        ${outputs.length ? `outputs: {
+          ${outputs.map((outputId) => `${outputId}(){}`).join()}
+        },` : ''}
+        data: ${JSON.stringify(data)},
+      });
+    `
+      
+      // runtimeCode = `
+      //   runtime({
+      //     env: globalContext.env,
+      //     inputs: {
+      //       ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: () => void`)}}` : ''}) => void) {
+      //         func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}() {}`)}}` : ''})
+      //       }
+      //     },
+      //     ${outputs.length ? `outputs: {
+      //       ${outputs.map((outputId) => `${outputId}(){}`).join()}
+      //     },` : ''}
+      //     data: ${JSON.stringify(data)},
+      //   });
+      // `
+    } else if (propsOutputsLength === 1) {
+      // 目前用不到这段逻辑，因为即使只有一个输出项，也可能被重复执行的可能性，例如 循环执行
+      // 一个输出
+      // propsCode = propsInputs.length === 1 ? `${propsInputs[0].split('.')[1] || propsInputs[0].split('.')[0]}: unknown` : `[${propsInputs.map((inputId) => `${inputId.split('.')[1]}`).join()}]: [${propsInputs.map((inputId) => `${inputId.split('.')[1]}: number`).join()}]`
+    
+      propsCode = `value: unknown`
+
+      const [inputId, nextInputId] = propsInputs[0].split('.')
+      const nextRels = pinRels[`${id}-${inputId}`]
+
+      runtimeCode = `
+        return new Promise((resolve) => {
+          runtime({
+            env: globalContext.env,
+            inputs: {
+              ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
+                func(value${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}}` : ''})
+              }
+            },
+            outputs: {
+              ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}
+            },
+            data: ${JSON.stringify(data)},
+          })
+        })
+      `
+  
+      // runtimeCode = `
+      //   return new Promise((resolve) => {
+      //     runtime({
+      //       env: globalContext.env,
+      //       inputs: {
+      //         ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
+      //           func(${nextInputId ? `[${propsInputs.map((inputId) => inputId.split('.')[1]).join()}]` : inputId}${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}}` : ''})
+      //         }
+      //       },
+      //       outputs: {
+      //         ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? ': resolve' : '() {}'}`)}
+      //       },
+      //       data: ${JSON.stringify(data)},
+      //     })
+      //   })
+      // `
+    } else {
+      importCode = importCode + '\nimport { createPromise } from "@/utils";'
+      propsCode = `value: unknown`
+  
+      const [inputId, nextInputId] = propsInputs[0].split('.')
+      const nextRels = pinRels[`${id}-${inputId}`]
+      runtimeCode = `
+        ${propsOutputs.map((outputId) => {
+          return `const ${outputId} = createPromise();`
+        }).join("\n")}
+
+        runtime({
+          env: globalContext.env,
+          inputs: {
+            ${inputId}(func: (value: unknown${nextRels ? `, outputs: {${nextRels.map((outputId) => `${outputId}: (${propsOutputs.find((id) => id === outputId)? 'value: unknown' : ''}) => void`)}}` : ''}) => void) {
+              func(value${nextRels ? `, {${nextRels.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? `: ${outputId}.resolve` : "() {}"}`)}}` : ""})
+            }
+          },
+          outputs: {
+            ${outputs.map((outputId) => `${outputId}${propsOutputs.find((id) => id === outputId) ? `: ${outputId}.resolve` : '() {}'}`)}
+          },
+          data: ${JSON.stringify(data)},
+        })
+        
+        return [
+          ${propsOutputs.map((outputId) => {
+            return `(func: (value: unknown) => void) => {
+              ${outputId}.then((value) => {
+                func(value);
+              });
+            }`
+          }).join()}
+        ]
+      `
+    }
+  
+    const componentCode = `${importCode}
+  
+      /** 原子组件代码 */
+      const runtime = globalContext.getComponentDefinition({
+        namespace: "${namespace}",
+        version: "${version}",
+      }).runtime;
+  
+      /** ${title} */
+      export function render_${convertToUnderscore(namespace)}_${id}(${propsCode}) {
+        ${runtimeCode}
+      }
+    `
+  
+    return {
+      importComponent,
+      filePath: `${filePath}/${componentFolderName}/index.ts`,
+      componentCode,
+    };
+  }
+
+  /** 遍历计算下一步 */
+  const generateNextEventCode2222 = (
+    nexts: Array<{comId: string, pinId: string, startPinParentKey?: string, finishPinParentKey?: string}>,
+    { valueCode = "value", multipleInputsMap = {}, isMultipleInput }: { valueCode: string, multipleInputsMap: any, isMultipleInput?: boolean }
+  ): string => {
+    return nexts.map(({ comId, pinId, finishPinParentKey, startPinParentKey }) => {
+      const component = coms[comId]
+      const componentOutputs = executeIdToNextMap[comId]
+      const [inputId, nextInputId] = pinId.split('.')
+      // if (nextInputId && !multipleInputsMap[comId]) {
+      //   multipleInputsMap[comId] = true
+      // }
+      if (!isMultipleInput && nextInputId && component.inputs.length > 1) {
+
+        if (!multipleInputsMap[comId]) {
+          multipleInputsMap[comId] = true
+        }
+        return `
+            /** ${component.title} - ${comId} - 输入 - ${nextInputId} */
+            execute_${convertToUnderscore(`${component.def.namespace}_${comId}`)}({
+              id: "${nextInputId}",
+              value: ${valueCode}
+            })
+          `
+      }
+
+      if (!componentOutputs) {
+        /** 没有下一步，直接执行就结束了 */
+        const {
+          importComponent,
+          filePath,
+          componentCode,
+        } = generateJsComponentCode22222({
+          comId: comId,
+          filePath: parentFilePath,
+          scene
+        }, { inputs: [pinId], outputs: [] });
+
+        importComponents.add(importComponent)
+
+        tsxArray.push({
+          code: componentCode,
+          filePath,
+        });
+        // if (nextInputId) {
+        //   return `
+        //     /** ${component.title} - ${comId} - 输入 - ${nextInputId} */
+        //     execute_${convertToUnderscore(`${component.def.namespace}_${comId}`)}({
+        //       id: "${nextInputId}",
+        //       value: ${valueCode}
+        //     })
+        //   `
+        // }
+        return `
+          /** ${component.title} */
+          render_${convertToUnderscore(component.def.namespace)}_${comId}(${valueCode})
+        `
+      }
+
+      const outputIds = Object.keys(componentOutputs)
+
+      // 有输出
+      const {
+        importComponent,
+        filePath,
+        componentCode,
+      } = generateJsComponentCode22222({
+        comId: comId,
+        filePath: parentFilePath,
+        scene
+      }, { inputs: [pinId], outputs: outputIds });
+
+      importComponents.add(importComponent)
+
+      tsxArray.push({
+        code: componentCode,
+        filePath,
+      });
+
+      if (outputIds.length === 1) {
+        // 单输出
+        return `
+          /** ${component.title} - ${comId} */
+          const ${comId}_${outputIds[0]} = await render_${convertToUnderscore(component.def.namespace)}_${comId}(${valueCode});
+          ${generateNextEventCode2222(componentOutputs[outputIds[0]], { valueCode: `${comId}_${outputIds[0]}`, multipleInputsMap })}
+        `
+      }
+
+      functionAry.push(...outputIds.map((outputId) => {
+        return `
+          /** ${component.title} - ${comId} - 输出 ${outputId} */
+          async function next_${comId}_${outputId}(value: unknown) {
+            ${generateNextEventCode2222(componentOutputs[outputId], { valueCode: "value", multipleInputsMap })}
+          }
+        `
+      }))
+
+      // 多输出
+      return `
+        /** ${component.title} - ${comId} */
+        const [${outputIds.map((outputId) => `${comId}_${outputId}`).join(", ")}] = render_${convertToUnderscore(component.def.namespace)}_${comId}(${valueCode})
+
+        ${outputIds.map((outputId) => {
+          return `/** ${component.title} - ${comId} - 输出 ${outputId} */
+          ${comId}_${outputId}(next_${comId}_${outputId})`
+        }).join("\n")}
+      `
+    }).join("\n")
+  }
+
+  const generateNextEventCode1111 = (nexts: any, { valueCode, multipleInputsMap, isMultipleInput }: any) => {
+    const eventCode = generateNextEventCode2222(nexts, { valueCode, multipleInputsMap, isMultipleInput })
+    Object.keys(multipleInputsMap).forEach((comId: string) => {
+      const component = coms[comId]
+      const { inputs } = component
+      functionAry.unshift(`
+        /** ${component.title} - ${comId} */
+        function ${convertToUnderscore(`${component.def.namespace}_${comId}`)}() {
+          let inputValue: { ${inputs.map((input) => {
+            const [_, nextInputId] = input.split('.')
+            return `${nextInputId}?: unknown`
+          }).join()} } = {};
+          return async ({ id, value }: { id: ${inputs.map((input) => {
+            const [_, nextInputId] = input.split('.')
+            return `"${nextInputId}"`
+          }).join(" | ")}; value: unknown }) => {
+            inputValue[id] = value;
+            if (Object.keys(inputValue).length === ${inputs.length}) {
+              ${generateNextEventCode1111([{comId, pinId: inputs[0]}], { valueCode: 'inputValue', multipleInputsMap: {}, isMultipleInput: true})}
+              
+              inputValue = {};
+            }
+          }; 
+        }
+        /** 执行 ${component.title} - ${comId} */
+        const execute_${convertToUnderscore(`${component.def.namespace}_${comId}`)} = ${convertToUnderscore(`${component.def.namespace}_${comId}`)}();
+      `)
+    })
+    
+    return eventCode
+  }
+
+  if (starter.type === "com") {
+    const { comId, pinId } = starter
+    // 这里一定是com
+    const nexts = executeIdToNextMap[comId]?.[pinId]
+    const component = scene.coms[comId]
+    const multipleInputsMap = {}
+    const eventCode = generateNextEventCode1111(nexts, { valueCode: "value", multipleInputsMap })
+
+    tsxArray.push({
+      code: `${Array.from(importComponents).join("\n")}
+        ${functionAry.join("\n")}
+        /** ${component.title} - ${comId} - ${pinId} 事件 */
+        export async function render_${convertToUnderscore(component.def.namespace)}_${comId}_${pinId}(value: unknown) {
+          ${eventCode}
+        }
+      `,
+      filePath: `${parentFilePath}/index.ts`,
+    });
+
+    return {
+      codeAry: tsxArray,
+      importComponents: [],
+      functionCode: ''
+    }
+  }
+  return {
+    codeAry: tsxArray,
+    importComponents: [],
+    functionCode: ''
   }
 }
