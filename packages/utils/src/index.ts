@@ -217,7 +217,6 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       } else if (style.widthFull) {
         style.width = "100%"
       } else {
-        style.flexShrink = 0
         style.width = component.style.width
       }
     })
