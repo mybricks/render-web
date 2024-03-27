@@ -208,12 +208,17 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         style.height = "fit-content"
       } else if (style.heightFull) {
         style.height = "100%"
+      } else {
+        style.height = component.style.height
       }
 
       if (style.widthAuto) {
         style.width = "fit-content"
       } else if (style.widthFull) {
         style.width = "100%"
+      } else {
+        style.flexShrink = 0
+        style.width = component.style.width
       }
     })
   }
