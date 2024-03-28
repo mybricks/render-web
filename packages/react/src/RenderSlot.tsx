@@ -102,26 +102,24 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
   const {id, def, name, children, brother} = com
   const comInfo = context.getComInfo(id)
   const { hasPermission, permissions: envPermissions } = env
-  // const permissions = comInfo?.model?.permissions
-
-  // if (permissions && typeof hasPermission === 'function' && !hasPermission(permissions.id)) {
-  //   return
-  // }
   const permissionsId = comInfo?.model?.permissions?.id
   if (permissionsId && typeof hasPermission === 'function') {
-    if (!hasPermission(permissionsId)) {
-      const permission = envPermissions.find((p: any) => p.id === permissionsId)
-      if (permission?.register.noPrivilege === 'hintLink') {
+    const permissionInfo = hasPermission(permissionsId)
+    if (!permissionInfo || (typeof permissionInfo !== 'boolean' && !permissionInfo.permission)) {
+      // 没有权限信息或权限信息里的permission为false
+      const envPermissionInfo = envPermissions.find((p: any) => p.id === permissionsId)
+      const type = permissionInfo?.type || envPermissionInfo?.register.noPrivilege
+      if (type === 'hintLink') {
         return {
           id,
           name,
           jsx: (
-            <div>
+            <div key={id}>
               <a
-                href={permission.hintLink}
+                href={permissionInfo?.hintLinkUrl || envPermissionInfo.hintLink}
                 target="_blank"
                 style={{textDecoration: 'underline'}}
-              >{permission.register.title}</a>
+                >{permissionInfo?.hintLinkTitle || envPermissionInfo.register.title}</a>
             </div>
           ),
           style: {}
