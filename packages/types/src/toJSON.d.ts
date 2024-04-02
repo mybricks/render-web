@@ -23,43 +23,9 @@ export interface ToJSON {
   frames: Array<Frame>
 }
 
-/**
- * 逻辑编排卡片信息
- */
-export interface Frame {
-  /** id对应场景ID */
-  id: string;
-  /** 逻辑编排卡片信息列表 */
-  diagrams: Array<{
+interface DefaultDiagram {
     /** 场景卡片名称（没什么用） */
     title: string;
-    starter: {
-      /** 组件 类型 */
-      type: "com"; 
-      /** 对应组件ID */
-      comId: string;
-      /** 对应事件即输出项ID */
-      pinId: string;
-    } | {
-      /** 场景 类型 */
-      type: "frame";
-       /** 对应frameID */
-      frameId: string;
-      /** 对应多个输入列表 */
-      pinAry: Array<{
-        /** 输入ID */
-        id: string;
-        /** 输入标题 */
-        title: string;
-      }>
-    } | {
-      /** 变量 类型 */
-      type: "var";
-      /** 对应变量组件ID */
-      comId: string;
-      /** 对应变量输出ID */
-      pinId: string;
-    }
     /** 逻辑连线信息 */
     conAry: Array<{
       /** 唯一ID，没有实际意义 */
@@ -75,6 +41,8 @@ export interface Frame {
           /** 类型 */
           type: "com" | "frame";
         }
+        /** 对应outputID的标题 */
+        title: string;
       }
       /** 输入信息 */
       to: {
@@ -87,12 +55,63 @@ export interface Frame {
           /** 类型 */
           type: "com" | "frame";
         }
+        /** 对应inputID的标题 */
+        title: string;
       }
       /** 相同实例的节点，才会有以下信息，用于连接输入和输出 */
       finishPinParentKey?: string;
       startPinParentKey?: string;
     }>
-  }>
+}
+
+export interface ComDiagram extends DefaultDiagram {
+  starter: {
+    /** 组件 类型 */
+    type: "com"; 
+    /** 对应组件ID */
+    comId: string;
+    /** 对应事件即输出项ID */
+    pinId: string;
+  }
+}
+
+export interface FrameDiagram extends DefaultDiagram {
+  starter: {
+    /** 场景 类型 */
+    type: "frame";
+     /** 对应frameID */
+    frameId: string;
+    /** 对应多个输入列表 */
+    pinAry: Array<{
+      /** 输入ID */
+      id: string;
+      /** 输入标题 */
+      title: string;
+    }>
+  }
+}
+
+export interface VarDiagram extends DefaultDiagram {
+  starter: {
+    /** 变量 类型 */
+    type: "var";
+    /** 对应变量组件ID */
+    comId: string;
+    /** 对应变量输出ID */
+    pinId: string;
+  }
+}
+
+export type Diagram = ComDiagram | FrameDiagram | VarDiagram;
+
+/**
+ * 逻辑编排卡片信息
+ */
+export interface Frame {
+  /** id对应场景ID */
+  id: string;
+  /** 逻辑编排卡片信息列表 */
+  diagrams: Array<Diagram>;
   /** 组件 - 作用域插槽卡片 */
   coms: {
     /** 组件ID */
@@ -105,17 +124,25 @@ export interface Frame {
   }
 }
 
+export interface SlotStyle extends Style {
+  /** 
+   * 用于判断布局方式 
+   *  - smart 智能
+   *  - flex-column 纵向
+   *  - flex-row 横向
+   *  - absolute 自由
+   */
+  layout: "smart" | "flex-column" | "flex-row" | "absolute";
+}
+
 /** 插槽，体现组件排列信息、结构 */
 export interface Slot {
   /** 插槽ID */
   id: string;
   /** 插槽标题 */
   title: string;
-  /** 样式信息 */
-  style: {
-    /** 用于判断布局方式 */
-    layout: string; // TODO: 稍后看是否要修改 "smart" | "xxx"
-  };
+  /** 插槽样式信息 */
+  style: SlotStyle;
   /** 插槽内组件树结构信息 */
   comAry: Array<ComponentNode>;
   /** 插槽内智能布局后组件树结构信息 */
@@ -126,6 +153,40 @@ export interface Slot {
 
 export type Slots = {
   [key: string]: Slot
+}
+
+/** 组件详细信息 */
+export interface Component {
+  /** 组件唯一ID，由MyBricks引擎搭建时管控 */
+  id: string;
+  /** 基础信息 */
+  def: {
+    /** 唯一命名空间 */
+    namespace: string;
+    /** 版本号 */
+    version: string;
+    /** 类型 - 没有rtType的是ui组件 */
+    rtType?: "js" | "js-autorun"
+  }
+  /** 组件名称 */
+  title: string;
+  /** 模型 */
+  model: {
+    /** 数据源 - 这里是任意就行了 */
+    data: any;
+    /** 样式 */
+    style: ComponentStyle;
+  }
+  /** 输出项ID列表 */
+  outputs: Array<string>;
+  /** 输入项ID列表 */
+  inputs: Array<string>;
+  /** 私有输入项ID列表，从pinProxies读取相应的frame */
+  _inputs: Array<string>;
+  /** 如果在作用域插槽内 - 插槽ID */
+  frameId?: string;
+  /** 如果在作用域插槽内 - 该插槽的父组件ID */
+  parentComId?: string;
 }
 
 export interface ToBaseJSON {
@@ -143,36 +204,7 @@ export interface ToBaseJSON {
   type?: "popup";
   /** 组件详细信息 组件ID -> 信息 */
   coms: {
-    [key: string]: {
-      /** 基础信息 */
-      def: {
-        /** 唯一命名空间 */
-        namespace: string;
-        /** 版本号 */
-        version: string;
-        /** 类型 - 没有rtType的是ui组件 */
-        rtType?: "js" | "js-autorun"
-      }
-      /** 组件名称 */
-      title: string;
-      /** 模型 */
-      model: {
-        /** 数据源 - 这里是任意就行了 */
-        data: any;
-        /** 样式 */
-        style: ComponentStyle;
-      }
-      /** 输出项ID列表 */
-      outputs: Array<string>;
-      /** 输入项ID列表 */
-      inputs: Array<string>;
-      /** 私有输入项ID列表，从pinProxies读取相应的frame */
-      _inputs: Array<string>;
-      /** 如果在作用域插槽内 - 插槽ID */
-      frameId?: string;
-      /** 如果在作用域插槽内 - 该插槽的父组件ID */
-      parentComId?: string;
-    }
+    [key: string]: Component;
   }
   /** 逻辑面板连线信息 */
   cons: {
