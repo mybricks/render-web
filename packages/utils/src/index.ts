@@ -312,6 +312,6 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
   return result
 }
 
-
 export { isNumber } from "./type";
 export { convertToUnderscore, convertCamelToHyphen } from "./regexp";
+export { getSlotStyle, getComponentStyle } from "./render";
