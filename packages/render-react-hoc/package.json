@@ -1,0 +1,25 @@
+{
+  "name": "@mybricks/render-react-hoc",
+  "version": "0.0.2",
+  "description": "",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "webpack -c scripts/webpack.config.ts && tsc --emitDeclarationOnly"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "devDependencies": {
+    "@babel/preset-env": "^7.24.3",
+    "@babel/preset-react": "^7.24.1",
+    "@babel/preset-typescript": "^7.24.1",
+    "babel-loader": "^9.1.3",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.3"
+  }
+}
