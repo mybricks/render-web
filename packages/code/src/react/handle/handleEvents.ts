@@ -155,7 +155,7 @@ export class HandleEvents {
          */
         const rels = pinRels[`${comId}-${pinId}`];
         if (!rels) {
-          return `/** ${title} */
+          return `/** ${component.title} - ${title} */
             sceneContext.getComponent("${comId}").${pinId}(${valueCode});
           `
         } else {
@@ -165,11 +165,11 @@ export class HandleEvents {
             /** 非单实例的节点需要使用startPinParentKey和finishPinParentKey来进行对接 */
             const nextOutputs = nextsMap[comId][outputId]?.filter(({ startPinParentKey }) => (startPinParentKey && finishPinParentKey) && (startPinParentKey === finishPinParentKey));
             if (!nextOutputs?.length) {
-              return `/** ${title} */
+              return `/** ${component.title} - ${title} */
                 sceneContext.getComponent("${comId}").${pinId}(${valueCode});
               `
             } else {
-              return `/** ${title} */
+              return `/** ${component.title} - ${title} */
                 const ${pinId}_${comId} = await sceneContext.getComponent("${comId}").${pinId}(${valueCode});
                 ${this.handleNexts(nextOutputs, { valueCode: `${pinId}_${comId}` })}
               `;
@@ -194,13 +194,13 @@ export class HandleEvents {
 
             if (nextWrapper) {
               /** 有下一步 */
-              return `/** ${title} */
+              return `/** ${component.title} - ${title} */
                 const { ${nextWrapper} } = sceneContext.getComponent("${comId}").${pinId}(${valueCode});
                 ${excuteNextWrapper}
               `
             } else {
               /** 没有下一步 */
-              return `/** ${title} */
+              return `/** ${component.title} - ${title} */
                 sceneContext.getComponent("${comId}").${pinId}(${valueCode});
               `
             }
