@@ -1,6 +1,6 @@
-scripts
-src
-test
-.gitignore
-.npmignore
-tsconfig.json
+/scripts
+/src
+/test
+/.gitignore
+/.npmignore
+/tsconfig.json
