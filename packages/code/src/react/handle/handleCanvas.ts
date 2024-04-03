@@ -60,6 +60,9 @@ class HandleCanvas {
       this.handleCompoents(comAry, handleConfig);
     }
 
+    /** 变量映射关系，用于变量组件的赋值和change事件 */
+    let variableMapCode = "";
+
     if (root) {
       /** 主入口，处理下当前场景的所有变量 */
       diagrams.forEach((diagram) => {
@@ -70,8 +73,44 @@ class HandleCanvas {
           const component = coms[comId];
           const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${component.def.namespace}`});
           this.codeArray.push(...handleEvents.start(diagram));
+          /** 变量组件特殊处理，data.initValue 就是默认值 */
+          let initValue = component.model.data.initValue;
+          const type = typeof initValue;
+          if (["number", "boolean", "object", "undefined"].includes(type)) {
+            initValue = JSON.stringify(initValue);
+          } else {
+            initValue = `"${initValue}"`;
+          }
+          variableMapCode = variableMapCode + `/** ${component.title} - ${comId} */
+          ${comId}: {
+            value: ${initValue},
+            change: (value) => {
+              console.log("TODO: ", value);
+            },
+          },`
         }
       })
+    }
+
+    if (variableMapCode) {
+      // 拼装最终的代码
+      variableMapCode = `
+        export const variableMap = new Proxy<any>(
+          {
+            ${variableMapCode}
+          },
+          {
+            get(target, key) {
+              return target[key].value;
+            },
+            set(target, key, value) {
+              target[key].value = value;
+              target[key].change(value);
+              return true;
+            },
+          },
+        ); 
+      `;
     }
 
     this.codeArray.push({
@@ -83,6 +122,8 @@ class HandleCanvas {
         ${slotInfo.import}
 
         ${root ? `export const sceneContext = globalContext.getScene("${slot.id}");` : ""}
+
+        ${variableMapCode}
 
         /** ${slot.title} */
         export function Slot_${slot.id}() {

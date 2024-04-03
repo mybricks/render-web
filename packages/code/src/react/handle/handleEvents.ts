@@ -23,6 +23,19 @@ type Outputs = Array<Next>;
  */
 type EventType = "com" | "var";
 
+/** 判断是“变量”组件 */
+function isVar(namespace?: string) {
+  return namespace === "mybricks.core-comlib.var";
+}
+
+/** 
+ * 连接上下输入输出
+ * 上一个节点的finishPinParentKey === 下一个节点的startPinParentKey
+ */
+function matchesConnections({ startPinParentKey }: any, finishPinParentKey?: string) {
+  return (startPinParentKey && finishPinParentKey) && (startPinParentKey === finishPinParentKey);
+}
+
 export class HandleEvents {
   /** 存储生成的代码字符串和写入文件路径 */
   codeArray: CodeArray = [];
@@ -69,15 +82,24 @@ export class HandleEvents {
     const { starter, conAry } = diagram;
     const { comId, pinId } = starter;
 
-    let useSceneContext = "";
+    /**
+     * ui组件会用到sceneContext
+     * 变量会用到variableMap
+     */
+    const importContext = new Set<string>();
 
     conAry.forEach((con) => {
       const { from, to, finishPinParentKey, startPinParentKey } = con
       const { id: outputId, parent: { id: fromComId }, title: fromTitle } = from;
       const { id: inputId, parent: { id: toComId }, title: toTitle } = to;
 
-      if (!useSceneContext && !coms[toComId].def.rtType) {
-        useSceneContext = `import { sceneContext } from "@/slots/slot_${id}";`;
+      /** ui组件 */
+      if (!importContext.has("sceneContext") && !coms[toComId].def.rtType) {
+        importContext.add("sceneContext");
+      }
+      /** 变量组件 */
+      if (!importContext.has("variableMap") && isVar(coms[toComId].def.namespace)) {
+        importContext.add("variableMap");
       }
 
       const nexts = nextsMap[fromComId] ||= {};
@@ -112,7 +134,7 @@ export class HandleEvents {
     importCode = importCode + Array.from(eventInfo.import).join("\n");
 
     this.codeArray.push({
-      code: `${useSceneContext}
+      code: `${importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
         ${importCode}
 
         ${eventInfo.runtime}
@@ -145,13 +167,11 @@ export class HandleEvents {
       const { pinId, comId, title, finishPinParentKey } = output;
       const component = coms[comId];
 
-      if (!component.def.rtType || component.def.namespace === "mybricks.core-comlib.var") {
+      if (!component.def.rtType) {
         /** 
          * 非单实例的节点需要执行到这个分支
          * 
          * 没有rtType 说明是ui组件
-         * 
-         * 变量节点
          */
         const rels = pinRels[`${comId}-${pinId}`];
         if (!rels) {
@@ -163,7 +183,7 @@ export class HandleEvents {
           if (rels.length < 2) {
             const outputId = rels[0];
             /** 非单实例的节点需要使用startPinParentKey和finishPinParentKey来进行对接 */
-            const nextOutputs = nextsMap[comId][outputId]?.filter(({ startPinParentKey }) => (startPinParentKey && finishPinParentKey) && (startPinParentKey === finishPinParentKey));
+            const nextOutputs = nextsMap[comId]?.[outputId]?.filter((next) => matchesConnections(next, finishPinParentKey));
             if (!nextOutputs?.length) {
               return `/** ${component.title} - ${title} */
                 sceneContext.getComponent("${comId}").${pinId}(${valueCode});
@@ -175,14 +195,14 @@ export class HandleEvents {
               `;
             }
           } else {
-            const relsIdsLastIndex = rels.length - 1;
             /** 从多输出解构出来的包装器 */
             let nextWrapper = "";
             /** 执行包装器 */
             let excuteNextWrapper = "";
 
             rels.forEach((outputId, index) => {
-              const nextOutputs = nextsMap[comId]?.[outputId]?.filter(({ startPinParentKey }) => (startPinParentKey && finishPinParentKey) && (startPinParentKey === finishPinParentKey));
+              /** 非单实例的节点需要使用startPinParentKey和finishPinParentKey来进行对接 */
+              const nextOutputs = nextsMap[comId]?.[outputId]?.filter((next) => matchesConnections(next, finishPinParentKey))
               if (nextOutputs?.length) {
                 const wrapperName = `${outputId}_${comId}`;
                 nextWrapper = nextWrapper + `${outputId}: ${wrapperName},`;
@@ -206,7 +226,28 @@ export class HandleEvents {
             }
           }
         }
+      } else if (isVar(component.def.namespace)) {
+        /** 
+         * 变量组件特殊处理
+         * 相当于将变量组件翻译成代码
+         */
+        /** 变量一定有下一步 */
+        const outputId = "return"; // 本来应该从 pinRels[`${comId}-${pinId}`][0] 获取，既然特殊处理，就特殊到底咯
+        /** 非单实例的节点需要使用startPinParentKey和finishPinParentKey来进行对接 */
+        const nextOutputs = nextsMap[comId]?.[outputId]?.filter((next) => matchesConnections(next, finishPinParentKey))
+        if (!nextOutputs?.length) {
+          return `/** ${component.title} - ${title} */
+            variableMap["${comId}"] = ${valueCode};
+          `;
+        } else {
+          return `/** ${component.title} - ${title} */
+            variableMap["${comId}"] = ${valueCode};
+            ${this.handleNexts(nextOutputs, { valueCode })}
+          `;
+        }
       }
+
+      
 
       const nextOutputs = nextsMap[comId]
       const nextFunctionName = `${convertToUnderscore(component.def.namespace)}_${comId}`;
