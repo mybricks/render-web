@@ -1,6 +1,5 @@
 scripts
 src
-template
 test
 .gitignore
 .npmignore

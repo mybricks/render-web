@@ -33,7 +33,7 @@ interface Config {
 export async function generateToReactCode(toJSON: ToJSON) {
   /** process.env.MYBRICKS_TOCODE_ENV === "test" 说明是本地测试，发布后使用os.tmpdir()生成临时文件夹 */
   const isTest = process.env.MYBRICKS_TOCODE_ENV === "test";
-  const dirPath = isTest ? path.resolve(__dirname, "prj") : `${os.tmpdir()}/${Math.random()}`;
+  const dirPath = isTest ? path.resolve(__dirname, "prj") : `${os.tmpdir()}/mybricks.tocode/${Math.random()}`;
   const projectDirectoryPath = path.resolve(dirPath, "template");
   const generate = new Generate(toJSON, projectDirectoryPath);
 
@@ -42,14 +42,14 @@ export async function generateToReactCode(toJSON: ToJSON) {
   const zipFilePath = path.resolve(dirPath, "./tocode-react.zip");
 
   if (!isTest) {
-    /** 删除工程目录 */
-    fse.remove(projectDirectoryPath);
     /** 生成压缩文件 */
     const output = fse.createWriteStream(zipFilePath);
     const archive = archiver("zip", { zlib: { level: 9 } });
     archive.pipe(output);
     archive.directory(projectDirectoryPath, false);
     await archive.finalize();
+    /** 删除工程目录 */
+    fse.remove(projectDirectoryPath);
   }
 
   return zipFilePath;
