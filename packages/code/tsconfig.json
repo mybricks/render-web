@@ -3,15 +3,11 @@
     "target": "es5",
     "esModuleInterop": true,
     "strict": true,
-
+    "outDir": "dist",
+    "declaration": true,
     "types": ["node"]
   },
   "include": [
     "./src/**/*",
-    
-    "./scripts/*"
   ],
-  "exclude": [
-    "./src/template"
-  ]
 }

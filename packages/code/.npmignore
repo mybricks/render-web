@@ -1,0 +1,7 @@
+scripts
+src
+template
+test
+.gitignore
+.npmignore
+tsconfig.json

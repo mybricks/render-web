@@ -1,22 +1,26 @@
 {
-  "name": "@mybricks/render-code",
+  "name": "@mybricks/to-code-react",
   "version": "0.0.1",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "ts-node --transpile-only test.ts"
+    "build": "tsc && ts-node scripts/build.ts",
+    "test": "cross-env MYBRICKS_TOCODE_ENV=test ts-node --transpile-only test/index.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@mybricks/render-types": "^0.0.1",
+    "@mybricks/render-types": "^0.0.2",
+    "@types/archiver": "^6.0.2",
     "@types/fs-extra": "^11.0.4",
+    "cross-env": "^7.0.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.2"
   },
   "dependencies": {
-    "@mybricks/render-utils": "^0.0.4",
+    "@mybricks/render-utils": "^0.0.5",
+    "archiver": "^7.0.1",
     "fs-extra": "^11.2.0",
     "prettier": "^3.2.5"
   }
