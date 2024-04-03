@@ -10,6 +10,10 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "devDependencies": {
     "@mybricks/render-types": "^0.0.2",
     "@types/archiver": "^6.0.2",
