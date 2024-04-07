@@ -97,10 +97,10 @@ export function transformSingleToJSON(toJSON: any) {
 function transformSlotComAry(slot, coms, root = true, com?) {
   const comIdToSlotComMap = {}
   const { comAry } = slot
-
+  const calculateComAry = comAry.filter(({id}) => coms[id])
   // TODO: 目前引擎可以通过这个字段来判断是否智能布局
   if (slot.style.layout === "smart") {
-    const resultComAry = comAry.sort((preCom, curCom) => {
+    const resultComAry = calculateComAry.sort((preCom, curCom) => {
       const { id: preId } = preCom
       const { id: curId } = curCom
 
@@ -118,7 +118,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       return preTop - curTop
     })
 
-    comAry.forEach((com) => {
+    calculateComAry.forEach((com) => {
       const { slots } = com
       if (slots) {
         const component = coms[com.id]
@@ -191,7 +191,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       Reflect.deleteProperty(slot.style, "width")
       Reflect.deleteProperty(slot.style, "height")
     }
-    comAry.forEach((com) => {
+    calculateComAry.forEach((com) => {
       const { slots } = com
       const component = coms[com.id]
       if (slots) {
