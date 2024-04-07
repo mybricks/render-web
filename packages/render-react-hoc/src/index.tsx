@@ -5,6 +5,7 @@ import { hijackReactcreateElement } from "./observable";
 
 import {
   SlotWrapper,
+  variableWrapper,
   UiComponentWrapper,
   handleSingleOutput,
   handleMultipleOutputs,
@@ -61,6 +62,7 @@ export const _ = Symbol.for("mybricks.empty");
 
 export {
   SlotWrapper,
+  variableWrapper,
   UiComponentWrapper,
   handleSingleOutput,
   handleMultipleOutputs,

@@ -75,7 +75,7 @@ export class HandleEvents {
   }
 
   /** 生成UI组件的事件代码 */
-  handleComEvents(diagram: ComDiagram) {
+  handleComEvents(diagram: ComDiagram | VarDiagram) {
     const { nextsMap, handleConfig, eventInfo, scene, promiseExcuteComponents } = this;
     const { id, coms } = scene;
     const { filePath } = handleConfig;
@@ -84,9 +84,11 @@ export class HandleEvents {
 
     /**
      * ui组件会用到sceneContext
-     * 变量会用到variableMap
      */
     const importContext = new Set<string>();
+
+    /** 是否引用了变量 */
+    let importVariable = false;
 
     conAry.forEach((con) => {
       const { from, to, finishPinParentKey, startPinParentKey } = con
@@ -97,9 +99,9 @@ export class HandleEvents {
       if (!importContext.has("sceneContext") && !coms[toComId].def.rtType) {
         importContext.add("sceneContext");
       }
-      /** 变量组件 */
-      if (!importContext.has("variableMap") && isVar(coms[toComId].def.namespace)) {
-        importContext.add("variableMap");
+      /** 变量组件 TODO: 不同作用域的变量 */
+      if (!importVariable && isVar(coms[toComId].def.namespace)) {
+        importVariable = true
       }
 
       const nexts = nextsMap[fromComId] ||= {};
@@ -134,7 +136,8 @@ export class HandleEvents {
     importCode = importCode + Array.from(eventInfo.import).join("\n");
 
     this.codeArray.push({
-      code: `${importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
+      code: `${importVariable ? `import variable from "@/slots/slot_${id}/variable";` : ""}
+        ${importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
         ${importCode}
 
         ${eventInfo.runtime}
@@ -149,7 +152,8 @@ export class HandleEvents {
 
   /** 生成变量组件的事件代码 */
   handleVarEvents(diagram: VarDiagram) {
-    // TODO: console.log(diagram, "开始计算变量组件代码")
+    // 目前看变量组件和UI组件的事件处理逻辑是一致的，再观察下
+    this.handleComEvents(diagram);
   }
 
   /** 生成下一步代码 */
@@ -236,14 +240,27 @@ export class HandleEvents {
         /** 非单实例的节点需要使用startPinParentKey和finishPinParentKey来进行对接 */
         const nextOutputs = nextsMap[comId]?.[outputId]?.filter((next) => matchesConnections(next, finishPinParentKey))
         if (!nextOutputs?.length) {
-          return `/** ${component.title} - ${title} */
-            variableMap["${comId}"] = ${valueCode};
-          `;
+          if (pinId === "set") {
+            /** 除了set就是get，get如果没有下一步就不用写出来了 */
+            return `/** ${component.title} - ${title} */
+              variable["${comId}"].set(${valueCode});
+            `;
+          }
         } else {
-          return `/** ${component.title} - ${title} */
-            variableMap["${comId}"] = ${valueCode};
-            ${this.handleNexts(nextOutputs, { valueCode })}
-          `;
+          if (pinId === "set") {
+            return `/** ${component.title} - ${title} */
+              await variable["${comId}"].set(${valueCode});
+            
+              ${this.handleNexts(nextOutputs, { valueCode })}
+            `;
+          } else if (pinId === "get") {
+            /** TODO: 后续优化点，这里目前是直接修改的入参value，不太符合编码规范 */
+            return `/** ${component.title} - ${title} */
+              value = variable["${comId}"].get();
+
+              ${this.handleNexts(nextOutputs, { valueCode: "value" })}
+            `
+          }
         }
       }
 

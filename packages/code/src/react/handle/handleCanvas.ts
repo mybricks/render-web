@@ -1,5 +1,5 @@
 import { isNumber, convertToUnderscore, convertCamelToHyphen, getSlotStyle, getComponentStyle } from "@mybricks/render-utils";
-import type { Frame, Slot, SlotStyle, ToBaseJSON, DomNode, ComponentNode, ComDiagram, Component } from "@mybricks/render-types";
+import type { Frame, Slot, SlotStyle, ToBaseJSON, DomNode, ComponentNode, ComDiagram, Component, Diagram } from "@mybricks/render-types";
 
 import { HandleEvents } from "./handleEvents";
 
@@ -9,7 +9,9 @@ interface HandleCanvasConfig extends HandleConfig {
   /** 外包装代码，目前用于智能布局对组件dom的一层包装 */
   wrapperCode: string;
   /** 是否场景主入口，主入口需要将场景context向外导出 */
-  root?: boolean;
+  // root?: boolean;
+  /** 没有parentId，认为是主入口，不是组件插槽 */
+  parentId?: string;
 }
 
 /** 
@@ -35,7 +37,7 @@ class HandleCanvas {
   constructor(private scene: ToBaseJSON, private frame: Frame) {}
 
   start() {
-    this.handleSlot(this.scene.slot, { filePath: "", wrapperCode: "", root: true })
+    this.handleSlot(this.scene.slot, { filePath: "", wrapperCode: "" })
 
     return this.codeArray;
   }
@@ -45,7 +47,7 @@ class HandleCanvas {
     const { scene, frame } = this;
     const { coms } = scene;
     const { diagrams } = frame;
-    const { filePath, root } = handleConfig;
+    const { filePath, parentId } = handleConfig;
     const slotInfo = this.slotInfoMap[filePath] = {
       import: "",
       runtime: ""
@@ -62,78 +64,83 @@ class HandleCanvas {
 
     /** 变量映射关系，用于变量组件的赋值和change事件 */
     let variableMapCode = "";
+    /** 变量组件信息收集，用于拼装变量相关代码 */
+    let variables: Array<Component> = [];
 
-    if (root) {
-      /** 主入口，处理下当前场景的所有变量 */
-      diagrams.forEach((diagram) => {
+    /** 当前使用的diagrams，主场景和作用域插槽不同 */
+    let currentDiagrams: Array<Diagram> = []
+
+    /** 主入口、作用域插槽 需要处理下当前场景的所有变量 */
+    if (!parentId) {
+      currentDiagrams = diagrams;
+    } else if (slot.type === "scope") {
+      // 这里一定是有的
+      currentDiagrams = frame.coms[parentId].frames.find(({ id }) => id === slot.id)!.diagrams;
+    }
+
+    if (currentDiagrams.length) {
+      currentDiagrams.forEach((diagram) => {
         if (diagram.starter.type === "var") {
           /** 处理变量 */
           const { starter } = diagram;
           const { comId } = starter;
           const component = coms[comId];
-          const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${component.def.namespace}`});
+          // const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${component.def.namespace}`});
+          const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}variable/${comId}_change`});
           this.codeArray.push(...handleEvents.start(diagram));
-          /** 变量组件特殊处理，data.initValue 就是默认值 */
-          let initValue = component.model.data.initValue;
-          const type = typeof initValue;
-          if (["number", "boolean", "object", "undefined"].includes(type)) {
-            initValue = JSON.stringify(initValue);
-          } else {
-            initValue = `"${initValue}"`;
-          }
-          variableMapCode = variableMapCode + `/** ${component.title} - ${comId} */
-          ${comId}: {
-            value: ${initValue},
-            change: (value) => {
-              console.log("TODO: ", value);
-            },
-          },`
+          variables.push(component);
         }
       })
     }
 
-    if (variableMapCode) {
-      // 拼装最终的代码
-      variableMapCode = `
-        export const variableMap = new Proxy<any>(
-          {
-            ${variableMapCode}
-          },
-          {
-            get(target, key) {
-              return target[key].value;
-            },
-            set(target, key, value) {
-              target[key].value = value;
-              target[key].change(value);
-              return true;
-            },
-          },
-        ); 
-      `;
+    if (variables.length) {
+      this.codeArray.push({
+        code: `import { variableWrapper } from "@mybricks/render-react-hoc";
+        ${variables.map(({ id }) => `import ${id}_change from "./${id}_change";`).join("")}
+
+          const variable = {
+            ${variables.map(({ id, title, model }) => {
+              /** 变量组件特殊处理，data.initValue 就是默认值 */
+              let initValue = model.data.initValue;
+              const type = typeof initValue;
+              if (["number", "boolean", "object", "undefined"].includes(type)) {
+                initValue = JSON.stringify(initValue);
+              } else {
+                initValue = `"${initValue}"`;
+              }
+              return `
+              /** ${title} */
+              ${id}: {
+                value: ${initValue},
+                change: ${id}_change,
+              }`
+            })}
+          };
+
+          export default variableWrapper(variable);
+        `,
+        filePath: `${getFilePath(filePath)}variable/index.ts`
+      })
     }
 
     this.codeArray.push({
       code: `import React from "react";
 
-        ${root ? 'import globalContext from "@/globalContext";' : ""}
+        ${!parentId ? 'import globalContext from "@/globalContext";' : ""}
         import { SlotWrapper } from "@mybricks/render-react-hoc";
 
         ${slotInfo.import}
 
-        ${root ? `export const sceneContext = globalContext.getScene("${slot.id}");` : ""}
-
-        ${variableMapCode}
+        ${!parentId ? `export const sceneContext = globalContext.getScene("${slot.id}");` : ""}
 
         /** ${slot.title} */
         export function Slot_${slot.id}() {
           return (
             <SlotWrapper
-              style={${JSON.stringify(getSlotStyle(slot.style, root))}}
+              style={${JSON.stringify(getSlotStyle(slot.style, !parentId))}}
             >
               ${slotInfo.runtime}
             </SlotWrapper>
-            
           )
         }
       `,
@@ -239,7 +246,7 @@ class HandleCanvas {
       Object.entries(slots).forEach(([key, slot]) => {
         slotsCode = slotsCode + `${key}: Slot_${key},`
         slotsImportCode = slotsImportCode + `import { Slot_${key} } from "./slots/${key}";`
-        this.handleSlot(slot, { filePath: `${getFilePath(filePath)}${dirName}/slots/${key}`, wrapperCode: "" })
+        this.handleSlot(slot, { filePath: `${getFilePath(filePath)}${dirName}/slots/${key}`, wrapperCode: "", parentId: id })
       })
     }
 
