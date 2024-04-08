@@ -1,6 +1,6 @@
 import { isNumber, convertToUnderscore, convertCamelToHyphen, getSlotStyle } from "@mybricks/render-utils";
 
-import type { ToBaseJSON, ComDiagram, Component, VarDiagram, Diagram } from "@mybricks/render-types";
+import type { ToBaseJSON, ComDiagram, Component, VarDiagram, Diagram, Slot } from "@mybricks/render-types";
 
 import type { HandleConfig, CodeArray } from "./type";
 
@@ -87,21 +87,37 @@ export class HandleEvents {
      */
     const importContext = new Set<string>();
 
-    /** 是否引用了变量 */
-    let importVariable = false;
+    /** 导入变量 */
+    const importVariables = new Set<string>();
+    /** 记录是否已导入变量 */
+    const importVariableMap: {[key: string]: boolean} = {};
 
     conAry.forEach((con) => {
       const { from, to, finishPinParentKey, startPinParentKey } = con
       const { id: outputId, parent: { id: fromComId }, title: fromTitle } = from;
       const { id: inputId, parent: { id: toComId }, title: toTitle } = to;
 
+      const component = coms[toComId];
+
       /** ui组件 */
-      if (!importContext.has("sceneContext") && !coms[toComId].def.rtType) {
+      if (!importContext.has("sceneContext") && !component.def.rtType) {
         importContext.add("sceneContext");
       }
       /** 变量组件 TODO: 不同作用域的变量 */
-      if (!importVariable && isVar(coms[toComId].def.namespace)) {
-        importVariable = true
+      if (isVar(component.def.namespace)) {
+        const { frameId, parentComId } = component;
+        const key = `${parentComId}-${frameId}`;
+        if (parentComId && frameId && !importVariableMap[key]) {
+          importVariableMap[key] = true;
+          const componentTreePathArray = getComponentTreePathArray(scene.slot, {comId: parentComId, slotId: frameId});
+
+          importVariables.add(`import variable_${parentComId}_${frameId} from "@/slots/slot_${id}/${componentTreePathArray?.map(({comId, slotId}) => {
+            const component = coms[comId];
+            return `${component.def.namespace}_${comId}/slots/${slotId}`;
+          }).join("/")}/variable";`);
+        } else {
+          importVariables.add(`import variable_${id} from "@/slots/slot_${id}/variable";`)
+        }
       }
 
       const nexts = nextsMap[fromComId] ||= {};
@@ -136,7 +152,7 @@ export class HandleEvents {
     importCode = importCode + Array.from(eventInfo.import).join("\n");
 
     this.codeArray.push({
-      code: `${importVariable ? `import variable from "@/slots/slot_${id}/variable";` : ""}
+      code: `${importVariables.size ? Array.from(importVariables).join("") : ""}
         ${importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
         ${importCode}
 
@@ -163,7 +179,7 @@ export class HandleEvents {
     { valueCode }: { valueCode: string }  
   ): string {
     const { nextsMap, scene, eventInfo, promiseExcuteComponents } = this;
-    const { coms, pinRels } = scene;
+    const { id, coms, pinRels } = scene;
     
     if (outputs.length === 1) {
       /** 输出只有一个，直接await向下执行 */
@@ -239,24 +255,28 @@ export class HandleEvents {
         const outputId = "return"; // 本来应该从 pinRels[`${comId}-${pinId}`][0] 获取，既然特殊处理，就特殊到底咯
         /** 非单实例的节点需要使用startPinParentKey和finishPinParentKey来进行对接 */
         const nextOutputs = nextsMap[comId]?.[outputId]?.filter((next) => matchesConnections(next, finishPinParentKey))
+
+        /** 生成变量名 */
+        const variableName = `variable_${component.parentComId ? `${component.parentComId}_${component.frameId}` : id}`
+
         if (!nextOutputs?.length) {
           if (pinId === "set") {
             /** 除了set就是get，get如果没有下一步就不用写出来了 */
             return `/** ${component.title} - ${title} */
-              variable["${comId}"].set(${valueCode});
+              ${variableName}["${comId}"].set(${valueCode});
             `;
           }
         } else {
           if (pinId === "set") {
             return `/** ${component.title} - ${title} */
-              await variable["${comId}"].set(${valueCode});
+              await ${variableName}["${comId}"].set(${valueCode});
             
               ${this.handleNexts(nextOutputs, { valueCode })}
             `;
           } else if (pinId === "get") {
             /** TODO: 后续优化点，这里目前是直接修改的入参value，不太符合编码规范 */
             return `/** ${component.title} - ${title} */
-              value = variable["${comId}"].get();
+              value = ${variableName}["${comId}"].get();
 
               ${this.handleNexts(nextOutputs, { valueCode: "value" })}
             `
@@ -423,4 +443,31 @@ export class HandleEvents {
 
     eventInfo.runtime = eventInfo.runtime + `const excute_${functionName} = ${functionName}({${outputsCode}});`;
   }
+}
+
+/** 获取组件位置 */
+function getComponentTreePathArray(slot: Slot, { comId, slotId }: { comId: string, slotId: string}, componentTreePathArray: Array<{comId: string, slotId: string}> = []) {
+  /** 查询到组件的标识 */
+  let success = false;
+
+  slot.comAry.find((component) => {
+    if (component.id === comId) {
+      success = true
+      componentTreePathArray.unshift({comId: component.id, slotId})
+      return true
+    }
+    
+    const slots = component.slots;
+    if (slots) {
+      Object.keys(slots).find((slotId) => {
+        success = !!getComponentTreePathArray(slots[slotId], {comId, slotId}, componentTreePathArray);
+        if (success) {
+          componentTreePathArray.unshift({comId: component.id, slotId})
+        }
+        return success
+      })
+    }
+  })
+
+  return success ? componentTreePathArray : null;
 }

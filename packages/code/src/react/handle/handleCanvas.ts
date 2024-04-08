@@ -12,14 +12,16 @@ interface HandleCanvasConfig extends HandleConfig {
   // root?: boolean;
   /** 没有parentId，认为是主入口，不是组件插槽 */
   parentId?: string;
+  /** 逻辑编排卡片信息 */
+  frame: Frame;
 }
 
 /** 
  * 通用画布处理，场景、模块
  */
 export function handleCanvas({ scene, frame }: { scene: ToBaseJSON, frame: Frame}) {
-  const canvas = new HandleCanvas(scene, frame);
-  return canvas.start();
+  const canvas = new HandleCanvas(scene);
+  return canvas.start(frame);
 }
 
 class HandleCanvas {
@@ -34,20 +36,20 @@ class HandleCanvas {
     }
   } = {};
 
-  constructor(private scene: ToBaseJSON, private frame: Frame) {}
+  constructor(private scene: ToBaseJSON) {}
 
-  start() {
-    this.handleSlot(this.scene.slot, { filePath: "", wrapperCode: "" })
+  start(frame: Frame) {
+    this.handleSlot(this.scene.slot, { filePath: "", wrapperCode: "", frame })
 
     return this.codeArray;
   }
 
   /** 处理Slot */
   handleSlot(slot: Slot, handleConfig: HandleCanvasConfig) {
-    const { scene, frame } = this;
+    const { scene } = this;
     const { coms } = scene;
+    const { filePath, parentId, frame } = handleConfig;
     const { diagrams } = frame;
-    const { filePath, parentId } = handleConfig;
     const slotInfo = this.slotInfoMap[filePath] = {
       import: "",
       runtime: ""
@@ -62,20 +64,15 @@ class HandleCanvas {
       this.handleCompoents(comAry, handleConfig);
     }
 
-    /** 变量映射关系，用于变量组件的赋值和change事件 */
-    let variableMapCode = "";
     /** 变量组件信息收集，用于拼装变量相关代码 */
     let variables: Array<Component> = [];
 
     /** 当前使用的diagrams，主场景和作用域插槽不同 */
-    let currentDiagrams: Array<Diagram> = []
+    let currentDiagrams: Array<Diagram> = [];
 
     /** 主入口、作用域插槽 需要处理下当前场景的所有变量 */
-    if (!parentId) {
+    if (!parentId || slot.type === "scope") {
       currentDiagrams = diagrams;
-    } else if (slot.type === "scope") {
-      // 这里一定是有的
-      currentDiagrams = frame.coms[parentId].frames.find(({ id }) => id === slot.id)!.diagrams;
     }
 
     if (currentDiagrams.length) {
@@ -162,9 +159,9 @@ class HandleCanvas {
 
   handleUiComponent(component: ComponentNode, handleConfig: HandleCanvasConfig) {
     const codeArray: CodeArray = []
-    const { filePath, wrapperCode } = handleConfig;
+    const { filePath, wrapperCode, frame } = handleConfig;
     const { id: sceneId, cons, coms, pinRels } = this.scene;
-    const { diagrams } = this.frame;
+    const { diagrams, coms: frameComs } = frame;
     const { id, def: { namespace }, slots } = component;
     /** 文件目录名称 - 存放组件runtime、事件、插槽 */
     const dirName = `${namespace}_${id}`;
@@ -180,6 +177,8 @@ class HandleCanvas {
       },
       inputs,
       outputs,
+      frameId,
+      parentComId,
     } = coms[id]
 
     /** 组件事件代码 */
@@ -229,6 +228,8 @@ class HandleCanvas {
         /** 有连线，生成逻辑代码 */
         eventsCode = eventsCode + `${outputId},`;
         eventsImportCode = `import ${outputId} from "./events/${outputId}";`;
+
+        /** 这里是区别作用域和非作用域下的组件 */
         const diagram = diagrams.find(({ starter }) => starter.type === "com" && starter.comId === id && starter.pinId === outputId) as ComDiagram;
         const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${dirName}/events/${outputId}` });
         this.codeArray.push(...handleEvents.start(diagram));
@@ -246,7 +247,7 @@ class HandleCanvas {
       Object.entries(slots).forEach(([key, slot]) => {
         slotsCode = slotsCode + `${key}: Slot_${key},`
         slotsImportCode = slotsImportCode + `import { Slot_${key} } from "./slots/${key}";`
-        this.handleSlot(slot, { filePath: `${getFilePath(filePath)}${dirName}/slots/${key}`, wrapperCode: "", parentId: id })
+        this.handleSlot(slot, { filePath: `${getFilePath(filePath)}${dirName}/slots/${key}`, wrapperCode: "", parentId: id, frame: slot.type === "scope" ? frame.coms[id].frames.find(({ id }) => id === key)! : frame })
       })
     }
 
