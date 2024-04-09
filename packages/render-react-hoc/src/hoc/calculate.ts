@@ -1,5 +1,5 @@
 import { _ } from "../";
-import { createPromise } from "../utils";
+import { createPromise, createFakePromise } from "../utils";
 
 interface Params {
   data: any;
@@ -88,9 +88,9 @@ export function jsComponentMultipleOutputsWrapper(
       {},
       {
         get(_, key: any) {
-          return (func: any) => {
+          return (...funcs: any) => {
             promisesCollection[key].then((value: any) => {
-              func(value);
+              funcs.forEach((func: any) => func(value))
             });
           };
         },
@@ -158,5 +158,44 @@ export function jsComponentMultipleInputsWrapper(
         inputValues = undefined;
       }
     };
+  };
+}
+
+/** fx卡片的包装 */
+export function fxWrapper<T extends (...args: any[]) => any>(fn: T) {
+  return (...params: Parameters<T>) => {
+    const promisesCollection = new Proxy<any>(
+      {},
+      {
+        get(target, key) {
+          let value = target[key];
+          if (!value) {
+            value = target[key] = createFakePromise();
+          }
+          return value;
+        },
+      },
+    );
+
+    fn.bind(
+      new Proxy(<any>{}, {
+        get(_, key: any) {
+          return promisesCollection[key].resolve;
+        },
+      }),
+    )(...params);
+
+    return new Proxy<any>(
+      {},
+      {
+        get(_, key: any) {
+          return (...funcs: any) => {
+            promisesCollection[key].then((value: any) => {
+              funcs.forEach((func: any) => func(value));
+            });
+          };
+        },
+      },
+    );
   };
 }

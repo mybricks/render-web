@@ -164,9 +164,9 @@ export function handleMultipleOutputs(func: any) {
       {},
       {
         get(_, key: any) {
-          return (func: any) => {
+          return (...funcs: any) => {
             promisesCollection[key].then((value: any) => {
-              func(value);
+              funcs.forEach((func: any) => func(value))
             });
           };
         },

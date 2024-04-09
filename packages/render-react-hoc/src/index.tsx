@@ -4,6 +4,7 @@ import { MyBricksRenderContext, MyBricksRenderProviderProps } from "./hooks";
 import { hijackReactcreateElement } from "./observable";
 
 import {
+  fxWrapper,
   SlotWrapper,
   variableWrapper,
   UiComponentWrapper,
@@ -61,9 +62,12 @@ export const jsComponentMultipleInputsWrapper =
 export const _ = Symbol.for("mybricks.empty");
 
 export {
+  fxWrapper,
   SlotWrapper,
   variableWrapper,
   UiComponentWrapper,
   handleSingleOutput,
   handleMultipleOutputs,
 };
+
+export { createPromise } from "./utils";
