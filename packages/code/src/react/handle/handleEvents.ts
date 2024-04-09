@@ -1,6 +1,6 @@
 import { isNumber, convertToUnderscore, convertCamelToHyphen, getSlotStyle } from "@mybricks/render-utils";
 
-import type { ToBaseJSON, ComDiagram, Component, VarDiagram, Diagram, Slot } from "@mybricks/render-types";
+import type { ToBaseJSON, ComDiagram, Component, VarDiagram, Diagram, Slot, FrameDiagram, ConAry } from "@mybricks/render-types";
 
 import type { HandleConfig, CodeArray } from "./type";
 
@@ -12,6 +12,11 @@ interface Next {
   title: string, 
   finishPinParentKey?: string, 
   startPinParentKey?: string
+  /** 
+   * 类型
+   * 目前仅用于判断是否fx卡片的输出
+   */
+  type?: "frame";
 }
 
 type Outputs = Array<Next>;
@@ -26,6 +31,11 @@ type EventType = "com" | "var";
 /** 判断是“变量”组件 */
 function isVar(namespace?: string) {
   return namespace === "mybricks.core-comlib.var";
+}
+
+/** 判断是“fx”组件 */
+function isFx(namespace?: string) {
+  return namespace === "mybricks.core-comlib.fn";
 }
 
 /** 
@@ -69,18 +79,19 @@ export class HandleEvents {
       this.handleComEvents(diagram as ComDiagram);
     } else if (type === "var") {
       this.handleVarEvents(diagram as VarDiagram);
+    } else if (type === "frame") {
+      this.handleFrameEvents(diagram as FrameDiagram);
     }
 
     return this.codeArray;
   }
 
   /** 生成UI组件的事件代码 */
-  handleComEvents(diagram: ComDiagram | VarDiagram) {
+  handleComEvents(diagram: ComDiagram | VarDiagram | FrameDiagram) {
     const { nextsMap, handleConfig, eventInfo, scene, promiseExcuteComponents } = this;
-    const { id, coms } = scene;
+    const { id, coms, pinProxies } = scene;
     const { filePath } = handleConfig;
     const { starter, conAry } = diagram;
-    const { comId, pinId } = starter;
 
     /**
      * ui组件会用到sceneContext
@@ -92,23 +103,51 @@ export class HandleEvents {
     /** 记录是否已导入变量 */
     const importVariableMap: {[key: string]: boolean} = {};
 
+    /** 导入fx */
+    const importFxs = new Set<string>();
+    /** 记录是否已导入fx */
+    const importFxMap: {[key: string]: boolean} = {};
+
+    /** 如果fx卡片有输出，需要用到这个变量，存储fx卡片的outputs */
+    const fxOutputsConAry: ConAry = [];
+
     conAry.forEach((con) => {
       const { from, to, finishPinParentKey, startPinParentKey } = con
       const { id: outputId, parent: { id: fromComId }, title: fromTitle } = from;
-      const { id: inputId, parent: { id: toComId }, title: toTitle } = to;
+      const { id: inputId, parent: { id: toComId, type: toType }, title: toTitle } = to;
+      const nexts = nextsMap[fromComId] ||= {};
+      const outputs = nexts[outputId] ||= [];
+
+      /** 作用域插槽等输出，不再向下执行 */
+      if (toType === "frame") {
+        fxOutputsConAry.push(con);
+        outputs.push({
+          comId: toComId,
+          pinId: inputId,
+          title: toTitle,
+          finishPinParentKey,
+          startPinParentKey,
+          type: "frame"
+        });
+        return
+      }
 
       const component = coms[toComId];
+      const { def } = component;
+      const { rtType, namespace } = def;
 
       /** ui组件 */
-      if (!importContext.has("sceneContext") && !component.def.rtType) {
+      if (!importContext.has("sceneContext") && !rtType) {
         importContext.add("sceneContext");
       }
-      /** 变量组件 TODO: 不同作用域的变量 */
-      if (isVar(component.def.namespace)) {
-        const { frameId, parentComId } = component;
+
+      const { frameId, parentComId } = component;
+      if (isVar(namespace)) {
+        /** 变量组件 */
         const key = `${parentComId}-${frameId}`;
         if (parentComId && frameId && !importVariableMap[key]) {
           importVariableMap[key] = true;
+          /** 查找路径 */
           const componentTreePathArray = getComponentTreePathArray(scene.slot, {comId: parentComId, slotId: frameId});
 
           importVariables.add(`import variable_${parentComId}_${frameId} from "@/slots/slot_${id}/${componentTreePathArray?.map(({comId, slotId}) => {
@@ -118,10 +157,24 @@ export class HandleEvents {
         } else {
           importVariables.add(`import variable_${id} from "@/slots/slot_${id}/variable";`)
         }
+      } else if (isFx(namespace)) {
+        /** 查找对应的fx id */
+        const fxId = pinProxies[toComId + '-' + inputId].frameId;
+        /** fx组件 */
+        const key = `${parentComId}-${frameId}`;
+        if (parentComId && frameId && !importFxMap[key]) {
+          importFxMap[key] = true;
+           /** 查找路径 */
+          const componentTreePathArray = getComponentTreePathArray(scene.slot, {comId: parentComId, slotId: frameId});
+          
+          importFxs.add(`import fx_${fxId} from "@/slots/slot_${id}/${componentTreePathArray?.map(({comId, slotId}) => {
+            const component = coms[comId];
+            return `${component.def.namespace}_${comId}/slots/${slotId}`;
+          }).join("/")}/fx/${fxId}";`);
+        } else {
+          importFxs.add(`import fx_${fxId} from "@/slots/slot_${id}/fx/${fxId}";`)
+        }
       }
-
-      const nexts = nextsMap[fromComId] ||= {};
-      const outputs = nexts[outputId] ||= [];
 
       outputs.push({
         comId: toComId,
@@ -131,8 +184,60 @@ export class HandleEvents {
         startPinParentKey
       })
     });
-    const outputs = nextsMap[comId][pinId];
-    const nextsCode = this.handleNexts(outputs, { valueCode: "value" });
+
+    /** 函数名 */
+    let functionName = "";
+    /** 入参 */
+    let params = "value: unknown";
+    /** 函数体 */
+    let nextsCode = "";
+
+    /** 后续看下fx和frame是否要做区分 */
+
+    if (starter.type === "frame") {
+      /** 后面做作用域插槽的时候看看是否要区分下fx和frame？ */
+      const { frameId, pinAry } = starter;
+      /** 配置项数量，目前用于设置config变量名 */
+      let configSuffix = 0;
+      /** 配置项入参 */
+      let configPins: Array<{ id: string, title: string, param: string }> = [];
+      /** 将config配置提前，优先执行config */
+      pinAry.sort((p, c) => {
+        const pType = p.type;
+        const cType = c.type;
+        if (pType === 'config' && cType !== 'config') {
+          return -1; // 若 p 是 config 且 c 不是，p 应排在前面，返回 -1
+        } else if (pType !== 'config' && cType === 'config') {
+          return 1; // 若 c 是 config 且 p 不是，c 应排在前面，返回 1
+        }
+        return 0; // 类型相同，保持原顺序
+      }).forEach(({ id, title, type }) => {
+        const outputs = nextsMap[frameId]?.[id];
+        let valueCode = "value";
+
+        if (type === "config") {
+          /** config配置项作为第二个入参 */
+          valueCode = `config${configSuffix++}`;
+          configPins.push({id, title, param: valueCode})
+        }
+        nextsCode = nextsCode + (outputs ? this.handleNexts(outputs, { valueCode }) : "");
+      })
+
+      /** 拼入参的配置项 */
+      if (configPins.length) {
+        params = params + `,{${configPins.reduce((p, c) => `${p}${c.id}: ${c.param},`, "")}} : {${configPins.reduce((p, c) => `${p}\n/** ${c.title} */\n${c.id}: unknown;`, "")}}`;
+      }
+    } else {
+      const { comId, pinId } = starter;
+      /** 
+       * 这里看之后是否需要优化
+       *  - 事件卡片没有内容的话，仍会创建一个空函数
+       */
+      const outputs = nextsMap[comId]?.[pinId];
+      functionName = pinId;
+      nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
+    }
+
     const promiseExcuteComponentsArray = Array.from(promiseExcuteComponents);
     let importCode = "";
     if (promiseExcuteComponentsArray.length) {
@@ -152,15 +257,30 @@ export class HandleEvents {
     importCode = importCode + Array.from(eventInfo.import).join("\n");
 
     this.codeArray.push({
-      code: `${importVariables.size ? Array.from(importVariables).join("") : ""}
+      code: `${fxOutputsConAry.length ? `import { fxWrapper } from "@mybricks/render-react-hoc";` : ""}
+        ${importVariables.size ? Array.from(importVariables).join("") : ""}
+        ${importFxs.size ? Array.from(importFxs).join("") : ""}
         ${importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
         ${importCode}
 
+        ${fxOutputsConAry.length ? `
+          type Context = {
+            ${fxOutputsConAry.map(({to}) => {
+              return `
+                /** ${to.title} */
+                ${to.id}: (value: unknown) => void;
+              `;
+            }).join("")}
+          }
+        ` : ""}
+
         ${eventInfo.runtime}
 
-        export default async function ${pinId}(value: unknown) {
+        ${fxOutputsConAry.length ? `export default fxWrapper(async function (this: Context, ${params}) {
           ${nextsCode}
-        }
+        })` : `export default async function ${functionName}(${params}) {
+          ${nextsCode}
+        }`}
       `,
       filePath: `${filePath}/index.ts`
     })
@@ -172,6 +292,12 @@ export class HandleEvents {
     this.handleComEvents(diagram);
   }
 
+  /** 生成fx卡片代码 */
+  handleFrameEvents(diagram: FrameDiagram) {
+    // 这块生成应该都可以统一处理，内部可能有细微差异，目前靠类型判断写一块了
+    this.handleComEvents(diagram);
+  }
+
   /** 生成下一步代码 */
   handleNexts(
     outputs: Outputs,
@@ -179,11 +305,17 @@ export class HandleEvents {
     { valueCode }: { valueCode: string }  
   ): string {
     const { nextsMap, scene, eventInfo, promiseExcuteComponents } = this;
-    const { id, coms, pinRels } = scene;
-    
+    const { id, coms, pinRels, pinProxies } = scene;
     if (outputs.length === 1) {
       /** 输出只有一个，直接await向下执行 */
       const output = outputs[0]
+
+      if (output.type === "frame") {
+        return `
+        /** ${output.title} */
+        this.${output.pinId}(${valueCode});`
+      }
+
       const { pinId, comId, title, finishPinParentKey } = output;
       const component = coms[comId];
 
@@ -281,6 +413,41 @@ export class HandleEvents {
               ${this.handleNexts(nextOutputs, { valueCode: "value" })}
             `
           }
+        }
+      } else if (isFx(component.def.namespace)) {
+        /** FX 特殊处理 */
+        const proxyDescription  = pinProxies[`${output.comId}-${output.pinId}`];
+        const nextOutputs = nextsMap[comId]
+        const configs = component.model.data.configs;
+
+        if (!nextOutputs) {
+          /** 执行到这里就结束了 */
+          return `/** ${component.title} */
+            fx_${proxyDescription.frameId}(${valueCode}${configs ? `, ${JSON.stringify(configs)}` : ""})
+          `
+        } else {
+          /** 继续向下执行 - fx目前无论单输出还是多输出都作为多输出使用 */
+          const outputIds = Object.keys(nextOutputs);
+          const outputIdsLastIndex = outputIds.length - 1;
+          /** 从多输出解构出来的包装器 */
+          let nextWrapper = "";
+          /** 执行包装器 */
+          let excuteNextWrapper = "";
+
+          outputIds.forEach((outputId, index) => {
+            const wrapperName = `${outputId}_${comId}`;
+            /** 这里需要重新命名 */
+            nextWrapper = nextWrapper + `${outputId}: ${wrapperName}${index === outputIdsLastIndex ? "": ","}`;
+            const nextFunctionName = `${wrapperName}_next`;
+            excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName});`;
+            this.handleWrapper(nextOutputs[outputId], { functionName: nextFunctionName });
+          })
+          
+          /** 多个输出 */
+          return `/** ${component.title} */
+            const { ${nextWrapper} } = fx_${proxyDescription.frameId}(${valueCode}${configs ? `, ${JSON.stringify(configs)}` : ""})
+            ${excuteNextWrapper}
+          `;
         }
       }
 

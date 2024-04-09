@@ -23,50 +23,53 @@ export interface ToJSON {
   frames: Array<Frame>
 }
 
+/** 逻辑连线信息 */
+export type ConAry = Array<{
+  /** 唯一ID，没有实际意义 */
+  id: string;
+  /** 输出信息 */
+  from: {
+    /** 对应outputID */
+    id: string;
+    /** 谁输出的 */
+    parent: {
+      /** ID 目前是组件 */
+      id: string;
+      /** 类型 */
+      type: "com" | "frame";
+    }
+    /** 对应outputID的标题 */
+    title: string;
+  }
+  /** 输入信息 */
+  to: {
+    /** 对应inputID */
+    id: string;
+    /** 谁的输入 */
+    parent: {
+      /** ID 目前是组件 */
+      id: string;
+      /** 类型 */
+      type: "com" | "frame";
+    }
+    /** 对应inputID的标题 */
+    title: string;
+  }
+  /** 相同实例的节点，才会有以下信息，用于连接输入和输出 */
+  finishPinParentKey?: string;
+  startPinParentKey?: string;
+}>;
+
 interface DefaultDiagram {
     /** 场景卡片名称（没什么用） */
     title: string;
     /** 逻辑连线信息 */
-    conAry: Array<{
-      /** 唯一ID，没有实际意义 */
-      id: string;
-      /** 输出信息 */
-      from: {
-        /** 对应outputID */
-        id: string;
-        /** 谁输出的 */
-        parent: {
-          /** ID 目前是组件 */
-          id: string;
-          /** 类型 */
-          type: "com" | "frame";
-        }
-        /** 对应outputID的标题 */
-        title: string;
-      }
-      /** 输入信息 */
-      to: {
-        /** 对应inputID */
-        id: string;
-        /** 谁的输入 */
-        parent: {
-          /** ID 目前是组件 */
-          id: string;
-          /** 类型 */
-          type: "com" | "frame";
-        }
-        /** 对应inputID的标题 */
-        title: string;
-      }
-      /** 相同实例的节点，才会有以下信息，用于连接输入和输出 */
-      finishPinParentKey?: string;
-      startPinParentKey?: string;
-    }>
+    conAry: ConAry;
 }
 
 export interface ComDiagram extends DefaultDiagram {
   starter: {
-    /** 组件 类型 */
+    /** 组件 */
     type: "com"; 
     /** 对应组件ID */
     comId: string;
@@ -77,7 +80,7 @@ export interface ComDiagram extends DefaultDiagram {
 
 export interface FrameDiagram extends DefaultDiagram {
   starter: {
-    /** 场景 类型 */
+    /** 场景 */
     type: "frame";
      /** 对应frameID */
     frameId: string;
@@ -87,13 +90,19 @@ export interface FrameDiagram extends DefaultDiagram {
       id: string;
       /** 输入标题 */
       title: string;
+      /** 
+       * 类型
+       * - normal 默认值，没有意义
+       * - config 配置项，一般frame才有
+       */
+      type: "normal" | "config";
     }>
   }
 }
 
 export interface VarDiagram extends DefaultDiagram {
   starter: {
-    /** 变量 类型 */
+    /** 变量 */
     type: "var";
     /** 对应变量组件ID */
     comId: string;
@@ -112,6 +121,8 @@ export interface Frame {
   id: string;
   /** 逻辑编排卡片信息列表 */
   diagrams: Array<Diagram>;
+  /** fx卡片列表 */
+  frames: Array<Frame>;
   /** 组件 - 作用域插槽卡片 */
   coms: {
     /** 组件ID */
@@ -215,7 +226,11 @@ export interface ToBaseJSON {
     /** comID-inputID */
     [key: string]: Array<string>;
   }
-  /** 用于多场景间跳转，例如调用私有的输入_inputs，根据comId-_inputsId 查找对应的frame TODO: 待补充更多信息 */
+  /** 
+   * 用于多场景间跳转，例如调用私有的输入_inputs，根据comId-_inputsId 查找对应的frame
+   * cons输出查找对应的fx卡片的输入
+   * TODO: 待补充更多信息
+   */
   pinProxies: {
     /** comId-_inputID */
     [key: string]: {
