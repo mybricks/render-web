@@ -49,7 +49,7 @@ class HandleCanvas {
     const { scene } = this;
     const { coms } = scene;
     const { filePath, parentId, frame } = handleConfig;
-    const { diagrams } = frame;
+    const { diagrams, frames } = frame;
     const slotInfo = this.slotInfoMap[filePath] = {
       import: "",
       runtime: ""
@@ -67,16 +67,10 @@ class HandleCanvas {
     /** 变量组件信息收集，用于拼装变量相关代码 */
     let variables: Array<Component> = [];
 
-    /** 当前使用的diagrams，主场景和作用域插槽不同 */
-    let currentDiagrams: Array<Diagram> = [];
-
-    /** 主入口、作用域插槽 需要处理下当前场景的所有变量 */
+    /** 主入口、作用域插槽 需要处理下当前场景的所有 变量 和 FX卡片 */
     if (!parentId || slot.type === "scope") {
-      currentDiagrams = diagrams;
-    }
-
-    if (currentDiagrams.length) {
-      currentDiagrams.forEach((diagram) => {
+      /** 变量 */
+      diagrams.forEach((diagram) => {
         if (diagram.starter.type === "var") {
           /** 处理变量 */
           const { starter } = diagram;
@@ -87,6 +81,14 @@ class HandleCanvas {
           this.codeArray.push(...handleEvents.start(diagram));
           variables.push(component);
         }
+      })
+
+      /** FX卡片 */
+      frames.forEach((frame) => {
+        const { id, diagrams } = frame;
+        const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}fx/${id}`});
+        /** FX卡片一定只有一个diagram，取第一个即可 */
+        this.codeArray.push(...handleEvents.start(diagrams[0]));
       })
     }
 
