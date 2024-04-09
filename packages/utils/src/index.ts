@@ -16,7 +16,9 @@ export function transformToJSON(toJSON: ToJSON) {
     const { comsReg, consReg, pinRels, fxFrames, pinProxies } = global
     if (comsReg) {
       Object.keys(comsReg).forEach((key) => {
-        comsReg[key].global = true
+        if (comsReg[key].def.namespace === "mybricks.core-comlib.var") {
+          comsReg[key].global = true
+        }
       })
     }
     if (Array.isArray(fxFrames)) {
