@@ -160,6 +160,8 @@ export interface Slot {
   layoutTemplate: Array<DomNode | ComponentNode>;
   /** 类型，用于判断是否作用域插槽 */
   type?: "scope";
+  /** 场景类型 */
+  showType?: "popup";
 }
 
 export type Slots = {
