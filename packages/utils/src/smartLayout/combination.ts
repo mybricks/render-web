@@ -12,8 +12,10 @@ import type { Element, Elements, DefaultLayoutConfig as LayoutConfig } from './'
  */
 export default function combination(elements: Elements, layoutConfig: LayoutConfig) {
   // 先处理包含和相交的关系
-  const initElements = handleIntersectionsAndInclusions(sortByTopLeft(elements))
-  const finalElements = getCombinationElements(initElements)
+  const initElements = handleIntersectionsAndInclusions(elements)
+  // console.log(1, "最终结果: ", initElements)
+  const finalElements = getCombinationElements(sortByTopLeft(initElements))
+  // console.log(2, "finalElements: ", finalElements)
 
   return calculateLayoutData(finalElements, layoutConfig)
 }
@@ -55,7 +57,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
   const { root, isNotAutoGroup } = layoutConfig
   const { top, left, height, width, flexDirection } = layoutConfig.style
   if (flexDirection === "column") {
-    const elementsLastIndex = elements.length - 1
+    // const elementsLastIndex = elements.length - 1
     elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top)
     // console.log(1, "👇👇 纵向排列，一行一个组件", elements)
     // 纵向排列，只需要计算纵向
@@ -75,7 +77,6 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       if (!style.widthFull) {
         // console.log(1, 1, "没有铺满")
         // TODO: constraints，目前这个属性还有问题，
-        // ((style.left - left) === marginRight)
         /**
          * 居中计算的 误差范围为-1 -> 1
          * 不是自动成组的才可以计算居中关系
@@ -109,7 +110,8 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                   height: style.height,
                   // 临时
                   // backgroundColor: style.backgroundColor
-                }
+                },
+                brother: element.brother
   
               }],
               style: {
@@ -152,7 +154,8 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
                 marginLeft: style.left - left,
                 // 临时
                 // backgroundColor: style.backgroundColor
-              }
+              },
+              brother: element.brother
             })
           }
         }
@@ -187,7 +190,8 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               margin: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px`,
               // 临时
               // backgroundColor: style.backgroundColor
-            }
+            },
+            brother: element.brother
           })
         }
       }
@@ -240,7 +244,8 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               marginLeft,
               // 临时
               // backgroundColor: style.backgroundColor
-            }
+            },
+            brother: element.brother
           })
         }
       } else {
@@ -275,7 +280,8 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               margin: `${marginTop}px 0px 0px ${marginLeft}px`,
               // 临时
               // backgroundColor: style.backgroundColor
-            }
+            },
+            brother: element.brother
           })
         }
       }
@@ -286,9 +292,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
     if (flexXWidths.length) {
       // 横向可能存在多个铺满组件，需要计算flex值
       const gcd = findGCD(flexXWidths)
-      // console.log("gcd: ", gcd)
       flexXWidths.forEach((width, index) => {
-        // const style = flexXIndexToStyleMap[index]
         const style = finalElements[flexXIndexToStyleMap[index]].style
         style.flex = width / gcd
         style.overflow = 'hidden'
@@ -320,11 +324,6 @@ function getCombinationElements(elements: Elements) {
   const elementIdToAdjacency = getElementAdjacency(elements)
   // console.log("elements: ", elements.map(e => e.id))
   // console.log("elementIdToAdjacency: ", elementIdToAdjacency)
-
-  // if (elementIdToAdjacency['A,F,B,G,L,O,Q,R,C,H,M,P,D,I,N']) {
-  //   console.log("elements: ", elements.map(e => e.id))
-  //   console.log("elementIdToAdjacency: ", elementIdToAdjacency)
-  // }
 
   // 拆分结果
   let combinationElements = []
@@ -365,23 +364,10 @@ function getCombinationElements(elements: Elements) {
         idx1: combinationElements.length - 1,
         idx2: null // 非数字代表单独一个，不参与分组
       }
-      // if (min.element.flexX || element.flexX) {
-      //   console.log("❌❌❌ 看情况是否需要做合并")
-      // } else {
-      //   console.log("✅ 不参与分组")
-      //   combinationElements.push(element)
-      // }
     } else {
       if (!elementIdToPosition[elementID] && !elementIdToPosition[min.element.id] && !elementIdToAdjacency[min.element.id].single) {
         if (elementID === elementIdToAdjacency[min.element.id].min.element.id) {
           // console.log(`元素${elementID}的最小相邻元素: `, elementID, min.element.id, elementIdToAdjacency[min.element.id].min.element.id)
-          // console.log("合并: ", [element.id, min.element.id])
-
-          // if (element.id === 'C,H,M,P,D,I,N' && min.element.id === 'E,J,S,K,T') {
-          //   console.log("合并: ", [element.id, min.element.id])
-          //   console.log("elementIdToAdjacency: ", elementIdToAdjacency)
-          // }
-
           combinationElements.push([element, min.element])
           const idx1 = combinationElements.length - 1
           elementIdToPosition[elementID] = {
@@ -394,112 +380,6 @@ function getCombinationElements(elements: Elements) {
           }
         }
       }
-
-      // for (let i = 0; i < spaceSort.length; i++) {
-      //   const directionAdjacency = spaceSort[i]
-      //   const direction = directionAdjacency.direction
-
-      //   if (directionAdjacency.intersect) {
-      //     continue
-      //   }
-
-      //   const comparedElementAdjacency = elementIdToAdjacency[directionAdjacency.element.id]
-
-      //   if (direction === 'right') {
-      //     // 被对比元素最小是left就可以
-      //     if (comparedElementAdjacency.min && !comparedElementAdjacency.min.intersect && comparedElementAdjacency.min.direction === 'left' && !comparedElementAdjacency.single && !elementIdToPosition[elementID]) {
-      //       // console.log(111, "合并", [elementID, directionAdjacency.element.id])
-      //       const comparedElementPosition = elementIdToPosition[directionAdjacency.element.id]
-      //       const space = comparedElementAdjacency.min.space
-      //       if (!comparedElementPosition) {
-      //         // 被对比的没有，直接合并
-      //         combinationElements.push([element, directionAdjacency.element])
-      //         const idx1 = combinationElements.length - 1
-      //         elementIdToPosition[elementID] = {
-      //           idx1,
-      //           idx2: 0,
-      //           space
-      //         }
-      //         elementIdToPosition[directionAdjacency.element.id] = {
-      //           idx1,
-      //           idx2: 1,
-      //           space
-      //         }
-      //         break
-      //       } else {
-      //         // 有被对比的，需要对比space
-      //         if (comparedElementPosition.space > space) {
-      //           // 当前的更小，替换
-      //           // 删除原来被对比的
-      //           const [element0, element1] =  combinationElements[comparedElementPosition.idx1]
-      //           Reflect.deleteProperty(elementIdToPosition, element0.id)
-      //           Reflect.deleteProperty(elementIdToPosition, element1.id)
-      //           combinationElements[comparedElementPosition.idx1] = null
-      //           combinationElements.push([element, directionAdjacency.element])
-      //           const idx1 = combinationElements.length - 1
-      //           elementIdToPosition[elementID] = {
-      //             idx1,
-      //             idx2: 0,
-      //             space
-      //           }
-      //           elementIdToPosition[directionAdjacency.element.id] = {
-      //             idx1,
-      //             idx2: 1,
-      //             space
-      //           }
-      //           break
-      //         }
-      //       }
-      //     }
-      //   } else if (direction === 'bottom') {
-      //     // 被对比元素最小是top就可以
-      //     if (comparedElementAdjacency.min && !comparedElementAdjacency.min.intersect && comparedElementAdjacency.min.direction === 'top' && !comparedElementAdjacency.single && !elementIdToPosition[elementID]) {
-      //       // console.log(222, "合并", [elementID, directionAdjacency.element.id])
-      //       const comparedElementPosition = elementIdToPosition[directionAdjacency.element.id]
-      //       const space = comparedElementAdjacency.min.space
-
-      //       if (!comparedElementPosition) {
-      //         // 被对比的没有，直接合并
-      //         combinationElements.push([element, directionAdjacency.element])
-      //         const idx1 = combinationElements.length - 1
-      //         elementIdToPosition[elementID] = {
-      //           idx1,
-      //           idx2: 0,
-      //           space
-      //         }
-      //         elementIdToPosition[directionAdjacency.element.id] = {
-      //           idx1,
-      //           idx2: 1,
-      //           space
-      //         }
-      //         break
-      //       } else {
-      //         // 有被对比的，需要对比space
-      //         if (comparedElementPosition.space > space) {
-      //           // 当前的更小，替换
-      //           // 删除原来被对比的
-      //           const [element0, element1] =  combinationElements[comparedElementPosition.idx1]
-      //           Reflect.deleteProperty(elementIdToPosition, element0.id)
-      //           Reflect.deleteProperty(elementIdToPosition, element1.id)
-      //           combinationElements[comparedElementPosition.idx1] = null
-      //           combinationElements.push([element, directionAdjacency.element])
-      //           const idx1 = combinationElements.length - 1
-      //           elementIdToPosition[elementID] = {
-      //             idx1,
-      //             idx2: 0,
-      //             space
-      //           }
-      //           elementIdToPosition[directionAdjacency.element.id] = {
-      //             idx1,
-      //             idx2: 1,
-      //             space
-      //           }
-      //           break
-      //         }
-      //       }
-      //     }
-      //   }
-      // }
     }
   })
 
@@ -560,7 +440,6 @@ function convertedToElements(elements: Array<Element | Elements>) {
       
       convertedElements.push({
         // 临时
-        // id: `${element0.id},${element1.id}`,
         id: element0.id,
         style: {
           top,
@@ -570,7 +449,6 @@ function convertedToElements(elements: Array<Element | Elements>) {
           flexDirection,
           widthFull: element.find((element) => element.style.widthFull) ? 1 : null
         },
-        // elements: calculateLayoutData(element, { style: { width, flexDirection, top, left } })
         elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true, isNotAutoGroup: false })
       })
     } else {
@@ -585,10 +463,101 @@ function convertedToElements(elements: Array<Element | Elements>) {
 /**
  * TODO:
  * 处理包含和相交关系
+ * 
+ *  - 只有相交
  */
 function handleIntersectionsAndInclusions(elements: Elements) {
-  return elements
+  /** id对应element */
+  const idToElementMap = {};
+  /** 已经成为brother的id */
+  const isBrotherIdsMap = {};
+  const brotherToIdMap = {}
+
+  /** 最终的元素列表 */
+  let newElements = [];
+
+  for (let i = 0; i < elements.length; i++) {
+    const element = elements[i];
+    const elementStyle = element.style;
+    if (!idToElementMap[element.id]) {
+      idToElementMap[element.id] = {
+        ...element,
+        brother: []
+      }
+    }
+    for (let j = i + 1; j < elements.length; j++) {
+      const nextElement = elements[j];
+      const nextElementStyle = nextElement.style;
+      if (!idToElementMap[nextElement.id]) {
+        idToElementMap[nextElement.id] = {
+          ...nextElement,
+          brother: []
+        }
+      }
+
+      if (
+        (nextElementStyle.left >= elementStyle.left + elementStyle.width) && 
+        (nextElementStyle.top >= elementStyle.top + elementStyle.height)) {
+          /** 已经在右下角了，直接退出即可 */
+          break
+      }
+
+      if (isIntersecting(elementStyle, nextElementStyle)) {
+        brotherToIdMap[nextElement.id] = element.id;
+        idToElementMap[element.id].brother.push(idToElementMap[nextElement.id])
+        isBrotherIdsMap[nextElement.id] = {
+          index: j
+        };
+      }
+    }
+
+    newElements.push(idToElementMap[element.id])
+  }
+
+  Object.entries(isBrotherIdsMap).forEach(([key, value]: any) => {
+    newElements[value.index] = null;
+  })
+
+  const finalElements = newElements.filter((element) => {
+    if (element) {
+      deepBrother(element)
+    }
+    return element
+  })
+
+  function deepBrother(element) {
+    const { id, style } = element
+    element.brother = element.brother.filter(({id: brotherId, style: brotherStyle, brother}) => {
+      let bool = brotherToIdMap[brotherId] === id
+      if (bool) {
+        deepBrother({id: brotherId, style: brotherStyle, brother})
+        brotherStyle.position = 'absolute';
+
+        brotherStyle.top = brotherStyle.top - style.top
+        brotherStyle.left = brotherStyle.left - style.left
+      }
+      return bool
+    })
+  }
+
+  return finalElements
 }
+
+
+/** 检查元素是否相交 */
+function isIntersecting({width: widthA, height: heightA, top: topA, left: leftA}, {width: widthB, height: heightB, top: topB, left: leftB}) {
+  const rightA = leftA + widthA;
+  const bottomA = topA + heightA;
+  const rightB = leftB + widthB;
+  const bottomB = topB + heightB;
+
+  if (rightA <= leftB || leftA >= rightB || bottomA <= topB || topA >= bottomB) {
+      return false; // 两个矩形不相交
+  } else {
+      return true; // 两个矩形相交
+  }
+}
+
 
 interface Adjacency {
   element: Element
@@ -701,19 +670,6 @@ export function getElementAdjacency(elements: Elements) {
     const right = checkRightIntersects(value.rightElements, currentElement)
     const bottom = checkBottomIntersects(value.bottomElements, currentElement)
     const left = checkLeftIntersects(value.leftElements, currentElement)
-    // 最小的相邻元素，不包含上
-    // const min = [right, bottom, left, top].reduce((pre, cur) => {
-    //   if (!pre && !cur) {
-    //     return
-    //   } else if (pre && cur) {
-    //     if (pre.space > cur.space) {
-    //       return cur
-    //     }
-    //     return pre
-    //   } else {
-    //     return pre || cur
-    //   }
-    // })
     
     elementIdToAdjacency[key] = {
       top,
@@ -721,48 +677,11 @@ export function getElementAdjacency(elements: Elements) {
       right,
       bottom,
       single: !left && !right,
-      // min,
-      // spaceSort: [right, bottom].filter((direction) => direction).sort((pre, cur) => {
-      //   return pre.space - cur.space
-      // })
       spaceSort: []
     }
-
-
-
-    // const top = checkTopIntersects(value.topElements, currentElement)
-    // const right = checkRightIntersects(value.rightElements, currentElement)
-    // const bottom = checkBottomIntersects(value.bottomElements, currentElement)
-    // const left = checkLeftIntersects(value.leftElements, currentElement)
-    // // 最小的相邻元素
-    // const min = [top, right, bottom, left].reduce((pre, cur) => {
-    //   if (!pre && !cur) {
-    //     return
-    //   } else if (pre && cur) {
-    //     if (pre.space > cur.space) {
-    //       return cur
-    //     }
-    //     return pre
-    //   } else {
-    //     return pre || cur
-    //   }
-    // })
-    
-    // elementIdToAdjacency[key] = {
-    //   right,
-    //   bottom,
-    //   top,
-    //   left,
-    //   min,
-    //   spaceSort: [right, bottom, left, top].filter((direction) => direction).sort((pre, cur) => {
-    //     return pre.space - cur.space
-    //   })
-    // }
   })
 
   Object.entries(elementIdToAdjacency).forEach(([key, value]) => {
-    // value.single = !value.left && !value.right
-
     // 被对比的反方向不是的话，就去除
     if (value.bottom) {
       const comparedElementAdjacency = elementIdToAdjacency[value.bottom.element.id]
@@ -812,24 +731,6 @@ export function getElementAdjacency(elements: Elements) {
         }
       }
       
-      
-
-      // if (preDirection.intersect) {
-      //   // 说明相交就是null
-      // } else {
-      //   const preComparedElement = preDirection.element
-      // }
-
-      // const pre = !preDirection?.intersect ? preDirection : null
-      // const cur = !curDirection?.intersect ? curDirection : null
-
-      // const pre = preDirection
-      // const cur = curDirection
-
-      // haslog && console.log("hello: ", {pre, cur})
-      // haslog && console.log("world: ", value)
-      // haslog && console.log("elementIdToAdjacency: ", elementIdToAdjacency[pre.element.id])
-      
       if (!pre && !cur) {
         return
       } else if (pre && cur) {
@@ -844,10 +745,6 @@ export function getElementAdjacency(elements: Elements) {
     })
 
     value.min = min
-
-    // value.spaceSort = [value.right, value.bottom].filter((direction) => direction).sort((pre, cur) => {
-    //   return pre.space - cur.space
-    // })
   })
 
   return elementIdToAdjacency

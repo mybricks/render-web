@@ -83,6 +83,9 @@ export interface Element {
    * 子组件，如果组件被分为一组
    */
   elements: Elements
+
+  /** 相交关系 */
+  brother: Array<any>;
 }
 
 export type Elements = Element[]

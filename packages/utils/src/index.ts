@@ -45,7 +45,8 @@ export function transformToJSON(toJSON: ToJSON) {
       Object.entries(modules).forEach(([key, module]: any) => {
         const { json } = module
         // transform.transformSlotComAry(json.slot, json.coms)
-        transformSlotComAry(json.slot, json.coms)
+        // 这里应该不用执行的，模块在搭建的时候已经计算好了
+        // transformSlotComAry(json.slot, json.coms)
 
         if (comsReg) {
           Object.assign(json.coms, comsReg)
@@ -102,23 +103,24 @@ function transformSlotComAry(slot, coms, root = true, com?) {
   const calculateComAry = comAry.filter(({id}) => coms[id])
   // TODO: 目前引擎可以通过这个字段来判断是否智能布局
   if (slot.style.layout === "smart") {
-    const resultComAry = calculateComAry.sort((preCom, curCom) => {
-      const { id: preId } = preCom
-      const { id: curId } = curCom
+    // 不需要提前排序
+    // const resultComAry = calculateComAry.sort((preCom, curCom) => {
+    //   const { id: preId } = preCom
+    //   const { id: curId } = curCom
 
-      const preStyle = coms[preId].model.style
-      const preTop = preStyle.top
-      const preLeft = preStyle.left
-      const curStyle = coms[curId].model.style
-      const curTop = curStyle.top
-      const curLeft = curStyle.left
+    //   const preStyle = coms[preId].model.style
+    //   const preTop = preStyle.top
+    //   const preLeft = preStyle.left
+    //   const curStyle = coms[curId].model.style
+    //   const curTop = curStyle.top
+    //   const curLeft = curStyle.left
   
-      if (preTop === curTop) {
-        return preLeft - curLeft
-      }
+    //   if (preTop === curTop) {
+    //     return preLeft - curLeft
+    //   }
   
-      return preTop - curTop
-    })
+    //   return preTop - curTop
+    // })
 
     calculateComAry.forEach((com) => {
       const { slots } = com
@@ -130,7 +132,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         })
       }
     })
-    const comAry2 = smartLayout(resultComAry.map((com) => {
+    const comAry2 = smartLayout(calculateComAry.map((com) => {
       const id = com.id
       const comInfo = coms[id]
       const style = comInfo.model.style
@@ -256,7 +258,14 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       // modelStyle.height = style.height
       modelStyle.width = coms[id].style.width
       modelStyle.height = coms[id].style.height
-      modelStyle.position = 'relative'
+      modelStyle.position = style.position || 'relative'
+
+      // 如果是absolute，设置计算的top和left
+      if (modelStyle.position === "absolute") {
+        modelStyle.top = style.top
+        modelStyle.left = style.left
+      }
+
       if (modelStyle.heightAuto) {
         // modelStyle.height = 'auto'
         // modelStyle.maxHeight = "fit-content"
@@ -307,7 +316,11 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       }
 
       modelStyle.marginBottom = style.marginBottom
-      result.push(comIdToSlotComMap[id])
+      // 添加兄弟节点，目前节点在组件dom内部
+      result.push({
+        ...comIdToSlotComMap[id],
+        brother: traverseElementsToSlotComAry(com.brother || [], coms, comIdToSlotComMap)
+      })
     }
   })
 

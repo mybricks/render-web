@@ -150,6 +150,9 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                         onError={onError}
                         logger={logger}
                         createPortal={createPortal}>
+                          {brother?.map((brother, index) => {
+                            return renderRstTraverseCom2({com: brother, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
+                          })}
                           </RenderCom>,
         name,
         inputs: props.inputsCallable,
@@ -187,7 +190,7 @@ function RenderCom({
                      context,
                      onError,
                      logger,
-                    //  children
+                     children
                    }) {
   const {id, def, name, slots = {}}: Com = com
   const {
@@ -413,7 +416,7 @@ function RenderCom({
         {/* <div style={{position: 'absolute', top: 0, left: 0}}>
           {children}
         </div> */}
-        {/* {children} */}
+        {children}
       </ErrorBoundary>
     </div>
   ) : null
