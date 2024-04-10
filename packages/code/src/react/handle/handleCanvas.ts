@@ -5,6 +5,23 @@ import { HandleEvents } from "./handleEvents";
 
 import type { HandleConfig, CodeArray } from "./type";
 
+export function getFunctionName({ namespace, id }: { namespace: string, id: string }) {
+  var lastIndex = namespace.lastIndexOf('.');
+
+  return convertToUnderscore(lastIndex !== -1 ? namespace.substring(lastIndex + 1) + `_${id}` : id);
+}
+
+// 字符串集合包含了大小写字母和数字
+const UUID_CHARTS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+export function uuid(length: number = 2) {
+  let id = '';
+  // 随机选取两个字符
+  for (let i = 0; i < length; i++) {
+    id += UUID_CHARTS.charAt(Math.floor(Math.random() * UUID_CHARTS.length));
+  }
+  return id;
+}
+
 interface HandleCanvasConfig extends HandleConfig {
   /** 外包装代码，目前用于智能布局对组件dom的一层包装 */
   wrapperCode: string;
@@ -39,6 +56,12 @@ class HandleCanvas {
   constructor(private scene: ToBaseJSON) {}
 
   start(frame: Frame) {
+    // TODO: 应该存在问题
+    // Object.entries(this.scene.coms).forEach(([key, com]) => {
+    //   console.log(com.id, "原先")
+    //   com.id = uuid();
+    //   console.log(com.id, "处理后")
+    // })
     this.handleSlot(this.scene.slot, { filePath: "", wrapperCode: "", frame })
 
     return this.codeArray;
@@ -166,11 +189,14 @@ class HandleCanvas {
     const { diagrams, coms: frameComs } = frame;
     const { id, def: { namespace }, slots } = component;
     /** 文件目录名称 - 存放组件runtime、事件、插槽 */
-    const dirName = `${namespace}_${id}`;
+    // const dirName = `${namespace}_${id}`;
+    const dirName = getFunctionName({ namespace, id });
     /** 组件函数名 */
-    const functionName = `Render_${convertToUnderscore(
-      dirName,
-    )}`;
+    // const functionName = `Render_${convertToUnderscore(
+    //   dirName,
+    // )}`;
+    const functionName = dirName.charAt(0).toUpperCase() + dirName.slice(1);
+    
     const {
       title,
       model: {

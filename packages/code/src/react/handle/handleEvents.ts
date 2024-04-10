@@ -2,6 +2,8 @@ import { isNumber, convertToUnderscore, convertCamelToHyphen, getSlotStyle } fro
 
 import type { ToBaseJSON, ComDiagram, Component, VarDiagram, Diagram, Slot, FrameDiagram, ConAry } from "@mybricks/render-types";
 
+import { getFunctionName } from "./handleCanvas";
+
 import type { HandleConfig, CodeArray } from "./type";
 
 interface HandleEventsConfig extends HandleConfig {}
@@ -454,7 +456,9 @@ export class HandleEvents {
       
 
       const nextOutputs = nextsMap[comId]
-      const nextFunctionName = `${convertToUnderscore(component.def.namespace)}_${comId}`;
+      // const nextFunctionName = `${convertToUnderscore(component.def.namespace)}_${comId}`;
+      const nextFunctionName = getFunctionName({ namespace: component.def.namespace, id: comId });
+      
       eventInfo.import.add(`import ${nextFunctionName} from "./${nextFunctionName}";`)
       /** 
        * 是否多输入
@@ -586,15 +590,18 @@ export class HandleEvents {
   /** 开分支 */
   handleWrapper(outputs: Outputs, { functionName }: { functionName: string }) {
     const { eventInfo } = this;
-    eventInfo.runtime = eventInfo.runtime + `async function ${functionName}(value: unknown) {
-      ${this.handleNexts(outputs, { valueCode: "value" })}
-    }`
+    eventInfo.runtime = eventInfo.runtime + `
+      async function ${functionName}(value: unknown) {
+        ${this.handleNexts(outputs, { valueCode: "value" })}
+      }
+    `;
   }
 
   /** 多输入代码生成 */
   handlePromiseExcute(component: Component) {
     const { eventInfo, scene, nextsMap } = this
-    const functionName = `${convertToUnderscore(component.def.namespace)}_${component.id}`;
+    // const functionName = `${convertToUnderscore(component.def.namespace)}_${component.id}`;
+    const functionName = getFunctionName({ namespace: component.def.namespace, id: component.id });
     let outputsCode: string = "";
 
     component.outputs.forEach((outputId) => {
@@ -607,8 +614,9 @@ export class HandleEvents {
         outputsCode = outputsCode + `${outputId}: () => {},`
       }
     })
-
-    eventInfo.runtime = eventInfo.runtime + `const excute_${functionName} = ${functionName}({${outputsCode}});`;
+    eventInfo.runtime = eventInfo.runtime + `
+      const excute_${functionName} = ${functionName}({${outputsCode}});
+    `;
   }
 }
 
