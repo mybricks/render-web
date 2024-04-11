@@ -26,9 +26,6 @@ class GlobalContext {
   scenesMap: {
     [key: string]: {
       show: boolean;
-      todoList: Array<{ pinId: string; value: unknown }>;
-      inputsData: { [key: string]: unknown };
-      fromComponentProps: ComponentProps | null;
       componentPropsMap: { [key: string]: ComponentProps };
     };
   } = {
@@ -44,25 +41,6 @@ class GlobalContext {
       },
       set show(show: boolean) {
         scene.show = show;
-      },
-      close: () => {
-        if (scene.show) {
-          scene.show = false;
-          scene.fromComponentProps = null;
-          this.scenesRefresh();
-        }
-      },
-      setFromComponentProps(componentProps: ComponentProps) {
-        scene.fromComponentProps = componentProps;
-      },
-      getFromComponentProps() {
-        return scene.fromComponentProps;
-      },
-      setInputData(inputId: string, value: unknown) {
-        scene.inputsData[inputId] = value;
-      },
-      getInputData(inputId: string) {
-        return scene.inputsData[inputId];
       },
       getComponent(componentId: string) {
         return scene.componentPropsMap[componentId];
@@ -98,11 +76,6 @@ class GlobalContext {
     runtime: true,
     i18n(value: unknown) {
       return value;
-    },
-    canvas: {
-      open: (sceneId: string) => {
-        this.openScene(sceneId);
-      },
     },
   };
 }

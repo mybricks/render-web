@@ -10,10 +10,7 @@ export function handleGlobalContext(code: string, toJSON: ToJSON) {
           /** ${c.title} */
           "${c.id}": {
             show: ${!p ? "true" : "false"},
-            todoList: [],
-            inputsData: {},
             componentPropsMap: {},
-            fromComponentProps: null,
           }
         `;
       return p ? `${p},\n${mapStr}` : mapStr;
