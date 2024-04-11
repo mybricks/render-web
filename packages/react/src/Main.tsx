@@ -38,6 +38,10 @@ export default function Main({json, options, style = {}, className = '', root = 
       style.minHeight = slot.style.height;
     }
 
+    if (json.type === "module") {
+      slot.style.backgroundColor = slot.style.backgroundColor || "#ffffff00";
+    }
+
     return {
       env,
       onError: _context.onError,
