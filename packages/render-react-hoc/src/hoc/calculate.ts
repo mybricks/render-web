@@ -111,13 +111,15 @@ export function jsComponentMultipleInputsWrapper(
   this: MyBricks,
   { data, component }: Params,
 ) {
+  /** 全局上下文 */
+  const that = this;
   /** 最终输入的数据 */
   let inputValues: undefined | Array<any>;
   let fn: any;
   let env: any;
 
   return (outputs: any) => {
-    return (value: Array<any>) => {
+    return function (this: any, value: Array<any>) {
       if (!inputValues) {
         inputValues = value;
       } else {
@@ -131,6 +133,26 @@ export function jsComponentMultipleInputsWrapper(
       }
 
       if (!inputValues!.find((value) => value === _)) {
+        /** fx 卡片全局上下文 */
+        const frameThat = this;
+        const proxyOutputs = new Proxy<any>(
+          {},
+          {
+            ownKeys() {
+              return Object.keys(outputs);
+            },
+            getOwnPropertyDescriptor() {
+              return {
+                enumerable: true,
+                configurable: true,
+              };
+            },
+            get(_, key) {
+              return outputs[key].bind(frameThat)
+            }
+          }
+        )
+        /** 组装多输入最终输入的值 */
         const value = inputValues!.reduce((p, c, index) => {
           return {
             ...p,
@@ -151,14 +173,14 @@ export function jsComponentMultipleInputsWrapper(
             },
             get() {
               return (func: any) => {
-                func(value, outputs);
+                func(value, proxyOutputs);
               };
             },
           },
         );
 
         if (!fn || !env) {
-          const { globalContext } = this;
+          const { globalContext } = that;
           fn = globalContext.getComponent(component);
           env = globalContext.env;
         }
@@ -167,7 +189,7 @@ export function jsComponentMultipleInputsWrapper(
           env,
           data,
           inputs,
-          outputs,
+          outputs: proxyOutputs,
         });
 
         inputValues = undefined;

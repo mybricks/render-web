@@ -529,7 +529,7 @@ export class HandleEvents {
       if (isPromiseInput) {
         /** 执行多输入的excute函数 */
         return `/** ${component.title} - ${title} - ${pinId} */
-          excute_${nextFunctionName}(${valueCode});
+          excute_${nextFunctionName}${bindCode}(${valueCode});
         `
       }
 
