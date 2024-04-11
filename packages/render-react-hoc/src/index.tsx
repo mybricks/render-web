@@ -10,6 +10,7 @@ import {
   UiComponentWrapper,
   handleSingleOutput,
   handleMultipleOutputs,
+  sceneStateWrapper as sSW,
   jsComponentSingleOutputWrapper as jsCSOW,
   jsComponentMultipleOutputsWrapper as jsCMOW,
   jsComponentMultipleInputsWrapper as jsCMIW,
@@ -54,6 +55,10 @@ export class MyBricks {
   jsComponentMultipleInputsWrapper(params: Parameters<typeof jsCMIW>[0]) {
     return jsCMIW.bind(this)(params);
   }
+
+  sceneStateWrapper(sceneId: Parameters<typeof sSW>[0]) {
+    return sSW.bind(this)(sceneId);
+  }
 }
 
 const mybricks = new MyBricks();
@@ -65,6 +70,7 @@ export const jsComponentMultipleOutputsWrapper =
   mybricks.jsComponentMultipleOutputsWrapper.bind(mybricks);
 export const jsComponentMultipleInputsWrapper =
   mybricks.jsComponentMultipleInputsWrapper.bind(mybricks);
+export const sceneStateWrapper = mybricks.sceneStateWrapper.bind(mybricks);
 
 /** 空 - 占位 */
 export const _ = Symbol.for("mybricks.empty");

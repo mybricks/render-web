@@ -33,7 +33,9 @@ class HandleCanvas {
   /** 画布代码 - filePath 对应代码 */
   slotInfoMap: {
     [key: string]: {
+      /** 导入插槽内组件 */
       import: string;
+      /** 执行插槽内组件 */
       runtime: string;
     }
   } = {};
@@ -55,14 +57,15 @@ class HandleCanvas {
   /** 处理Slot */
   handleSlot(slot: Slot, handleConfig: HandleCanvasConfig) {
     const { scene } = this;
-    const { coms } = scene;
+    const { coms, type } = scene;
     const { filePath, parentId, frame } = handleConfig;
+    /** 根节点，即画布 */
+    const root = !parentId;
     const { diagrams, frames } = frame;
     const slotInfo = this.slotInfoMap[filePath] = {
       import: "",
       runtime: ""
     };
-
     const { style, comAry, layoutTemplate } = slot;
     if (style.layout === "smart") {
       /** 智能布局，多处理一层 */
@@ -72,11 +75,31 @@ class HandleCanvas {
       this.handleCompoents(comAry, handleConfig);
     }
 
+    /** 
+     * 需要导入的插槽events，当前认为一定有个open输入项
+     * TODO:
+     *  1. 没有输入项目的情况，pinAry是空的
+     *  2. 是否要支持“起始组件” - js-autorun
+     */
+    // const importRootEvents = new Set();
+
+    /** 需要导入的react hooks */
+    const importReactHooks = new Set();
+
+    /** 需要导入的render-react-hoc包装器 */
+    const importRenderReactHoc = new Set<string>();
+    /** 插槽包装器 */
+    importRenderReactHoc.add("SlotWrapper");
+    if (root) {
+      /** 如果是根节点画布 */
+      importRenderReactHoc.add("sceneStateWrapper");
+      importReactHooks.add("useEffect");
+    }
     /** 变量组件信息收集，用于拼装变量相关代码 */
-    let variables: Array<Component> = [];
+    const variables: Array<Component> = [];
 
     /** 主入口、作用域插槽 需要处理下当前场景的所有 变量 和 FX卡片 */
-    if (!parentId || slot.type === "scope") {
+    if (root || slot.type === "scope") {
       /** 变量 */
       diagrams.forEach((diagram) => {
         if (diagram.starter.type === "var") {
@@ -87,6 +110,16 @@ class HandleCanvas {
           const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}variable/${comId}_change`, eventType: "var" });
           this.codeArray.push(...handleEvents.start(diagram));
           variables.push(component);
+        } else if (diagram.starter.type === "frame" && diagram.starter.frameId === slot.id) {
+          // TODO: 之后要看看，是不是作用域插槽也会走到这里？
+          if (root) {
+            let eventType: "page_frame" | "popup_frame" = "page_frame";
+            if (type === "popup") {
+              eventType = "popup_frame";
+            }
+            const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}events/open`, eventType });
+            this.codeArray.push(...handleEvents.start(diagram));
+          }
         }
       })
 
@@ -100,6 +133,7 @@ class HandleCanvas {
     }
 
     if (variables.length) {
+      /** 处理变量文件夹 */
       this.codeArray.push({
         code: `import { variableWrapper } from "@mybricks/render-react-hoc";
         ${variables.map(({ id }) => `import ${id}_change from "./${id}_change";`).join("")}
@@ -130,20 +164,34 @@ class HandleCanvas {
     }
 
     this.codeArray.push({
-      code: `import React from "react";
+      code: `import React${importReactHooks.size ? `, { ${Array.from(importReactHooks).join(", ")} }` : ""} from "react";
+        ${// 导入globalContext
+          root ? 'import globalContext from "@/globalContext";' : ""}
+        ${// 导入各类包装器
+          importRenderReactHoc.size ? `import { ${Array.from(importRenderReactHoc).join(", ")} } from "@mybricks/render-react-hoc";` : ""}
+        
+        ${// 导入场景事件, TODO 上述 importRootEvents
+          root ? `import open from "./events/open";` : ""}
+        ${// 导入插槽内组件
+          slotInfo.import}
 
-        ${!parentId ? 'import globalContext from "@/globalContext";' : ""}
-        import { SlotWrapper } from "@mybricks/render-react-hoc";
+        ${// 导出场景上下文
+          root ? `export const sceneContext = globalContext.getScene("${slot.id}");` : ""}
 
-        ${slotInfo.import}
-
-        ${!parentId ? `export const sceneContext = globalContext.getScene("${slot.id}");` : ""}
+        ${// 导出场景状态
+          root ? `export const sceneState = sceneStateWrapper("${slot.id}");` : ""}
 
         /** ${slot.title} */
         export function Slot_${slot.id}() {
+          ${// 写入场景打开时触发逻辑
+            root ? `useEffect(() => {
+              sceneState.init(open);
+            }, []);
+            ` : ""}
+
           return (
             <SlotWrapper
-              style={${JSON.stringify(getSlotStyle(slot.style, !parentId))}}
+              style={${JSON.stringify(getSlotStyle(slot.style, root))}}
             >
               ${slotInfo.runtime}
             </SlotWrapper>

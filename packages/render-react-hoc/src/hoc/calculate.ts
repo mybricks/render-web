@@ -236,3 +236,80 @@ export function fxWrapper<T extends (...args: any[]) => any>(fn: T) {
     );
   };
 }
+
+/** 场景状态包装器 */
+export function sceneStateWrapper(this: any, sceneId: string) {
+  /** 场景打开输入的值 */
+  let openData: unknown;
+  /** 打开场景 */
+  const openScene = () => {
+    this.globalContext.openScene(sceneId)
+  };
+  /** 关闭场景 */
+  const closeScene = () => {
+    this.globalContext.closeScene(sceneId);
+    openData = void 0;
+  };
+  const promisesCollection = new Proxy<any>(
+    {},
+    {
+      get(target, key) {
+        let value = target[key];
+        if (!value) {
+          value = target[key] = createFakePromise();
+          const r = value.resolve
+          value.resolve = (value: unknown) => {
+            if (key !== "apply") {
+              /** 非“应用”输出，默认关闭场景 */
+              closeScene();
+            }
+            r(value)
+          }
+        }
+        return value;
+      },
+    },
+  );
+
+  const bindProxy = new Proxy<any>(
+    {},
+    {
+      get(_, key: any) {
+        return promisesCollection[key].resolve;
+      },
+    }
+  )
+
+  return {
+    /** 场景初始化 */
+    init(func: any) {
+      this.wrapper(func)(openData);
+    },
+    /** 打开场景 */
+    open(value: unknown) {
+      /** 设置输入值 */
+      openData = value;
+      /** 打开场景 */
+      openScene();
+
+      return new Proxy<any>(
+        {},
+        {
+          get(_, key: any) {
+            return (...funcs: any) => {
+              promisesCollection[key].then((value: any) => {
+                funcs.forEach((func: any) => func(value));
+              });
+            };
+          },
+        },
+      );
+    },
+    /** 事件包装器 */
+    wrapper(func: any) {
+      return (value: unknown) => {
+        func.bind(bindProxy)(value);
+      }
+    }
+  };
+}

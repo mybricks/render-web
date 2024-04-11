@@ -6,7 +6,7 @@ import type { HandleConfig, CodeArray } from "./type";
 
 interface HandleEventsConfig extends HandleConfig {
   /** 事件类型 */
-  eventType: "com" | "var" | "fx"
+  eventType: "com" | "var" | "fx" | "page_frame" | "popup_frame";
 }
 
 interface Next {
@@ -89,6 +89,9 @@ export class HandleEvents {
       this.handleVarEvents(diagram as VarDiagram);
     } else if (eventType === "fx") {
       this.handleFxEvents(diagram as FrameDiagram);
+    } else {
+      // TODO: 随意了，反正都在handleComEvents里处理了
+      this.handleComEvents(diagram as ComDiagram);
     }
 
     return this.codeArray;
@@ -105,7 +108,6 @@ export class HandleEvents {
      * ui组件会用到sceneContext
      */
     const importContext = new Set<string>();
-
     /** 导入变量 */
     const importVariables = new Set<string>();
     /** 记录是否已导入变量 */
@@ -114,7 +116,6 @@ export class HandleEvents {
     const importFxs = new Set<string>();
     /** 记录是否已导入fx */
     const importFxMap: {[key: string]: boolean} = {};
-
     /** 记录frame的输出 - 例如 fx ....... 后续应该是popup场景 */
     const frameOutputsConAry: ConAry = [];
 
@@ -196,8 +197,6 @@ export class HandleEvents {
       })
     });
 
-    /** 函数名 */
-    let functionName = "";
     /** 入参 */
     let params = "value: unknown";
     /** 函数体 */
@@ -205,10 +204,8 @@ export class HandleEvents {
     /** 类型声明 */
     let typeDeclarationCode = "";
 
-
-    /** 后续看下fx和frame是否要做区分 */
-
     if (eventType === "fx") {
+      /** 目前只有fx有配置项，特殊处理一下 */
       /** fx需要使用fx包装器 */
       eventInfo.importRenderReactHoc.add("fxWrapper");
       /** 后面做作用域插槽的时候看看是否要区分下fx和frame？ */
@@ -256,26 +253,33 @@ export class HandleEvents {
         }` : ""};
       `
 
-
-
-      type Context = Record<string, unknown> & {
-        /** 新增输出项 */
-        u_nrHYh: (value: unknown) => void;
-      };
-
       nextsCode = `/** ${title} */
         export default fxWrapper(async function (this: Context, ${params}) {
           ${nextsCode}
         });
       `;
     } else {
-      const { comId, pinId } = starter as ComDiagram['starter'];
+      let outputs = [];
+
+      if (eventType === "page_frame") {
+        /** 
+         * 页面 主卡片
+         * 只有一个输入，直接取第一个
+         */
+        const { frameId, pinAry } = starter as FrameDiagram['starter'];
+        outputs = nextsMap[frameId][pinAry[0].id];
+      } else {
+        /**
+         * 组件事件卡片，正常取
+         */
+        const { comId, pinId } = starter as ComDiagram['starter'];
+        outputs = nextsMap[comId]?.[pinId];
+      }
+
       /** 
        * 这里看之后是否需要优化
        *  - 事件卡片没有内容的话，仍会创建一个空函数
        */
-      const outputs = nextsMap[comId]?.[pinId];
-      functionName = pinId;
       nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
       nextsCode = `/** ${title} */
         export default async function (${params}) {
