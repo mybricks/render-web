@@ -1,10 +1,13 @@
 import type { ToBaseJSON, ComDiagram, Component, VarDiagram, Diagram, Slot, FrameDiagram, ConAry } from "@mybricks/render-types";
 
-import { getFunctionName } from "./handleCanvas";
+import { getFunctionName } from "../../utils";
 
 import type { HandleConfig, CodeArray } from "./type";
 
-interface HandleEventsConfig extends HandleConfig {}
+interface HandleEventsConfig extends HandleConfig {
+  /** 事件类型 */
+  eventType: "com" | "var" | "fx"
+}
 
 interface Next {
   comId: string, 
@@ -77,14 +80,15 @@ export class HandleEvents {
   constructor(private scene: ToBaseJSON, private handleConfig: HandleEventsConfig) {}
 
   start(diagram: Diagram) {
-    const { starter } = diagram;
-    const { type } = starter;
-    if (type === "com") {
+    const { handleConfig } = this;
+    const { eventType } = handleConfig;
+
+    if (eventType === "com") {
       this.handleComEvents(diagram as ComDiagram);
-    } else if (type === "var") {
+    } else if (eventType === "var") {
       this.handleVarEvents(diagram as VarDiagram);
-    } else if (type === "frame") {
-      this.handleFrameEvents(diagram as FrameDiagram);
+    } else if (eventType === "fx") {
+      this.handleFxEvents(diagram as FrameDiagram);
     }
 
     return this.codeArray;
@@ -94,8 +98,8 @@ export class HandleEvents {
   handleComEvents(diagram: ComDiagram | VarDiagram | FrameDiagram) {
     const { nextsMap, handleConfig, eventInfo, scene, promiseExcuteComponents } = this;
     const { id, coms, pinProxies } = scene;
-    const { filePath } = handleConfig;
-    const { starter, conAry } = diagram;
+    const { filePath, eventType } = handleConfig;
+    const { title, starter, conAry } = diagram;
 
     /**
      * ui组件会用到sceneContext
@@ -106,14 +110,13 @@ export class HandleEvents {
     const importVariables = new Set<string>();
     /** 记录是否已导入变量 */
     const importVariableMap: {[key: string]: boolean} = {};
-
     /** 导入fx */
     const importFxs = new Set<string>();
     /** 记录是否已导入fx */
     const importFxMap: {[key: string]: boolean} = {};
 
-    /** 如果fx卡片有输出，需要用到这个变量，存储fx卡片的outputs */
-    const fxOutputsConAry: ConAry = [];
+    /** 记录frame的输出 - 例如 fx ....... 后续应该是popup场景 */
+    const frameOutputsConAry: ConAry = [];
 
     conAry.forEach((con) => {
       const { from, to, finishPinParentKey, startPinParentKey } = con
@@ -124,7 +127,7 @@ export class HandleEvents {
 
       /** 作用域插槽等输出，不再向下执行 */
       if (toType === "frame") {
-        fxOutputsConAry.push(con);
+        frameOutputsConAry.push(con);
         outputs.push({
           comId: toComId,
           pinId: inputId,
@@ -146,10 +149,12 @@ export class HandleEvents {
       }
 
       const { frameId, parentComId } = component;
+
       if (isVar(namespace)) {
-        /** 变量组件 */
+        /** 导入变量组件 */
         const key = `${parentComId}-${frameId}`;
         if (parentComId && frameId && !importVariableMap[key]) {
+          /** 区分作用域 */
           importVariableMap[key] = true;
           /** 查找路径 */
           const componentTreePathArray = getComponentTreePathArray(scene.slot, {comId: parentComId, slotId: frameId});
@@ -162,11 +167,13 @@ export class HandleEvents {
           importVariables.add(`import variable_${id} from "@/slots/slot_${id}/variable";`)
         }
       } else if (isFx(namespace)) {
+        /** 导入fx组件 */
         /** 查找对应的fx id */
         const fxId = pinProxies[toComId + '-' + inputId].frameId;
         /** fx组件 */
         const key = `${parentComId}-${frameId}`;
         if (parentComId && frameId && !importFxMap[key]) {
+          /** 区分作用域 */
           importFxMap[key] = true;
            /** 查找路径 */
           const componentTreePathArray = getComponentTreePathArray(scene.slot, {comId: parentComId, slotId: frameId});
@@ -195,12 +202,17 @@ export class HandleEvents {
     let params = "value: unknown";
     /** 函数体 */
     let nextsCode = "";
+    /** 类型声明 */
+    let typeDeclarationCode = "";
+
 
     /** 后续看下fx和frame是否要做区分 */
 
-    if (starter.type === "frame") {
+    if (eventType === "fx") {
+      /** fx需要使用fx包装器 */
+      eventInfo.importRenderReactHoc.add("fxWrapper");
       /** 后面做作用域插槽的时候看看是否要区分下fx和frame？ */
-      const { frameId, pinAry } = starter;
+      const { frameId, pinAry } = starter as FrameDiagram['starter'];
       /** 配置项数量，目前用于设置config变量名 */
       let configSuffix = 0;
       /** 配置项入参 */
@@ -231,8 +243,28 @@ export class HandleEvents {
       if (configPins.length) {
         params = params + `,{${configPins.reduce((p, c) => `${p}${c.id}: ${c.param},`, "")}} : {${configPins.reduce((p, c) => `${p}\n/** ${c.title} */\n${c.id}: unknown;`, "")}}`;
       }
+
+      if (frameOutputsConAry.length) {
+        /** 此类this上下文都用Context */
+        typeDeclarationCode = `
+          type Context = {
+            ${frameOutputsConAry.map(({to}) => {
+              return `
+                /** ${to.title} */
+                ${to.id}: (value: unknown) => void;
+              `;
+            }).join("")}
+          }
+        `
+      }
+
+      nextsCode = `/** ${title} */
+        export default fxWrapper(async function (this: Context, ${params}) {
+          ${nextsCode}
+        });
+      `;
     } else {
-      const { comId, pinId } = starter;
+      const { comId, pinId } = starter as ComDiagram['starter'];
       /** 
        * 这里看之后是否需要优化
        *  - 事件卡片没有内容的话，仍会创建一个空函数
@@ -240,46 +272,42 @@ export class HandleEvents {
       const outputs = nextsMap[comId]?.[pinId];
       functionName = pinId;
       nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
+      nextsCode = `/** ${title} */
+        export default async function (${params}) {
+          ${nextsCode}
+        }
+      `;
     }
 
-    const promiseExcuteComponentsArray = Array.from(promiseExcuteComponents);
-    if (promiseExcuteComponentsArray.length) {
-      promiseExcuteComponentsArray.forEach((component) => {
-        this.handlePromiseExcute(component);
-        if (component.inputs.length > 1) {
-          /** 如果有多输入的话，引入 _ */
-          eventInfo.importRenderReactHoc.add("_");
-        }
-      })
-    }
+    Array.from(promiseExcuteComponents).forEach((component) => {
+      this.handlePromiseExcute(component);
+      if (component.inputs.length > 1) {
+        /** 如果有多输入的话，引入 _ */
+        eventInfo.importRenderReactHoc.add("_");
+      }
+    })
 
     this.codeArray.push({
-      code: `${fxOutputsConAry.length ? `import { fxWrapper } from "@mybricks/render-react-hoc";` : ""}
-        ${importVariables.size ? Array.from(importVariables).join("") : ""}
-        ${importFxs.size ? Array.from(importFxs).join("") : ""}
-        ${importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
-        ${eventInfo.importRenderReactHoc.size ? `import { ${Array.from(eventInfo.importRenderReactHoc)} } from "@mybricks/render-react-hoc";` : ""}
+      code: `${// 导入变量
+        importVariables.size ? Array.from(importVariables).join("") : ""}
+        ${// 导入fx
+          importFxs.size ? Array.from(importFxs).join("") : ""}
+        ${// 导入ui组件的事件
+          importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
+        ${// 导入各类包装器
+          eventInfo.importRenderReactHoc.size ? `import { ${Array.from(eventInfo.importRenderReactHoc)} } from "@mybricks/render-react-hoc";` : ""}
 
-        ${fxOutputsConAry.length ? `
-          type Context = {
-            ${fxOutputsConAry.map(({to}) => {
-              return `
-                /** ${to.title} */
-                ${to.id}: (value: unknown) => void;
-              `;
-            }).join("")}
-          }
-        ` : ""}
+        ${// 写入函数声明代码块
+          eventInfo.functionalDeclarationCode}
 
-        ${eventInfo.functionalDeclarationCode}
+        ${// 写入分支代码块
+          eventInfo.branchCode}
 
-        ${eventInfo.branchCode}
+        ${// 写入类型定义
+          typeDeclarationCode}
 
-        ${fxOutputsConAry.length ? `export default fxWrapper(async function (this: Context, ${params}) {
-          ${nextsCode}
-        })` : `export default async function ${functionName}(${params}) {
-          ${nextsCode}
-        }`}
+        ${// 写入事件函数代码
+          nextsCode}
       `,
       filePath: `${filePath}/index.ts`
     })
@@ -292,7 +320,7 @@ export class HandleEvents {
   }
 
   /** 生成fx卡片代码 */
-  handleFrameEvents(diagram: FrameDiagram) {
+  handleFxEvents(diagram: FrameDiagram) {
     // 这块生成应该都可以统一处理，内部可能有细微差异，目前靠类型判断写一块了
     this.handleComEvents(diagram);
   }
@@ -303,7 +331,12 @@ export class HandleEvents {
     /** 上下文入参字符串 */
     { valueCode }: { valueCode: string }  
   ): string {
-    const { nextsMap, scene, promiseExcuteComponents } = this;
+    const { nextsMap, scene, promiseExcuteComponents, handleConfig } = this;
+    const { eventType } = handleConfig;
+    /**
+     * 如果是fx类型的卡片，开分支需要添加.bind(this)
+     */
+    const bindCode = eventType === "fx" ? ".bind(this)" : "";
     const { id, coms, pinRels, pinProxies } = scene;
     if (outputs.length === 1) {
       /** 输出只有一个，直接await向下执行 */
@@ -358,7 +391,7 @@ export class HandleEvents {
                 const wrapperName = `${outputId}_${comId}`;
                 nextWrapper = nextWrapper + `${outputId}: ${wrapperName},`;
                 const nextFunctionName = `${wrapperName}_next`;
-                excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName});`;
+                excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName}${bindCode});`;
                 this.handleWrapper(nextOutputs, { functionName: nextFunctionName });
               }
             });
@@ -438,7 +471,7 @@ export class HandleEvents {
             /** 这里需要重新命名 */
             nextWrapper = nextWrapper + `${outputId}: ${wrapperName}${index === outputIdsLastIndex ? "": ","}`;
             const nextFunctionName = `${wrapperName}_next`;
-            excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName});`;
+            excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName}${bindCode});`;
             this.handleWrapper(nextOutputs[outputId], { functionName: nextFunctionName });
           })
           
@@ -528,7 +561,7 @@ export class HandleEvents {
             /** 这里需要重新命名 */
             nextWrapper = nextWrapper + `${outputId}: ${wrapperName}${index === outputIdsLastIndex ? "": ","}`;
             const nextFunctionName = `${wrapperName}_next`;
-            excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName});`;
+            excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName}${bindCode});`;
             this.handleWrapper(nextOutputs[outputId], { functionName: nextFunctionName });
           })
           
@@ -580,9 +613,14 @@ export class HandleEvents {
 
   /** 开分支 */
   handleWrapper(outputs: Outputs, { functionName }: { functionName: string }) {
-    const { eventInfo } = this;
+    const { eventInfo, handleConfig } = this;
+    const { eventType } = handleConfig;
+    /**
+     * 如果是fx类型的卡片，开分支需要添加this变量
+     */
+    const thisContext = eventType === "fx" ? "this: Context, " : "";
     eventInfo.branchCode = eventInfo.branchCode + `
-      async function ${functionName}(value: unknown) {
+      async function ${functionName}(${thisContext}value: unknown) {
         ${this.handleNexts(outputs, { valueCode: "value" })}
       }
     `;

@@ -3,24 +3,9 @@ import type { Frame, Slot, SlotStyle, ToBaseJSON, DomNode, ComponentNode, ComDia
 
 import { HandleEvents } from "./handleEvents";
 
+import { getFunctionName } from "../../utils";
+
 import type { HandleConfig, CodeArray } from "./type";
-
-export function getFunctionName({ namespace, id }: { namespace: string, id: string }) {
-  var lastIndex = namespace.lastIndexOf('.');
-
-  return convertToUnderscore(lastIndex !== -1 ? namespace.substring(lastIndex + 1) + `_${id}` : id);
-}
-
-// 字符串集合包含了大小写字母和数字
-const UUID_CHARTS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-export function uuid(length: number = 2) {
-  let id = '';
-  // 随机选取两个字符
-  for (let i = 0; i < length; i++) {
-    id += UUID_CHARTS.charAt(Math.floor(Math.random() * UUID_CHARTS.length));
-  }
-  return id;
-}
 
 interface HandleCanvasConfig extends HandleConfig {
   /** 外包装代码，目前用于智能布局对组件dom的一层包装 */
@@ -99,8 +84,7 @@ class HandleCanvas {
           const { starter } = diagram;
           const { comId } = starter;
           const component = coms[comId];
-          // const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${component.def.namespace}`});
-          const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}variable/${comId}_change`});
+          const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}variable/${comId}_change`, eventType: "var" });
           this.codeArray.push(...handleEvents.start(diagram));
           variables.push(component);
         }
@@ -109,7 +93,7 @@ class HandleCanvas {
       /** FX卡片 */
       frames.forEach((frame) => {
         const { id, diagrams } = frame;
-        const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}fx/${id}`});
+        const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}fx/${id}`, eventType: "fx" });
         /** FX卡片一定只有一个diagram，取第一个即可 */
         this.codeArray.push(...handleEvents.start(diagrams[0]));
       })
@@ -259,7 +243,7 @@ class HandleCanvas {
 
         /** 这里是区别作用域和非作用域下的组件 */
         const diagram = diagrams.find(({ starter }) => starter.type === "com" && starter.comId === id && starter.pinId === outputId) as ComDiagram;
-        const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${dirName}/events/${outputId}` });
+        const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${dirName}/events/${outputId}`, eventType: "com" });
         this.codeArray.push(...handleEvents.start(diagram));
       } else {
         /** 没有连线，空函数即可 */
