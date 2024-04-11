@@ -39,6 +39,7 @@ export default function Main({json, options, style = {}, className = '', root = 
     }
 
     if (json.type === "module") {
+      // 修复模块调试时默认白色背景问题
       slot.style.backgroundColor = slot.style.backgroundColor || "#ffffff00";
     }
 
