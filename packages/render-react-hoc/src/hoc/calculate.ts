@@ -1,18 +1,23 @@
 import { _ } from "../";
 import { createPromise, createFakePromise } from "../utils";
 
+import type { MyBricks } from "../";
+
 interface Params {
+  /** 组件数据源 */
   data: any;
-  component: any;
+  /** 组件namespace */
+  component: string;
 }
 
-/** 单输入单输出 并且 输出只有一条连线 */
+/** 单输入单输出 */
 export function jsComponentSingleOutputWrapper(
+  this: MyBricks,
   { data, component }: Params,
-  { env }: any,
 ) {
   return (value: any) => {
     return new Promise((resolve) => {
+      const { globalContext } = this;
       const outputs = new Proxy<any>(
         {},
         {
@@ -21,8 +26,9 @@ export function jsComponentSingleOutputWrapper(
           },
         },
       );
-      component({
-        env,
+      const fn = globalContext.getComponent(component);
+      fn({
+        env: globalContext.env,
         data,
         inputs: new Proxy<any>(
           {},
@@ -40,12 +46,13 @@ export function jsComponentSingleOutputWrapper(
   };
 }
 
-/** 单输入多输出 或者 单输入但是单输出有多条连线 */
+/** 单输入多输出 */
 export function jsComponentMultipleOutputsWrapper(
+  this: MyBricks,
   { data, component }: Params,
-  { env }: any,
 ) {
   return (value: any) => {
+    const { globalContext } = this;
     const promisesCollection = new Proxy<any>(
       {},
       {
@@ -58,7 +65,6 @@ export function jsComponentMultipleOutputsWrapper(
         },
       },
     );
-
     const outputs = new Proxy<any>(
       {},
       {
@@ -67,9 +73,10 @@ export function jsComponentMultipleOutputsWrapper(
         },
       },
     );
+    const fn = globalContext.getComponent(component);
 
-    component({
-      env,
+    fn({
+      env: globalContext.env,
       data,
       inputs: new Proxy<any>(
         {},
@@ -99,13 +106,15 @@ export function jsComponentMultipleOutputsWrapper(
   };
 }
 
-/** 多输入单输出 并且 输出只有一条连线 */
+/** 多输入 - 多输出（单输出也做多输出处理） */
 export function jsComponentMultipleInputsWrapper(
+  this: MyBricks,
   { data, component }: Params,
-  { env }: any,
 ) {
   /** 最终输入的数据 */
   let inputValues: undefined | Array<any>;
+  let fn: any;
+  let env: any;
 
   return (outputs: any) => {
     return (value: Array<any>) => {
@@ -148,7 +157,13 @@ export function jsComponentMultipleInputsWrapper(
           },
         );
 
-        component({
+        if (!fn || !env) {
+          const { globalContext } = this;
+          fn = globalContext.getComponent(component);
+          env = globalContext.env;
+        }
+
+        fn({
           env,
           data,
           inputs,
@@ -161,7 +176,7 @@ export function jsComponentMultipleInputsWrapper(
   };
 }
 
-/** fx卡片的包装 */
+/** fx卡片的包装 - 多输出（单输出也做多输出处理） */
 export function fxWrapper<T extends (...args: any[]) => any>(fn: T) {
   return (...params: Parameters<T>) => {
     const promisesCollection = new Proxy<any>(

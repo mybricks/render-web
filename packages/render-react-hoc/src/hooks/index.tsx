@@ -1,15 +1,14 @@
 import { useContext, createContext } from "react";
 import type { ReactNode } from "react";
 
-interface ContextValue {
-  env: any;
-}
+import type { GlobalContext } from "..";
 
-export const MyBricksRenderContext = createContext<ContextValue>({ env: {} });
+// @ts-ignore
+export const MyBricksRenderContext = createContext<GlobalContext>({});
 
 export interface MyBricksRenderProviderProps {
   children?: ReactNode;
-  value: ContextValue;
+  value: GlobalContext;
 }
 
 export function useMyBricksRenderContext() {

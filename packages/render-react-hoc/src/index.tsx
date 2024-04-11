@@ -18,9 +18,17 @@ import {
 /** 受目前组件内部具体实现影响，需要对React.createElement做劫持，实现data响应式 */
 hijackReactcreateElement();
 
+export interface GlobalContext {
+  /** 环境参数 - 注入组件 */
+  env: any;
+  /** 获取组件定义 */
+  getComponent: (namespace: string) => any;
+}
+
 /** 函数都需要通过这里转一到，工程代码中只需要传入一次env */
-class MyBricks {
-  private globalContext = {};
+export class MyBricks {
+  // @ts-ignore
+  globalContext: GlobalContext = {};
 
   get MyBricksRenderProvider() {
     return ({ children, value }: MyBricksRenderProviderProps) => {
@@ -36,15 +44,15 @@ class MyBricks {
   }
 
   jsComponentSingleOutputWrapper(params: Parameters<typeof jsCSOW>[0]) {
-    return jsCSOW(params, this.globalContext);
+    return jsCSOW.bind(this)(params);
   }
 
   jsComponentMultipleOutputsWrapper(params: Parameters<typeof jsCMOW>[0]) {
-    return jsCMOW(params, this.globalContext);
+    return jsCMOW.bind(this)(params);
   }
 
   jsComponentMultipleInputsWrapper(params: Parameters<typeof jsCMIW>[0]) {
-    return jsCMIW(params, this.globalContext);
+    return jsCMIW.bind(this)(params);
   }
 }
 

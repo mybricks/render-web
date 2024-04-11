@@ -1,5 +1,3 @@
-import { isNumber, convertToUnderscore, convertCamelToHyphen, getSlotStyle } from "@mybricks/render-utils";
-
 import type { ToBaseJSON, ComDiagram, Component, VarDiagram, Diagram, Slot, FrameDiagram, ConAry } from "@mybricks/render-types";
 
 import { getFunctionName } from "./handleCanvas";
@@ -61,12 +59,16 @@ export class HandleEvents {
     }
   } = {}
 
-  /** 需要导入的组件和运行时代码 */
+  /** 事件全局上下文信息，函数声明，分支，等 */
   private eventInfo = {
-    /** 导入的文件 */
-    import: new Set(),
+    /** 函数节点声明代码块 */
+    functionalDeclarationCode: "",
+    /** 函数节点声明map，用于判断是否已创建 */
+    functionalDeclarationCodeMap: new Map(),
     /** 分支代码块 */
-    runtime: ""
+    branchCode: "",
+    /** 需要导入的render-react-hoc包装器 */
+    importRenderReactHoc: new Set(),
   }
 
   /** 收集多输入组件，额外处理 */
@@ -139,7 +141,7 @@ export class HandleEvents {
       const { rtType, namespace } = def;
 
       /** ui组件 */
-      if (!importContext.has("sceneContext") && !rtType) {
+      if (!rtType) {
         importContext.add("sceneContext");
       }
 
@@ -241,29 +243,22 @@ export class HandleEvents {
     }
 
     const promiseExcuteComponentsArray = Array.from(promiseExcuteComponents);
-    let importCode = "";
     if (promiseExcuteComponentsArray.length) {
-      let useEmpty = false;
       promiseExcuteComponentsArray.forEach((component) => {
         this.handlePromiseExcute(component);
         if (component.inputs.length > 1) {
-          useEmpty = true;
+          /** 如果有多输入的话，引入 _ */
+          eventInfo.importRenderReactHoc.add("_");
         }
       })
-      /** 如果有多输入的话，引入 _ */
-      if (useEmpty) {
-        importCode = 'import { _ } from "@mybricks/render-react-hoc";';
-      }
     }
-
-    importCode = importCode + Array.from(eventInfo.import).join("\n");
 
     this.codeArray.push({
       code: `${fxOutputsConAry.length ? `import { fxWrapper } from "@mybricks/render-react-hoc";` : ""}
         ${importVariables.size ? Array.from(importVariables).join("") : ""}
         ${importFxs.size ? Array.from(importFxs).join("") : ""}
         ${importContext.size ? `import { ${Array.from(importContext).join(", ")} } from "@/slots/slot_${id}";` : ""}
-        ${importCode}
+        ${eventInfo.importRenderReactHoc.size ? `import { ${Array.from(eventInfo.importRenderReactHoc)} } from "@mybricks/render-react-hoc";` : ""}
 
         ${fxOutputsConAry.length ? `
           type Context = {
@@ -276,7 +271,9 @@ export class HandleEvents {
           }
         ` : ""}
 
-        ${eventInfo.runtime}
+        ${eventInfo.functionalDeclarationCode}
+
+        ${eventInfo.branchCode}
 
         ${fxOutputsConAry.length ? `export default fxWrapper(async function (this: Context, ${params}) {
           ${nextsCode}
@@ -306,7 +303,7 @@ export class HandleEvents {
     /** 上下文入参字符串 */
     { valueCode }: { valueCode: string }  
   ): string {
-    const { nextsMap, scene, eventInfo, promiseExcuteComponents } = this;
+    const { nextsMap, scene, promiseExcuteComponents } = this;
     const { id, coms, pinRels, pinProxies } = scene;
     if (outputs.length === 1) {
       /** 输出只有一个，直接await向下执行 */
@@ -456,10 +453,8 @@ export class HandleEvents {
       
 
       const nextOutputs = nextsMap[comId]
-      // const nextFunctionName = `${convertToUnderscore(component.def.namespace)}_${comId}`;
       const nextFunctionName = getFunctionName({ namespace: component.def.namespace, id: comId });
       
-      eventInfo.import.add(`import ${nextFunctionName} from "./${nextFunctionName}";`)
       /** 
        * 是否多输入
        * - 计算组件只有多输入和非多输入，不存在共存的情况
@@ -566,31 +561,27 @@ export class HandleEvents {
 
   /** 生成计算组件代码 */
   handleExcuteComponent(component: Component, { functionName, wrapper }: { functionName: string, wrapper: string }) {
-    const { handleConfig } = this;
-    this.codeArray.push({
-      code: `import globalContext from "@/globalContext";
-        import { ${wrapper} } from "@mybricks/render-react-hoc";
-
-        const component = globalContext.getComponent(
-          "${component.def.namespace}",
-        );
-
+    const { eventInfo } = this;
+    if (!eventInfo.functionalDeclarationCodeMap.has(functionName)) {
+      /** 防止重复添加 */
+      eventInfo.functionalDeclarationCodeMap.set(functionName, true);
+      eventInfo.importRenderReactHoc.add(wrapper);
+      eventInfo.functionalDeclarationCode = eventInfo.functionalDeclarationCode + `
         /** ${component.title} - ${component.id} */
-        export default function (value: unknown) {
+        function ${functionName}(value: unknown) {
           return ${wrapper}({
             data: ${JSON.stringify(component.model.data)},
-            component,
+            component: "${component.def.namespace}",
           })(value);
         }      
-      `,
-      filePath: `${handleConfig.filePath}/${functionName}.ts`,
-    })
+      `;
+    }
   }
 
   /** 开分支 */
   handleWrapper(outputs: Outputs, { functionName }: { functionName: string }) {
     const { eventInfo } = this;
-    eventInfo.runtime = eventInfo.runtime + `
+    eventInfo.branchCode = eventInfo.branchCode + `
       async function ${functionName}(value: unknown) {
         ${this.handleNexts(outputs, { valueCode: "value" })}
       }
@@ -599,8 +590,7 @@ export class HandleEvents {
 
   /** 多输入代码生成 */
   handlePromiseExcute(component: Component) {
-    const { eventInfo, scene, nextsMap } = this
-    // const functionName = `${convertToUnderscore(component.def.namespace)}_${component.id}`;
+    const { eventInfo, nextsMap } = this
     const functionName = getFunctionName({ namespace: component.def.namespace, id: component.id });
     let outputsCode: string = "";
 
@@ -614,7 +604,7 @@ export class HandleEvents {
         outputsCode = outputsCode + `${outputId}: () => {},`
       }
     })
-    eventInfo.runtime = eventInfo.runtime + `
+    eventInfo.branchCode = eventInfo.branchCode + `
       const excute_${functionName} = ${functionName}({${outputsCode}});
     `;
   }
