@@ -244,19 +244,24 @@ export class HandleEvents {
         params = params + `,{${configPins.reduce((p, c) => `${p}${c.id}: ${c.param},`, "")}} : {${configPins.reduce((p, c) => `${p}\n/** ${c.title} */\n${c.id}: unknown;`, "")}}`;
       }
 
-      if (frameOutputsConAry.length) {
-        /** 此类this上下文都用Context */
-        typeDeclarationCode = `
-          type Context = {
-            ${frameOutputsConAry.map(({to}) => {
-              return `
-                /** ${to.title} */
-                ${to.id}: (value: unknown) => void;
-              `;
-            }).join("")}
-          }
-        `
-      }
+      /** 此类this上下文都用Context */
+      typeDeclarationCode = `
+        type Context = Record<string, unknown>${frameOutputsConAry.length ? ` & {
+          ${frameOutputsConAry.map(({to}) => {
+            return `
+              /** ${to.title} */
+              ${to.id}: (value: unknown) => void;
+            `;
+          }).join("")}
+        }` : ""};
+      `
+
+
+
+      type Context = Record<string, unknown> & {
+        /** 新增输出项 */
+        u_nrHYh: (value: unknown) => void;
+      };
 
       nextsCode = `/** ${title} */
         export default fxWrapper(async function (this: Context, ${params}) {
