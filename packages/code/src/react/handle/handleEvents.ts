@@ -4,9 +4,23 @@ import { getFunctionName } from "../../utils";
 
 import type { HandleConfig, CodeArray } from "./type";
 
+export type EventType =   
+  /** 普通组件 */
+  "com" | 
+  /** 变量 */
+  "var" | 
+  /** fx */
+  "fx" | 
+  /** 页面打开 */
+  "page_frame" | 
+  /** popup 打开 */
+  "popup_frame" |
+  /** popup 各类事件 */
+  "popup_com";
+
 interface HandleEventsConfig extends HandleConfig {
   /** 事件类型 */
-  eventType: "com" | "var" | "fx" | "page_frame" | "popup_frame";
+  eventType: EventType;
 }
 
 interface Next {
@@ -24,13 +38,6 @@ interface Next {
 
 type Outputs = Array<Next>;
 
-/** 
- * 卡片类型
- *  - com ui组件事件
- *  - var 变量
- */
-type EventType = "com" | "var";
-
 /** 判断是“变量”组件 */
 function isVar(namespace?: string) {
   return namespace === "mybricks.core-comlib.var";
@@ -39,6 +46,11 @@ function isVar(namespace?: string) {
 /** 判断是“fx”组件 */
 function isFx(namespace?: string) {
   return namespace === "mybricks.core-comlib.fn";
+}
+
+/** 判断是“场景”组件 */
+function isScene(namespace?: string) {
+  return namespace === "mybricks.core-comlib.scenes";
 }
 
 /** 
@@ -116,6 +128,10 @@ export class HandleEvents {
     const importFxs = new Set<string>();
     /** 记录是否已导入fx */
     const importFxMap: {[key: string]: boolean} = {};
+    /** 导入scenes 场景状态 */
+    const importScenes = new Set<string>();
+    /** 记录是否已导入 scenes 场景状态 */
+    const importScenesMap: {[key: string]: boolean} = {};
     /** 记录frame的输出 - 例如 fx ....... 后续应该是popup场景 */
     const frameOutputsConAry: ConAry = [];
 
@@ -186,6 +202,13 @@ export class HandleEvents {
         } else {
           importFxs.add(`import fx_${fxId} from "@/slots/slot_${id}/fx/${fxId}";`)
         }
+      } else if (isScene(namespace)) {
+        /** 导入场景状态 */
+        const sceneId = component.model.data._sceneId;
+        if (!importScenesMap[sceneId]) {
+          importScenesMap[sceneId] = true;
+          importScenes.add(`import { sceneState as sceneState_${sceneId} } from "@/slots/slot_${sceneId}";`);
+        }
       }
 
       outputs.push({
@@ -203,6 +226,18 @@ export class HandleEvents {
     let nextsCode = "";
     /** 类型声明 */
     let typeDeclarationCode = "";
+
+    /** 此类this上下文都用Context，应该是全部通用的 */
+    typeDeclarationCode = `
+      type Context = Record<string, unknown>${frameOutputsConAry.length ? ` & {
+        ${frameOutputsConAry.map(({to}) => {
+          return `
+            /** ${to.title} */
+            ${to.id}: (value: unknown) => void;
+          `;
+        }).join("")}
+      }` : ""};
+    `;
 
     if (eventType === "fx") {
       /** 目前只有fx有配置项，特殊处理一下 */
@@ -242,44 +277,88 @@ export class HandleEvents {
       }
 
       /** 此类this上下文都用Context */
-      typeDeclarationCode = `
-        type Context = Record<string, unknown>${frameOutputsConAry.length ? ` & {
-          ${frameOutputsConAry.map(({to}) => {
-            return `
-              /** ${to.title} */
-              ${to.id}: (value: unknown) => void;
-            `;
-          }).join("")}
-        }` : ""};
-      `
+      // typeDeclarationCode = `
+      //   type Context = Record<string, unknown>${frameOutputsConAry.length ? ` & {
+      //     ${frameOutputsConAry.map(({to}) => {
+      //       return `
+      //         /** ${to.title} */
+      //         ${to.id}: (value: unknown) => void;
+      //       `;
+      //     }).join("")}
+      //   }` : ""};
+      // `
 
       nextsCode = `/** ${title} */
         export default fxWrapper(async function (this: Context, ${params}) {
           ${nextsCode}
         });
       `;
-    } else {
-      let outputs = [];
-
-      if (eventType === "page_frame") {
-        /** 
-         * 页面 主卡片
-         * 只有一个输入，直接取第一个
-         */
-        const { frameId, pinAry } = starter as FrameDiagram['starter'];
-        outputs = nextsMap[frameId][pinAry[0].id];
-      } else {
-        /**
-         * 组件事件卡片，正常取
-         */
-        const { comId, pinId } = starter as ComDiagram['starter'];
-        outputs = nextsMap[comId]?.[pinId];
-      }
-
+    } else if (eventType === "page_frame") {
       /** 
-       * 这里看之后是否需要优化
-       *  - 事件卡片没有内容的话，仍会创建一个空函数
+       * 页面 主卡片
+       * 只有一个输入，直接取第一个
        */
+      const { frameId, pinAry } = starter as FrameDiagram['starter'];
+      const { id, title } = pinAry[0];
+      const outputs = nextsMap[frameId][id];
+      nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
+      nextsCode = `/** ${title} */
+        export default async function (${params}) {
+          ${nextsCode}
+        }
+      `;
+    } else if (eventType === "popup_frame") {
+      /** 
+       * 页面 主卡片
+       * 只有一个输入，直接取第一个
+       */
+      const { frameId, pinAry } = starter as FrameDiagram['starter'];
+      const { id, title } = pinAry[0];
+      const outputs = nextsMap[frameId][id];
+      nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
+      /** 导入场景状态 */
+      const sceneId = frameId;
+      if (!importScenesMap[sceneId]) {
+        importScenesMap[sceneId] = true;
+        importScenes.add(`import { sceneState as sceneState_${sceneId} } from "@/slots/slot_${sceneId}";`);
+      }
+      nextsCode = `/** ${title} */
+        async function ${id}(this: Context, ${params}) {
+          ${nextsCode}
+        }
+
+        export default function (value: unknown) {
+          sceneState_${sceneId}.wrapper(${id})(value);
+        }
+      `;
+    } else if (eventType === "popup_com") {
+      /**
+       * 组件事件卡片，正常取
+       */
+      const { comId, pinId } = starter as ComDiagram['starter'];
+      const outputs = nextsMap[comId]?.[pinId];
+      nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
+      /** 导入场景状态 */
+      const sceneId = id;
+      if (!importScenesMap[sceneId]) {
+        importScenesMap[sceneId] = true;
+        importScenes.add(`import { sceneState as sceneState_${sceneId} } from "@/slots/slot_${sceneId}";`);
+      }
+      nextsCode = `/** ${title} */
+        async function ${pinId}(this: Context, ${params}) {
+          ${nextsCode}
+        }
+
+        export default function (value: unknown) {
+          sceneState_${sceneId}.wrapper(${pinId})(value);
+        }
+      `;
+    } else {
+      /**
+       * 组件事件卡片，正常取
+       */
+      const { comId, pinId } = starter as ComDiagram['starter'];
+      const outputs = nextsMap[comId]?.[pinId];
       nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
       nextsCode = `/** ${title} */
         export default async function (${params}) {
@@ -299,6 +378,8 @@ export class HandleEvents {
     this.codeArray.push({
       code: `${// 导入变量
         importVariables.size ? Array.from(importVariables).join("") : ""}
+        ${// 导入场景状态
+          importScenes.size ? Array.from(importScenes).join("") : ""}
         ${// 导入fx
           importFxs.size ? Array.from(importFxs).join("") : ""}
         ${// 导入ui组件的事件
@@ -345,7 +426,7 @@ export class HandleEvents {
     /**
      * 如果是fx类型的卡片，开分支需要添加.bind(this)
      */
-    const bindCode = eventType === "fx" ? ".bind(this)" : "";
+    const bindCode = ["popup_com", "popup_frame", "fx"].includes(eventType) ? ".bind(this)" : "";
     const { id, coms, pinRels, pinProxies } = scene;
     if (outputs.length === 1) {
       /** 输出只有一个，直接await向下执行 */
@@ -490,6 +571,38 @@ export class HandleEvents {
             ${excuteNextWrapper}
           `;
         }
+      } else if (isScene(component.def.namespace)) {
+        const nextOutputs = nextsMap[comId]
+        /** 触发的场景ID */
+        const sceneId = component.model.data._sceneId;
+
+        if (!nextOutputs) {
+          /** 执行到这里就结束了 */
+          return `sceneState_${sceneId}.open(${valueCode});`;
+        } else {
+          /** 继续向下执行 - fx目前无论单输出还是多输出都作为多输出使用 */
+          const outputIds = Object.keys(nextOutputs);
+          const outputIdsLastIndex = outputIds.length - 1;
+          /** 从多输出解构出来的包装器 */
+          let nextWrapper = "";
+          /** 执行包装器 */
+          let excuteNextWrapper = "";
+
+          outputIds.forEach((outputId, index) => {
+            const wrapperName = `${outputId}_${comId}`;
+            /** 这里需要重新命名 */
+            nextWrapper = nextWrapper + `${outputId}: ${wrapperName}${index === outputIdsLastIndex ? "": ","}`;
+            const nextFunctionName = `${wrapperName}_next`;
+            excuteNextWrapper = excuteNextWrapper + `${wrapperName}(${nextFunctionName}${bindCode});`;
+            this.handleWrapper(nextOutputs[outputId], { functionName: nextFunctionName });
+          })
+          
+          /** 多个输出 */
+          return `/** ${component.title} */
+            const { ${nextWrapper} } = sceneState_${sceneId}.open(${valueCode});
+            ${excuteNextWrapper}
+          `;
+        }
       }
 
       
@@ -627,7 +740,7 @@ export class HandleEvents {
     /**
      * 如果是fx类型的卡片，开分支需要添加this变量
      */
-    const thisContext = eventType === "fx" ? "this: Context, " : "";
+    const thisContext = ["popup_com", "popup_frame", "fx"].includes(eventType) ? "this: Context, " : "";
     eventInfo.branchCode = eventInfo.branchCode + `
       async function ${functionName}(${thisContext}value: unknown) {
         ${this.handleNexts(outputs, { valueCode: "value" })}

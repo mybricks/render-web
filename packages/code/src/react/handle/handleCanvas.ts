@@ -1,7 +1,7 @@
 import { isNumber, convertToUnderscore, convertCamelToHyphen, getSlotStyle, getComponentStyle } from "@mybricks/render-utils";
 import type { Frame, Slot, SlotStyle, ToBaseJSON, DomNode, ComponentNode, ComDiagram, Component, Diagram } from "@mybricks/render-types";
 
-import { HandleEvents } from "./handleEvents";
+import { HandleEvents, EventType } from "./handleEvents";
 
 import { getFunctionName } from "../../utils";
 
@@ -107,13 +107,21 @@ class HandleCanvas {
           const { starter } = diagram;
           const { comId } = starter;
           const component = coms[comId];
-          const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}variable/${comId}_change`, eventType: "var" });
+          const { frameId, parentComId } = component;
+          let eventType: EventType = "var";
+          if (type === "popup" && !frameId && !parentComId) {
+            /** popup场景，并且不在作用域插槽下，需要包裹一层 */
+            /** 目前var和com处理没什么区别，所以先直接使用popup_com */
+            eventType = "popup_com"
+          }
+
+          const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}variable/${comId}_change`, eventType });
           this.codeArray.push(...handleEvents.start(diagram));
           variables.push(component);
         } else if (diagram.starter.type === "frame" && diagram.starter.frameId === slot.id) {
           // TODO: 之后要看看，是不是作用域插槽也会走到这里？
           if (root) {
-            let eventType: "page_frame" | "popup_frame" = "page_frame";
+            let eventType: EventType = "page_frame";
             if (type === "popup") {
               eventType = "popup_frame";
             }
@@ -217,7 +225,7 @@ class HandleCanvas {
   handleUiComponent(component: ComponentNode, handleConfig: HandleCanvasConfig) {
     const codeArray: CodeArray = []
     const { filePath, wrapperCode, frame } = handleConfig;
-    const { id: sceneId, cons, coms, pinRels } = this.scene;
+    const { id: sceneId, cons, coms, pinRels, type } = this.scene;
     const { diagrams, coms: frameComs } = frame;
     const { id, def: { namespace }, slots } = component;
     /** 文件目录名称 - 存放组件runtime、事件、插槽 */
@@ -291,7 +299,15 @@ class HandleCanvas {
 
         /** 这里是区别作用域和非作用域下的组件 */
         const diagram = diagrams.find(({ starter }) => starter.type === "com" && starter.comId === id && starter.pinId === outputId) as ComDiagram;
-        const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${dirName}/events/${outputId}`, eventType: "com" });
+
+        let eventType: EventType = "com";
+
+        if (type === "popup" && !frameId && !parentComId) {
+          /** popup场景，并且不在作用域插槽下，需要包裹一层 */
+          eventType = "popup_com"
+        }
+
+        const handleEvents = new HandleEvents(this.scene, { filePath: `${getFilePath(filePath)}${dirName}/events/${outputId}`, eventType });
         this.codeArray.push(...handleEvents.start(diagram));
       } else {
         /** 没有连线，空函数即可 */
