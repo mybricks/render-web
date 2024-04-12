@@ -266,7 +266,9 @@ class HandleCanvas {
     const relOutputs: Array<string> = [];
     inputs.forEach((inputId) => {
       const rels = pinRels[`${id}-${inputId}`];
-      relOutputs.push(...rels);
+      if (rels) {
+        relOutputs.push(...rels);
+      }
 
       refDeconstructCode = refDeconstructCode + `${inputId},`;
       /** TODO: 这里看之后是否需要考虑到没有输出的情况？ */
