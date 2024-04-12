@@ -115,7 +115,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               style: {
                 // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
                 marginTop,
-                marginLeft,
+                /** 左距离 单个组件的话不需要设置marginLeft，直接使用flex-end放置在右侧 */
+                // marginLeft,
                 marginRight,
                 display: "flex",
                 justifyContent: "flex-end", // 全部居右，相当于单组件居右，使用 flex-end
@@ -202,6 +203,9 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   ...leftFirstElement,
                   style: {
                     ...leftFirstElement.style,
+                    // marginTop: leftFirstElement.style.top - style.top,
+                    margin: `${leftFirstElement.style.top - style.top}px ${0}px ${0}px ${0}px`,
+                    /** TODO: auto的情况下要用margin，后面整体改一下吧 */
                     width: 'auto',
                     flex: leftFlex
                   }
@@ -225,7 +229,13 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   console.log("resultLeftElement.elements 结果", resultLeftElement.elements)
                 }
               } else {
-                resultLeftElement = leftFirstElement
+                resultLeftElement = {
+                  ...leftFirstElement,
+                  style: {
+                    ...leftFirstElement.style,
+                    marginTop: leftFirstElement.style.top - style.top
+                  }
+                }
                 if (Array.isArray(resultLeftElement.elements)) {
                   resultLeftElement.elements = calculateLayoutRelationship(resultLeftElement.elements, {
                     style: resultLeftElement.style,
@@ -267,8 +277,10 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   ...rightFirstElement,
                   style: {
                     ...rightFirstElement.style,
+                    // marginTop: rightFirstElement.style.top - style.top,
+                    margin: `${rightFirstElement.style.top - style.top}px ${0}px ${0}px ${0}px`,
                     width: 'auto',
-                    flex: rightFlex
+                    flex: rightFlex,
                   }
                 }
                 if (Array.isArray(rightFirstElement.elements)) {
@@ -289,7 +301,13 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   })
                 }
               } else {
-                resultRightElement = rightFirstElement
+                resultRightElement = {
+                  ...rightFirstElement,
+                  style: {
+                    ...rightFirstElement.style,
+                    marginTop: rightFirstElement.style.top - style.top
+                  }
+                }
                 if (Array.isArray(resultRightElement.elements)) {
                   resultRightElement.elements = calculateLayoutRelationship(resultRightElement.elements, {
                     style: resultRightElement.style,

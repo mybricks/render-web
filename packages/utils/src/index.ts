@@ -239,7 +239,7 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       // 居中不需要设置fit-content 
       // 有justifyContent属性的话，不需要设置fit-content
       // 这里是domNode
-      if (style.justifyContent !== "center" && style.justifyContent !== "flex-end" && realElements.filter((element) => {
+      if (!["space-between", "center", "flex-end"].includes(style.justifyContent) && realElements.filter((element) => {
         const { id, def, style } = element
         if (def) {
           const style = coms[id].model.style
