@@ -236,8 +236,10 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
     if (Array.isArray(elements)) {
       Reflect.deleteProperty(style, 'height')
       const realElements = traverseElementsToSlotComAry(elements, coms, comIdToSlotComMap)
-      // 居中不需要设置fit-content
-      if (style.justifyContent !== "center" && realElements.filter((element) => {
+      // 居中不需要设置fit-content 
+      // 有justifyContent属性的话，不需要设置fit-content
+      // 这里是domNode
+      if (style.justifyContent !== "center" && style.justifyContent !== "flex-end" && realElements.filter((element) => {
         const { id, def, style } = element
         if (def) {
           const style = coms[id].model.style

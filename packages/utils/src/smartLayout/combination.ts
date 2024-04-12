@@ -426,8 +426,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   justifyContent: "flex-end",
                   /** 上距离 */
                   marginTop,
-                  /** 左距离 */
-                  marginLeft: style.left - left,
+                  /** 左距离 单个组件的话不需要设置marginLeft，直接使用flex-end放置在右侧 */
+                  // marginLeft: style.left - left,
                   /** 右距离 */
                   marginRight: style.right
                 },
