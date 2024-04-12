@@ -11,13 +11,14 @@ import type { Element, Elements, DefaultLayoutConfig as LayoutConfig } from './'
  * 对比元素只需要先向右，再向下对比即可
  */
 export default function combination(elements: Elements, layoutConfig: LayoutConfig) {
-  // 先处理包含和相交的关系
+  /** 处理相交关系 */
   const initElements = handleIntersectionsAndInclusions(elements)
-  // console.log(1, "最终结果: ", initElements)
+  /** 基于规则开始分组 */
   const finalElements = getCombinationElements(sortByTopLeft(initElements))
-  // console.log(2, "finalElements: ", finalElements)
-
-  return calculateLayoutData(finalElements, layoutConfig)
+  /** 计算最终的布局关系 */
+  const res = calculateLayoutRelationship(finalElements, layoutConfig);
+  // res.length && console.log("最终结果: ", res)
+  return res;
 }
 
 function findGCD(arr) {
@@ -51,178 +52,485 @@ function findGCD(arr) {
   return gcd;
 }
 
-function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
-  // console.log("开始计算 elements: ", elements.map((e) => e.id))
-  const finalElements = []
-  const { root, isNotAutoGroup } = layoutConfig
-  const { top, left, height, width, flexDirection } = layoutConfig.style
-  if (flexDirection === "column") {
-    // const elementsLastIndex = elements.length - 1
-    elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top)
-    // console.log(1, "👇👇 纵向排列，一行一个组件", elements)
-    // 纵向排列，只需要计算纵向
-    // 横向需要判断flex布局
-    let currentTop = top
-    elements.forEach((element, index) => {
-      const { id, style } = element
-      const marginTop = style.top - currentTop
-      const marginRight = width - (style.left - left) - style.width
-      // const isLastElement = elementsLastIndex === index
-      // 只有纵向排列的才需要计算marginBottom来实现距底功能
-      let marginBottom = 0
-      // if (isLastElement && !root) {
-      //   marginBottom = height - style.height - style.top
-      // }
+function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutConfig) {
+  /** 最终计算后的结果 */
+  const finalElements: any[] = [];
+  const {
+    /** 子元素排列方向 */
+    flexDirection,
+    /** 父元素距顶距离 */
+    top,
+    /** 父元素距左距离 */
+    left,
+    /** 父元素宽度 */
+    width,
+    /** 父元素非自动成组标识 */
+    isNotAutoGroup,
+  } = layoutConfig.style;
 
-      if (!style.widthFull) {
-        // console.log(1, 1, "没有铺满")
-        // TODO: constraints，目前这个属性还有问题，
-        /**
-         * 居中计算的 误差范围为-1 -> 1
-         * 不是自动成组的才可以计算居中关系
-         */
-        if (Math.abs(style.left - left - marginRight) <= 1 && isNotAutoGroup && !style.flexDirection) { // || style.constraints?.find((constraint) => constraint.type === 'center' && constraint.ref.type === 'slot')
-          // console.log(1, 1, "居中")
-          // 有居中的话，需要多套一层
-          if (style.flexDirection) {
-            // console.log(1, 1, 1, "成组")
-            // 说明是成组了
+  if (flexDirection === "column") {
+    /** 纵向排列 - 向下 */
+
+    /** 当前元素距上边距离，用于计算子元素的外间距marginTop */
+    let currentTop = top;
+
+    /** 
+     * 将元素从上至下排序
+     * 遍历
+     */
+    elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top).forEach((element) => {
+      /** 递归计算element.elements */
+      if (element.elements) {
+        /** 有elements，一定是成组的 */
+        const { style, elements } = element;
+        const rightIndex = elements.findIndex((element) => typeof element.style.right === "number");
+
+        if (rightIndex !== -1) {
+          /** 居左的元素 */
+          const leftElements = elements.slice(0, rightIndex);
+          /** 居右的元素 */
+          const rightElements = elements.slice(rightIndex);
+
+          /** 当前元素上外间距 */
+          const marginTop = style.top - currentTop;
+          /** 当前元素左外间距 */
+          const marginLeft = style.left - left;
+          /** 最后一个元素 */
+          const nextElementStyle = rightElements[rightElements.length - 1].style;
+          const marginRight = width - (nextElementStyle.left - left) - nextElementStyle.width;
+
+          if (!leftElements[0]) {
+            /** 整行都是居右的 */
             finalElements.push({
-              id,
-              elements: element.elements,
+              id: elements[0].id,
+              elements: calculateLayoutRelationship(element.elements.map((element) => {
+                /** TODO: 居右的情况下，是不是子元素都采用marginRight? */
+                Reflect.deleteProperty(element.style, "right")
+                return element
+              }), {
+                // @ts-ignore
+                style: element.style,
+                root: true
+              }),
               style: {
+                // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
                 marginTop,
-                marginBottom,
+                marginLeft,
+                marginRight,
                 display: "flex",
+                justifyContent: "flex-end", // 全部居右，相当于单组件居右，使用 flex-end
                 flexDirection: style.flexDirection,
-                justifyContent: 'center'
+                flexWrap: "wrap", // 小屏换行？
               }
             })
           } else {
-            // console.log(1, 1, 2, "单组件")
-            // 单个组件
+            /** 左侧第一个元素 */
+            const leftFirstElement = leftElements[0];
+            /** 左侧最后一个元素 */
+            const leftLastElement = leftElements[leftElements.length -1];
+            /** 右侧第一个元素 */
+            const rightFirstElement = rightElements[0];
+            /** 右侧最后一个元素 */
+            const rightLastElement = rightElements[rightElements.length -1];
+
+
+            /** 左侧是否有填充组件 */
+            let hasLeftWidthFull = false;
+            /** 左侧填充比例 */
+            let leftFlex;
+            /** 左边元素总宽度 */
+            let leftWidth = leftElements.reduce((p, c, index) => {
+              if (c.style.widthFull) {
+                hasLeftWidthFull = true;
+              }
+              /** 第一项不需要计算 left  */
+              return p + (index ? (c.style.left + c.style.width) : c.style.width);
+            }, 0);
+            /** 右侧是否有填充组件 */
+            let hasRightWidthFull = false;
+            /** 右侧填充比例 */
+            let rightFlex;
+            /** 右边元素总宽度 */
+            let rightWidth = rightElements.reduce((p, c, index) => {
+              if (c.style.widthFull) {
+                hasRightWidthFull = true;
+              }
+              /** 第一项不需要计算 left  */
+              return p + (index ? (c.style.left + c.style.width) : c.style.width);
+            }, 0)
+
+
+            if (hasLeftWidthFull && !hasRightWidthFull) {
+              /** 左填充 右不填充 */
+              leftFlex = 1;
+            } else if (!hasLeftWidthFull && hasRightWidthFull) {
+              /** 左不填充 右填充 */
+              rightFlex = 1;
+            } else if (hasLeftWidthFull && hasRightWidthFull) {
+              /** 两边都填充 */
+              const gcd = findGCD([leftWidth, rightWidth])
+              leftFlex = leftWidth / gcd;
+              rightFlex = rightWidth / gcd;
+
+              /** 下面两个属性，需要再观察下，后续这类样式设置需要写明原因或遇到的问题 */
+              // style.overflow = 'hidden'
+              // style.minWidth = '0px'
+            }
+
+            /** 最终左侧的元素 */
+            let resultLeftElement;
+            /** 最终右侧的元素 */
+            let resultRightElement;
+
+            /** 父容器样式 */
+            const parentStyle: any = {
+              margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
+              display: "flex",
+              justifyContent: "space-between", // 居右的情况下，使用space-between
+              flexDirection: style.flexDirection,
+              flexWrap: "wrap", // 小屏换行？
+            };
+            if (hasLeftWidthFull || hasRightWidthFull) {
+              /** 任意一边有宽度填充的话，需要设置横向间距 */
+              parentStyle.columnGap = rightFirstElement.style.left - (leftLastElement.style.left + leftLastElement.style.width);
+            }
+
+            if (leftElements.length < 2) {
+              /** 只有一个元素 */
+              if (leftFirstElement.style.widthFull) {
+                resultLeftElement = {
+                  ...leftFirstElement,
+                  style: {
+                    ...leftFirstElement.style,
+                    width: 'auto',
+                    flex: leftFlex
+                  }
+                }
+                if (Array.isArray(leftFirstElement.elements)) {
+                  resultLeftElement.style.display = "flex";
+                  resultLeftElement.style.flexDirection = resultLeftElement.style.flexDirection;
+                  resultLeftElement.elements = calculateLayoutRelationship(resultLeftElement.elements, {
+                    // @ts-ignore
+                    style: {// TODO 看看还缺什么，明天继续吧
+                      top: style.top, // 这个应该用父元素的top值
+                      left: resultLeftElement.style.left,
+                      width: leftWidth,
+                      height: style.height,
+                      flexDirection: resultLeftElement.style.flexDirection,
+                      // @ts-ignore
+                      widthFull: hasLeftWidthFull,
+                    },
+                    root: true
+                  })
+                  console.log("resultLeftElement.elements 结果", resultLeftElement.elements)
+                }
+              } else {
+                resultLeftElement = leftFirstElement
+                if (Array.isArray(resultLeftElement.elements)) {
+                  resultLeftElement.elements = calculateLayoutRelationship(resultLeftElement.elements, {
+                    style: resultLeftElement.style,
+                    root: true
+                  })
+                }
+              }
+            } else {
+              /** 多个元素 */
+              resultLeftElement = {
+                id: leftFirstElement.id,
+                style: {
+                  /** 这里生成的是最终的样式，不再参与计算 */
+                  // @ts-ignore
+                  display: "flex",
+                  flexDirection: style.flexDirection,
+                  flex: leftFlex
+                },
+                elements: calculateLayoutRelationship(leftElements, { // TODO: 这里等会看看 应该要删除right属性的，在计算后
+                  // @ts-ignore
+                  style: {// TODO 看看还缺什么，明天继续吧
+                    top: style.top, // 这个应该用父元素的top值
+                    left: leftFirstElement.style.left,
+                    width: leftWidth,
+                    height: style.height,
+                    flexDirection: style.flexDirection,
+                    // @ts-ignore
+                    widthFull: hasLeftWidthFull,
+                  },
+                  root: true
+                })
+              }
+            }
+
+            if (rightElements.length < 2) {
+              /** 只有一个元素 */
+              if (rightFirstElement.style.widthFull) {
+                resultRightElement = {
+                  ...rightFirstElement,
+                  style: {
+                    ...rightFirstElement.style,
+                    width: 'auto',
+                    flex: rightFlex
+                  }
+                }
+                if (Array.isArray(rightFirstElement.elements)) {
+                  resultRightElement.style.display = "flex";
+                  resultRightElement.style.flexDirection = resultRightElement.style.flexDirection;
+                  resultRightElement.elements = calculateLayoutRelationship(resultRightElement.elements, {
+                    // @ts-ignore
+                    style: {// TODO 看看还缺什么，明天继续吧
+                      top: style.top, // 这个应该用父元素的top值
+                      left: resultRightElement.style.left,
+                      width: rightWidth,
+                      height: style.height,
+                      flexDirection: resultRightElement.style.flexDirection,
+                      // @ts-ignore
+                      widthFull: hasRightWidthFull,
+                    },
+                    root: true
+                  })
+                }
+              } else {
+                resultRightElement = rightFirstElement
+                if (Array.isArray(resultRightElement.elements)) {
+                  resultRightElement.elements = calculateLayoutRelationship(resultRightElement.elements, {
+                    style: resultRightElement.style,
+                    root: true
+                  })
+                }
+              }
+            } else {
+              /** 多个元素 */
+              resultRightElement = {
+                id: rightFirstElement.id,
+                style: {
+                  /** 这里生成的是最终的样式，不再参与计算 */
+                  // @ts-ignore
+                  display: "flex",
+                  flexDirection: style.flexDirection,
+                  flex: rightFlex
+                },
+                elements: calculateLayoutRelationship(rightElements, { // TODO: 这里等会看看 应该要删除right属性的，在计算后
+                  // @ts-ignore
+                  style: {// TODO 看看还缺什么，明天继续吧
+                    top: style.top, // 这个应该用父元素的top值
+                    left: rightFirstElement.style.left,
+                    width: rightWidth,
+                    height: style.height,
+                    flexDirection: style.flexDirection,
+                    // @ts-ignore
+                    widthFull: hasRightWidthFull,
+                  },
+                  root: true
+                })
+              }
+            }
+
+            element.elements = [resultLeftElement, resultRightElement];
+
+            finalElements.push({
+              id: elements[0].id,
+              elements: element.elements,
+              style: parentStyle
+            })
+          }
+          return
+        } else {
+          element.elements = calculateLayoutRelationship(element.elements, {
+            // @ts-ignore
+            style: element.style,
+            root: true
+          })
+        }
+      }
+
+      const { id, style } = element;
+      /** 当前元素上外间距 */
+      const marginTop = style.top - currentTop;
+      /** 当前元素右外间距 */
+      const marginRight = width - (style.left - left) - style.width;
+
+      if (!style.widthFull) {
+        /** 当前元素未铺满 */
+        if (
+          /** 当前元素左侧距容器间距与右侧距容器间距相同时 */
+          Math.abs(style.left - left - marginRight) <= 1 && 
+          /** 非自动成组 - 搭建时手动框选成组 */
+          isNotAutoGroup && 
+          /** 没有flexDirection说明是单个组件 */
+          !style.flexDirection
+        ) {
+          /** 居中 */
+          if (style.flexDirection) {
+            /** 成组 - 非单组件 */
+            finalElements.push({
+              id,
+              elements: element.elements, // TODO: 是不是要继续计算？
+              style: {
+                marginTop,
+                display: "flex",
+                justifyContent: "center",
+                flexDirection: style.flexDirection,
+              }
+            })
+          } else {
+            /** 
+             * 未成组 - 单组件 
+             * 由于居中，要多套一层div
+             */
             finalElements.push({
               id,
               elements: [{
                 id,
                 style: {
+                  /** 记录当前元素宽高，可能还要继续计算的 */
                   width: style.width,
                   height: style.height,
-                  // 临时
-                  // backgroundColor: style.backgroundColor
                 },
-                brother: element.brother
-  
+                brother: element.brother // 单组件才有相交节点，分组生成的不会有
               }],
               style: {
                 marginTop,
-                marginBottom,
                 display: "flex",
                 justifyContent: 'center',
               },
             })
           }
         } else {
-          // console.log(1, 2, "不居中")
-          // 不居中，不用多套一层，正常设置marginLeft即可
+          /** 不居中 */
           if (style.flexDirection) {
-            // console.log(1, 2, 1, "成组")
-            // 说明是成组了
+            /** 成组 - 非单组件 */
             finalElements.push({
               id,
               elements: element.elements,
               style: {
                 marginTop,
-                marginBottom,
-                marginLeft: style.left - left,
+                marginLeft: style.left - left, // 不居中要设置左边距
                 display: "flex",
                 flexDirection: style.flexDirection,
-                // 临时
-                // backgroundColor: style.backgroundColor
               }
             })
           } else {
-            // console.log(1, 2, 2, "单组件")
-            // 单个组件
-            finalElements.push({
-              id,
-              style: {
-                width: style.width,
-                height: style.height,
-                marginTop,
-                marginBottom,
-                marginLeft: style.left - left,
-                // 临时
-                // backgroundColor: style.backgroundColor
-              },
-              brother: element.brother
-            })
+            /** 
+             * 未成组 - 单组件 
+             * 不居中，计算间距即可
+             */
+            if (style.right) {
+              /**
+               * 单组件居右
+               * 外面再套一层div
+               */
+              finalElements.push({
+                id,
+                style: {
+                  // 容器样式
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  /** 上距离 */
+                  marginTop,
+                  /** 左距离 */
+                  marginLeft: style.left - left,
+                  /** 右距离 */
+                  marginRight: style.right
+                },
+                elements: [{
+                  id,
+                  style: {
+                    // 组件样式
+                    width: style.width,
+                    height: style.height,
+                  },
+                  brother: element.brother // 单组件才有相交节点，分组生成的不会有
+                }]
+              })
+            } else {
+              /**
+               * 单组件非居右
+               * 正常计算
+              */
+              finalElements.push({
+                id,
+                style: {
+                  width: style.width,
+                  height: style.height,
+                  marginTop,
+                  marginLeft: style.left - left, // 不居中要设置左边距
+                },
+                brother: element.brother // 单组件才有相交节点，分组生成的不会有
+              })
+            }
           }
         }
       } else {
-        // console.log(1, 2, "有铺满")
-        const marginLeft = style.left - left
+        /** 当前元素铺满 */
+        /** 当前元素左间距 */
+        const marginLeft = style.left - left;
+
         if (style.flexDirection) {
-          // console.log(11111, 2, "成组", element)
+          /** 成组 - 非单组件 */
           finalElements.push({
             id,
             style: {
+              /** 铺满，即画布拉宽，组件也变宽 */
               width: 'auto',
-              // TODO，是否需要设置最小width？
-              // height: style.height,
-              margin: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px`,
+              margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
               display: 'flex',
               flexDirection: style.flexDirection,
-              // 临时
-              // backgroundColor: style.backgroundColor
             },
             elements: element.elements
           })
         } else {
-          // console.log(1, 3, "单组件")
-          
+          /** 未成组 - 单组件 */
           finalElements.push({
             id,
             style: {
+              /** 铺满，即画布拉宽，组件也变宽 */
               width: 'auto',
-              // TODO，是否需要设置最小width？
               height: style.height,
-              margin: `${marginTop}px ${marginRight}px ${marginBottom}px ${marginLeft}px`,
-              // 临时
-              // backgroundColor: style.backgroundColor
+              margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
             },
-            brother: element.brother
+            brother: element.brother // 单组件才有相交节点，分组生成的不会有
           })
         }
       }
 
-
-
-      currentTop = currentTop + marginTop + style.height
-    })
+      /** 设置当前元素距上边距离，用于计算下一个元素的上外间距 */
+      currentTop = currentTop + marginTop + style.height;
+    });
   } else {
-    elements.sort((preElement, curElement) => preElement.style.left - curElement.style.left)
-    // 设置了宽度百分百的宽度数组
-    const flexXWidths = []
-    // 上述数组的index对应com的style
-    const flexXIndexToStyleMap = {}
-    // 设置宽度百分百的com的总宽度
-    let flexXSumWidth = 0
+    /** 横向排列 - 向右 */
+   
+    /** 收集 设置 widthFull 的元素具体宽度，计算 flex 比例 */
+    const flexXWidths: number[] = [];
+    /** 上述数组的index对应的元素位置 elements[index] */
+    const flexXIndexToStyleMap = {};
+    /** 设置 widthFull 的元素具体宽度合 */
+    let flexXSumWidth = 0;
+    /** 当前元素元素距左边距离，用于计算子元素的外间距marginLeft */
+    let currentLeft = left;
 
+    /** 
+     * 将元素从左至右排序
+     * 遍历
+     */
+    elements.sort((preElement, curElement) => preElement.style.left - curElement.style.left).forEach((element, index) => {
+      const { id, style } = element;
 
-    // console.log(2, "👉👉 横向排列，一行多个组件", elements)
-    // 横向排列，只需要计算横向
-    let currentLeft = left
+      if (element.elements) {
+        element.elements = calculateLayoutRelationship(element.elements, {
+          // @ts-ignore
+          style,
+          root: true
+        })
+      }
 
-    elements.forEach((element, index) => {
-      const { id, style } = element
-      const marginLeft = style.left - currentLeft
-      const marginTop = style.top - top
+      /** 当前元素左外间距 */
+      const marginLeft = style.left - currentLeft;
+      /** 当前元素上外间距 */
+      const marginTop = style.top - top;
 
       if (!style.widthFull) {
-        // console.log(11)
+        /** 当前元素未铺满 */
         if (style.flexDirection) {
-          // console.log(2, 1, "成组")
+          /** 成组 - 非单组件 */
           finalElements.push({
             id,
             style: {
@@ -234,7 +542,7 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
             elements: element.elements,
           })
         } else {
-          // console.log(2, 2, "单个组件", element)
+          /** 未成组 - 单组件 */
           finalElements.push({
             id: element.id,
             style: {
@@ -242,52 +550,48 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
               height: style.height,
               marginTop,
               marginLeft,
-              // 临时
-              // backgroundColor: style.backgroundColor
             },
-            brother: element.brother
+            brother: element.brother // 单组件才有相交节点，分组生成的不会有
           })
         }
       } else {
-        // console.log(22)
+        /** 当前元素铺满 */
+
+        /** push元素具体宽度 */
         flexXWidths.push(style.width)
-        flexXSumWidth = flexXSumWidth + style.width
-        flexXIndexToStyleMap[flexXWidths.length - 1] = index
-  
+        /** 计算总宽度 */
+        flexXSumWidth = flexXSumWidth + style.width;
+        /** 记录元素位置 */
+        flexXIndexToStyleMap[flexXWidths.length - 1] = index;
+
         if (style.flexDirection) {
-          // console.log(33, element, "横向铺满 成组")
-          // debugger
+          /** 成组 - 非单组件 */
           finalElements.push({
             id,
             style: {
               display: 'flex',
               flexDirection: style.flexDirection,
-              // height: style.height,
               margin: `${marginTop}px 0px 0px ${marginLeft}px`,
             },
             elements: element.elements
           })
         } else {
-          // console.log(44, element, "横向铺满 单组件")
+          /** 未成组 - 单组件 */
           finalElements.push({
             id,
             style: {
-              // width: 'auto',
-              // flexX: 1,
-              // width: style.width,
-              // TODO，是否需要设置最小width？
+              /** 不需要宽度，最终会设置flex属性 */
               height: style.height,
               margin: `${marginTop}px 0px 0px ${marginLeft}px`,
-              // 临时
-              // backgroundColor: style.backgroundColor
             },
-            brother: element.brother
+            brother: element.brother // 单组件才有相交节点，分组生成的不会有
           })
         }
       }
-      currentLeft = currentLeft + marginLeft + element.style.width
-    })
 
+      /** 设置当前元素距左边距离，用于计算下一个元素的左外间距 */
+      currentLeft = currentLeft + marginLeft + style.width
+    })
 
     if (flexXWidths.length) {
       // 横向可能存在多个铺满组件，需要计算flex值
@@ -295,51 +599,31 @@ function calculateLayoutData(elements: Elements, layoutConfig: LayoutConfig) {
       flexXWidths.forEach((width, index) => {
         const style = finalElements[flexXIndexToStyleMap[index]].style
         style.flex = width / gcd
+        /** 下面两个属性，需要再观察下，后续这类样式设置需要写明原因或遇到的问题 */
         style.overflow = 'hidden'
         style.minWidth = '0px'
       })
     }
   }
 
-  // console.log("计算结果: ", finalElements.map((element, index) => {
-  //   return {
-  //     ...element,
-  //     tempStyle: elements[index].style
-  //   }
-  // }))
-
-  return finalElements.map((element, index) => {
-    return {
-      ...element,
-      tempStyle: elements[index].style
-    }
-  })
+  return finalElements;
 }
 
 /**
- * 获取分组结果
+ * 基于规则的分组
  */
 function getCombinationElements(elements: Elements) {
-  // 计算元素的相邻关系
   const elementIdToAdjacency = getElementAdjacency(elements)
-  // console.log("elements: ", elements.map(e => e.id))
-  // console.log("elementIdToAdjacency: ", elementIdToAdjacency)
-
+  /** 通过元素ID查询当前位置信息 */
+  const elementIdToPosition = {}
   // 拆分结果
   let combinationElements = []
-  // 通过元素ID查询当前位置信息
-  const elementIdToPosition = {}
-
+  
   elements.forEach((element) => {
     const elementID = element.id
     const elementAdjacency = elementIdToAdjacency[elementID]
     const {
-      // top,
-      // right,
-      // bottom,
-      // left,
       min,
-      // spaceSort,
       single
     } = elementAdjacency
 
@@ -391,13 +675,6 @@ function getCombinationElements(elements: Elements) {
     }
   })
 
-  // console.log("🔥 分组结果: ", combinationElements.map((e) => {
-  //   if (Array.isArray(e)) {
-  //     return e.map((e) => e.id)
-  //   }
-  //   return e?.id
-  // }))
-
   if (elements.length !== combinationElements.length) {
     return getCombinationElements(sortByTopLeft(convertedToElements(combinationElements)))
   }
@@ -407,6 +684,7 @@ function getCombinationElements(elements: Elements) {
 
 /**
  * 将分组元素数组转换为新的元素
+ * 这里其实就是合并相同方向的元素
  */
 function convertedToElements(elements: Array<Element | Elements>) {
   const convertedElements = []
@@ -421,25 +699,33 @@ function convertedToElements(elements: Array<Element | Elements>) {
       const flexDirection = height >= element0.style.height + element1.style.height ? "column" : "row"
       const element0FlexDirection = element0.style.flexDirection
       const element1FlexDirection = element1.style.flexDirection
-      // console.log(1, "当前方向: ", flexDirection)
-      // console.log(2, "ele0方向: ", element0FlexDirection, element0)
-      // console.log(3, "ele1方向: ", element1FlexDirection, element1)
-      // console.log(4, "是否合并: ", !!((element0FlexDirection || element1FlexDirection) && (element1FlexDirection === flexDirection)) )
-      // console.log(5, "当前计算的内容: ", (element0FlexDirection || element1FlexDirection) && element1FlexDirection === flexDirection ? [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style})) : element)
-
       let calculateElements = element
+
       if (!element0FlexDirection && !element1FlexDirection) {
 
       } else {
+        /** 合并相同方向的元素 */
+        // if (element0FlexDirection === flexDirection) {
+        //   calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
+        // } else if (element1FlexDirection === flexDirection) {
+        //   calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+        // }
         if (element0FlexDirection === flexDirection) {
-          calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
+          if (element0FlexDirection === element1FlexDirection) {
+            calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])].map((element) => ({...element, style: element.tempStyle || element.style}))
+          } else {
+            calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
+          }
         } else if (element1FlexDirection === flexDirection) {
-          calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+          if (element1FlexDirection === element0FlexDirection) {
+            calculateElements = [...(element0.elements ? element0.elements : [element0]), ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+          } else {
+            calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+          }
         }
       }
       
       convertedElements.push({
-        // 临时
         id: element0.id,
         style: {
           top,
@@ -447,9 +733,11 @@ function convertedToElements(elements: Array<Element | Elements>) {
           width,
           height,
           flexDirection,
-          widthFull: element.find((element) => element.style.widthFull) ? 1 : null
+          widthFull: element.find((element) => element.style.widthFull) ? 1 : null,
+          isNotAutoGroup: false
         },
-        elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true, isNotAutoGroup: false })
+        // elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true, isNotAutoGroup: false })
+        elements: calculateElements
       })
     } else {
       // 直接push
@@ -461,9 +749,9 @@ function convertedToElements(elements: Array<Element | Elements>) {
 }
 
 /**
+ * 处理相交关系
  * TODO:
- * 处理包含和相交关系
- * 
+ * 实现较临时，改天重构下
  *  - 只有相交
  */
 function handleIntersectionsAndInclusions(elements: Elements) {
@@ -751,7 +1039,7 @@ export function getElementAdjacency(elements: Elements) {
 }
 
 /**
- * 右侧是否相交
+ * 右侧投影是否相交
  */
 function checkRightIntersects(elements: Elements, element: Element) {
   const length = elements.length
@@ -785,7 +1073,7 @@ function checkRightIntersects(elements: Elements, element: Element) {
 }
 
  /**
- * 下侧是否相交
+ * 下侧投影是否相交
  */
 function checkBottomIntersects(elements: Elements, element: Element) {
   const length = elements.length
@@ -820,7 +1108,7 @@ function checkBottomIntersects(elements: Elements, element: Element) {
 }
 
 /**
- * 上侧是否相交
+ * 上侧投影是否相交
  */
 function checkTopIntersects(elements: Elements, element: Element) {
   const length = elements.length
@@ -855,7 +1143,7 @@ function checkTopIntersects(elements: Elements, element: Element) {
 }
 
 /**
- * 左侧是否相交
+ * 左侧投影是否相交
  */
 function checkLeftIntersects(elements: Elements, element: Element) {
   const length = elements.length
@@ -890,7 +1178,7 @@ function checkLeftIntersects(elements: Elements, element: Element) {
 }
 
 /**
- * 从上至下，从左至右排序
+ * 对元素拍素，从上至下，从左至右
  */
 function sortByTopLeft(elements: Elements) {
   return elements.sort((pre, cur) => {

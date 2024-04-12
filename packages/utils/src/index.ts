@@ -147,8 +147,8 @@ function transformSlotComAry(slot, coms, root = true, com?) {
           height: calculateStyle.height,
           top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : (style.top || 0),
           left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
-          // right: style.right,
-          // bottom: style.bottom,
+          right: style.right,
+          bottom: style.bottom,
           widthFull: style.widthFull,
           widthAuto: style.widthAuto,
           heightAuto: style.heightAuto,
@@ -156,7 +156,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         },
       }
 
-    }), { style: { width: slot.style.width, height: slot.style.height }, root, isNotAutoGroup: true })
+    }), { style: { width: slot.style.width, height: slot.style.height, isNotAutoGroup: true }, root })
 
     if (com) {
       /** 删除插槽样式里的宽高属性 */

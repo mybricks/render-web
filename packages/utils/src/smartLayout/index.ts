@@ -78,6 +78,11 @@ export interface Element {
      * 临时测试用
      */
     backgroundColor?: string;
+    /**
+     * 不是自动成组的 - 插槽内的 true
+     * 自动成组 - 计算获得的 false
+     */
+    isNotAutoGroup?: boolean;
   };
   /**
    * 子组件，如果组件被分为一组
@@ -93,6 +98,7 @@ export type Elements = Element[]
 interface LayoutStyle {
   width: number;
   height: number;
+  isNotAutoGroup: boolean;
 }
 
 interface LayoutConfig {
@@ -107,13 +113,14 @@ interface LayoutConfig {
    * TODO: 再来个字段，判断是否可以计算居中关系
    * 代表不是自动成组的，自动成组的元素内部不再自动计算居中关系
    */
-  isNotAutoGroup: boolean;
+  // isNotAutoGroup: boolean;
 }
 
 interface DefaultLayoutStyle extends LayoutStyle {
   flexDirection: "row" | "column"
   top: number
   left: number
+  // isNotAutoGroup: boolean;
 }
 
 export interface DefaultLayoutConfig extends LayoutConfig {
@@ -131,8 +138,7 @@ export default function smartLayout(elements: Array<Element>, layoutConfig: Layo
         left: 0,
         flexDirection: "column" // 页面默认是纵向排列
       },
-      root: layoutConfig.root,
-      isNotAutoGroup: layoutConfig.isNotAutoGroup
+      root: layoutConfig.root
     }
   )
 }
