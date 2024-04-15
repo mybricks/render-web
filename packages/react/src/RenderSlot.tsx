@@ -16,7 +16,7 @@ import ErrorBoundary from "./ErrorBoundary";
 
 const css = lazyCss.locals
 
-function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}) {
+function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options}) {
 
   const { id, elements, style } = com
 
@@ -27,12 +27,12 @@ function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inpu
         style={style}
       >
         {elements.map((com: any) => {
-          return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
+          return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
       </div>
     )
   } else {
-    const jsx: any = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal })
+    const jsx: any = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal, options })
 
     return jsx?.jsx
   }
@@ -58,7 +58,8 @@ export default function RenderSlot({
                                      getComDef,
                                      context,
                                      onError,
-                                     logger
+                                     logger,
+                                     options
                                    }) {
   const {style, comAry, layoutTemplate} = slot
 
@@ -69,7 +70,7 @@ export default function RenderSlot({
     return (
       <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle, overflowY: 'auto'}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
-          return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
+          return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
       </div>
     )
@@ -77,7 +78,7 @@ export default function RenderSlot({
 
   const itemAry = []
   comAry.forEach((com, idx) => {//组件逐个渲染
-    const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: idx, _env, template, onError, logger, createPortal })
+    const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: idx, _env, template, onError, logger, createPortal, options })
     if (jsx) {
       itemAry.push(jsx)
     }
@@ -98,7 +99,7 @@ export default function RenderSlot({
   }
 }
 
-function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal }) {
+function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options }) {
   const {id, def, name, children, brother} = com
   const comInfo = context.getComInfo(id)
   const { hasPermission, permissions: envPermissions } = env
@@ -149,7 +150,8 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                         template={template}
                         onError={onError}
                         logger={logger}
-                        createPortal={createPortal}>
+                        createPortal={createPortal}
+                        options={options}>
                           {brother?.map((brother, index) => {
                             return renderRstTraverseCom2({com: brother, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
                           })}
@@ -190,7 +192,8 @@ function RenderCom({
                      context,
                      onError,
                      logger,
-                     children
+                     children,
+                     options
                    }) {
   const {id, def, name, slots = {}}: Com = com
   const {
@@ -298,7 +301,7 @@ function RenderCom({
                                onError={onError}
                                createPortal={createPortal}
                                parentComId={id}
-                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context}/>
+                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context} options={options}/>
           } else {
             return (
               <div className={css.error}>
@@ -410,7 +413,7 @@ function RenderCom({
       ...marginStyle,
       ...(style.ext || {})
     }} className={classes}>
-      <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}>
+      <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`} options={options}>
         {jsx}
         {/* TODO */}
         {/* <div style={{position: 'absolute', top: 0, left: 0}}>
@@ -441,7 +444,8 @@ function SlotRender ({
   getComDef,
   context,
   onError,
-  logger
+  logger,
+  options
 }) {
   const preInputValues = useRef(null)
   const { curScope, curProps } = useMemo(() => {
@@ -520,6 +524,7 @@ function SlotRender ({
         _outputs={params?._outputs}
         onError={onError}
         logger={logger}
+        options={options}
       />
     )
   }, [])

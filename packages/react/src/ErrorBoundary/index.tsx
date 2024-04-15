@@ -22,7 +22,7 @@ export default class ErrorBoundary extends React.PureComponent<Props> {
   }
 
   componentDidCatch(error, errorInfo) {
-    console.error(error, errorInfo);
+    this.props.options?.errorHandler?.(error, errorInfo);
     Notification.error(error);
     this.setState({
       error: error?.stack || error?.message || error?.toString?.(),

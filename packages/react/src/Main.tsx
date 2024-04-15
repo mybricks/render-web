@@ -115,7 +115,7 @@ export default function Main({json, options, style = {}, className = '', root = 
   }, [])
 
   return (
-    <ErrorBoundary errorTip={`页面渲染错误`}>
+    <ErrorBoundary errorTip={`页面渲染错误`} options={options}>
       <RenderSlot
         env={env}
         style={style}
@@ -128,6 +128,7 @@ export default function Main({json, options, style = {}, className = '', root = 
         onError={onError}
         logger={logger}
         root={root}
+        options={options}
       />
     </ErrorBoundary>
   )
