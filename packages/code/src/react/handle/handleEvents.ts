@@ -300,7 +300,7 @@ export class HandleEvents {
        */
       const { frameId, pinAry } = starter as FrameDiagram['starter'];
       const { id, title } = pinAry[0];
-      const outputs = nextsMap[frameId][id];
+      const outputs = nextsMap[frameId]?.[id];
       nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
       nextsCode = `/** ${title} */
         export default async function (${params}) {
@@ -314,7 +314,7 @@ export class HandleEvents {
        */
       const { frameId, pinAry } = starter as FrameDiagram['starter'];
       const { id, title } = pinAry[0];
-      const outputs = nextsMap[frameId][id];
+      const outputs = nextsMap[frameId]?.[id];
       nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
       /** 导入场景状态 */
       const sceneId = frameId;
