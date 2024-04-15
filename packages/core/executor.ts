@@ -283,6 +283,14 @@ export default function executor(opts, {observable}) {
         if (fromCon.finishPinParentKey !== inReg.startPinParentKey) {//same scope,rels///TODO
           return
         }
+      } else {
+        /** 
+         * 这里用于判断组件中relOutputs和outputs同ID的情况
+         * 如果没有fromCon，一定不是被触发，所以也不存在startPinParentKey
+         */
+        if (inReg.startPinParentKey) {
+          return
+        }
       }
 
       if (!_isNestedRender && debug && inReg.isIgnored) {
@@ -1105,6 +1113,8 @@ export default function executor(opts, {observable}) {
                   if (Object.prototype.toString.call(name) === '[object Symbol]') {
                     return
                   }
+
+                  console.log("正常输出是这样的", val, scope, inReg)
                   props.outputs[name](val, scope, inReg)//with current scope
                 }
               }
