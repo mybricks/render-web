@@ -8,6 +8,7 @@
  */
 import {logInputVal, logOutputVal} from './logger';
 import {uuid, dataSlim, easyClone} from "./utils";
+import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
@@ -284,13 +285,10 @@ export default function executor(opts, {observable}) {
           return
         }
       } else {
-        /** 
-         * 这里用于判断组件中relOutputs和outputs同ID的情况
-         * 如果没有fromCon，一定不是被触发，所以也不存在startPinParentKey
-         */
-        // if (inReg.startPinParentKey) {
-        //   return
-        // }
+        // HACK: 
+        if (!canNextHackForSameOutputsAndRelOutputs(fromCom, inReg)) {
+          return
+        }
       }
 
       if (!_isNestedRender && debug && inReg.isIgnored) {
