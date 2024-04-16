@@ -302,7 +302,7 @@ class Context {
    */
   getComDef(def: { namespace: string, version: string }) {
     const { comDefs } = this
-    const rtn = comDefs[def.namespace + '-' + def.version]
+    const rtn = comDefs[def.namespace + '-' + def.version] || comDefs[def.namespace]
     if (!rtn) {
       const ary = []
       for (let ns in comDefs) {
