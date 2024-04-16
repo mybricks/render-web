@@ -286,7 +286,7 @@ export default function executor(opts, {observable}) {
         }
       } else {
         // HACK: 
-        if (!canNextHackForSameOutputsAndRelOutputs(fromCom, inReg)) {
+        if (!canNextHackForSameOutputsAndRelOutputs(fromCom, inReg, logProps)) {
           return
         }
       }
