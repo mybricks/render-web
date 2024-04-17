@@ -10,7 +10,7 @@ export function handleAppEntry(toJSON: ToJSON) {
   const { scenes } = toJSON;
   return `import React, { useMemo, useState } from "react";
 
-  import { MyBricksRenderProvider } from "@mybricks/render-react-hoc";
+  import { MyBricksRenderProvider, SceneProvider } from "@mybricks/render-react-hoc";
 
   import globalContext from "@/globalContext"
   import { ${scenes.reduce(
@@ -29,7 +29,11 @@ export function handleAppEntry(toJSON: ToJSON) {
       <MyBricksRenderProvider value={globalContext}>
         ${scenes.reduce(
           (p, c) =>
-            p + `{/* ${c.title} */}\n{scenesMap['${c.id}'].show && <Slot_${c.id} />}`,
+            p + `{/* ${c.title} */}\n{scenesMap['${c.id}'].show && (
+              <SceneProvider value="${c.id}">
+                <Slot_${c.id} />
+              </SceneProvider>
+            )}`,
           "",
         )}
       </MyBricksRenderProvider>

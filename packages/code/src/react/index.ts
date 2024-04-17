@@ -1,20 +1,19 @@
 import os from "os";
 import path from "path";
 import fse from "fs-extra";
-/** TODO: 暂时去除，ZL环境报错 */
-// import prettier from "prettier";
+import prettier from "prettier";
 import archiver from "archiver";
 import type { ToBaseJSON, ToJSON, Frame } from "@mybricks/render-types";
 
 import { handleScenesIndex, handleAppEntry, handleGlobalContext, handleCanvas } from "./handle";
 
-// const codeFormat = prettier.format
-// const codeFormatParserMap: {[key: string]: any} = {
-//   ".tsx": "babel-ts",
-//   ".ts": "babel-ts",
-//   ".ejs": "html",
-//   ".html": "html"
-// }
+const codeFormat = prettier.format
+const codeFormatParserMap: {[key: string]: any} = {
+  ".tsx": "babel-ts",
+  ".ts": "babel-ts",
+  ".ejs": "html",
+  ".html": "html"
+}
 
 interface Config {
   /**
@@ -158,10 +157,17 @@ class Generate {
   // }
 
   async writeCodeFiles() {
+    /** process.env.MYBRICKS_TOCODE_ENV === "test" 说明是本地测试，调用codeFormat */
+    const isTest = process.env.MYBRICKS_TOCODE_ENV === "test";
+
     // TODO: 临时注释
     return Promise.all(this.codeArray.map(async ({ code, filePath }) => {
-      fse.outputFileSync(filePath, code, "utf-8");
-      // fse.outputFileSync(filePath, await codeFormat(code, { parser: codeFormatParserMap[getFileExtension(filePath)] }), "utf-8");
+      if (isTest) {
+        /** TODO: 暂时去除，ZL环境报错 */
+        fse.outputFileSync(filePath, await codeFormat(code, { parser: codeFormatParserMap[getFileExtension(filePath)] }), "utf-8");
+      } else {
+        fse.outputFileSync(filePath, code, "utf-8");
+      }
     }))
   }
 }

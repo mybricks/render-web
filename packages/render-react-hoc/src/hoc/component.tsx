@@ -2,7 +2,7 @@ import React, { useMemo, forwardRef,useImperativeHandle } from "react";
 
 import { createPromise } from "../utils";
 import { observable } from "../observable";
-import { useMyBricksRenderContext } from "../hooks";
+import { useMyBricksRenderContext, useSceneContext } from "../hooks";
 
 interface Params {
   data: any;
@@ -14,6 +14,7 @@ interface Params {
 
 export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
   const { env } = useMyBricksRenderContext();
+  const { _env } = useSceneContext();
   const {
     data,
     style,
@@ -102,6 +103,7 @@ export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
         inputs={inputs}
         outputs={outputs}
         env={env}
+        _env={_env}
         data={data}
         style={style}
       />

@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 
-import { MyBricksRenderContext, MyBricksRenderProviderProps } from "./hooks";
+import { MyBricksRenderContext, MyBricksRenderProviderProps, SceneProvider } from "./hooks";
 import { hijackReactcreateElement } from "./observable";
 
 import {
@@ -24,6 +24,8 @@ export interface GlobalContext {
   env: any;
   /** 获取组件定义 */
   getComponent: (namespace: string) => any;
+  /** 关闭场景 */
+  closeScene: (sceneId: string) => void;
 }
 
 /** 函数都需要通过这里转一到，工程代码中只需要传入一次env */
@@ -82,6 +84,7 @@ export {
   UiComponentWrapper,
   handleSingleOutput,
   handleMultipleOutputs,
+  SceneProvider
 };
 
 export { createPromise } from "./utils";
