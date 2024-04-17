@@ -190,6 +190,8 @@ function transformSlotComAry(slot, coms, root = true, com?) {
     }
     slot.layoutTemplate = traverseElementsToSlotComAry(comAry2, coms, comIdToSlotComMap)
   } else {
+    /** 是自由布局吗 */
+    const isAbsolute = slot.style.layout === "absolute"
     /** 非智能布局，删除插槽的宽高 */
     if (com) {
       Reflect.deleteProperty(slot.style, "width")
@@ -198,6 +200,10 @@ function transformSlotComAry(slot, coms, root = true, com?) {
     calculateComAry.forEach((com) => {
       const { slots } = com
       const component = coms[com.id]
+      if (isAbsolute) {
+        /** 自由布局的话，给布局内所有组件设置position为absolute */
+        component.model.style.position = "absolute";
+      }
       if (slots) {
         const isroot = component.model.style.heightAuto
         Object.entries(slots).forEach(([slotId, slot]) => {
