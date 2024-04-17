@@ -39,8 +39,8 @@
     "webpack-merge": "^5.10.0"
   },
   "dependencies": {
-    "@mybricks/render-react-hoc": "^0.0.4",
-    "@mybricks/comlib-core": "^0.0.40",
+    "@mybricks/render-react-hoc": "^0.0.5",
+    "@mybricks/comlib-core": "^0.0.42",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
   }
