@@ -83,7 +83,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
       if (element.elements) {
         /** 有elements，一定是成组的 */
         const { style, elements } = element;
-        const rightIndex = elements.findIndex((element) => typeof element.style.right === "number");
+        /** 从左至右排序，再找出最左边居右的元素 */
+        const rightIndex = elements.sort((p, c) => p.style.left - c.style.left).findIndex((element) => typeof element.style.right === "number");
 
         if (rightIndex !== -1) {
           /** 居左的元素 */
