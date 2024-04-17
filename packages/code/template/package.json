@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "description": "Mybricks引擎产物react源码",
   "scripts": {
-    "dev": "webpack serve -c scripts/webpack.dev.ts"
+    "dev": "webpack serve -c scripts/webpack.dev.ts",
+    "prettier:format": "prettier --write src/**/*.{ts,tsx} scripts/*.ts",
+    "postinstall": "npm run prettier:format"
   },
   "keywords": [],
   "author": "",
