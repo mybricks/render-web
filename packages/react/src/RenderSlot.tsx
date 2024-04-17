@@ -537,6 +537,7 @@ function SlotRender ({
 function calSlotStyles(style, hasParamsStyle, root) {
   // 兼容旧的style
   const {
+    display = 'inline-block',
     paddingLeft,
     paddingTop,
     paddingRight,
@@ -570,6 +571,7 @@ function calSlotStyles(style, hasParamsStyle, root) {
     ...otherStyle
   } = style;
   let slotStyle = {
+    display,
     rowGap,
     columnGap,
     paddingLeft: paddingLeft || 0,
