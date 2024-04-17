@@ -537,7 +537,7 @@ function SlotRender ({
 function calSlotStyles(style, hasParamsStyle, root) {
   // 兼容旧的style
   const {
-    display = 'inline-block',
+    display = 'inline-block', // marginTop 导致的父元素塌陷问题
     paddingLeft,
     paddingTop,
     paddingRight,
