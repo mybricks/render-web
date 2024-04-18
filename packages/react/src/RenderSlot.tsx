@@ -635,11 +635,12 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, isEdit) {
     if (style.heightAuto) {
       slotStyle.height = "fit-content"
     } else if (style.heightFull) {
-      if (isEdit) {
-        slotStyle.height = style.height
-      } else {
-        slotStyle.height = "100%"
-      }
+      // if (isEdit) {
+      //   slotStyle.height = style.height
+      // } else {
+      //   slotStyle.height = "100%"
+      // }
+      slotStyle.height = "100%"
     } else {
       slotStyle.height = style.height
     }
@@ -647,11 +648,12 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, isEdit) {
     if (style.widthAuto) {
       slotStyle.width = "fit-content"
     } else if (style.widthFull) {
-      if (isEdit) {
-        slotStyle.width = style.width
-      } else {
-        slotStyle.width = "100%"
-      }
+      slotStyle.width = "100%"
+      // if (isEdit) {
+      //   slotStyle.width = style.width
+      // } else {
+      //   slotStyle.width = "100%"
+      // }
     } else {
       slotStyle.width = style.width
     }
