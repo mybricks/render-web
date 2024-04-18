@@ -537,7 +537,7 @@ function SlotRender ({
 function calSlotStyles(style, hasParamsStyle, root) {
   // 兼容旧的style
   const {
-    display = 'inline-block', // marginTop 导致的父元素塌陷问题
+    // display = 'inline-block', // marginTop 导致的父元素塌陷问题 - 设置inline-block带来新问题，父元素的font-size会影响到子元素
     paddingLeft,
     paddingTop,
     paddingRight,
@@ -571,7 +571,7 @@ function calSlotStyles(style, hasParamsStyle, root) {
     ...otherStyle
   } = style;
   let slotStyle = {
-    display,
+    // display,
     rowGap,
     columnGap,
     paddingLeft: paddingLeft || 0,
