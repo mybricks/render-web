@@ -743,18 +743,37 @@ function convertedToElements(elements: Array<Element | Elements>) {
           }
         }
       }
-      
+
+      /** 父元素样式 */
+      const parentStyle: any = {
+        top,
+        left,
+        width,
+        height,
+        flexDirection,
+        widthFull: element.find((element) => element.style.widthFull) ? 1 : null,
+        isNotAutoGroup: false
+      }
+
+      // 如果是纵向合并
+      if (flexDirection === "column") {
+        // 全部居右的话，认为是居右的
+        if (calculateElements.filter(e => e.style.right).length === calculateElements.length) {
+          const minRight = calculateElements.slice(1).reduce((p, c) => {
+            return c.style.right > p ? p : c.style.right;
+          }, calculateElements[0].style.right);
+  
+          parentStyle.right = minRight;
+        }
+        // 如果是纵向排列的话，将居右删除
+        calculateElements.forEach((e) => {
+          Reflect.deleteProperty(e.style, "right");
+        })
+      }
+
       convertedElements.push({
         id: element0.id,
-        style: {
-          top,
-          left,
-          width,
-          height,
-          flexDirection,
-          widthFull: element.find((element) => element.style.widthFull) ? 1 : null,
-          isNotAutoGroup: false
-        },
+        style: parentStyle,
         // elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true, isNotAutoGroup: false })
         elements: calculateElements
       })
