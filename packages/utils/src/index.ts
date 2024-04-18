@@ -168,7 +168,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       // 现在数据有问题，缺width、height属性
       if (!style.heightAuto && !style.heightFull) {
         // console.log("定高，不删除插槽的高度")
-        slot.style.overflowY = "hidden"
+        // slot.style.overflowY = "hidden" // 删除，应该不需要？插槽按理说是组件自己控制的
       } else if (style.heightAuto) {
         // console.log("高度自适应")
         Reflect.deleteProperty(slot.style, "height")
@@ -179,7 +179,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
 
       if (!style.widthAuto && !style.widthFull) {
         // console.log("定宽，不删除插槽的宽度")
-        slot.style.overflowX = "hidden"
+        // slot.style.overflowX = "hidden" // 删除，发现使用overflowX:hidden后，纵向会产生滚动 - http://work.manateeai.com/mybricks-app-mpsite/index.html?id=555294873813061 - TOP3(new)模块
       } else if (style.widthAuto) {
         // console.log("宽度自适应")
         Reflect.deleteProperty(slot.style, "width")
