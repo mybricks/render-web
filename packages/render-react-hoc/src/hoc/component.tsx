@@ -1,6 +1,6 @@
 import React, { useMemo, forwardRef,useImperativeHandle } from "react";
 
-import { createPromise } from "../utils";
+import { createFakePromise } from "../utils";
 import { observable } from "../observable";
 import { useMyBricksRenderContext, useSceneContext } from "../hooks";
 
@@ -139,7 +139,7 @@ export function handleMultipleOutputs(func: any) {
         get(target, key) {
           let value = target[key];
           if (!value) {
-            value = target[key] = createPromise();
+            value = target[key] = createFakePromise();
           }
           return value;
         },
@@ -152,7 +152,7 @@ export function handleMultipleOutputs(func: any) {
         get(_, key) {
           let value = promisesCollection[key];
           if (!value) {
-            value = promisesCollection[key] = createPromise();
+            value = promisesCollection[key] = createFakePromise();
           }
 
           return value.resolve;

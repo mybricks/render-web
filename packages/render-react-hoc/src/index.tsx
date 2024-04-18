@@ -86,5 +86,3 @@ export {
   handleMultipleOutputs,
   SceneProvider
 };
-
-export { createPromise } from "./utils";

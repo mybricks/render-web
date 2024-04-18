@@ -1,5 +1,5 @@
 import { _ } from "../";
-import { createPromise, createFakePromise } from "../utils";
+import { createFakePromise } from "../utils";
 
 import type { MyBricks } from "../";
 
@@ -59,7 +59,7 @@ export function jsComponentMultipleOutputsWrapper(
         get(target, key) {
           let value = target[key];
           if (!value) {
-            value = target[key] = createPromise();
+            value = target[key] = createFakePromise();
           }
           return value;
         },
