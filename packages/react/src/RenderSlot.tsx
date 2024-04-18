@@ -697,7 +697,7 @@ function getClasses({style, id}) {
 
 function getSizeStyle({style}) {
   const sizeStyle: any = {}
-  const {width, height, maxWidth, flexX, minWidth, minHeight} = style
+  const {width, height, maxWidth, flexX, minWidth, minHeight, rotation} = style
 
   if (!width && !flexX) {
     sizeStyle.width = "100%"
@@ -723,6 +723,11 @@ function getSizeStyle({style}) {
 
   if (minHeight) {
     sizeStyle.minHeight = minHeight
+  }
+
+  if (isNumber(rotation)) {
+    sizeStyle.transform = `rotate(${rotation}deg)`;
+    sizeStyle.transformOrigin = 'center center';
   }
 
   return sizeStyle
