@@ -1442,6 +1442,7 @@ export default function executor(opts, {observable}) {
 
   if (typeof ref === 'function') {
     const refs = {
+      style: UIRoot.style,
       run() {
         exeForFrame({frameId: ROOT_FRAME_KEY})
       },
