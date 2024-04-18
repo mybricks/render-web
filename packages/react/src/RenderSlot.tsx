@@ -68,7 +68,7 @@ export default function RenderSlot({
     // const slotStyle = paramsStyle || style;
     const slotStyle = Object.assign(style, paramsStyle || {})
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? "hidden auto" : "hidden", ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
@@ -92,7 +92,7 @@ export default function RenderSlot({
     const slotStyle = Object.assign(style, paramsStyle || {})
 
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
@@ -534,11 +534,12 @@ function SlotRender ({
 
 //-----------------------------------------------------------------------
 
-function calSlotStyles(style, hasParamsStyle, root) {
+function calSlotStyles(style, hasParamsStyle, root, isModule, isEdit) {
+  // isModule 模块特殊处理
+  // isEdit 模块兼容编辑态和调试态
   // 兼容旧的style
   const {
     // display = 'inline-block', // marginTop 导致的父元素塌陷问题 - 设置inline-block带来新问题，父元素的font-size会影响到子元素
-    overflow,
     paddingLeft,
     paddingTop,
     paddingRight,
@@ -602,7 +603,6 @@ function calSlotStyles(style, hasParamsStyle, root) {
     borderTopStyle,
     borderTopWidth,
     boxShadow,
-    overflow: overflow ? overflow : (root ? "hidden auto" : "hidden")
   } as any
   // 兼容旧的style
   if (background) {
@@ -627,6 +627,33 @@ function calSlotStyles(style, hasParamsStyle, root) {
       }
     } else {
       slotStyle.background = background
+    }
+  }
+
+  // 这里还需要根据是否在智能布局环境下
+  if (isModule) {
+    if (style.heightAuto) {
+      slotStyle.height = "fit-content"
+    } else if (style.heightFull) {
+      if (isEdit) {
+        slotStyle.height = style.height
+      } else {
+        slotStyle.height = "100%"
+      }
+    } else {
+      slotStyle.height = style.height
+    }
+
+    if (style.widthAuto) {
+      slotStyle.width = "fit-content"
+    } else if (style.widthFull) {
+      if (isEdit) {
+        slotStyle.width = style.width
+      } else {
+        slotStyle.width = "100%"
+      }
+    } else {
+      slotStyle.width = style.width
     }
   }
 
