@@ -203,6 +203,19 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       if (isAbsolute) {
         /** 自由布局的话，给布局内所有组件设置position为absolute */
         component.model.style.position = "absolute";
+        const { style: { paddingTop, paddingLeft } } = slot;
+        try {
+          const top = parseFloat(paddingTop);
+          if (top) {
+            component.model.style.top = component.model.style.top + top
+          }
+        } catch {}
+        try {
+          const left = parseFloat(paddingLeft);
+          if (left) {
+            component.model.style.left = component.model.style.left + left
+          }
+        } catch {}
       }
       if (slots) {
         const isroot = component.model.style.heightAuto
