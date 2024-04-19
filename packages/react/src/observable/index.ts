@@ -57,8 +57,8 @@ export function hijackReactcreateElement(props) {
             }
             return createElement(...args)
         } else if (typeof fn === 'object' && fn.$$typeof === Symbol.for('react.forward_ref')) {
-          const enCom = enhanceComponent(fn, true)
-          args.splice(0, 1, enCom)
+          // const enCom = enhanceComponent(fn, true)
+          // args.splice(0, 1, enCom)
 
           return createElement(...args);
         } else {
