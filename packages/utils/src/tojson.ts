@@ -232,7 +232,9 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       } else if (style.heightFull) {
         style.height = "100%"
       } else {
-        style.height = component.style.height
+        if ("height" in style) {
+          style.height = component.style.height
+        }
       }
 
       if (style.widthAuto) {
@@ -240,7 +242,9 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       } else if (style.widthFull) {
         style.width = "100%"
       } else {
-        style.width = component.style.width
+        if ("width" in style) {
+          style.width = component.style.width
+        }
       }
     })
   }
