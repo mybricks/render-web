@@ -228,7 +228,13 @@ function transformSlotComAry(slot, coms, root = true, com?) {
       const style = component.model.style
 
       if (style.heightAuto) {
-        style.height = "fit-content"
+        if (isAbsolute) {
+          Reflect.deleteProperty(style, "height") // safari浏览器，元素绝对定位后使用fit-content导致高度塌陷
+          style.minHeight = "fit-content"
+          style.maxHeight = "fit-content"
+        } else {
+          style.height = "fit-content"
+        }
       } else if (style.heightFull) {
         style.height = "100%"
       } else {
@@ -294,7 +300,13 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       if (modelStyle.heightAuto) {
         // modelStyle.height = 'auto'
         // modelStyle.maxHeight = "fit-content"
-        modelStyle.height = "fit-content"
+        if (modelStyle.position === "absolute") {
+          Reflect.deleteProperty(modelStyle, "height") // safari浏览器，元素绝对定位后使用fit-content导致高度塌陷
+          modelStyle.minHeight = "fit-content"
+          modelStyle.maxHeight = "fit-content"
+        } else {
+          modelStyle.height = "fit-content"
+        }
         // Reflect.deleteProperty(modelStyle, "height")
         // modelStyle.minHeight = style.height
         modelStyle.display = 'flex'
