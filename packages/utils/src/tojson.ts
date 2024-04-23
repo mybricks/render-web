@@ -152,7 +152,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
           widthFull: style.widthFull,
           widthAuto: style.widthAuto,
           heightAuto: style.heightAuto,
-          constraints: comInfo.constraints
+          // constraints: comInfo.constraints
         },
       }
 
@@ -353,10 +353,15 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       }
 
       modelStyle.marginBottom = style.marginBottom
-      // 添加兄弟节点，目前节点在组件dom内部
       result.push({
         ...comIdToSlotComMap[id],
-        brother: traverseElementsToSlotComAry(com.brother || [], coms, comIdToSlotComMap)
+        // 添加兄弟节点，目前节点在组件dom内部
+        brother: traverseElementsToSlotComAry(com.brother || [], coms, comIdToSlotComMap),
+        // 添加children节点
+        child: com.child ? {
+          ...com.child,
+          elements: traverseElementsToSlotComAry(com.child.elements || [], coms, comIdToSlotComMap)
+        } : null
       })
     }
   })

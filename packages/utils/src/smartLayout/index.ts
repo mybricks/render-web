@@ -73,7 +73,7 @@ export interface Element {
     /**
      * 约束条件
      */
-    constraints?: Constraint[];
+    // constraints?: Constraint[];
     /**
      * 临时测试用
      */
@@ -91,6 +91,10 @@ export interface Element {
 
   /** 相交关系 */
   brother: Array<any>;
+
+  /** 包含关系 */
+  child: any;
+  // children: Array<any>;
 }
 
 export type Elements = Element[]

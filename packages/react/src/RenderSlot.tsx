@@ -100,7 +100,7 @@ export default function RenderSlot({
 }
 
 function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options }) {
-  const {id, def, name, children, brother} = com
+  const {id, def, name, child, brother} = com
   const comInfo = context.getComInfo(id)
   const { hasPermission, permissions: envPermissions } = env
   const permissionsId = comInfo?.model?.permissions?.id
@@ -155,6 +155,15 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                           {brother?.map((brother, index) => {
                             return renderRstTraverseCom2({com: brother, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
                           })}
+                          {child ? renderRstTraverseCom2({com: child, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}) : null}
+                          {/* {children?.length ? (
+                            <div style={{position: 'absolute', top: 0, left: 0, width: "100%", height: "100%"}}>
+                             {children.map((child, index) => {
+                              console.log(child, "child")
+                              return renderRstTraverseCom2({com: child, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
+                            })}
+                            </div>
+                          ) : null} */}
                           </RenderCom>,
         name,
         inputs: props.inputsCallable,

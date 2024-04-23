@@ -404,7 +404,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   width: style.width,
                   height: style.height,
                 },
-                brother: element.brother // 单组件才有相交节点，分组生成的不会有
+                brother: element.brother, // 单组件才有相交节点，分组生成的不会有
+                child: element.child
               }],
               style: {
                 marginTop,
@@ -457,7 +458,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                     width: style.width,
                     height: style.height,
                   },
-                  brother: element.brother // 单组件才有相交节点，分组生成的不会有
+                  brother: element.brother, // 单组件才有相交节点，分组生成的不会有
+                  child: element.child
                 }]
               })
             } else {
@@ -473,7 +475,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   marginTop,
                   marginLeft: style.left - left, // 不居中要设置左边距
                 },
-                brother: element.brother // 单组件才有相交节点，分组生成的不会有
+                brother: element.brother, // 单组件才有相交节点，分组生成的不会有
+                child: element.child
               })
             }
           }
@@ -506,7 +509,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               height: style.height,
               margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
             },
-            brother: element.brother // 单组件才有相交节点，分组生成的不会有
+            brother: element.brother, // 单组件才有相交节点，分组生成的不会有
+            child: element.child
           })
         }
       }
@@ -570,7 +574,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               marginTop,
               marginLeft,
             },
-            brother: element.brother // 单组件才有相交节点，分组生成的不会有
+            brother: element.brother, // 单组件才有相交节点，分组生成的不会有
+            child: element.child
           })
         }
       } else {
@@ -603,7 +608,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               height: style.height,
               margin: `${marginTop}px 0px 0px ${marginLeft}px`,
             },
-            brother: element.brother // 单组件才有相交节点，分组生成的不会有
+            brother: element.brother, // 单组件才有相交节点，分组生成的不会有
+            child: element.child
           })
         }
       }
@@ -798,6 +804,10 @@ function handleIntersectionsAndInclusions(elements: Elements) {
   /** 已经成为brother的id */
   const isBrotherIdsMap = {};
   const brotherToIdMap = {}
+  /** 已经成为children的id */
+  const isChildrenIdsMap = {};
+  const childrenToIdMap = {}
+  
 
   /** 最终的元素列表 */
   let newElements = [];
@@ -808,7 +818,8 @@ function handleIntersectionsAndInclusions(elements: Elements) {
     if (!idToElementMap[element.id]) {
       idToElementMap[element.id] = {
         ...element,
-        brother: []
+        brother: [],
+        children: []
       }
     }
     for (let j = i + 1; j < elements.length; j++) {
@@ -817,7 +828,8 @@ function handleIntersectionsAndInclusions(elements: Elements) {
       if (!idToElementMap[nextElement.id]) {
         idToElementMap[nextElement.id] = {
           ...nextElement,
-          brother: []
+          brother: [],
+          children: []
         }
       }
 
@@ -828,12 +840,24 @@ function handleIntersectionsAndInclusions(elements: Elements) {
           break
       }
 
-      if (isIntersecting(elementStyle, nextElementStyle)) {
-        brotherToIdMap[nextElement.id] = element.id;
-        idToElementMap[element.id].brother.push(idToElementMap[nextElement.id])
-        isBrotherIdsMap[nextElement.id] = {
-          index: j
-        };
+      const elementRelation = getElementRelation(elementStyle, nextElementStyle)
+
+      if (elementRelation) {
+        if (elementRelation === "include") {
+          /** 包含，是children */
+          childrenToIdMap[nextElement.id] = element.id;
+          idToElementMap[element.id].children.push(idToElementMap[nextElement.id]);
+          isChildrenIdsMap[nextElement.id] = {
+            index: j
+          }
+        } else {
+          /** 相交，是brother */
+          brotherToIdMap[nextElement.id] = element.id;
+          idToElementMap[element.id].brother.push(idToElementMap[nextElement.id])
+          isBrotherIdsMap[nextElement.id] = {
+            index: j
+          };
+        }
       }
     }
 
@@ -843,10 +867,53 @@ function handleIntersectionsAndInclusions(elements: Elements) {
   Object.entries(isBrotherIdsMap).forEach(([key, value]: any) => {
     newElements[value.index] = null;
   })
+  Object.entries(isChildrenIdsMap).forEach(([key, value]: any) => {
+    newElements[value.index] = null;
+  })
 
   const finalElements = newElements.filter((element) => {
     if (element) {
       deepBrother(element)
+      const { style, children } = element
+
+      if (children.length) {
+        element.children = combination(children.map((child) => {
+          return {
+            ...child,
+            style: {
+              ...child.style,
+              top: child.style.top - style.top,
+              left: child.style.left - style.left,
+              right: (style.left + style.width) - (child.style.left + child.style.width),
+              // bottom: 1
+            }
+          }
+        }), {
+          style: {
+            width: style.width,
+            height: style.height,
+            isNotAutoGroup: true,
+            top: 0,
+            left: 0,
+            flexDirection: "column"
+          },
+          root: true
+        });
+
+        element.child = {
+          id: element.children[0].id,
+          style: {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%"
+          },
+          elements: element.children
+        }
+
+        Reflect.deleteProperty(element, "children")
+      }
     }
     return element
   })
@@ -869,6 +936,35 @@ function handleIntersectionsAndInclusions(elements: Elements) {
   return finalElements
 }
 
+function getElementRelation({width: widthA, height: heightA, top: topA, left: leftA}, {width: widthB, height: heightB, top: topB, left: leftB}) {
+  const rightA = leftA + widthA;
+  const bottomA = topA + heightA;
+  const rightB = leftB + widthB;
+  const bottomB = topB + heightB;
+
+  // intersect 相交
+  // include 包含
+
+  if (rightA <= leftB || leftA >= rightB || bottomA <= topB || topA >= bottomB) {
+    return false; // 两个矩形不相交、也就不可能包含
+  } else {
+    if (
+      /** 被对比元素左侧大于对比元素 */
+      leftB >= leftA &&
+      /** 被对比元素上册大于对比元素 */
+      topB >= topA &&
+      /** 被对比元素右侧大于对比元素 */
+      rightA >= rightB &&
+      /** 被对比元素下侧大于对于元素 */
+      bottomA >= bottomB
+    ) {
+      /** 说明是包含 */
+      return "include";
+    }
+
+    return "intersect";
+  }
+}
 
 /** 检查元素是否相交 */
 function isIntersecting({width: widthA, height: heightA, top: topA, left: leftA}, {width: widthB, height: heightB, top: topB, left: leftB}) {
