@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 
-import React, { useEffect, useMemo, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen, getStylesheetMountNode} from "../../core/utils";
 
@@ -215,6 +215,7 @@ function RenderCom({
     _outputs: _myOutputs,
     _notifyBindings: _myNotifyBindings
   } = props
+  const [, setShow] = useState(false)
 
   useMemo(() => {
     const { pxToRem: configPxToRem, pxToVw: configPxToVw } = env
@@ -400,6 +401,10 @@ function RenderCom({
     onError,
     logger,
   })
+
+  useLayoutEffect(() => {
+    setShow(true) // 在子组件写入前触发重新渲染，会执行上次等待的useEffect，内部inputs是同步执行，最终挂载dom
+  }, [])
 
   // --- end
 
