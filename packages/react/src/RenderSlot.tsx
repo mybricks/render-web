@@ -411,6 +411,7 @@ function RenderCom({
   jsx = jsx ? (
     <div id={id} key={id} style={{
       display: style.display,
+      visibility: style.visibility,
       // overflow: "hidden",
       // position: style.position || "relative",
       position: style.position,

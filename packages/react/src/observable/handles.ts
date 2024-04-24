@@ -10,7 +10,7 @@ import {
 function get (target, key) {
   const result = target[key];
 
-  if (["$$typeof", "constructor"].includes(key) || (target['__model_style__'] && key !== 'display')) {
+  if (["$$typeof", "constructor"].includes(key) || (target['__model_style__'] && !['display', 'visibility'].includes(key))) {
     return result;
   }
 

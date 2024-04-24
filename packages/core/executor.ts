@@ -963,23 +963,37 @@ export default function executor(opts, {observable}) {
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
-      if (pinId === 'show') {
-        props.style.display = ''
-      } else if (pinId === 'hide') {
-        props.style.display = 'none'
-      } else if (pinId === 'showOrHide') {
-        const sty = props.style
+      const sty = props.style
+      let display = sty.display
+      let visibility = sty.visibility
 
+      if (pinId === 'show') {
+        display = ''
+        visibility = 'visible'
+      } else if (pinId === 'hide') {
+        display = 'none'
+        visibility = 'hidden'
+      } else if (pinId === 'showOrHide') {
         if (typeof val === 'undefined') {
-          if (sty.display === 'none') {
-            sty.display = ''
+          if (display === 'none') {
+            display = ''
+            visibility = 'visible'
           } else {
-            sty.display = 'none'
+            display = 'none'
+            visibility = 'hidden'
           }
         } else {
-          sty.display = val ? '' : 'none'
+          display = val ? '' : 'none'
+          visibility = val ? 'visible' : 'hidden'
         }
       }
+
+      if (!sty.inSmartLayout) {
+        // 不在智能布局下，设置display，智能布局下默认占位
+        sty.display = display
+      }
+      sty.visibility = visibility
+
       const comDef = getComDef(def)
       if (!comDef) return
       _logInputVal({com: props, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})

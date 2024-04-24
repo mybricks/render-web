@@ -309,9 +309,19 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
         }
         // Reflect.deleteProperty(modelStyle, "height")
         // modelStyle.minHeight = style.height
+
+        if (modelStyle.display === "none") {
+          // 已经确认，智能布局下默认是占位的模式，其余动作组件自己来实现
+          modelStyle.visibility = 'hidden'
+        } else {
+          modelStyle.visibility = 'visible'
+        }
         modelStyle.display = 'flex'
         modelStyle.flexDirection = 'column'
         // 一级子元素设置flex：1
+
+        /** TODO: 是否在智能布局中 */
+        modelStyle.inSmartLayout = true;
       }
       // if (modelStyle.height === 'auto') {
       //   modelStyle.height = 'fit-content'
