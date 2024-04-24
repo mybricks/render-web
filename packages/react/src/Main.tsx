@@ -38,6 +38,27 @@ export default function Main({json, options, style = {}, className = '', root = 
       style.minHeight = slot.style.height;
     }
 
+    if (slot?.showType === "module") {
+      /** 做为组件使用的场景 - 目前是云组件出码，引擎配置showType: "module" */
+      const { style: slotStyle } = slot;
+      if (slotStyle.heightAuto) {
+        style.height = "fit-content"
+      } else if (slotStyle.heightFull) {
+        style.height = "100%"
+      } else {
+        style.height = slotStyle.height
+      }
+  
+      if (slotStyle.widthAuto) {
+        style.width = "fit-content"
+      } else if (slotStyle.widthFull) {
+        style.width = "100%"
+      } else {
+        style.width = slotStyle.width
+      }
+      slot.style.backgroundColor = slot.style.backgroundColor || "#ffffff00";
+    }
+
     if (json.type === "module") {
       // 修复模块调试时默认白色背景问题
       slot.style.backgroundColor = slot.style.backgroundColor || "#ffffff00";

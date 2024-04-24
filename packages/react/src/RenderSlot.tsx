@@ -61,14 +61,14 @@ export default function RenderSlot({
                                      logger,
                                      options
                                    }) {
-  const {style, comAry, layoutTemplate} = slot
+  const {style, comAry, layoutTemplate, showType } = slot
 
   if (style.layout === "smart" && layoutTemplate) {
     const paramsStyle = params?.style;
     // const slotStyle = paramsStyle || style;
     const slotStyle = Object.assign(style, paramsStyle || {})
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? "hidden auto" : "hidden", ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : "hidden", ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
@@ -92,7 +92,7 @@ export default function RenderSlot({
     const slotStyle = Object.assign(style, paramsStyle || {})
 
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root && showType === "module" ? "hidden" : null,...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
