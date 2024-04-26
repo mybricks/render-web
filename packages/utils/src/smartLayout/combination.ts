@@ -351,6 +351,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               style: parentStyle
             })
           }
+          /** 设置当前元素距上边距离，用于计算下一个元素的上外间距 */
+          currentTop = currentTop + marginTop + style.height;
           return
         } else {
           element.elements = calculateLayoutRelationship(element.elements, {
