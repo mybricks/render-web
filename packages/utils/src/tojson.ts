@@ -1,4 +1,5 @@
 import smartLayout from "./smartLayout";
+import { isNumber } from "./type";
 
 interface ToJSON {
   [key: string]: any
@@ -132,6 +133,29 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         })
       }
     })
+
+    const paddingTop = parseFloat(slot.style.paddingTop)
+    const paddingLeft = parseFloat(slot.style.paddingLeft)
+    const paddingRight = parseFloat(slot.style.paddingRight)
+    const paddingBottom = parseFloat(slot.style.paddingBottom) 
+
+    let slotWidth = slot.style.width
+    let slotHeight = slot.style.height
+
+    if (isNumber(paddingTop)) {
+      slotHeight = slotHeight - paddingTop
+    }
+    if (isNumber(paddingLeft)) {
+      slotWidth = slotWidth - paddingLeft
+    }
+    if (isNumber(paddingRight)) {
+      slotWidth = slotWidth - paddingRight
+    }
+    if (isNumber(paddingBottom)) {
+      slotHeight = slotHeight - paddingBottom
+    }
+    
+
     const comAry2 = smartLayout(calculateComAry.map((com) => {
       const id = com.id
       const comInfo = coms[id]
@@ -156,7 +180,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         },
       }
 
-    }), { style: { width: slot.style.width, height: slot.style.height, isNotAutoGroup: true }, root })
+    }), { style: { width: slotWidth, height: slotHeight, isNotAutoGroup: true }, root })
 
     if (com) {
       /** 删除插槽样式里的宽高属性 */
