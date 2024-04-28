@@ -990,9 +990,10 @@ export default function executor(opts, {observable}) {
 
       if (!sty.inSmartLayout) {
         // 不在智能布局下，设置display，智能布局下默认占位
-        sty.display = display
+        // sty.display = display
       }
-      sty.visibility = visibility
+      sty.display = display
+      // sty.visibility = visibility
 
       const comDef = getComDef(def)
       if (!comDef) return
