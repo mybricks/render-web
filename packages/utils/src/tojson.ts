@@ -169,8 +169,8 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         style: {
           width: calculateStyle.width,
           height: calculateStyle.height,
-          top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : (style.top || 0),
-          left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
+          top: typeof style.bottom === 'number' ? slotHeight - calculateStyle.height - style.bottom : (style.top || 0),
+          left: typeof style.right === 'number' ? slotWidth - calculateStyle.width - style.right : (style.left || 0),
           right: style.right,
           bottom: style.bottom,
           widthFull: style.widthFull,
@@ -312,7 +312,9 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       // modelStyle.width = style.width
       // modelStyle.height = style.height
       modelStyle.width = coms[id].style.width
-      modelStyle.height = coms[id].style.height
+      if ("height" in coms[id].model.style) {
+        modelStyle.height = coms[id].style.height
+      }
       modelStyle.position = style.position || 'relative'
 
       // 如果是absolute，设置计算的top和left
