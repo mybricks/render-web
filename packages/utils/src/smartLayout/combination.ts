@@ -1,3 +1,4 @@
+import { isNumber } from '../type';
 import type { Element, Elements, DefaultLayoutConfig as LayoutConfig } from './'
 
 /**
@@ -435,7 +436,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
              * 未成组 - 单组件 
              * 不居中，计算间距即可
              */
-            if (style.right) {
+            if (isNumber(style.right)) {
               /**
                * 单组件居右
                * 外面再套一层div
