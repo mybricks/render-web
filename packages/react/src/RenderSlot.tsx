@@ -21,10 +21,27 @@ function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inpu
   const { id, elements, style } = com
 
   if (elements) {
+    let finalStyle
+    const { handlePxToVw } = options
+    if (handlePxToVw) {
+      finalStyle = {}
+      Object.entries(style).forEach(([key, value]) => {
+        const valueType = typeof value
+        if ((valueType === 'string' && value.indexOf('px') !== -1)) {
+          finalStyle[key] = handlePxToVw(value)
+        } else if (valueType === 'number') {
+          finalStyle[key] = handlePxToVw(`${value}px`)
+        } else {
+          finalStyle[key] = value
+        }
+      })
+    } else {
+      finalStyle = style
+    }
     return (
       <div
         key={id}
-        style={style}
+        style={finalStyle}
       >
         {elements.map((com: any) => {
           return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
@@ -68,7 +85,7 @@ export default function RenderSlot({
     // const slotStyle = paramsStyle || style;
     const slotStyle = Object.assign(style, paramsStyle || {})
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : "hidden", ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : "hidden", ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
@@ -92,7 +109,7 @@ export default function RenderSlot({
     const slotStyle = Object.assign(style, paramsStyle || {})
 
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root && showType === "module" ? "hidden" : null,...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", env.edit), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root && showType === "module" ? "hidden" : null,...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
@@ -153,9 +170,9 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                         createPortal={createPortal}
                         options={options}>
                           {brother?.map((brother, index) => {
-                            return renderRstTraverseCom2({com: brother, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal})
+                            return renderRstTraverseCom2({com: brother, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
                           })}
-                          {child ? renderRstTraverseCom2({com: child, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal}) : null}
+                          {child ? renderRstTraverseCom2({com: child, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options}) : null}
                           {/* {children?.length ? (
                             <div style={{position: 'absolute', top: 0, left: 0, width: "100%", height: "100%"}}>
                              {children.map((child, index) => {
@@ -217,7 +234,8 @@ function RenderCom({
   } = props
 
   useMemo(() => {
-    const { pxToRem: configPxToRem, pxToVw: configPxToVw } = env
+    const { pxToRem: configPxToRem } = env
+    const { handlePxToVw } = options
 
     const styleAry = getStyleAry({ env, def, style })
 
@@ -234,10 +252,10 @@ function RenderCom({
           }
           if (Array.isArray(selector)) {
             selector.forEach((selector) => {
-              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, configPxToVw})
+              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
             })
           } else {
-            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, configPxToVw})
+            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
           }
           
         })
@@ -544,7 +562,8 @@ function SlotRender ({
 
 //-----------------------------------------------------------------------
 
-function calSlotStyles(style, hasParamsStyle, root, isModule, isEdit) {
+function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
+  const { handlePxToVw } = options
   // isModule 模块特殊处理
   // isEdit 模块兼容编辑态和调试态
   // 兼容旧的style
@@ -671,6 +690,19 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, isEdit) {
 
   if (hasParamsStyle) {
     slotStyle = Object.assign(slotStyle, otherStyle)
+  }
+
+  if (handlePxToVw) {
+    Object.entries(slotStyle).forEach(([key, value]) => {
+      const valueType = typeof value
+      if ((valueType === 'string' && value.indexOf('px') !== -1)) {
+        slotStyle[key] = handlePxToVw(value)
+      } else if (valueType === 'number') {
+        slotStyle[key] = handlePxToVw(`${value}px`)
+      } else {
+        slotStyle[key] = value
+      }
+    })
   }
 
   return slotStyle
@@ -858,15 +890,15 @@ function getStyleAry ({ env, style, def }) {
   return styleAry
 }
 
-function getStyleInnerText ({id, css, selector, global, configPxToRem, configPxToVw}) {
+function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw}) {
   return `
     ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
       ${Object.keys(css).map(key => {
         let value = css[key]
         if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
           value = pxToRem(value)
-        } else if (configPxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
-          value = pxToVw(value)
+        } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+          value = handlePxToVw(value)
         }
         return `${convertCamelToHyphen(key)}: ${value};`
       }).join('\n')}

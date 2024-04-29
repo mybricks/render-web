@@ -119,6 +119,17 @@ export const pxToVw = (value) => {
   return value.replace(REG_PX, vwReplace);
 }
 
+export const getPxToRem = () => {
+
+}
+
+export const getPxToVw = ({ viewportWidth = 375, unitPrecision = 5 }) => {
+  const vwReplace = createPxReplacer(viewportWidth / 100, 0, unitPrecision, 'vw');
+  return (value) => {
+    return value.replace(REG_PX, vwReplace);
+  }
+}
+
 // const toString = Object.prototype.toString
 
 export function dataSlim(value) {
