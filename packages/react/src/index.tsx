@@ -526,3 +526,4 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
 // }
 
 export * from "./observable"
+export { executor }
