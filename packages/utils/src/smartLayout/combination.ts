@@ -1,3 +1,4 @@
+import { isNumber } from '../type';
 import type { Element, Elements, DefaultLayoutConfig as LayoutConfig } from './'
 
 /**
@@ -351,6 +352,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               style: parentStyle
             })
           }
+          /** 设置当前元素距上边距离，用于计算下一个元素的上外间距 */
+          currentTop = currentTop + marginTop + style.height;
           return
         } else {
           element.elements = calculateLayoutRelationship(element.elements, {
@@ -433,7 +436,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
              * 未成组 - 单组件 
              * 不居中，计算间距即可
              */
-            if (style.right) {
+            if (isNumber(style.right)) {
               /**
                * 单组件居右
                * 外面再套一层div
@@ -852,11 +855,12 @@ function handleIntersectionsAndInclusions(elements: Elements) {
           }
         } else {
           /** 相交，是brother */
-          brotherToIdMap[nextElement.id] = element.id;
-          idToElementMap[element.id].brother.push(idToElementMap[nextElement.id])
-          isBrotherIdsMap[nextElement.id] = {
-            index: j
-          };
+          /** 这里决定定位也不合理，可能只是marginTop向上移动 */
+          // brotherToIdMap[nextElement.id] = element.id;
+          // idToElementMap[element.id].brother.push(idToElementMap[nextElement.id])
+          // isBrotherIdsMap[nextElement.id] = {
+          //   index: j
+          // };
         }
       }
     }

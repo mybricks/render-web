@@ -21,7 +21,7 @@ import NotificationLess from './Notification/style.lazy.less';
 import { setLoggerSilent } from '../../core/logger';
 import Notification from './Notification';
 import executor from '../../core/executor'
-import { compareVersion, deepCopy, getStylesheetMountNode } from '../../core/utils';
+import { compareVersion, deepCopy, getStylesheetMountNode, getPxToVw } from '../../core/utils';
 import type { ToJSON, MultiSceneToJSON } from "./types";
 // @ts-ignore
 import coreLib from '@mybricks/comlib-core';
@@ -87,19 +87,14 @@ class Context {
   constructor(public options: RenderOptions) {
     const { env, debug, observable, onError, plugins = [] } = options
     this.mode = debug ? 'development' : 'production'
-    if (!observable) {
-      /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
-      hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: env.pxToVw});
-    } else {
-      this.observable = observable
+
+    let handlePxToVw;
+    // px转vw响应式相关
+    const pxToVw = options?.pxToVw
+    if (pxToVw) {
+      handlePxToVw = getPxToVw(pxToVw)
+      options.handlePxToVw = handlePxToVw
     }
-    // 样式加载dom节点
-    const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
-    // 各种lazycss加载
-    loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
-    loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
-    loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
-    loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
 
     // px转rem响应式相关
     const pxToRem = env?.pxToRem
@@ -123,6 +118,20 @@ class Context {
         rootDom.style.fontSize = '12px';
       }
     }
+
+    if (!observable) {
+      /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
+      hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: handlePxToVw});
+    } else {
+      this.observable = observable
+    }
+    // 样式加载dom节点
+    const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
+    // 各种lazycss加载
+    loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
+    loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
+    loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
+    loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
 
     const { onCompleteCallBacks } = this
     /** 一些默认值 */
@@ -526,3 +535,4 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
 // }
 
 export * from "./observable"
+export { executor }

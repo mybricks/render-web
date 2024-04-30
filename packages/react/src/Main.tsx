@@ -34,11 +34,16 @@ export default function Main({json, options, style = {}, className = '', root = 
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
     const { env, debug } = options
     const slot = json.slot
-    if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene' && slot) {
+    if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene' && slot && slot.type !== "module") {
+      /**
+       * 1. 调试模式
+       * 2. 场景（页面）
+       * 3. 非模块
+       */
       style.minHeight = slot.style.height;
     }
 
-    if (slot?.showType === "module") {
+    if (slot?.showType === "module" || slot?.type === "module") {
       /** 做为组件使用的场景 - 目前是云组件出码，引擎配置showType: "module" */
       const { style: slotStyle } = slot;
       if (slotStyle.heightAuto) {

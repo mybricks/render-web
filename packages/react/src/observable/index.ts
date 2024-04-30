@@ -22,7 +22,7 @@ let createElement;
  * 劫持 React.createElement 函数
  */
 export function hijackReactcreateElement(props) {
-  const { pxToRem: configPxToRem, pxToVw: configPxToVw } = props
+  const { pxToRem: configPxToRem, pxToVw: handlePxToVw } = props
   if (!React[globalKey]) {
     React[globalKey] = true;
     createElement = React.createElement;
@@ -39,12 +39,11 @@ export function hijackReactcreateElement(props) {
               style[key] = pxToRem(value)
             }
           })
-        } else if (configPxToVw && style) {
+        } else if (handlePxToVw && style) {
           Object.keys(style).forEach((key) => {
             const value = style[key]
-  
             if (typeof value === 'string' && value.indexOf('px') !== -1) {
-              style[key] = pxToVw(value)
+              style[key] = handlePxToVw(value)
             }
           })
         }

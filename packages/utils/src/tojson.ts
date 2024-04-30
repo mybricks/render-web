@@ -1,4 +1,5 @@
 import smartLayout from "./smartLayout";
+import { isNumber } from "./type";
 
 interface ToJSON {
   [key: string]: any
@@ -132,6 +133,29 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         })
       }
     })
+
+    const paddingTop = parseFloat(slot.style.paddingTop)
+    const paddingLeft = parseFloat(slot.style.paddingLeft)
+    const paddingRight = parseFloat(slot.style.paddingRight)
+    const paddingBottom = parseFloat(slot.style.paddingBottom) 
+
+    let slotWidth = slot.style.width
+    let slotHeight = slot.style.height
+
+    if (isNumber(paddingTop)) {
+      slotHeight = slotHeight - paddingTop
+    }
+    if (isNumber(paddingLeft)) {
+      slotWidth = slotWidth - paddingLeft
+    }
+    if (isNumber(paddingRight)) {
+      slotWidth = slotWidth - paddingRight
+    }
+    if (isNumber(paddingBottom)) {
+      slotHeight = slotHeight - paddingBottom
+    }
+    
+
     const comAry2 = smartLayout(calculateComAry.map((com) => {
       const id = com.id
       const comInfo = coms[id]
@@ -145,8 +169,8 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         style: {
           width: calculateStyle.width,
           height: calculateStyle.height,
-          top: typeof style.bottom === 'number' ? slot.style.height - calculateStyle.height - style.bottom : (style.top || 0),
-          left: typeof style.right === 'number' ? slot.style.width - calculateStyle.width - style.right : (style.left || 0),
+          top: typeof style.bottom === 'number' ? slotHeight - calculateStyle.height - style.bottom : (style.top || 0),
+          left: typeof style.right === 'number' ? slotWidth - calculateStyle.width - style.right : (style.left || 0),
           right: style.right,
           bottom: style.bottom,
           widthFull: style.widthFull,
@@ -156,7 +180,7 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         },
       }
 
-    }), { style: { width: slot.style.width, height: slot.style.height, isNotAutoGroup: true }, root })
+    }), { style: { width: slotWidth, height: slotHeight, isNotAutoGroup: true }, root })
 
     if (com) {
       /** 删除插槽样式里的宽高属性 */
@@ -288,7 +312,9 @@ function traverseElementsToSlotComAry(comAry, coms, comIdToSlotComMap) {
       // modelStyle.width = style.width
       // modelStyle.height = style.height
       modelStyle.width = coms[id].style.width
-      modelStyle.height = coms[id].style.height
+      if ("height" in coms[id].model.style) {
+        modelStyle.height = coms[id].style.height
+      }
       modelStyle.position = style.position || 'relative'
 
       // 如果是absolute，设置计算的top和left
