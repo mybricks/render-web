@@ -375,7 +375,9 @@ function RenderCom({
   const sizeStyle = getSizeStyle({style})
   const marginStyle = getMarginStyle({style})
 
-  const otherStyle: any = {}
+  const otherStyle: any = {
+    zIndex: style.zIndex
+  }
 
   if (['fixed', 'absolute'].includes(style.position)) {
     const { top, left, right, bottom } = style

@@ -156,13 +156,14 @@ function transformSlotComAry(slot, coms, root = true, com?) {
     }
     
 
-    const comAry2 = smartLayout(calculateComAry.map((com) => {
+    const comAry2 = smartLayout(calculateComAry.map((com, index) => {
       const id = com.id
       const comInfo = coms[id]
       const style = comInfo.model.style
       const calculateStyle = comInfo.style
 
       comIdToSlotComMap[id] = com
+      style.zIndex = index + 1
 
       return {
         id,
