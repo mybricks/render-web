@@ -69,6 +69,10 @@ export default function Main({json, options, style = {}, className = '', root = 
       slot.style.backgroundColor = slot.style.backgroundColor || "#ffffff00";
     }
 
+    if (_context._v === "2024-diff") {
+      json._v = _context._v
+    }
+
     return {
       env,
       onError: _context.onError,

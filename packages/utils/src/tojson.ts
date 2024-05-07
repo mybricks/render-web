@@ -185,8 +185,6 @@ function transformSlotComAry(slot, coms, root = true, com?) {
 
     if (com) {
       /** 删除插槽样式里的宽高属性 */
-      
-
       const component = coms[com.id]
       const { style } = component.model
 
@@ -276,6 +274,11 @@ function transformSlotComAry(slot, coms, root = true, com?) {
         if ("width" in style) {
           style.width = component.style.width
         }
+      }
+
+      if (component.asRoot) {
+        // 根组件，默认设置为height:100%
+        style.height = '100%';
       }
     })
   }

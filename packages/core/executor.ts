@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal} from './logger';
-import {uuid, dataSlim, easyClone} from "./utils";
+import {uuid, dataSlim, easyClone, easyDeepCopy} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -34,8 +34,9 @@ export default function executor(opts, {observable}) {
   const scenesOperate = opts.scenesOperate || env.scenesOperate
 
   const {
+    _v,
     slot: UIRoot,
-    coms: Coms = {},
+    coms = {},
     comsAutoRun: ComsAutoRun = {},
     cons: Cons = [],
     pinRels: PinRels = {},
@@ -43,6 +44,37 @@ export default function executor(opts, {observable}) {
     pinValueProxies: PinValueProxies = {},
     type: JsonType
   } = json
+  let Coms = coms;
+  if (_v === "2024-diff") {
+    Coms = new Proxy(coms, {
+      get(target, key) {
+        const result = target[key];
+        if (result._ready) {
+          return result
+        }
+        const { def } = result
+        result._ready = true
+        const comDef = getComDef(def)
+
+        const model = result.model
+        const modelData = model.data
+
+        if (modelData) {
+          model.data = Object.assign(easyDeepCopy(comDef.data), modelData)
+        } else {
+          model.data = easyDeepCopy(comDef.data)
+        }
+
+        if (!def.rtType?.match(/^js/gi)) {
+          // 说明是UI组件，非计算组件，需要合并inputs、outputs
+          result.inputs = comDef.inputs.concat(model.inputAry)
+          result.outputs = comDef.outputs.concat(model.outputAry)
+        }
+
+        return result
+      }
+    })
+  }
 
   const _Env = env
 

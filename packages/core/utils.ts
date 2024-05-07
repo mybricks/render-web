@@ -181,6 +181,32 @@ export function easyClone(val: any) {
   return val
 }
 
+export function easyDeepCopy(obj: any, cache: any = []) {
+  const type = Object.prototype.toString.call(obj)
+  if (obj === null || typeof obj !== 'object' || type.startsWith('[object HTML')) {
+    return obj
+  }
+
+  const hit = cache.filter((i: any) => i.original === obj)[0]
+
+  if (hit) {
+    return hit.copy
+  }
+
+  const copy: any = Array.isArray(obj) ? [] : {}
+
+  cache.push({
+    original: obj,
+    copy
+  })
+
+  Object.keys(obj).forEach(key => {
+    copy[key] = deepCopy(obj[key], cache)
+  })
+
+  return copy
+}
+
 export function deepCopy(obj: any, cache: any = []) {
   const type = Object.prototype.toString.call(obj)
   if (obj === null || typeof obj !== 'object' || type.startsWith('[object HTML')) {

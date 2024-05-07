@@ -65,7 +65,8 @@ export default function MultiScene ({json, options}) {
             json,
             disableAutoRun: !!(options.disableAutoRun || index),
             useEntryAnimation: false,
-            type: json.slot?.showType || json.type
+            type: json.slot?.showType || json.type,
+            main: index === 0
           }
         }
       }, {}),
@@ -808,8 +809,33 @@ export default function MultiScene ({json, options}) {
     return pageScenes.map((json) => {
       const { id } = json
       const scene = scenesMap[id]
-      
-      return scene.show && <Scene key={id} json={{...json, scenesMap}} options={getOptions(id)} className={scene.useEntryAnimation ? css.main : ''} style={scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}}/>
+
+      if (scene.show) {
+        let className = scene.useEntryAnimation ? css.main : ''
+        let style = scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}
+        if (scene.main) {
+          // 主场景
+          const { className: optsClassName, style: optsStyle  } = options
+          if (optsClassName) {
+            className = className + ` ${optsClassName}`;
+          }
+          if (optsStyle) {
+            style = Object.assign(style, optsStyle)
+          }
+        }
+        
+        return scene.show && (
+          <Scene
+            key={id}
+            json={{...json, scenesMap}}
+            options={getOptions(id)}
+            className={className}
+            style={style}
+          />
+        )
+      }
+
+      return null
     })
   }, [count, pageScenes])
 
@@ -819,8 +845,29 @@ export default function MultiScene ({json, options}) {
         const scene = scenesMap[sceneId]
         const json = scene.json
         const { id } = json
+
+        let className = ''
+        let style = {position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 1000}
+
+        if (scene.main) {
+          // 主场景
+          const { className: optsClassName, style: optsStyle  } = options
+          if (optsClassName) {
+            className = optsClassName
+          }
+          if (optsStyle) {
+            style = Object.assign(style, optsStyle)
+          }
+        }
         
-        return <Scene key={json.id} json={{...json, scenesMap}} options={getOptions(id)} style={{position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 1000}}/>
+        return (
+          <Scene
+            key={json.id}
+            json={{...json, scenesMap}}
+            options={getOptions(id)}
+            style={{position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 1000}}
+          />
+        )
       })
     }
    

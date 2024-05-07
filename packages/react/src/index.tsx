@@ -63,6 +63,12 @@ class Context {
    */
   mode: 'development' | 'production'
   
+  /** 
+   * toJSON版本 
+   * 2024-diff - toJSON api 传入 onlyDiff: true 得到，说明是压缩版的toJSON，需要处理组件的data、inputs、outputs
+   */
+  _v: string;
+  
   // 组件信息 namespace-version => {runtime}
   comDefs: {
     [key: string]: {
@@ -84,7 +90,8 @@ class Context {
   observable = defaultObservable
 
   // 传入的配置项
-  constructor(public options: RenderOptions) {
+  constructor(public options: RenderOptions, json) {
+    this._v = json._v
     const { env, debug, observable, onError, plugins = [] } = options
     this.mode = debug ? 'development' : 'production'
 
@@ -420,7 +427,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     }
     if (!jsx) {
       // TODO: 这里是运行纯函数的模版
-      const _context = new Context(options)
+      const _context = new Context(options, json)
       executor({
         json,
         getComDef: (def: any) => _context.getComDef(def),
@@ -461,7 +468,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
       return jsx
     }
     return (
-      <MyBricksRenderProvider value={new Context(options)}>
+      <MyBricksRenderProvider value={new Context(options, json)}>
         {jsx}
       </MyBricksRenderProvider>
     )
