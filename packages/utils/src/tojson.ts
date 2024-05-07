@@ -139,8 +139,8 @@ function transformSlotComAry(slot, coms, root = true, com?) {
     const paddingRight = parseFloat(slot.style.paddingRight)
     const paddingBottom = parseFloat(slot.style.paddingBottom) 
 
-    let slotWidth = slot.style.width
-    let slotHeight = slot.style.height
+    let slotWidth = slot.style.width || slot.style.widthFact
+    let slotHeight = slot.style.height || slot.style.heightFact
 
     if (isNumber(paddingTop)) {
       slotHeight = slotHeight - paddingTop
