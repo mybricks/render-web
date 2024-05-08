@@ -165,25 +165,25 @@ class Context {
       // 模块组件内调用
       env.renderModule = (json: any, options: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, env, _isNestedRender: true })
+        return render(json, { ...options, env, _isNestedRender: true, _context: this })
       }
     } else {
       const renderModule = env.renderModule
       env.renderModule = (json: any, options: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderModule(json, { ...options, env, _isNestedRender: true })
+        return renderModule(json, { ...options, env, _isNestedRender: true, _context: this })
       }
     }
     if (!env.renderCom) {
       env.renderCom = (json: any, options: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, _isNestedRender: true })
+        return render(json, { ...options, _isNestedRender: true, _context: this })
       }
     } else {
       const renderCom = env.renderCom
       env.renderCom = (json: any, options: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderCom(json, { ...options, _isNestedRender: true })
+        return renderCom(json, { ...options, _isNestedRender: true, _context: this })
       }
     }
     const body = document.body
@@ -427,30 +427,36 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     }
     if (!jsx) {
       // TODO: 这里是运行纯函数的模版
-      const _context = new Context(options, json)
+      // const _context = new Context(options, json)
+      const _context = options._isNestedRender ? options._context : new Context(options, json)
+
       executor({
         json,
         getComDef: (def: any) => _context.getComDef(def),
         events: options.events,
         env: options.env,
         ref(_refs: any) {
-          const { inputs } = _refs
-          const jsonInputs = (json as ToJSON).inputs
-          if (inputs && Array.isArray(jsonInputs)) {
-            jsonInputs.forEach((input) => {
-              const { id, mockData } = input
-              let value = void 0
-              if (options.debug && typeof mockData !== 'undefined') {
-                try {
-                  value = JSON.parse(decodeURIComponent(mockData))
-                } catch {
-                  value = mockData
+          if (typeof options.ref === 'function') {
+            options.ref(_refs)
+          } else {
+            const { inputs } = _refs
+            const jsonInputs = (json as ToJSON).inputs
+            if (inputs && Array.isArray(jsonInputs)) {
+              jsonInputs.forEach((input) => {
+                const { id, mockData } = input
+                let value = void 0
+                if (options.debug && typeof mockData !== 'undefined') {
+                  try {
+                    value = JSON.parse(decodeURIComponent(mockData))
+                  } catch {
+                    value = mockData
+                  }
                 }
-              }
-              inputs[id](value)
-            })
+                inputs[id](value)
+              })
+            }
+            _refs.run()
           }
-          _refs.run()
         },
         onError: _context.onError,
         debug: options.debug,
