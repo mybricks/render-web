@@ -1,6 +1,4 @@
-import * as CSS from "csstype";
-
-export type Style = CSS.Properties;
+import { Style } from "./css";
 
 /** 组件模型样式信息 */
 export interface ComponentStyle extends Style {
@@ -12,15 +10,56 @@ export interface ComponentStyle extends Style {
     /** TODO: 是否全局？后面补充 */
     global?: boolean;
   }>
+  /** 距上距离 */
+  top?: number;
+  /** 距右距离 -> 有值说明居右 */
+  right?: number;
+  /** 距下距离 -> 有值说明居下 */
+  bottom?: number;
+  /** 距左距离 */
+  left?: number;
+  /** 高度 */
+  height?: number;
+  /** 高度 适应内容 */
+  heightAuto?: boolean;
+  /** 高度 等比缩放 */
+  heightFull?: boolean;
+  /** 宽度 适应内容 */
+  widthAuto?: boolean;
+  /** 宽度 等比缩放 */
+  widthFull?: boolean;
+  /** 宽度 */
+  width?: number;
 }
 
 export interface ToJSON {
   /** 场景信息数组 */
-  scenes: Array<ToBaseJSON>
+  scenes: Array<ToPageJSON | ToPopupJSON>
   /**
    * 逻辑编排卡片信息列表
    */
   frames: Array<Frame>
+  /** 
+   * 全局组件信息
+   * 变量
+   * FX
+   */
+  global: {
+    comsReg: Coms;
+    consReg: Cons;
+    pinRels: PinRels;
+    fxFrames: Array<ToFxJSON>;
+    pinProxies: PinProxies;
+  }
+  /** 模块信息 */
+  modules: {
+    /** 对应模块组件data内definedId字段值 */
+    [key: string]: {
+      /** 模块名称 */
+      title: string;
+      json: ToModuleJSON;
+    }
+  }
 }
 
 /** 逻辑连线信息 */
@@ -61,10 +100,10 @@ export type ConAry = Array<{
 }>;
 
 interface DefaultDiagram {
-    /** 场景卡片名称（没什么用） */
-    title: string;
-    /** 逻辑连线信息 */
-    conAry: ConAry;
+  /** 场景卡片名称（没什么用） */
+  title: string;
+  /** 逻辑连线信息 */
+  conAry: ConAry;
 }
 
 export interface ComDiagram extends DefaultDiagram {
@@ -144,6 +183,18 @@ export interface SlotStyle extends Style {
    *  - absolute 自由
    */
   layout: "smart" | "flex-column" | "flex-row" | "absolute";
+
+  /** 内间距 */
+  paddingTop?: string;
+  paddingLeft?: string;
+  paddingRight?: string;
+  paddingBottom?: string;
+
+  /** 插槽可能不存在width、height属性，需要从widthFact、heightFact获取具体的宽高 */
+  width?: number;
+  height?: number;
+  widthFact: number;
+  heightFact: number;
 }
 
 /** 插槽，体现组件排列信息、结构 */
@@ -200,6 +251,56 @@ export interface Component {
   frameId?: string;
   /** 如果在作用域插槽内 - 该插槽的父组件ID */
   parentComId?: string;
+  /** 用于智能布局计算的样式信息，仅包含真实具体的width、height属性 */
+  style: {
+    width: number;
+    height: number;
+  }
+  /** 
+   * 是否做为根组件
+   * 在引擎geoView配置中 scenes.adder[0].template.asRoot = true
+   */
+  asRoot?: boolean;
+
+  /** 
+   * TODO: 定义为全局组件，当前只有 全局变量 
+   * true => 全局
+   * false => 非全局
+   */
+  global?: boolean;
+}
+
+/** 组件详细信息 组件ID -> 信息 */
+type Coms = {
+  [key: string]: Component;
+}
+
+/** 逻辑面板连线信息 */
+type Cons = {
+  [key: string]: Array<any>; // 后续用到了再补充
+}
+
+/** 输入对应的输出映射关系 */
+type PinRels = {
+  /** comID-inputID */
+  [key: string]: Array<string>;
+}
+
+/** 
+ * 用于多场景间跳转，例如调用私有的输入_inputs，根据comId-_inputsId 查找对应的frame
+ * cons输出查找对应的fx卡片的输入
+ * TODO: 待补充更多信息
+ */
+type PinProxies = {
+  /** comId-_inputID */
+  [key: string]: {
+    /** 对应类型 */
+    type: "frame";
+    /** 对应frameID */
+    frameId: string;
+    /** 对应frame的inputID */
+    pinId: string;
+  }
 }
 
 export interface ToBaseJSON {
@@ -207,43 +308,53 @@ export interface ToBaseJSON {
   id: string;
   /** 场景标题 */
   title: string;
-  /** 插槽，体现组件排列信息、结构 */
-  slot: Slot;
-  /** 
-   * 类型
-   * 无 - 普通页面
-   * popup - 弹出类
-   */
-  type?: "popup";
   /** 组件详细信息 组件ID -> 信息 */
-  coms: {
-    [key: string]: Component;
-  }
+  coms: Coms;
   /** 逻辑面板连线信息 */
-  cons: {
-    [key: string]: Array<any>; // 后续用到了再补充
-  }
+  cons: Cons;
   /** 输入对应的输出映射关系 */
-  pinRels: {
-    /** comID-inputID */
-    [key: string]: Array<string>;
-  }
+  pinRels: PinRels;
   /** 
    * 用于多场景间跳转，例如调用私有的输入_inputs，根据comId-_inputsId 查找对应的frame
    * cons输出查找对应的fx卡片的输入
    * TODO: 待补充更多信息
    */
-  pinProxies: {
-    /** comId-_inputID */
-    [key: string]: {
-      /** 对应类型 */
-      type: "frame";
-      /** 对应frameID */
-      frameId: string;
-      /** 对应frame的inputID */
-      pinId: string;
-    }
-  }
+  pinProxies: PinProxies;
+}
+
+/** 默认页面 */
+export interface ToPageJSON extends ToBaseJSON {
+  /** 插槽，体现组件排列信息、结构 */
+  slot: Slot;
+}
+
+/** 弹出类 */
+export interface ToPopupJSON extends ToBaseJSON {
+  /** 插槽，体现组件排列信息、结构 */
+  slot: Slot;
+  type: "popup";
+}
+
+/** fx */
+export interface ToFxJSON extends ToBaseJSON {
+  type: "fx";
+}
+
+/** 模块 */
+export interface ToModuleJSON extends ToBaseJSON {
+  /** 插槽，体现组件排列信息、结构 */
+  slot: Slot;
+  type: "module";
+}
+
+export type ToUiJSON = ToPageJSON | ToPopupJSON | ToModuleJSON;
+
+// export type ToSingleJSON = ToPageJSON | ToPopupJSON | ToFxJSON | ToModuleJSON;
+
+export interface ToAnyJSON extends ToBaseJSON {
+  /** 插槽，体现组件排列信息、结构 */
+  slot?: Slot;
+  type?: "fx" | "popup" | "module";
 }
 
 /** 智能布局dom节点 */
