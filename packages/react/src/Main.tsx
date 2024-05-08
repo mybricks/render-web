@@ -34,7 +34,7 @@ export default function Main({json, options, style = {}, className = '', root = 
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
     const { env, debug } = options
     const slot = json.slot
-    if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene' && slot && slot.type !== "module") {
+    if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene' && slot && slot.type !== "module" && slot.showType !== "module") {
       /**
        * 1. 调试模式
        * 2. 场景（页面）
