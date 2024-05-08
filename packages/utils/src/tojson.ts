@@ -1,4 +1,4 @@
-import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode } from "@mybricks/render-types";
+import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, SlotStyle, ComponentStyle } from "@mybricks/render-types";
 import smartLayout, { ResultElement } from "./smartLayout";
 import { isNumber } from "./type";
 
@@ -314,8 +314,14 @@ function transformSlotComAry(
         // @ts-ignore
         style.height = '100%';
       }
+
+      // 对组件样式做处理，去除运行时无关的内容
+      component.model.style = getComponentStyle(style);
     })
   }
+
+  // 对插槽样式做处理，去除运行时无关的内容
+  slot.style = getSlotStyle(slot.style);
 }
 
 function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comIdToSlotComMap: ComIdToSlotComMap) {
@@ -426,7 +432,11 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
       }
 
       // 目前没有 marginBottom
-      modelStyle.marginBottom = style.marginBottom
+      // modelStyle.marginBottom = style.marginBottom
+
+      // 对组件样式做处理，去除运行时无关的内容
+      coms[id].model.style = getComponentStyle(modelStyle);
+
       result.push({
         ...comIdToSlotComMap[id],
         // 添加兄弟节点，目前节点在组件dom内部
@@ -441,4 +451,58 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
   })
 
   return result
+}
+
+/** 
+ * TODO: 提前计算插槽样式 -> 持续更新
+ * 1. 优化样式，去除无用信息
+ * 2. 提前计算部分样式，减少运行时计算
+ */
+function getSlotStyle(style: SlotStyle) {
+  switch (style.layout) {
+    case 'flex-row':
+    case 'flex-column':
+      break;
+    default:
+      // 不是flex布局，删除引擎带来的运行时无用的样式
+      Reflect.deleteProperty(style, "alignItems");
+      Reflect.deleteProperty(style, "justifyContent");
+      break;
+  }
+
+  // 删除引擎带来的运行时无用的样式
+  Reflect.deleteProperty(style, "widthFact");
+  Reflect.deleteProperty(style, "heightFact");
+  // Reflect.deleteProperty(style, "layout"); // TODO: 目前layout有用的，后续看能不能删除
+  // 引擎返回的，干嘛用的这是
+  Reflect.deleteProperty(style, "zoom");
+
+  return style;
+}
+
+/** 
+ * TODO: 提前计算组件样式 -> 持续更新
+ * 1. 优化样式，去除无用信息
+ * 2. 提前计算部分样式，减少运行时计算
+ */
+function getComponentStyle(style: ComponentStyle) {
+  // 组件外部的样式应该只保留position、以及宽高相关属性
+  Reflect.deleteProperty(style, "display");
+  Reflect.deleteProperty(style, "flexDirection");
+
+  if (style.position !== "absolute") {
+    // 不是自由布局，删除四个方向属性
+    Reflect.deleteProperty(style, "left");
+    Reflect.deleteProperty(style, "top");
+    Reflect.deleteProperty(style, "right");
+    Reflect.deleteProperty(style, "bottom");
+  }
+
+  // 删除引擎带来的运行时无用的样式
+  Reflect.deleteProperty(style, "widthFact");
+  Reflect.deleteProperty(style, "heightFact");
+  Reflect.deleteProperty(style, "widthAuto");
+  Reflect.deleteProperty(style, "heightAuto");
+
+  return style;
 }
