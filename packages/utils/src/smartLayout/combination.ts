@@ -28,7 +28,6 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
   /** 计算最终的布局关系 */
   const res = calculateLayoutRelationship(finalElements, layoutConfig);
   // res.length && console.log("最终结果: ", res)
-  console.log(333, JSON.parse(JSON.stringify(res)))
   return res;
 }
 
