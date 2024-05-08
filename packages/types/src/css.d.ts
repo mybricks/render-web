@@ -1,3 +1,3 @@
 import * as CSS from "csstype";
 
-export type Style = CSS.Properties;
+export interface Style extends CSS.Properties<string | number> {};
