@@ -1,5 +1,14 @@
+import { Style } from "@mybricks/render-types";
 import { isNumber } from '../type';
 import type { Element, Elements, DefaultLayoutConfig as LayoutConfig } from './'
+
+export type ResultElement = {
+  id: string;
+  style: Style;
+  elements: Array<ResultElement>;
+  child?: ResultElement;
+  brother: [];
+}
 
 /**
  * 智能布局分组规则
@@ -11,7 +20,7 @@ import type { Element, Elements, DefaultLayoutConfig as LayoutConfig } from './'
  *  
  * 对比元素只需要先向右，再向下对比即可
  */
-export default function combination(elements: Elements, layoutConfig: LayoutConfig) {
+export default function combination(elements: Elements, layoutConfig: LayoutConfig): Array<ResultElement> {
   /** 处理相交关系 */
   const initElements = handleIntersectionsAndInclusions(elements)
   /** 基于规则开始分组 */
@@ -19,6 +28,7 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
   /** 计算最终的布局关系 */
   const res = calculateLayoutRelationship(finalElements, layoutConfig);
   // res.length && console.log("最终结果: ", res)
+  console.log(333, JSON.parse(JSON.stringify(res)))
   return res;
 }
 
@@ -228,7 +238,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                     },
                     root: true
                   })
-                  console.log("resultLeftElement.elements 结果", resultLeftElement.elements)
+                  // console.log("resultLeftElement.elements 结果", resultLeftElement.elements)
                 }
               } else {
                 resultLeftElement = {
@@ -738,17 +748,32 @@ function convertedToElements(elements: Array<Element | Elements>) {
         // } else if (element1FlexDirection === flexDirection) {
         //   calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
         // }
+
+        // if (element0FlexDirection === flexDirection) {
+        //   if (element0FlexDirection === element1FlexDirection) {
+        //     calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])].map((element) => ({...element, style: element.tempStyle || element.style}))
+        //   } else {
+        //     calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
+        //   }
+        // } else if (element1FlexDirection === flexDirection) {
+        //   if (element1FlexDirection === element0FlexDirection) {
+        //     calculateElements = [...(element0.elements ? element0.elements : [element0]), ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+        //   } else {
+        //     calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+        //   }
+        // }
+
         if (element0FlexDirection === flexDirection) {
           if (element0FlexDirection === element1FlexDirection) {
-            calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])].map((element) => ({...element, style: element.tempStyle || element.style}))
+            calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])]
           } else {
-            calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
+            calculateElements = [...element0.elements, element1]
           }
         } else if (element1FlexDirection === flexDirection) {
           if (element1FlexDirection === element0FlexDirection) {
-            calculateElements = [...(element0.elements ? element0.elements : [element0]), ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+            calculateElements = [...(element0.elements ? element0.elements : [element0]), ...element1.elements]
           } else {
-            calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
+            calculateElements = [element0, ...element1.elements]
           }
         }
       }
@@ -1021,7 +1046,7 @@ const REVERSE_DIRECTION_MAP = {
 /**
  * 获取元素相邻关系
  */
-export function getElementAdjacency(elements: Elements) {
+function getElementAdjacency(elements: Elements) {
   const elementIdToAdjacency: ElementIdToAdjacency = {}
   const tempElementIdToAdjacency: {
     [key: string]: {

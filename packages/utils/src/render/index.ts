@@ -5,6 +5,7 @@ import type { Style, SlotStyle } from "@mybricks/render-types"
 /** 计算插槽样式 */
 export function getSlotStyle(style: SlotStyle, root?: boolean) {
   const { layout, ...other } = style;
+  // @ts-ignore
   const slotStyle: Style = {
     position: "relative",
     ...other

@@ -1,4 +1,6 @@
-import combination from "./combination";
+import combination, { ResultElement } from "./combination";
+
+export type { ResultElement }
 
 interface Constraint {
   /**
@@ -25,7 +27,7 @@ export interface Element {
   /**
    * TODO: 临时样式信息，之后看是否可以优化，用于单组件和分组后组件合并时的重新计算间距等
    */
-  tempStyle?: any;
+  // tempStyle?: any;
   /**
    * 样式信息
    */
@@ -87,13 +89,13 @@ export interface Element {
   /**
    * 子组件，如果组件被分为一组
    */
-  elements: Elements
+  elements?: Elements;
 
   /** 相交关系 */
-  brother: Array<any>;
+  brother?: Array<any>;
 
   /** 包含关系 */
-  child: any;
+  child?: any;
   // children: Array<any>;
 }
 
@@ -102,6 +104,7 @@ export type Elements = Element[]
 interface LayoutStyle {
   width: number;
   height: number;
+  /** 如果为true，代表不是自动成组的，自动成组的元素内部不再自动计算居中关系 */
   isNotAutoGroup: boolean;
 }
 
@@ -112,19 +115,12 @@ interface LayoutConfig {
    * 是否根slot，画布不参与高度的计算 - 这里的root目前主要是计算marginBottom的
    */
   root: boolean;
-
-  /** 
-   * TODO: 再来个字段，判断是否可以计算居中关系
-   * 代表不是自动成组的，自动成组的元素内部不再自动计算居中关系
-   */
-  // isNotAutoGroup: boolean;
 }
 
 interface DefaultLayoutStyle extends LayoutStyle {
   flexDirection: "row" | "column"
   top: number
   left: number
-  // isNotAutoGroup: boolean;
 }
 
 export interface DefaultLayoutConfig extends LayoutConfig {
