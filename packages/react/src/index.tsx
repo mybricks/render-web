@@ -463,6 +463,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
         debugLogger: options.debugLogger,
         logger: _context.logger,
         scenesOperate: options.scenesOperate,
+        _isNestedRender: options._isNestedRender,
         _context
       }, {
         observable: _context.observable
