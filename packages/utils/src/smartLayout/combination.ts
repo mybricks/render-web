@@ -391,10 +391,11 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
         ) {
           /** 居中 */
           if (style.flexDirection) {
+            console.log("【@mybricks/render-utils: 智能布局计算】: 只有单组件、非自动成组的才参与居中计算，不应该走到这段逻辑，观察一段时间，后续删除")
             /** 成组 - 非单组件 */
             finalElements.push({
+              ...element,
               id,
-              elements: element.elements, // TODO: 是不是要继续计算？
               style: {
                 marginTop,
                 display: "flex",
@@ -410,14 +411,13 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
             finalElements.push({
               id,
               elements: [{
+                ...element,
                 id,
                 style: {
                   /** 记录当前元素宽高，可能还要继续计算的 */
                   width: style.width,
                   height: style.height,
                 },
-                brother: element.brother, // 单组件才有相交节点，分组生成的不会有
-                child: element.child
               }],
               style: {
                 marginTop,
@@ -431,8 +431,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
           if (style.flexDirection) {
             /** 成组 - 非单组件 */
             finalElements.push({
+              ...element,
               id,
-              elements: element.elements,
               style: {
                 marginTop,
                 marginLeft: style.left - left, // 不居中要设置左边距
@@ -464,14 +464,13 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   marginRight: style.right
                 },
                 elements: [{
+                  ...element,
                   id,
                   style: {
                     // 组件样式
                     width: style.width,
                     height: style.height,
                   },
-                  brother: element.brother, // 单组件才有相交节点，分组生成的不会有
-                  child: element.child
                 }]
               })
             } else {
@@ -480,6 +479,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                * 正常计算
               */
               finalElements.push({
+                ...element,
                 id,
                 style: {
                   width: style.width,
@@ -487,8 +487,6 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   marginTop,
                   marginLeft: style.left - left, // 不居中要设置左边距
                 },
-                brother: element.brother, // 单组件才有相交节点，分组生成的不会有
-                child: element.child
               })
             }
           }
@@ -501,6 +499,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
         if (style.flexDirection) {
           /** 成组 - 非单组件 */
           finalElements.push({
+            ...element,
             id,
             style: {
               /** 铺满，即画布拉宽，组件也变宽 */
@@ -509,20 +508,18 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               display: 'flex',
               flexDirection: style.flexDirection,
             },
-            elements: element.elements
           })
         } else {
           /** 未成组 - 单组件 */
           finalElements.push({
+            ...element,
             id,
             style: {
               /** 铺满，即画布拉宽，组件也变宽 */
               width: 'auto',
               height: style.height,
               margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
-            },
-            brother: element.brother, // 单组件才有相交节点，分组生成的不会有
-            child: element.child
+            }
           })
         }
       }
@@ -567,6 +564,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
         if (style.flexDirection) {
           /** 成组 - 非单组件 */
           finalElements.push({
+            ...element,
             id,
             style: {
               marginTop,
@@ -574,11 +572,11 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               display: 'flex',
               flexDirection: style.flexDirection,
             },
-            elements: element.elements,
           })
         } else {
           /** 未成组 - 单组件 */
           finalElements.push({
+            ...element,
             id: element.id,
             style: {
               width: style.width,
@@ -586,8 +584,6 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               marginTop,
               marginLeft,
             },
-            brother: element.brother, // 单组件才有相交节点，分组生成的不会有
-            child: element.child
           })
         }
       } else {
@@ -603,25 +599,24 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
         if (style.flexDirection) {
           /** 成组 - 非单组件 */
           finalElements.push({
+            ...element,
             id,
             style: {
               display: 'flex',
               flexDirection: style.flexDirection,
               margin: `${marginTop}px 0px 0px ${marginLeft}px`,
             },
-            elements: element.elements
           })
         } else {
           /** 未成组 - 单组件 */
           finalElements.push({
+            ...element,
             id,
             style: {
               /** 不需要宽度，最终会设置flex属性 */
               height: style.height,
               margin: `${marginTop}px 0px 0px ${marginLeft}px`,
             },
-            brother: element.brother, // 单组件才有相交节点，分组生成的不会有
-            child: element.child
           })
         }
       }
