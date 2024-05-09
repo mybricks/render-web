@@ -124,9 +124,9 @@ function transformSlotComAry(
       if (slots) {
         const component = coms[com.id]
         // TODO: 目前没什么用
-        const isroot = component.model.style.heightAuto
+        // const isroot = component.model.style.heightAuto
         Object.entries(slots).forEach(([slotId, slot]) => {
-          transformSlotComAry(slot, coms, isroot, com)
+          transformSlotComAry(slot, coms, false, com)
         })
       }
     })
@@ -261,9 +261,9 @@ function transformSlotComAry(
       }
       if (slots) {
         // TODO: 目前没什么用
-        const isroot = component.model.style.heightAuto
+        // const isroot = component.model.style.heightAuto
         Object.entries(slots).forEach(([slotId, slot]) => {
-          transformSlotComAry(slot, coms, isroot, com)
+          transformSlotComAry(slot, coms, false, com)
         })
       }
 

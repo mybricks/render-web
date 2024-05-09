@@ -121,7 +121,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               }), {
                 // @ts-ignore
                 style: element.style,
-                root: true
+                // root: true
               }),
               style: {
                 // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
@@ -235,7 +235,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                       // @ts-ignore
                       widthFull: hasLeftWidthFull,
                     },
-                    root: true
+                    // root: true
                   })
                   // console.log("resultLeftElement.elements 结果", resultLeftElement.elements)
                 }
@@ -250,7 +250,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                 if (Array.isArray(resultLeftElement.elements)) {
                   resultLeftElement.elements = calculateLayoutRelationship(resultLeftElement.elements, {
                     style: resultLeftElement.style,
-                    root: true
+                    // root: true
                   })
                 }
               }
@@ -276,7 +276,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                     // @ts-ignore
                     widthFull: hasLeftWidthFull,
                   },
-                  root: true
+                  // root: true
                 })
               }
             }
@@ -308,7 +308,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                       // @ts-ignore
                       widthFull: hasRightWidthFull,
                     },
-                    root: true
+                    // root: true
                   })
                 }
               } else {
@@ -322,7 +322,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                 if (Array.isArray(resultRightElement.elements)) {
                   resultRightElement.elements = calculateLayoutRelationship(resultRightElement.elements, {
                     style: resultRightElement.style,
-                    root: true
+                    // root: true
                   })
                 }
               }
@@ -348,7 +348,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                     // @ts-ignore
                     widthFull: hasRightWidthFull,
                   },
-                  root: true
+                  // root: true
                 })
               }
             }
@@ -368,7 +368,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
           element.elements = calculateLayoutRelationship(element.elements, {
             // @ts-ignore
             style: element.style,
-            root: true
+            // root: true
           })
         }
       }
@@ -550,7 +550,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
         element.elements = calculateLayoutRelationship(element.elements, {
           // @ts-ignore
           style,
-          root: true
+          // root: true
         })
       }
 
@@ -920,7 +920,7 @@ function handleIntersectionsAndInclusions(elements: Elements) {
             left: 0,
             flexDirection: "column"
           },
-          root: true
+          // root: true
         });
 
         element.child = {

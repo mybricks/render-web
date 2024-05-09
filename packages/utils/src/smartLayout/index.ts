@@ -114,7 +114,7 @@ interface LayoutConfig {
   /**
    * 是否根slot，画布不参与高度的计算 - 这里的root目前主要是计算marginBottom的
    */
-  root: boolean;
+  root?: boolean;
 }
 
 interface DefaultLayoutStyle extends LayoutStyle {
