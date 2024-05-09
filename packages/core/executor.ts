@@ -1134,6 +1134,8 @@ export default function executor(opts, {observable}) {
                 }
               }
             }))
+          } else {
+            props.addInputTodo(pinId, val, inReg, scope)
           }
         }
       } else {//ui
