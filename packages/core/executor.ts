@@ -49,7 +49,7 @@ export default function executor(opts, {observable}) {
     Coms = new Proxy(coms, {
       get(target, key) {
         const result = target[key];
-        if (result._ready) {
+        if (!result || result._ready) {
           return result
         }
         const { def } = result
