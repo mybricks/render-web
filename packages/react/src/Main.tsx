@@ -46,21 +46,27 @@ export default function Main({json, options, style = {}, className = '', root = 
     if (slot?.showType === "module" || slot?.type === "module") {
       /** 做为组件使用的场景 - 目前是云组件出码，引擎配置showType: "module" */
       const { style: slotStyle } = slot;
-      if (slotStyle.heightAuto) {
-        style.height = "fit-content"
-      } else if (slotStyle.heightFull) {
-        style.height = "100%"
-      } else {
-        style.height = slotStyle.height
+
+      if (!style.hasOwnProperty('height')) {
+        if (slotStyle.heightAuto) {
+          style.height = "fit-content"
+        } else if (slotStyle.heightFull) {
+          style.height = "100%"
+        } else {
+          style.height = slotStyle.height
+        }
       }
-  
-      if (slotStyle.widthAuto) {
-        style.width = "fit-content"
-      } else if (slotStyle.widthFull) {
-        style.width = "100%"
-      } else {
-        style.width = slotStyle.width
+
+      if (!style.hasOwnProperty('width')) {
+        if (slotStyle.widthAuto) {
+          style.width = "fit-content"
+        } else if (slotStyle.widthFull) {
+          style.width = "100%"
+        } else {
+          style.width = slotStyle.width
+        }
       }
+
       slot.style.backgroundColor = slot.style.backgroundColor || "#ffffff00";
     }
 
