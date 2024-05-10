@@ -419,10 +419,24 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         modelStyle.flexShrink = 1
       }
 
+      const { marginTop, marginRight, marginBottom, marginLeft } = style;
+      if (isNumber(marginTop)) {
+        modelStyle.marginTop = marginTop
+      }
+      if (isNumber(marginRight)) {
+        modelStyle.marginRight = marginRight
+      }
+      if (isNumber(marginBottom)) {
+        modelStyle.marginBottom = marginBottom
+      }
+      if (isNumber(marginLeft)) {
+        modelStyle.marginLeft = marginLeft
+      }
+
       if (style.flex) {
         // 有flex属性，说明是有等比缩放的
         modelStyle.flex = style.flex
-        modelStyle.margin = style.margin
+        // modelStyle.margin = style.margin
         // 删除宽度相关属性
         Reflect.deleteProperty(modelStyle, "width")
         Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
@@ -430,15 +444,15 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         modelStyle.minWidth = style.minWidth
       } else if (style.width === 'auto') {
         // 计算后宽度是等比缩放
-        modelStyle.margin = style.margin
+        // modelStyle.margin = style.margin
         // @ts-ignore
         modelStyle.width = 'auto'
         Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
       } else {
         // TODO: 应该全都计算好？
-        if (!modelStyle.margin) {
-          modelStyle.margin = `${style.marginTop || 0}px ${style.marginRight || 0}px ${style.marginBottom || 0}px ${style.marginLeft || 0}px`
-        }
+        // if (!modelStyle.margin) {
+        //   modelStyle.margin = `${style.marginTop || 0}px ${style.marginRight || 0}px ${style.marginBottom || 0}px ${style.marginLeft || 0}px`
+        // }
       }
 
       // 目前没有 marginBottom
@@ -520,7 +534,7 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   // 删除引擎带来的运行时无用的样式
   remover("widthFact");
   remover("widthAuto");
-  remover("widthFull");
+  // remover("widthFull"); // TODO: 暂时不删除，有旧数据需要兼容
   remover("heightFact");
   remover("heightAuto");
   remover("heightFull");
@@ -535,7 +549,7 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   } = style;
 
   // 间距特殊处理
-  if (width === "100%") {
+  if (!width || ["100%", "auto"].includes(width)) {
     // 说明是 宽度等比缩放
     if (marginLeft > 0) {
       // 使用paddingLeft
@@ -549,7 +563,7 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
     }
   }
 
-  if (height === '100%') {
+  if (!height || ["100%", "auto"].includes(height)) {
      // 说明是 高度等比缩放
      if (marginTop > 0) {
       // 使用paddingTop

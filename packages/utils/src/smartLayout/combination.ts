@@ -28,20 +28,20 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
   const initElements = handleIntersectionsAndInclusions(elements)
   /** 基于规则开始分组 */
   let finalElements = getCombinationElements(sortByTopLeft(initElements))
-  finalElements = finalElements.map((element) => {
-    if (isNumber(element.style.right) || isNumber(element.style.bottom)) {
-      // 多包一层
-      return {
-        id: element.id,
-        style: element.style,
-        elements: [element]
-      }
-    }
-    return element
-  })
+  // finalElements = finalElements.map((element) => {
+  //   if (isNumber(element.style.right) || isNumber(element.style.bottom)) {
+  //     // 多包一层
+  //     return {
+  //       id: element.id,
+  //       style: element.style,
+  //       elements: [element]
+  //     }
+  //   }
+  //   return element
+  // })
   /** 计算最终的布局关系 */
   const res = calculateLayoutRelationship(finalElements, layoutConfig);
-  // res.length && console.log("最终结果: ", res)
+  // res.length && console.log("最终结果: ", JSON.parse(JSON.stringify(res)))
   return res;
 }
 
@@ -127,18 +127,24 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
           const marginRight = width - (nextElementStyle.left - left) - nextElementStyle.width;
 
           if (!leftElements[0]) {
+            const hasWidthFull = element.elements.find((element) => element.style.widthFull)
             /** 整行都是居右的 */
             finalElements.push({
               id: elements[0].id,
-              elements: calculateLayoutRelationship(element.elements, {
+              elements: calculateLayoutRelationship(element.elements.map((element) => {
+                /** TODO: 居右的情况下，是不是子元素都采用marginRight? */
+                Reflect.deleteProperty(element.style, "right")
+                return element
+              }), {
                 // @ts-ignore
-                style: element.style
+                style: element.style,
+                // root: true
               }),
               style: {
                 // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
                 marginTop,
                 /** 左距离 单个组件的话不需要设置marginLeft，直接使用flex-end放置在右侧 */
-                // marginLeft,
+                marginLeft: hasWidthFull ? marginLeft : 0,
                 marginRight,
                 display: "flex",
                 justifyContent: "flex-end", // 全部居右，相当于单组件居右，使用 flex-end
@@ -207,7 +213,10 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
 
             /** 父容器样式 */
             const parentStyle: any = {
-              margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
+              // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
+              marginTop,
+              marginRight,
+              marginLeft,
               display: "flex",
               justifyContent: "space-between", // 居右的情况下，使用space-between
               flexDirection: style.flexDirection,
@@ -226,7 +235,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   style: {
                     ...leftFirstElement.style,
                     // marginTop: leftFirstElement.style.top - style.top,
-                    margin: `${leftFirstElement.style.top - style.top}px ${0}px ${0}px ${0}px`,
+                    // margin: `${leftFirstElement.style.top - style.top}px ${0}px ${0}px ${0}px`,
+                    marginTop: leftFirstElement.style.top - style.top,
                     /** TODO: auto的情况下要用margin，后面整体改一下吧 */
                     width: 'auto',
                     flex: leftFlex
@@ -300,7 +310,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
                   style: {
                     ...rightFirstElement.style,
                     // marginTop: rightFirstElement.style.top - style.top,
-                    margin: `${rightFirstElement.style.top - style.top}px ${0}px ${0}px ${0}px`,
+                    // margin: `${rightFirstElement.style.top - style.top}px ${0}px ${0}px ${0}px`,
+                    marginTop: rightFirstElement.style.top - style.top,
                     width: 'auto',
                     flex: rightFlex,
                   }
@@ -456,16 +467,50 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
              * 未成组 - 单组件 
              * 不居中，计算间距即可
              */
-            finalElements.push({
-              ...element,
-              id,
-              style: {
-                width: style.width,
-                height: style.height,
-                marginTop,
-                marginLeft: style.left - left, // 不居中要设置左边距
-              },
-            })
+            if (isNumber(style.right)) {
+              /**
+               * 单组件居右
+               * 外面再套一层div
+               */
+              finalElements.push({
+                id,
+                style: {
+                  // 容器样式
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  /** 上距离 */
+                  marginTop,
+                  /** 左距离 单个组件的话不需要设置marginLeft，直接使用flex-end放置在右侧 */
+                  // marginLeft: style.left - left,
+                  /** 右距离 */
+                  marginRight: style.right
+                },
+                elements: [{
+                  ...element,
+                  id,
+                  style: {
+                    // 组件样式
+                    width: style.width,
+                    height: style.height,
+                  },
+                }]
+              })
+            } else {
+              /**
+               * 单组件非居右
+               * 正常计算
+              */
+              finalElements.push({
+                ...element,
+                id,
+                style: {
+                  width: style.width,
+                  height: style.height,
+                  marginTop,
+                  marginLeft: style.left - left, // 不居中要设置左边距
+                },
+              })
+            }
           }
         }
       } else {
@@ -481,7 +526,10 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
             style: {
               /** 铺满，即画布拉宽，组件也变宽 */
               width: 'auto',
-              margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
+              // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
+              marginTop,
+              marginRight,
+              marginLeft,
               display: 'flex',
               flexDirection: style.flexDirection,
             },
@@ -495,7 +543,10 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
               /** 铺满，即画布拉宽，组件也变宽 */
               width: 'auto',
               height: style.height,
-              margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
+              // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`, // 不计算下间距
+              marginTop,
+              marginRight,
+              marginLeft
             }
           })
         }
@@ -581,7 +632,9 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
             style: {
               display: 'flex',
               flexDirection: style.flexDirection,
-              margin: `${marginTop}px 0px 0px ${marginLeft}px`,
+              // margin: `${marginTop}px 0px 0px ${marginLeft}px`,
+              marginTop,
+              marginLeft
             },
           })
         } else {
@@ -592,7 +645,9 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
             style: {
               /** 不需要宽度，最终会设置flex属性 */
               height: style.height,
-              margin: `${marginTop}px 0px 0px ${marginLeft}px`,
+              // margin: `${marginTop}px 0px 0px ${marginLeft}px`,
+              marginTop,
+              marginLeft
             },
           })
         }
