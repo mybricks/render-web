@@ -1,6 +1,7 @@
-import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, SlotStyle, ComponentStyle } from "@mybricks/render-types";
+import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, SlotStyle, ComponentStyle, Style } from "@mybricks/render-types";
 import smartLayout, { ResultElement } from "./smartLayout";
 import { isNumber } from "./type";
+import { generatePropertyRemover } from "./normal";
 
 /** 处理引擎提供的toJSON数据 */
 export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
@@ -122,7 +123,7 @@ function transformSlotComAry(
       const { slots } = com
       // 深度遍历组件插槽，插槽内可能也是智能布局，需要做计算
       if (slots) {
-        const component = coms[com.id]
+        // const component = coms[com.id]
         // TODO: 目前没什么用
         // const isroot = component.model.style.heightAuto
         Object.entries(slots).forEach(([slotId, slot]) => {
@@ -186,6 +187,10 @@ function transformSlotComAry(
           widthFull: style.widthFull,
           // 是否自适应 -> 适应内容
           widthAuto: style.widthAuto,
+          // 是否铺满 -> 等比缩放
+          heightFull: style.heightFull,
+          // 是否自适应 -> 适应内容
+          heightAuto: style.heightAuto,
         },
       }
     }), {
@@ -206,30 +211,34 @@ function transformSlotComAry(
       // 组件样式信息
       const { style } = component.model
 
+      const remover = generatePropertyRemover(slot.style)
+
       // TODO: 下方计算目前没遇到问题，应该还需要调整
       if (!style.heightAuto && !style.heightFull) {
 
       } else if (style.heightAuto) {
         // 组件高度适应内容，删除插槽的高度，默认auto
-        Reflect.deleteProperty(slot.style, "height")
+        remover("height")
       } else {
         // 组件高度等比缩放，删除插槽的高度，默认auto
-        Reflect.deleteProperty(slot.style, "height")
+        remover("height")
       }
 
       if (!style.widthAuto && !style.widthFull) {
 
       } else if (style.widthAuto) {
         // 组件宽度适应内容，删除插槽的高度，默认auto
-        Reflect.deleteProperty(slot.style, "width")
+        remover("width")
       } else {
         // 组件宽度等比缩放，删除插槽的高度，默认auto
-        Reflect.deleteProperty(slot.style, "width")
+        remover("width")
       }
     }
     // 计算最终结果
     slot.layoutTemplate = traverseElementsToSlotComAry(layoutTemplate, coms, comIdToSlotComMap)
   } else {
+    // 不是智能布局，删除引擎带来的无用字段
+    Reflect.deleteProperty(slot, "layoutTemplate");
     /** 是自由布局吗 */
     const isAbsolute = slot.style.layout === "absolute"
     if (com) {
@@ -352,6 +361,7 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         elements: realElements
       })
     } else {
+      // 根据智能布局返回结果修改model.style
       // 真实组件，非成组元素
       // 组件样式信息
       const modelStyle = coms[id].model.style
@@ -437,16 +447,22 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
       // 对组件样式做处理，去除运行时无关的内容
       coms[id].model.style = getComponentStyle(modelStyle);
 
-      result.push({
-        ...comIdToSlotComMap[id],
-        // 添加兄弟节点，目前节点在组件dom内部
-        brother: traverseElementsToSlotComAry(com.brother || [], coms, comIdToSlotComMap),
-        // 添加children节点
-        child: com.child ? {
+      const resultElement: any = {
+        ...comIdToSlotComMap[id]
+      }
+      const { child, brother } = com;
+
+      if (brother?.length) {
+        resultElement.brother = traverseElementsToSlotComAry(brother, coms, comIdToSlotComMap)
+      }
+      if (child) {
+        resultElement.child = {
           ...com.child,
           elements: traverseElementsToSlotComAry(com.child.elements || [], coms, comIdToSlotComMap)
-        } : null
-      })
+        }
+      }
+
+      result.push(resultElement)
     }
   })
 
@@ -459,23 +475,25 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
  * 2. 提前计算部分样式，减少运行时计算
  */
 function getSlotStyle(style: SlotStyle) {
+  const remover = generatePropertyRemover(style);
+
   switch (style.layout) {
     case 'flex-row':
     case 'flex-column':
       break;
     default:
       // 不是flex布局，删除引擎带来的运行时无用的样式
-      Reflect.deleteProperty(style, "alignItems");
-      Reflect.deleteProperty(style, "justifyContent");
+      remover("alignItems");
+      remover("justifyContent");
       break;
   }
 
   // 删除引擎带来的运行时无用的样式
-  Reflect.deleteProperty(style, "widthFact");
-  Reflect.deleteProperty(style, "heightFact");
-  // Reflect.deleteProperty(style, "layout"); // TODO: 目前layout有用的，后续看能不能删除
+  remover("widthFact");
+  remover("heightFact");
+  // remover("layout"); // TODO: 目前layout有用的，后续看能不能删除
   // 引擎返回的，干嘛用的这是
-  Reflect.deleteProperty(style, "zoom");
+  remover("zoom");
 
   return style;
 }
@@ -485,24 +503,65 @@ function getSlotStyle(style: SlotStyle) {
  * 1. 优化样式，去除无用信息
  * 2. 提前计算部分样式，减少运行时计算
  */
-function getComponentStyle(style: ComponentStyle) {
+function getComponentStyle(style: any) { // toJSON定义的样式，会被修改，这里如何来定义ts
+  const remover = generatePropertyRemover(style);
   // 组件外部的样式应该只保留position、以及宽高相关属性
-  Reflect.deleteProperty(style, "display");
-  Reflect.deleteProperty(style, "flexDirection");
+  remover("display");
+  remover("flexDirection");
 
   if (style.position !== "absolute") {
     // 不是自由布局，删除四个方向属性
-    Reflect.deleteProperty(style, "left");
-    Reflect.deleteProperty(style, "top");
-    Reflect.deleteProperty(style, "right");
-    Reflect.deleteProperty(style, "bottom");
+    remover("left");
+    remover("top");
+    remover("right");
+    remover("bottom");
   }
 
   // 删除引擎带来的运行时无用的样式
-  Reflect.deleteProperty(style, "widthFact");
-  Reflect.deleteProperty(style, "heightFact");
-  Reflect.deleteProperty(style, "widthAuto");
-  Reflect.deleteProperty(style, "heightAuto");
+  remover("widthFact");
+  remover("widthAuto");
+  remover("widthFull");
+  remover("heightFact");
+  remover("heightAuto");
+  remover("heightFull");
+
+  const {
+    width,
+    height,
+    marginTop,
+    marginRight,
+    marginBottom,
+    marginLeft
+  } = style;
+
+  // 间距特殊处理
+  if (width === "100%") {
+    // 说明是 宽度等比缩放
+    if (marginLeft > 0) {
+      // 使用paddingLeft
+      style.paddingLeft = marginLeft
+      remover("marginLeft")
+    }
+    if (marginRight > 0) {
+      // 使用paddingRight
+      style.paddingRight = marginRight
+      remover("marginRight")
+    }
+  }
+
+  if (height === '100%') {
+     // 说明是 高度等比缩放
+     if (marginTop > 0) {
+      // 使用paddingTop
+      style.paddingTop = marginTop
+      remover("marginTop")
+    }
+    if (marginBottom > 0) {
+      // 使用paddingBottom
+      style.paddingBottom = marginBottom
+      remover("marginBottom")
+    }
+  }
 
   return style;
 }

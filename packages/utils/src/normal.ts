@@ -10,3 +10,10 @@ export function uuid(length: number = 2): string {
   }
   return id;
 }
+
+/** 生成一个属性删除器 */
+export function generatePropertyRemover(obj: Record<any, any>): (key: any) => boolean {
+  return (key) => {
+    return Reflect.deleteProperty(obj, key);
+  }
+}

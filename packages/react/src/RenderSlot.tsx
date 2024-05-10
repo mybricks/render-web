@@ -814,14 +814,16 @@ function getSizeStyle({style}) {
 }
 
 function getMarginStyle({style}) {
-  const marginStyle: any = {}
   const {
-    width,
-    margin,
+    margin, // TODO: 这里智能布局为了方便用到margin，后面看去掉
     marginTop,
     marginLeft,
     marginRight,
-    marginBottom
+    marginBottom,
+    paddingTop,
+    paddingLeft,
+    paddingRight,
+    paddingBottom
   } = style
 
   if (margin) {
@@ -830,28 +832,16 @@ function getMarginStyle({style}) {
     }
   }
 
-  if (isNumber(marginTop)) {
-    marginStyle.marginTop = marginTop + "px"
+  return {
+    marginTop,
+    marginLeft,
+    marginRight,
+    marginBottom,
+    paddingTop,
+    paddingLeft,
+    paddingRight,
+    paddingBottom
   }
-  if (isNumber(marginLeft)) {
-    if (typeof width === "number" || marginLeft < 0) {
-      marginStyle.marginLeft = marginLeft + "px"
-    } else {
-      marginStyle.paddingLeft = marginLeft + "px"
-    }
-  }
-  if (isNumber(marginRight)) {
-    if (typeof width === "number" || marginRight < 0) {
-      marginStyle.marginRight = marginRight + "px"
-    } else {
-      marginStyle.paddingRight = marginRight + "px"
-    }
-  }
-  if (isNumber(marginBottom)) {
-    marginStyle.marginBottom = marginBottom + "px"
-  }
-
-  return marginStyle
 }
 
 function getStyleAry ({ env, style, def }) {

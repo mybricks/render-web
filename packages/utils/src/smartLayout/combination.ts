@@ -88,6 +88,8 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
     left,
     /** 父元素宽度 */
     width,
+    /** 父元素高度 */
+    height,
     /** 父元素非自动成组标识 */
     isNotAutoGroup,
   } = layoutConfig.style;
@@ -128,14 +130,9 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
             /** 整行都是居右的 */
             finalElements.push({
               id: elements[0].id,
-              elements: calculateLayoutRelationship(element.elements.map((element) => {
-                /** TODO: 居右的情况下，是不是子元素都采用marginRight? */
-                Reflect.deleteProperty(element.style, "right")
-                return element
-              }), {
+              elements: calculateLayoutRelationship(element.elements, {
                 // @ts-ignore
-                style: element.style,
-                // root: true
+                style: element.style
               }),
               style: {
                 // margin: `${marginTop}px ${marginRight}px ${0}px ${marginLeft}px`,
