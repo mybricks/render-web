@@ -27,7 +27,18 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
   /** 处理相交关系 */
   const initElements = handleIntersectionsAndInclusions(elements)
   /** 基于规则开始分组 */
-  const finalElements = getCombinationElements(sortByTopLeft(initElements))
+  let finalElements = getCombinationElements(sortByTopLeft(initElements))
+  finalElements = finalElements.map((element) => {
+    if (isNumber(element.style.right) || isNumber(element.style.bottom)) {
+      // 多包一层
+      return {
+        id: element.id,
+        style: element.style,
+        elements: [element]
+      }
+    }
+    return element
+  })
   /** 计算最终的布局关系 */
   const res = calculateLayoutRelationship(finalElements, layoutConfig);
   // res.length && console.log("最终结果: ", res)
@@ -97,7 +108,7 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
         /** 有elements，一定是成组的 */
         const { style, elements } = element;
         /** 从左至右排序，再找出最左边居右的元素 */
-        const rightIndex = elements.sort((p, c) => p.style.left - c.style.left).findIndex((element) => typeof element.style.right === "number");
+        const rightIndex = elements.sort((p, c) => p.style.left - c.style.left).findIndex((element) => isNumber(element.style.right));
 
         if (rightIndex !== -1) {
           /** 居左的元素 */
@@ -448,50 +459,16 @@ function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutCon
              * 未成组 - 单组件 
              * 不居中，计算间距即可
              */
-            if (isNumber(style.right)) {
-              /**
-               * 单组件居右
-               * 外面再套一层div
-               */
-              finalElements.push({
-                id,
-                style: {
-                  // 容器样式
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  /** 上距离 */
-                  marginTop,
-                  /** 左距离 单个组件的话不需要设置marginLeft，直接使用flex-end放置在右侧 */
-                  // marginLeft: style.left - left,
-                  /** 右距离 */
-                  marginRight: style.right
-                },
-                elements: [{
-                  ...element,
-                  id,
-                  style: {
-                    // 组件样式
-                    width: style.width,
-                    height: style.height,
-                  },
-                }]
-              })
-            } else {
-              /**
-               * 单组件非居右
-               * 正常计算
-              */
-              finalElements.push({
-                ...element,
-                id,
-                style: {
-                  width: style.width,
-                  height: style.height,
-                  marginTop,
-                  marginLeft: style.left - left, // 不居中要设置左边距
-                },
-              })
-            }
+            finalElements.push({
+              ...element,
+              id,
+              style: {
+                width: style.width,
+                height: style.height,
+                marginTop,
+                marginLeft: style.left - left, // 不居中要设置左边距
+              },
+            })
           }
         }
       } else {

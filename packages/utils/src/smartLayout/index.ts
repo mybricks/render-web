@@ -65,6 +65,10 @@ export interface Element {
      */
     widthAuto?: boolean;
     /**
+     * 是否Y轴填充
+     */
+    heightFull?: boolean;
+    /**
      * 是否Y轴自适应
      */
     heightAuto?: boolean;
