@@ -6,8 +6,8 @@ export function isIntersecting({width: widthA, height: heightA, top: topA, left:
   const bottomB = topB + heightB;
 
   if (rightA <= leftB || leftA >= rightB || bottomA <= topB || topA >= bottomB) {
-      return false; // 两个矩形不相交
+    return false; // 两个矩形不相交
   } else {
-      return true; // 两个矩形相交
+    return true; // 两个矩形相交
   }
 }

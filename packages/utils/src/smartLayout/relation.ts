@@ -107,6 +107,8 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
             isNotAutoGroup: true,
             top: 0,
             left: 0,
+            right: 0,
+            bottom: 0,
             flexDirection: "column"
           },
           // root: true
@@ -178,6 +180,7 @@ export function getElementRelation({width: widthA, height: heightA, top: topA, l
   }
 }
 
+/** 元素信息 */
 interface Adjacency {
   element: Element
   space: number
@@ -296,6 +299,7 @@ export function getElementAdjacency(elements: Elements) {
       right,
       bottom,
       single: !left && !right,
+      // single: !left && !right && !bottom && !top,// 上下左右都没有，才算单个组件
       spaceSort: []
     }
   })
@@ -358,7 +362,6 @@ export function getElementAdjacency(elements: Elements) {
         }
         return pre
       } else {
-
         return pre || cur
       }
     })

@@ -3,6 +3,9 @@ import { getElementAdjacency } from "./relation"
 
 import type { Elements, Element } from "."
 
+import { ps, log } from "./combination"
+import { isNumber } from "../type";
+
 /**
  * 基于规则的分组
  */
@@ -98,27 +101,6 @@ function convertedToElements(elements: Array<Element | Elements>) {
       if (!element0FlexDirection && !element1FlexDirection) {
 
       } else {
-        /** 合并相同方向的元素 */
-        // if (element0FlexDirection === flexDirection) {
-        //   calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
-        // } else if (element1FlexDirection === flexDirection) {
-        //   calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
-        // }
-
-        // if (element0FlexDirection === flexDirection) {
-        //   if (element0FlexDirection === element1FlexDirection) {
-        //     calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])].map((element) => ({...element, style: element.tempStyle || element.style}))
-        //   } else {
-        //     calculateElements = [...element0.elements, element1].map((element) => ({...element, style: element.tempStyle || element.style}))
-        //   }
-        // } else if (element1FlexDirection === flexDirection) {
-        //   if (element1FlexDirection === element0FlexDirection) {
-        //     calculateElements = [...(element0.elements ? element0.elements : [element0]), ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
-        //   } else {
-        //     calculateElements = [element0, ...element1.elements].map((element) => ({...element, style: element.tempStyle || element.style}))
-        //   }
-        // }
-
         if (element0FlexDirection === flexDirection) {
           if (element0FlexDirection === element1FlexDirection) {
             calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])]
@@ -147,18 +129,9 @@ function convertedToElements(elements: Array<Element | Elements>) {
 
       // 如果是纵向合并
       if (flexDirection === "column") {
-        // 全部居右的话，认为是居右的
-        if (calculateElements.filter(e => e.style.right).length === calculateElements.length) {
-          const minRight = calculateElements.slice(1).reduce((p, c) => {
-            return c.style.right > p ? p : c.style.right;
-          }, calculateElements[0].style.right);
-  
-          parentStyle.right = minRight;
-        }
-        // 如果是纵向排列的话，将居右删除
-        calculateElements.forEach((e) => {
-          Reflect.deleteProperty(e.style, "right");
-        })
+        parentStyle.right = 0
+      } else {
+        parentStyle.right = 0
       }
 
       convertedElements.push({

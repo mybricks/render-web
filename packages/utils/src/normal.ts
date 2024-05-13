@@ -17,3 +17,35 @@ export function generatePropertyRemover(obj: Record<any, any>): (key: any) => bo
     return Reflect.deleteProperty(obj, key);
   }
 }
+
+/** 获取最大公约数 */
+export function findGCD(arr: Array<number>) {
+  // 找到数组中的最小值
+  const min = Math.min(...arr);
+
+  // 初始化公约数为最小值
+  let gcd = min;
+
+  // 从最小值开始递减，直到找到最大公约数
+  while (gcd > 1) {
+    let isGCD = true;
+
+    // 检查数组中的每个元素是否能被公约数整除
+    for (let i = 0; i < arr.length; i++) {
+      if (arr[i] % gcd !== 0) {
+        isGCD = false;
+        break;
+      }
+    }
+
+    // 如果所有元素都能被公约数整除，则找到最大公约数
+    if (isGCD) {
+      break;
+    }
+
+    // 否则，继续递减公约数
+    gcd--;
+  }
+
+  return gcd;
+}

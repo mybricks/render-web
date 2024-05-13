@@ -125,10 +125,17 @@ interface DefaultLayoutStyle extends LayoutStyle {
   flexDirection: "row" | "column"
   top: number
   left: number
+  right: number
+  bottom: number
 }
 
 export interface DefaultLayoutConfig extends LayoutConfig {
   style: DefaultLayoutStyle
+  // 从右往左计算
+  startOnRight?: boolean
+
+  // 从左往右计算
+  startOnLeft?: boolean
 }
 
 export default function smartLayout(elements: Array<Element>, layoutConfig: LayoutConfig) {
@@ -140,6 +147,8 @@ export default function smartLayout(elements: Array<Element>, layoutConfig: Layo
         ...layoutConfig.style,
         top: 0,
         left: 0,
+        right: 0,
+        bottom: 0,
         flexDirection: "column" // 页面默认是纵向排列
       },
       root: layoutConfig.root
