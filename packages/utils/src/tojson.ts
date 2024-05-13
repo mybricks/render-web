@@ -520,7 +520,9 @@ function getSlotStyle(style: SlotStyle) {
 function getComponentStyle(style: any) { // toJSON定义的样式，会被修改，这里如何来定义ts
   const remover = generatePropertyRemover(style);
   // 组件外部的样式应该只保留position、以及宽高相关属性
-  remover("display");
+  if (style.display !== "none") {
+    remover("display");
+  }
   remover("flexDirection");
 
   if (style.position !== "absolute") {
