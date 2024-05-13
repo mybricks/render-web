@@ -123,21 +123,56 @@ function convertedToElements(elements: Array<Element | Elements>) {
         width,
         height,
         flexDirection,
-        widthFull: element.find((element) => element.style.widthFull) ? 1 : null,
         isNotAutoGroup: false
       }
 
-      // 如果是纵向合并
-      if (flexDirection === "column") {
-        parentStyle.right = 0
-      } else {
-        parentStyle.right = 0
+      element.forEach((element) => {
+        const elementStyle = element.style
+        if (elementStyle.widthFull) {
+          parentStyle.widthFull = 1
+        }
+        if (elementStyle.heightFull) {
+          parentStyle.heightFull = 1
+        }
+        if (isNumber(elementStyle.right)) {
+          parentStyle.right = 0
+        }
+        if (isNumber(elementStyle.bottom)) {
+          parentStyle.bottom = 0
+        }
+      })
+
+      if (isNumber(parentStyle.right)) {
+        calculateElements.forEach((element) => {
+          if (isNumber(element.style.right)) {
+            element.style.right = 0 // 整体居右，所以内部居右元素可以设置为0 TODO: 在parent为非widthFull时，可以把right删除？
+          }
+        })
       }
+      if (isNumber(parentStyle.bottom)) {
+        // 居下
+      }
+
+      if (flexDirection === "column") {
+        // 纵向可以把left删除，父容器设置left
+        calculateElements.forEach((element) => {
+          element.style.left = element.style.left - parentStyle.left
+        })
+      } else {
+        // 横向可以把top删除，父容器设置top
+        // log(2, ps(element))
+      }
+
+      // 如果是纵向合并
+      // if (flexDirection === "column") {
+      //   // parentStyle.right = 0
+      // } else {
+      //   // parentStyle.right = 0
+      // }
 
       convertedElements.push({
         id: element0.id,
         style: parentStyle,
-        // elements: calculateLayoutData(calculateElements, { style: { width, flexDirection, top, left, height }, root: true, isNotAutoGroup: false })
         elements: calculateElements
       })
     } else {

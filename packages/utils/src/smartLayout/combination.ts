@@ -104,20 +104,23 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         } else if (element.style.flexDirection === "column") {
           log("下一步是处理这块逻辑")
           // 纵向排列
-          const { style: parentStyle, elements } = columnFlexLayout(element, layoutConfig)
-          element.elements = elements
-          finalStyle = parentStyle
+          // const { style: parentStyle, elements } = columnFlexLayout(element, layoutConfig)
+          // element.elements = elements
+          // finalStyle = parentStyle
         }
       }
 
+      /** 当前元素左外间距 */
+      const marginLeft = isNotAutoGroup ? style.left - left : 0; // 如果没成组，需要计算，成组后的left是0，直接是0即可
+
       /** 当前元素右外间距 */
-      const marginRight = width - (style.left - left) - style.width;
+      const marginRight = width - marginLeft - style.width;
 
       if (!style.widthFull) {
         /** 当前元素未铺满 */
         if (
           /** 当前元素左侧距容器间距与右侧距容器间距相同时 */
-          Math.abs(style.left - left - marginRight) <= 1 && 
+          Math.abs(marginLeft - marginRight) <= 1 && 
           /** 非自动成组 - 搭建时手动框选成组 */
           isNotAutoGroup && 
           /** 没有flexDirection说明是单个组件 */
@@ -180,7 +183,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                 id,
                 style: {
                   marginTop,
-                  marginLeft: style.left - left, // 不居中要设置左边距
+                  marginLeft, // 不居中要设置左边距
                   display: "flex",
                   flexDirection: style.flexDirection,
                 }
@@ -204,8 +207,6 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                   justifyContent: "flex-end",
                   /** 上距离 */
                   marginTop,
-                  /** 左距离 单个组件的话不需要设置marginLeft，直接使用flex-end放置在右侧 */
-                  // marginLeft: style.left - left,
                   /** 右距离 */
                   marginRight: style.right
                 },
@@ -231,7 +232,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                   width: style.width,
                   height: style.height,
                   marginTop,
-                  marginLeft: style.left - left, // 不居中要设置左边距
+                  marginLeft, // 不居中要设置左边距
                 },
               })
             }
@@ -239,9 +240,6 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         }
       } else {
         /** 当前元素铺满 */
-        /** 当前元素左间距 */
-        const marginLeft = style.left - left;
-
         if (style.flexDirection) {
           /** 成组 - 非单组件 */
           finalElements.push({

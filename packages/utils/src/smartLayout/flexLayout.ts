@@ -30,11 +30,12 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
       rightElements.forEach((element) => {
         const elementStyle = element.style
         elementStyle.right = layoutStyleRight - elementStyle.left - elementStyle.width - lastRight
-        if (element.elements) {
-          element.elements.forEach((element) => {
-            element.style.right = element.style.right - lastRight
-          })
-        }
+        // TOD
+        // if (element.elements) {
+        //   element.elements.forEach((element) => {
+        //     element.style.right = element.style.right - lastRight
+        //   })
+        // }
       })
 
       return {
