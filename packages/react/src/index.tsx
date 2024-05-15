@@ -13,7 +13,7 @@ import Main from "./Main";
 import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import Debugger from "./plugins/Debugger";
-import { hijackReactcreateElement, observable as defaultObservable } from "./observable"
+import { hijackReactcreateElement, observable as defaultObservable } from "../../core/observable"
 import RenderSlotLess from './RenderSlot.lazy.less';
 import MultiSceneLess from './MultiScene.lazy.less';
 import ErrorBoundaryLess from './ErrorBoundary/style.lazy.less';
@@ -548,5 +548,5 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
 //   }
 // }
 
-export * from "./observable"
+export * from "../../core/observable"
 export { executor }

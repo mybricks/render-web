@@ -12,7 +12,7 @@ import {
   globalTaskEmitter,
   globalReactionStack
 } from "./global";
-import { isObject, pxToRem, pxToVw } from "../../../core/utils";
+import { isObject, pxToRem, pxToVw } from "../utils";
 import baseHandlers from "./handles";
 
 const globalKey = "__render-web-createElement__";

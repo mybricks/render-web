@@ -1,4 +1,4 @@
-import { isObject } from "../../../../core/utils";
+import { isObject } from "../../utils";
 import { proxyToRaw, rawToProxy } from ".";
 
 class TaskEmitter {

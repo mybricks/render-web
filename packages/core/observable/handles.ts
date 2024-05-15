@@ -1,5 +1,5 @@
 import { observable } from "./";
-import { isObject } from "../../../core/utils";
+import { isObject } from "../utils";
 import {
   rawToProxy,
   proxyToRaw,
