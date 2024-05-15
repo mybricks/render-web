@@ -1,0 +1,28 @@
+{
+  "name": "@mybricks/render-core",
+  "version": "0.0.1",
+  "description": "",
+  "main": "dist/es/index.js",
+  "module": "dist/es/index.js",
+  "typings": "dist/es/index.d.ts",
+  "scripts": {
+    "build": "ts-node scripts/build.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "devDependencies": {
+    "@types/gulp": "^4.0.17",
+    "gulp": "^5.0.0",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}
