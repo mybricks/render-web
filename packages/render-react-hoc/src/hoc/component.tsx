@@ -1,8 +1,9 @@
-import React, { useMemo, forwardRef,useImperativeHandle } from "react";
+import React, { useRef, useMemo, forwardRef, useImperativeHandle, createContext, useContext } from "react";
 
 import { createFakePromise } from "../utils";
 import { observable } from "../observable";
 import { useMyBricksRenderContext, useSceneContext } from "../hooks";
+import { uuid } from "@mybricks/render-utils";
 
 interface Params {
   data: any;
@@ -12,9 +13,17 @@ interface Params {
   events?: any;
 }
 
+interface SlotRenderParams {
+  /** 唯一键 */
+  key?: string;
+  /** 输入，key对应输入ID */
+  inputValues?: {[key: string]: any};
+}
+
 export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
-  const { env } = useMyBricksRenderContext();
-  const { _env } = useSceneContext();
+  const { env, getScene, getComponent } = useMyBricksRenderContext();
+  const { _env, scene } = useSceneContext();
+  const scope = useScopeSlotContext();
   const {
     data,
     style,
@@ -61,7 +70,10 @@ export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
       {},
       {
         get(_, key) {
-          return events[key] || function () {};
+          return (value: unknown) => {
+            return events[key]?.(value, scope);
+            // return (events[key] || function () {})(value, scopeId);
+          }
         },
       },
     );
@@ -71,9 +83,17 @@ export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
       {
         get(_, key) {
           return {
-            render() {
-              const Slot = paramSlots[key];
-              return <Slot />;
+            render(params: SlotRenderParams = {}) {
+              const { type, runtime: Runtime } = paramSlots[key];
+              const { key: comKey, ...other } = params;
+
+              if (type === "scope") {
+                return (
+                  <ScopeSlot key={comKey} runtime={Runtime} parentScope={scope} {...other} />
+                )
+              }
+
+              return <Runtime key={comKey} {...other}/>;
             },
           };
         },
@@ -84,7 +104,7 @@ export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
       slots,
       inputs,
       outputs,
-      Component: component,
+      Component: getComponent(component),
       data: observableData,
       style: observableStyle,
       registeredInputFunctions
@@ -92,8 +112,18 @@ export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
   }, []);
 
   useImperativeHandle(ref, () => {
-    return registeredInputFunctions;
-  });
+    /** 目前组件中都是在useEffect中注册inputs，所以直接使用即可 */
+    return {
+      setComponent(id: string, events: any) {
+        Object.entries(events).forEach(([key, fn]: any) => {
+          const inputFunc = registeredInputFunctions[key];
+          registeredInputFunctions[key] = fn(inputFunc);
+        });
+
+        scene.componentPropsMap[id] = registeredInputFunctions;
+      }
+    }
+  }, []);
 
   return (
     // 这里style的解构之后优化下
@@ -110,6 +140,34 @@ export const UiComponentWrapper = forwardRef((params: Params, ref: any) => {
     </div>
   );
 })
+
+/** 作用域插槽 */
+function ScopeSlot({ runtime: Runtime, parentScope, ...other }: { runtime: any, parentScope?: ScopeContext }) {
+  /** 作用域插槽唯一随机唯一ID */
+  // const id = useRef(parentScope ? `${parentScope}_` : "" + uuid(4)).current;
+  const id = useRef(uuid(4)).current;
+
+  return (
+    <ScopeSlotContext.Provider value={{ scopeId: id, parent: parentScope }}>
+      {/* <Runtime scopeId={id} {...other} /> */}
+      <Runtime {...other} />
+    </ScopeSlotContext.Provider>
+  )
+}
+
+interface ScopeContext {
+  /** 当前作用域插槽ID */
+  scopeId: string;
+  /** 父节点，用于向上查找ID */
+  parent?: ScopeContext;
+}
+
+/** 作用域插槽全局上下文 */
+const ScopeSlotContext = createContext<ScopeContext>({scopeId: ""});
+/** 获取作用域插槽全局上下文 */
+function useScopeSlotContext() {
+  return useContext(ScopeSlotContext);
+}
 
 /** 单输入单输出 并且 输出只有一条连线 */
 export function handleSingleOutput(func: any) {

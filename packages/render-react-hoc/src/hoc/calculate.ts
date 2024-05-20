@@ -238,16 +238,23 @@ export function fxWrapper<T extends (...args: any[]) => any>(fn: T) {
 }
 
 /** 场景状态包装器 */
-export function sceneStateWrapper(this: any, sceneId: string) {
+export function sceneContextWrapper(this: any, sceneId: string) {
+  let scene;
   /** 场景打开输入的值 */
   let openData: unknown;
+  /** 获取场景 */
+  const getScene = () => {
+    return scene ||= this.globalContext.getScene(sceneId);
+  }
   /** 打开场景 */
   const openScene = () => {
-    this.globalContext.openScene(sceneId)
+    // this.globalContext.openScene(sceneId)
+    getScene().open();
   };
   /** 关闭场景 */
   const closeScene = () => {
-    this.globalContext.closeScene(sceneId);
+    // this.globalContext.closeScene(sceneId);
+    getScene().close();
     openData = void 0;
   };
   const promisesCollection = new Proxy<any>(
@@ -310,6 +317,16 @@ export function sceneStateWrapper(this: any, sceneId: string) {
       return (value: unknown) => {
         func.bind(bindProxy)(value);
       }
+    },
+    /** 写入组件信息，当前仅组件的输入 */
+    setComponent(id: string, componentProps: {[key: string]: (value?: unknown) => any;}) {
+      // console.log(id, "注册的组件 id")
+      // console.log(getScene(), "getScene() 获取当前场景信息")
+      getScene().componentPropsMap[id] = componentProps;
+    },
+    /** 获取组件信息，当前仅组件的输入 */
+    getComponent(id: string) {
+      return getScene().componentPropsMap[id];
     }
   };
 }

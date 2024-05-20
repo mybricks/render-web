@@ -8,7 +8,7 @@ import { ToJSON } from "@mybricks/render-types";
  */
 export function handleAppEntry(toJSON: ToJSON) {
   const { scenes } = toJSON;
-  return `import React, { useMemo, useState } from "react";
+  return `import React from "react";
 
   import { MyBricksRenderProvider, SceneProvider } from "@mybricks/render-react-hoc";
 
@@ -19,25 +19,51 @@ export function handleAppEntry(toJSON: ToJSON) {
   )} } from "@/slots";
   
   export default function App() {
-    const [, refresh] = useState(0)
-    const scenesMap = useMemo(() => {
-      globalContext.setScenesRefresh(refresh)
-      return globalContext.scenesMap
-    }, [])
-  
     return (
       <MyBricksRenderProvider value={globalContext}>
         ${scenes.reduce(
           (p, c) =>
-            p + `{/* ${c.title} */}\n{scenesMap['${c.id}'].show && (
+            p + `{/* ${c.title} */}
               <SceneProvider value="${c.id}">
                 <Slot_${c.id} />
               </SceneProvider>
-            )}`,
+            `,
           "",
         )}
       </MyBricksRenderProvider>
     );
   }
   `;
+  // return `import React, { useMemo, useState } from "react";
+
+  // import { MyBricksRenderProvider, SceneProvider } from "@mybricks/render-react-hoc";
+
+  // import globalContext from "@/globalContext"
+  // import { ${scenes.reduce(
+  //   (p, c) => (p ? `${p}, Slot_${c.id}` : `Slot_${c.id}`),
+  //   "",
+  // )} } from "@/slots";
+  
+  // export default function App() {
+  //   const [, refresh] = useState(0)
+  //   const scenesMap = useMemo(() => {
+  //     globalContext.setScenesRefresh(refresh)
+  //     return globalContext.scenesMap
+  //   }, [])
+  
+  //   return (
+  //     <MyBricksRenderProvider value={globalContext}>
+  //       ${scenes.reduce(
+  //         (p, c) =>
+  //           p + `{/* ${c.title} */}\n{scenesMap['${c.id}'].show && (
+  //             <SceneProvider value="${c.id}">
+  //               <Slot_${c.id} />
+  //             </SceneProvider>
+  //           )}`,
+  //         "",
+  //       )}
+  //     </MyBricksRenderProvider>
+  //   );
+  // }
+  // `;
 }

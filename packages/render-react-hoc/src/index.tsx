@@ -1,5 +1,7 @@
 import React, { useMemo } from "react";
 
+import type { ReactNode } from "react";
+
 import { MyBricksRenderContext, MyBricksRenderProviderProps, SceneProvider } from "./hooks";
 import { hijackReactcreateElement } from "./observable";
 
@@ -10,7 +12,7 @@ import {
   UiComponentWrapper,
   handleSingleOutput,
   handleMultipleOutputs,
-  sceneStateWrapper as sSW,
+  sceneContextWrapper as sCW,
   jsComponentSingleOutputWrapper as jsCSOW,
   jsComponentMultipleOutputsWrapper as jsCMOW,
   jsComponentMultipleInputsWrapper as jsCMIW,
@@ -22,24 +24,55 @@ hijackReactcreateElement();
 export interface GlobalContext {
   /** 环境参数 - 注入组件 */
   env: any;
-  /** 获取组件定义 */
-  getComponent: (namespace: string) => any;
+  /** 组件定义 - namespace => React组件 */
+  componentMap: { [key: string]: React.FC<any>; }
+}
+
+interface Scene {
+  /** 是否展示 - 未来应该只有popup才有这个，page直接使用react-router */
+  show: boolean;
+  /** 组件可调用inputs信息 */
+  componentPropsMap: any;
+  /** 开启场景 */
+  open: () => void;
   /** 关闭场景 */
-  closeScene: (sceneId: string) => void;
+  close: () => void;
+}
+
+export interface MyBricksGlobalContext extends GlobalContext {
+  scenesMap: {
+    /** 场景ID */
+    [key: string]: Scene;
+  }
+  /** 获取组件定义 */
+  getComponent: (namespace: string) => React.FC<any>;
+  /** 获取场景信息 */
+  getScene: (sceneId: string) => Scene;
 }
 
 /** 函数都需要通过这里转一到，工程代码中只需要传入一次env */
 export class MyBricks {
   // @ts-ignore
-  globalContext: GlobalContext = {};
+  globalContext: MyBricksGlobalContext = {
+    scenesMap: {},
+    getComponent: (namespace) => {
+      return this.globalContext.componentMap[namespace];
+    },
+    getScene: (sceneId) => {
+      return this.globalContext.scenesMap[sceneId];
+    },
+  };
 
   get MyBricksRenderProvider() {
-    return ({ children, value }: MyBricksRenderProviderProps) => {
+    return ({ children, value }: { children: ReactNode, value: GlobalContext}) => {
+      const { globalContext } = this;
       useMemo(() => {
-        this.globalContext = value;
+        const { env, componentMap } = value;
+        globalContext.env = env;
+        globalContext.componentMap = componentMap;
       }, []);
       return (
-        <MyBricksRenderContext.Provider value={value}>
+        <MyBricksRenderContext.Provider value={globalContext}>
           {children}
         </MyBricksRenderContext.Provider>
       );
@@ -58,8 +91,8 @@ export class MyBricks {
     return jsCMIW.bind(this)(params);
   }
 
-  sceneStateWrapper(sceneId: Parameters<typeof sSW>[0]) {
-    return sSW.bind(this)(sceneId);
+  sceneContextWrapper(sceneId: Parameters<typeof sCW>[0]) {
+    return sCW.bind(this)(sceneId);
   }
 }
 
@@ -72,7 +105,7 @@ export const jsComponentMultipleOutputsWrapper =
   mybricks.jsComponentMultipleOutputsWrapper.bind(mybricks);
 export const jsComponentMultipleInputsWrapper =
   mybricks.jsComponentMultipleInputsWrapper.bind(mybricks);
-export const sceneStateWrapper = mybricks.sceneStateWrapper.bind(mybricks);
+export const sceneContextWrapper = mybricks.sceneContextWrapper.bind(mybricks);
 
 /** 空 - 占位 */
 export const _ = Symbol.for("mybricks.empty");

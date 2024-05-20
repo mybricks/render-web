@@ -160,9 +160,10 @@ class Generate {
     /** process.env.MYBRICKS_TOCODE_ENV === "test" 说明是本地测试，调用codeFormat */
     const isTest = process.env.MYBRICKS_TOCODE_ENV === "test";
 
-    // TODO: 临时注释
     return Promise.all(this.codeArray.map(async ({ code, filePath }) => {
       if (isTest) {
+        // TODO: 临时测试代码
+        code = code.replace("@mybricks/render-react-hoc", "/Users/lianglihao/Documents/GitHub/render-web/packages/render-react-hoc/src")
         /** TODO: 暂时去除，ZL环境报错 */
         fse.outputFileSync(filePath, await codeFormat(code, { parser: codeFormatParserMap[getFileExtension(filePath)] }), "utf-8");
       } else {

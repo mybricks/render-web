@@ -21,6 +21,11 @@ export type EventType =
 interface HandleEventsConfig extends HandleConfig {
   /** 事件类型 */
   eventType: EventType;
+  /** 
+   * 是否在作用域内
+   * 如果在作用域内，需要特殊处理
+   */
+  inScopeSlot?: boolean;
 }
 
 interface Next {
@@ -113,7 +118,7 @@ export class HandleEvents {
   handleComEvents(diagram: ComDiagram | VarDiagram | FrameDiagram) {
     const { nextsMap, handleConfig, eventInfo, scene, promiseExcuteComponents } = this;
     const { id, coms, pinProxies } = scene;
-    const { filePath, eventType } = handleConfig;
+    const { filePath, eventType, inScopeSlot } = handleConfig;
     const { title, starter, conAry } = diagram;
 
     /**
@@ -207,7 +212,7 @@ export class HandleEvents {
         const sceneId = component.model.data._sceneId;
         if (!importScenesMap[sceneId]) {
           importScenesMap[sceneId] = true;
-          importScenes.add(`import { sceneState as sceneState_${sceneId} } from "@/slots/slot_${sceneId}";`);
+          importScenes.add(`import { sceneContext as sceneContext_${sceneId} } from "@/slots/slot_${sceneId}";`);
         }
       }
 
@@ -226,18 +231,6 @@ export class HandleEvents {
     let nextsCode = "";
     /** 类型声明 */
     let typeDeclarationCode = "";
-
-    /** 此类this上下文都用Context，应该是全部通用的 */
-    typeDeclarationCode = `
-      type Context = Record<string, unknown>${frameOutputsConAry.length ? ` & {
-        ${frameOutputsConAry.map(({to}) => {
-          return `
-            /** ${to.title} */
-            ${to.id}: (value: unknown) => void;
-          `;
-        }).join("")}
-      }` : ""};
-    `;
 
     if (eventType === "fx") {
       /** 目前只有fx有配置项，特殊处理一下 */
@@ -289,7 +282,7 @@ export class HandleEvents {
       // `
 
       nextsCode = `/** ${title} */
-        export default fxWrapper(async function (this: Context, ${params}) {
+        export default fxWrapper(async function (this: Context, ${params}${inScopeSlot ? ", scopeId: string" : ""}) {
           ${nextsCode}
         });
       `;
@@ -303,7 +296,7 @@ export class HandleEvents {
       const outputs = nextsMap[frameId]?.[id];
       nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
       nextsCode = `/** ${title} */
-        export default async function (${params}) {
+        export default async function (${params}${inScopeSlot ? ", scopeId: string" : ""}) {
           ${nextsCode}
         }
       `;
@@ -320,15 +313,15 @@ export class HandleEvents {
       const sceneId = frameId;
       if (!importScenesMap[sceneId]) {
         importScenesMap[sceneId] = true;
-        importScenes.add(`import { sceneState as sceneState_${sceneId} } from "@/slots/slot_${sceneId}";`);
+        importScenes.add(`import { sceneContext as sceneContext_${sceneId} } from "@/slots/slot_${sceneId}";`);
       }
       nextsCode = `/** ${title} */
-        async function ${id}(this: Context, ${params}) {
+        async function ${id}(this: Context, ${params}${inScopeSlot ? ", scopeId: string" : ""}) {
           ${nextsCode}
         }
 
         export default function (value: unknown) {
-          sceneState_${sceneId}.wrapper(${id})(value);
+          sceneContext_${sceneId}.wrapper(${id})(value);
         }
       `;
     } else if (eventType === "popup_com") {
@@ -342,15 +335,15 @@ export class HandleEvents {
       const sceneId = id;
       if (!importScenesMap[sceneId]) {
         importScenesMap[sceneId] = true;
-        importScenes.add(`import { sceneState as sceneState_${sceneId} } from "@/slots/slot_${sceneId}";`);
+        importScenes.add(`import { sceneContext as sceneContext_${sceneId} } from "@/slots/slot_${sceneId}";`);
       }
       nextsCode = `/** ${title} */
-        async function ${pinId}(this: Context, ${params}) {
+        async function ${pinId}(this: Context, ${params}${inScopeSlot ? ", scopeId: string" : ""}) {
           ${nextsCode}
         }
 
         export default function (value: unknown) {
-          sceneState_${sceneId}.wrapper(${pinId})(value);
+          sceneContext_${sceneId}.wrapper(${pinId})(value);
         }
       `;
     } else {
@@ -361,7 +354,7 @@ export class HandleEvents {
       const outputs = nextsMap[comId]?.[pinId];
       nextsCode = outputs ? this.handleNexts(outputs, { valueCode: "value" }) : "";
       nextsCode = `/** ${title} */
-        export default async function (${params}) {
+        export default async function (${params}${inScopeSlot ? ", scopeId: string" : ""}) {
           ${nextsCode}
         }
       `;
@@ -374,6 +367,23 @@ export class HandleEvents {
         eventInfo.importRenderReactHoc.add("_");
       }
     })
+
+    if (nextsCode.indexOf("this: Context") !== -1) {
+      /** 
+       * 此类this上下文都用Context，应该是全部通用的
+       * 前提是用到了this: Context
+       */
+      typeDeclarationCode = `
+        type Context = Record<string, unknown>${frameOutputsConAry.length ? ` & {
+          ${frameOutputsConAry.map(({to}) => {
+            return `
+              /** ${to.title} */
+              ${to.id}: (value: unknown) => void;
+            `;
+          }).join("")}
+        }` : ""};
+      `;
+    }
 
     this.codeArray.push({
       code: `${// 导入变量
@@ -422,7 +432,7 @@ export class HandleEvents {
     { valueCode }: { valueCode: string }  
   ): string {
     const { nextsMap, scene, promiseExcuteComponents, handleConfig } = this;
-    const { eventType } = handleConfig;
+    const { eventType, inScopeSlot } = handleConfig;
     /**
      * 如果是fx类型的卡片，开分支需要添加.bind(this)
      */
@@ -449,7 +459,7 @@ export class HandleEvents {
          */
         const rels = pinRels[`${comId}-${pinId}`];
         if (!rels) {
-          return `/** ${component.title} - ${title} */
+          return `/** ${component.title} - ${title} 6*/
             sceneContext.getComponent("${comId}").${pinId}(${valueCode});
           `
         } else {
@@ -459,11 +469,12 @@ export class HandleEvents {
             /** 非单实例的节点需要使用startPinParentKey和finishPinParentKey来进行对接 */
             const nextOutputs = nextsMap[comId]?.[outputId]?.filter((next) => matchesConnections(next, finishPinParentKey));
             if (!nextOutputs?.length) {
-              return `/** ${component.title} - ${title} */
+              console.log(inScopeSlot ? "在作用域内" : "不在作用域内")
+              return `/** ${component.title} - ${title} 5*/
                 sceneContext.getComponent("${comId}").${pinId}(${valueCode});
               `
             } else {
-              return `/** ${component.title} - ${title} */
+              return `/** ${component.title} - ${title} 4*/
                 const ${pinId}_${comId} = await sceneContext.getComponent("${comId}").${pinId}(${valueCode});
                 ${this.handleNexts(nextOutputs, { valueCode: `${pinId}_${comId}` })}
               `;
@@ -488,13 +499,13 @@ export class HandleEvents {
 
             if (nextWrapper) {
               /** 有下一步 */
-              return `/** ${component.title} - ${title} */
+              return `/** ${component.title} - ${title} 1*/
                 const { ${nextWrapper} } = sceneContext.getComponent("${comId}").${pinId}(${valueCode});
                 ${excuteNextWrapper}
               `
             } else {
               /** 没有下一步 */
-              return `/** ${component.title} - ${title} */
+              return `/** ${component.title} - ${title} 2*/
                 sceneContext.getComponent("${comId}").${pinId}(${valueCode});
               `
             }
@@ -578,7 +589,7 @@ export class HandleEvents {
 
         if (!nextOutputs) {
           /** 执行到这里就结束了 */
-          return `sceneState_${sceneId}.open(${valueCode});`;
+          return `sceneContext_${sceneId}.open(${valueCode});`;
         } else {
           /** 继续向下执行 - fx目前无论单输出还是多输出都作为多输出使用 */
           const outputIds = Object.keys(nextOutputs);
@@ -599,7 +610,7 @@ export class HandleEvents {
           
           /** 多个输出 */
           return `/** ${component.title} */
-            const { ${nextWrapper} } = sceneState_${sceneId}.open(${valueCode});
+            const { ${nextWrapper} } = sceneContext_${sceneId}.open(${valueCode});
             ${excuteNextWrapper}
           `;
         }

@@ -21,5 +21,8 @@
     "babel-loader": "^9.1.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.3"
+  },
+  "dependencies": {
+    "@mybricks/render-utils": "^0.0.10"
   }
 }
