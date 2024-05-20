@@ -163,27 +163,27 @@ class Context {
     // 渲染模块，提供的默认能力，引擎环境内引擎提供
     if (!env.renderModule) {
       // 模块组件内调用
-      env.renderModule = (json: any, options: any) => {
+      env.renderModule = (json: any, options2: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, env, _isNestedRender: true, _context: this })
+        return render(json, { ...options, ...options2, env, _isNestedRender: true, _context: this })
       }
     } else {
       const renderModule = env.renderModule
-      env.renderModule = (json: any, options: any) => {
+      env.renderModule = (json: any, options2: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderModule(json, { ...options, env, _isNestedRender: true, _context: this })
+        return renderModule(json, { ...options, ...options2, env, _isNestedRender: true, _context: this })
       }
     }
     if (!env.renderCom) {
-      env.renderCom = (json: any, options: any) => {
+      env.renderCom = (json: any, options2: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, _isNestedRender: true, _context: this })
+        return render(json, { ...options, ...options2, _isNestedRender: true, _context: this })
       }
     } else {
       const renderCom = env.renderCom
-      env.renderCom = (json: any, options: any) => {
+      env.renderCom = (json: any, options2: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderCom(json, { ...options, _isNestedRender: true, _context: this })
+        return renderCom(json, { ...options, ...options2, _isNestedRender: true, _context: this })
       }
     }
     const body = document.body
