@@ -118,6 +118,8 @@ export default function Main({json, options, style = {}, className = '', root = 
         observable: _context.observable
       })
 
+      context.styleMap = {}
+
       return [context, refs, activeTriggerInput]
     } catch (ex: any) {
       console.error(ex);

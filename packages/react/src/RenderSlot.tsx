@@ -235,14 +235,16 @@ function RenderCom({
   const [, setShow] = useState(false)
 
   useMemo(() => {
-    const { pxToRem: configPxToRem } = env
-    const { handlePxToVw } = options
+    const { handlePxToVw, debug } = options
 
-    const styleAry = getStyleAry({ env, def, style })
+    if (!debug && !context.styleMap[id]) {
+      // 非引擎环境 并且 没有插入过style
+      context.styleMap[id] = true
+      const { pxToRem: configPxToRem } = env
+      const styleAry = getStyleAry({ env, def, style })
 
-    if (Array.isArray(styleAry)) {
-      const root = getStylesheetMountNode();
-      if (!root.querySelector(`style[id="${id}"]`)) {
+      if (Array.isArray(styleAry)) {
+        const root = getStylesheetMountNode();
         const styleTag = document.createElement('style')
         let innerText = ''
 
@@ -267,10 +269,10 @@ function RenderCom({
           document.head.appendChild(styleTag)
         }
       }
+      // TODO
+      Reflect.deleteProperty(style, 'styleAry')
+      Reflect.deleteProperty(style, 'themesId')
     }
-    // TODO
-    Reflect.deleteProperty(style, 'styleAry')
-    Reflect.deleteProperty(style, 'themesId')
   }, [])
 
   const comDef = getComDef(def)
