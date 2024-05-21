@@ -10,6 +10,8 @@ export interface ComponentStyle extends Style {
     /** TODO: 是否全局？后面补充 */
     global?: boolean;
   }>
+  /** 风格化对应ID，模版组件 */
+  themesId: string;
   /** 距上距离 */
   top?: number;
   /** 距右距离 -> 有值说明居右 */
@@ -59,6 +61,10 @@ export interface ToJSON {
       title: string;
       json: ToModuleJSON;
     }
+  }
+  /** 引擎themes提供样式信息 */
+  themes: {
+    comThemes: any;
   }
 }
 
