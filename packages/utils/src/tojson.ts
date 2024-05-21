@@ -1,7 +1,8 @@
-import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, SlotStyle, ComponentStyle, Style } from "@mybricks/render-types";
+import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, SlotStyle, ComponentStyle, Style, Component } from "@mybricks/render-types";
 import smartLayout, { ResultElement } from "./smartLayout";
 import { isNumber } from "./type";
 import { generatePropertyRemover } from "./normal";
+import { convertCamelToHyphen } from "./regexp";
 
 /** 处理引擎提供的toJSON数据 */
 export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
@@ -580,4 +581,92 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   }
 
   return style;
+}
+
+/** 获取组件风格化代码，可用于写入style标签 */
+export function getStyleInnerHtml(toJSON: ToJSON | ToUiJSON) {
+  let innerHtml = "";
+  const { modules, scenes, themes } = toJSON as ToJSON;
+  if (scenes) {
+    // 多场景
+    scenes.forEach((json) => {
+      getStyleInnerHtmlByUiJson(json);
+    })
+    Object.entries(modules).forEach(([, { json }]) => {
+      getStyleInnerHtmlByUiJson(json);
+    })
+    Reflect.deleteProperty(toJSON, "themes");
+  } else {
+    // 非多场景
+    getStyleInnerHtmlByUiJson(toJSON as ToUiJSON);
+  }
+  function getStyleInnerHtmlByUiJson(json: ToUiJSON) {
+    Object.entries(json.coms).forEach(([, com]) => {
+      const styleAry = getStyleAry(com)
+
+      if (Array.isArray(styleAry)) {
+        styleAry.forEach(({css, selector, global}) => {
+          if (selector === ':root') {
+            selector = '> *:first-child'
+          }
+          const comId = com.id
+          if (Array.isArray(selector)) {
+            selector.forEach((selector) => {
+              innerHtml += getStyleInnerText({id: comId, css, selector, global})
+            })
+          } else {
+            innerHtml += getStyleInnerText({id: comId, css, selector, global})
+          }
+        })
+      }
+    })
+    return innerHtml;
+  }
+  function getStyleAry(com: Component) {
+    const style = com.model.style
+    let styleAry = style.styleAry
+    Reflect.deleteProperty(style, 'styleAry')
+    Reflect.deleteProperty(style, 'themesId')
+
+    if (!themes) {
+      return styleAry
+    }
+
+    const { themesId } = style
+    const { namespace } = com.def
+
+    if (!themesId && !styleAry) {
+      // 去找默认值
+      const comThemeAry = themes[namespace]
+      if (Array.isArray(comThemeAry)) {
+        const comTheme = comThemeAry.find(({ isDefault }) => isDefault)
+        if (comTheme) {
+          styleAry = comTheme.styleAry
+        }
+      }
+    } else if (themesId !== '_defined') {
+      // 去找相应的内容
+      const comThemeAry = themes[namespace]
+      if (Array.isArray(comThemeAry)) {
+        const comTheme = comThemeAry.find(({ id }) => id === themesId)
+        if (comTheme) {
+          styleAry = comTheme.styleAry
+        }
+      }
+    }
+
+    return styleAry
+  }
+  function getStyleInnerText ({ id, css, selector, global }) {
+    return `
+      ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+        ${Object.keys(css).map(key => {
+          let value = css[key]
+          return `${convertCamelToHyphen(key)}: ${value};`
+        }).join('\n')}
+      }
+    `
+  }
+
+  return innerHtml
 }
