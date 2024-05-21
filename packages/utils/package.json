@@ -1,11 +1,14 @@
 {
   "name": "@mybricks/render-utils",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
     "build": "tsc"
   },
+  "files": [
+    "lib"
+  ],
   "keywords": [],
   "author": "",
   "license": "ISC",

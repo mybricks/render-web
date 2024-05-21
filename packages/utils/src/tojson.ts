@@ -592,9 +592,11 @@ export function getStyleInnerHtml(toJSON: ToJSON | ToUiJSON) {
     scenes.forEach((json) => {
       getStyleInnerHtmlByUiJson(json);
     })
-    Object.entries(modules).forEach(([, { json }]) => {
-      getStyleInnerHtmlByUiJson(json);
-    })
+    if (modules) {
+      Object.entries(modules).forEach(([, { json }]) => {
+        getStyleInnerHtmlByUiJson(json);
+      })
+    }
     Reflect.deleteProperty(toJSON, "themes");
   } else {
     // 非多场景
