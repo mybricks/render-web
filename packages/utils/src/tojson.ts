@@ -134,30 +134,92 @@ function transformSlotComAry(
     })
 
     // 插槽的内边距
-    const paddingTop = parseFloat(slot.style.paddingTop)
-    const paddingLeft = parseFloat(slot.style.paddingLeft)
-    const paddingRight = parseFloat(slot.style.paddingRight)
-    const paddingBottom = parseFloat(slot.style.paddingBottom) 
+    let paddingTop = parseFloat(slot.style.paddingTop) || 0
+    let paddingLeft = parseFloat(slot.style.paddingLeft) || 0
+    let paddingRight = parseFloat(slot.style.paddingRight) || 0
+    let paddingBottom = parseFloat(slot.style.paddingBottom) || 0
     // 插槽可能不存在width、height属性，需要从widthFact、heightFact获取具体的宽高
     let slotWidth = slot.style.width || slot.style.widthFact
     let slotHeight = slot.style.height || slot.style.heightFact
 
     // 插槽内真实宽高需要减去内边距
-    if (isNumber(paddingTop)) {
-      slotHeight = slotHeight - paddingTop
-    }
-    if (isNumber(paddingLeft)) {
-      slotWidth = slotWidth - paddingLeft
-    }
-    if (isNumber(paddingRight)) {
-      slotWidth = slotWidth - paddingRight
-    }
-    if (isNumber(paddingBottom)) {
-      slotHeight = slotHeight - paddingBottom
-    }
-    
-    // 智能布局计算
-    const layoutTemplate = smartLayout(calculateComAry.map((com, index) => {
+    // if (isNumber(paddingTop)) {
+    //   slotHeight = slotHeight - paddingTop
+    // }
+    // if (isNumber(paddingLeft)) {
+    //   slotWidth = slotWidth - paddingLeft
+    // }
+    // if (isNumber(paddingRight)) {
+    //   slotWidth = slotWidth - paddingRight
+    // }
+    // if (isNumber(paddingBottom)) {
+    //   slotHeight = slotHeight - paddingBottom
+    // }
+
+    slotHeight = slotHeight - paddingTop - paddingBottom
+    slotWidth = slotWidth - paddingLeft - paddingRight
+
+    let minTop,minLeft,maxWidth,maxHeight
+
+    calculateComAry.forEach((com) => {
+      // 组件唯一ID
+      const id = com.id
+      // 组件详细信息
+      const comInfo = coms[id]
+      // 组件样式信息
+      const style = comInfo.model.style
+      // 用于计算的样式信息，仅包含真实具体的width、height属性
+      const calculateStyle = comInfo.style
+
+      const top = typeof style.bottom === 'number' ? slotHeight - calculateStyle.height - style.bottom : (style.top || 0)
+      if (isNumber(minTop)) {
+        if (top < minTop) {
+          minTop = top
+        }
+      } else {
+        minTop = top
+      }
+      const left = typeof style.right === 'number' ? slotWidth - calculateStyle.width - style.right : (style.left || 0)
+      if (isNumber(minLeft)) {
+        if (left < minTop) {
+          minLeft = left
+        }
+      } else {
+        minLeft = left
+      }
+      const width = left + calculateStyle.width
+      if (isNumber(maxWidth)) {
+        if (width > maxWidth) {
+          maxWidth = width
+        }
+      } else {
+        maxWidth = width
+      }
+      const height = top + calculateStyle.height
+      if (isNumber(maxHeight)) {
+        if (height > maxHeight) {
+          maxHeight = height
+        }
+      } else {
+        maxHeight = height
+      }
+    })
+
+    paddingTop = minTop + paddingTop
+    paddingLeft = minLeft + paddingLeft
+    paddingRight = slotWidth - maxWidth + paddingRight
+    paddingBottom = slotHeight - maxHeight + paddingBottom
+
+    slot.style.paddingTop = `${paddingTop}px`
+    slot.style.paddingLeft = `${paddingLeft}px`
+    slot.style.paddingRight = `${paddingRight}px`
+    slot.style.paddingBottom = `${paddingBottom}px`
+
+    slotWidth = slotWidth - minLeft - paddingRight
+    slotHeight = slotHeight - minTop - paddingBottom
+
+
+    const relCalculateComAry = calculateComAry.map((com, index) => {
       // 组件唯一ID
       const id = com.id
       // 组件详细信息
@@ -177,9 +239,9 @@ function transformSlotComAry(
           width: calculateStyle.width,
           height: calculateStyle.height,
           // 有bottom情况下，需要计算top值
-          top: typeof style.bottom === 'number' ? slotHeight - calculateStyle.height - style.bottom : (style.top || 0),
+          top: typeof style.bottom === 'number' ? slotHeight - calculateStyle.height - style.bottom : (style.top || 0) - minTop,
           // 有right情况下，需要计算top值
-          left: typeof style.right === 'number' ? slotWidth - calculateStyle.width - style.right : (style.left || 0),
+          left: typeof style.right === 'number' ? slotWidth - calculateStyle.width - style.right : (style.left || 0) - minLeft,
           // 有right说明居右
           right: style.right,
           // TODO: 有bottom说明居下，还未实现
@@ -194,7 +256,10 @@ function transformSlotComAry(
           heightAuto: style.heightAuto,
         },
       }
-    }), {
+    })
+    
+    // 智能布局计算
+    const layoutTemplate = smartLayout(relCalculateComAry, {
       // 容器样式信息
       style: {
         width: slotWidth,
