@@ -587,6 +587,8 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
 export function getStyleInnerHtml(toJSON: ToJSON | ToUiJSON) {
   let innerHtml = "";
   const { modules, scenes, themes } = toJSON as ToJSON;
+  const comThemes = themes?.comThemes
+  
   if (scenes) {
     // 多场景
     scenes.forEach((json) => {
@@ -627,19 +629,17 @@ export function getStyleInnerHtml(toJSON: ToJSON | ToUiJSON) {
   function getStyleAry(com: Component) {
     const style = com.model.style
     let styleAry = style.styleAry
+    const themesId = style.themesId
     Reflect.deleteProperty(style, 'styleAry')
     Reflect.deleteProperty(style, 'themesId')
 
-    if (!themes) {
+    if (!comThemes) {
       return styleAry
     }
-
-    const { themesId } = style
     const { namespace } = com.def
-
     if (!themesId && !styleAry) {
       // 去找默认值
-      const comThemeAry = themes[namespace]
+      const comThemeAry = comThemes[namespace]
       if (Array.isArray(comThemeAry)) {
         const comTheme = comThemeAry.find(({ isDefault }) => isDefault)
         if (comTheme) {
@@ -648,7 +648,7 @@ export function getStyleInnerHtml(toJSON: ToJSON | ToUiJSON) {
       }
     } else if (themesId !== '_defined') {
       // 去找相应的内容
-      const comThemeAry = themes[namespace]
+      const comThemeAry = comThemes[namespace]
       if (Array.isArray(comThemeAry)) {
         const comTheme = comThemeAry.find(({ id }) => id === themesId)
         if (comTheme) {
