@@ -41,6 +41,7 @@ export default function Main({json, options, style = {}, className = '', root = 
        * 3. 非模块
        */
       style.minHeight = slot.style.height;
+      style.flex = 1
     }
 
     if (slot?.showType === "module" || slot?.type === "module") {
