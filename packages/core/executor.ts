@@ -1266,12 +1266,14 @@ export default function executor(opts, {observable}) {
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
               return
             }
+            // Slotrender调用inputs时会带上第二个参数curScope，可能存在组件内调用的情况，没有第二参数时使用Cur.scope
+            let scope = curScope || Cur.scope
             const key = comId + '-' + slotId + '-' + name
             const cons = Cons[key]
-            _slotValue[`${key}${curScope ? `-${curScope.id}-${curScope.frameId}` : ''}`] = val
+            _slotValue[`${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`] = val
 
             if (cons) {
-              exeCons({logProps: ['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope: curScope || Cur.scope})
+              exeCons({logProps: ['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope: scope})
             } else {
               _logOutputVal('frame', {comId, frameId: slotId, pinHostId: name, val})
             }
