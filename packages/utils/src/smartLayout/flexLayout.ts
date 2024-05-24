@@ -12,6 +12,7 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
   // 找到第一个右对齐元素
   const rightIndex = elements.sort((p, c) => p.style.left - c.style.left).findIndex((element) => isNumber(element.style.right));
   const { style: layoutStyle } = layoutConfig;
+  const { isNotAutoGroup } = layoutStyle
 
   if (rightIndex !== -1) {
     // 有居右元素
@@ -83,7 +84,8 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
 
 
       // 最后一个元素的居右距离
-      const lastRight = layoutStyleRight - elementStyle.left - elementStyle.width
+      // const lastRight = layoutStyleRight - elementStyle.left - elementStyle.width
+      const lastRight = isNotAutoGroup ? layoutStyle.width - elementStyle.left - elementStyle.width : rightElements[rightElements.length - 1].style.right
       // 右侧是否有填充
       let hasRightWidthFull = false
       // 右侧宽度
@@ -128,8 +130,8 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
         flexDirection: 'row',
         flexWrap: "wrap",
         justifyContent: "space-between",
-        marginLeft: firstLeft,
-        marginRight: lastRight
+        marginLeft: isNotAutoGroup ? firstLeft : 0,
+        marginRight: isNotAutoGroup ? lastRight : 0
       }
 
       if (hasLeftWidthFull || hasRightWidthFull) {
