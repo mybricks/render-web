@@ -1,3 +1,4 @@
+import { isNumber } from "../type";
 import combination from './combination';
 import { checkTopIntersects, checkRightIntersects, checkBottomIntersects, checkLeftIntersects } from "./checkForShadowIntersection";
 
@@ -96,7 +97,7 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
               ...child.style,
               top: child.style.top - style.top,
               left: child.style.left - style.left,
-              right: (style.left + style.width) - (child.style.left + child.style.width),
+              right: isNumber(child.style.right) ? (style.left + style.width) - (child.style.left + child.style.width) : null,
               // bottom: 1
             }
           }

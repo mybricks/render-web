@@ -471,6 +471,10 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         resultElement.brother = traverseElementsToSlotComAry(brother, coms, comIdToSlotComMap)
       }
       if (child) {
+        if (com.style.width === "auto") {
+          child.style.paddingLeft = com.style.marginLeft
+          child.style.paddingRight = com.style.marginRight
+        }
         resultElement.child = {
           ...com.child,
           elements: traverseElementsToSlotComAry(com.child.elements || [], coms, comIdToSlotComMap)
