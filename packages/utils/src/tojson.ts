@@ -1,7 +1,7 @@
 import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, SlotStyle, ComponentStyle, Style, Component } from "@mybricks/render-types";
 import smartLayout, { ResultElement } from "./smartLayout";
 import { isNumber } from "./type";
-import { generatePropertyRemover } from "./normal";
+import { generatePropertyRemover, findGCD } from "./normal";
 import { convertCamelToHyphen } from "./regexp";
 
 /** 处理引擎提供的toJSON数据 */
@@ -247,6 +247,17 @@ function transformSlotComAry(
       Reflect.deleteProperty(slot.style, "width")
       Reflect.deleteProperty(slot.style, "height")
     }
+
+    /** 是纵向排列 */
+    const isFlexColumn = slot.style.layout === "flex-column";
+
+    /** 填充具体像素值 */
+    const flexPX: number[] = [];
+    /** 上述数组的index对应的元素位置 calculateComAry[index] */
+    const flexPXIndexToStyleMap = {};
+    /** 设置填充的元素具体像素合 */
+    let flexSumPX = 0;
+
     calculateComAry.forEach((com) => {
       const { slots } = com
       const component = coms[com.id]
@@ -280,6 +291,8 @@ function transformSlotComAry(
       // 组件样式信息
       const style = component.model.style
 
+      const calculateStyle = component.style
+
       // 非智能布局，也需要判断宽高的配置
       if (style.heightAuto) {
         // 高度适应内容 - 设置height: fit-content
@@ -297,6 +310,14 @@ function transformSlotComAry(
         // 高度等比缩放 - 设置height: 100%
         // @ts-ignore
         style.height = "100%"
+        // style.flexShrink = 1 // TODO: 之后去掉，完成高度填充后即可实现
+        if (!isAbsolute) {
+          if (isFlexColumn) {
+            flexPX.push(calculateStyle.height)
+            flexSumPX += calculateStyle.height
+            flexPXIndexToStyleMap[flexPX.length - 1] = com.id;
+          }
+        }
       } else {
         if ("height" in style) {
           // 如果有高度属性，设置高度
@@ -312,6 +333,13 @@ function transformSlotComAry(
         // 宽度等比缩放 - 设置height: 100%
         // @ts-ignore
         style.width = "100%"
+        if (!isAbsolute) {
+          if (!isFlexColumn) {
+            flexPX.push(calculateStyle.width)
+            flexSumPX += calculateStyle.width
+            flexPXIndexToStyleMap[flexPX.length - 1] = com.id;
+          }
+        }
       } else {
         if ("width" in style) {
           // 如果有宽度属性，设置宽度
@@ -328,6 +356,15 @@ function transformSlotComAry(
       // 对组件样式做处理，去除运行时无关的内容
       component.model.style = getComponentStyle(style);
     })
+
+    if (flexPX.length) {
+      // 存在多个铺满组件，需要计算flex值
+      const gcd = findGCD(flexPX)
+      flexPX.forEach((px, index) => {
+        const style = coms[flexPXIndexToStyleMap[index]].model.style
+        style.flex = px / gcd
+      })
+    }
   }
 
   // 对插槽样式做处理，去除运行时无关的内容
