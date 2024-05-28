@@ -89,6 +89,8 @@ export interface Element {
      * 自动成组 - 计算获得的 false
      */
     isNotAutoGroup?: boolean;
+
+    position?: string;
   };
   /**
    * 子组件，如果组件被分为一组

@@ -180,6 +180,8 @@ function transformSlotComAry(
           top: typeof style.bottom === 'number' ? slotHeight - calculateStyle.height - style.bottom : (style.top || 0),
           // 有right情况下，需要计算top值
           left: typeof style.right === 'number' ? slotWidth - calculateStyle.width - style.right : (style.left || 0),
+          // position
+          position: style.position,
           // 有right说明居右
           right: style.right,
           // TODO: 有bottom说明居下，还未实现
@@ -567,7 +569,7 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   }
   remover("flexDirection");
 
-  if (style.position !== "absolute") {
+  if (!["fixed", "absolute"].includes(style.position)) {
     // 不是自由布局，删除四个方向属性
     remover("left");
     remover("top");

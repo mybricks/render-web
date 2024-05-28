@@ -34,8 +34,15 @@ export function log(...args) {
  * 对比元素只需要先向右，再向下对比即可
  */
 export default function combination(elements: Elements, layoutConfig: LayoutConfig): Array<ResultElement> {
+  const fixedAbsoluteElements = []
   /** 处理相交关系 */
-  const initElements = handleIntersectionsAndInclusions(elements)
+  const initElements = handleIntersectionsAndInclusions(elements.filter((element) => {
+    if (["fixed", "absolute"].includes(element.style.position)) {
+      fixedAbsoluteElements.push(element)
+      return false
+    }
+    return true
+  }))
   /** 基于规则开始分组 */
   let finalElements = getCombinationElements(sortByTopLeft(initElements))
 
@@ -51,8 +58,8 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
 
   /** 计算最终的布局关系 */
   const res = calculateLayoutRelationship(finalElements, layoutConfig);
-  // res.length && log("最终结果: ", ps(res))
-  return res;
+  // res.length && log("最终结果: ", ps(res.concat(fixedAbsoluteElements)))
+  return res.concat(fixedAbsoluteElements);
 }
 
 export function calculateLayoutRelationship(elements: Elements, layoutConfig: LayoutConfig) {
