@@ -447,6 +447,11 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         /** TODO: 是否在智能布局中 */
         // @ts-ignore
         modelStyle.inSmartLayout = true;
+      } else if (modelStyle.heightFull) {
+        // TODO: 后续和y轴计算一起放到smartLayout中
+        // 高度填充
+        // @ts-ignore
+        modelStyle.height = "100%"
       }
 
       // widthAuto 适应内容
