@@ -485,7 +485,8 @@ function SlotRender ({
   options
 }) {
   const preInputValues = useRef(null)
-  const { curScope, curProps } = useMemo(() => {
+  const { curScope, curProps, isRuntime } = useMemo(() => {
+    const isRuntime = !env.edit
     let finalScope = currentScope
     let finalProps = props
     let hasNewScope = false
@@ -511,27 +512,32 @@ function SlotRender ({
           finalScope = {...finalScope, id: finalScope.id + '-' + uuid(10, 16), parentScope: finalScope}
           finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
         }
-        for (let pro in ivs) {
-          finalProps.inputs[pro](ivs[pro], finalScope)
+
+        if (isRuntime) {
+          for (let pro in ivs) {
+            finalProps.inputs[pro](ivs[pro], finalScope)
+          }
         }
       }
     }
     finalProps.run(finalScope)
 
-    return { curScope: finalScope, curProps: finalProps }
+    return { curScope: finalScope, curProps: finalProps, isRuntime }
   }, [])
 
   useEffect(() => {
-    const paramsInputValues = params?.inputValues
-    if (paramsInputValues) {
-      if (!preInputValues.current) {
-        preInputValues.current = paramsInputValues
-      } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues.current) !== JSON.stringify(paramsInputValues))) {
-        preInputValues.current = paramsInputValues
-        for (let pro in paramsInputValues) {
-          curProps.inputs[pro](paramsInputValues[pro], curScope)
+    if (isRuntime) {
+      const paramsInputValues = params?.inputValues
+      if (paramsInputValues) {
+        if (!preInputValues.current) {
+          preInputValues.current = paramsInputValues
+        } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues.current) !== JSON.stringify(paramsInputValues))) {
+          preInputValues.current = paramsInputValues
+          for (let pro in paramsInputValues) {
+            curProps.inputs[pro](paramsInputValues[pro], curScope)
+          }
+          curProps.run()
         }
-        curProps.run()
       }
     }
   }, [params?.inputValues])
