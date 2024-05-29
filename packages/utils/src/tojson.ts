@@ -627,10 +627,19 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
 }
 
 /** 获取组件风格化代码，可用于写入style标签 */
-export function getStyleInnerHtml(toJSON: ToJSON | ToUiJSON) {
+export function getStyleInnerHtml(
+  toJSON: ToJSON | ToUiJSON,
+  options: {
+    pxToVw?: {
+      viewportWidth: number;
+      unitPrecision: number;
+    }
+  } = {}) {
   let innerHtml = "";
   const { modules, scenes, themes } = toJSON as ToJSON;
-  const comThemes = themes?.comThemes
+  const comThemes = themes?.comThemes;
+  const { pxToVw } = options;
+  const handlePxToVw = pxToVw ? getPxToVw(pxToVw) : null;
   
   if (scenes) {
     // 多场景
@@ -707,11 +716,39 @@ export function getStyleInnerHtml(toJSON: ToJSON | ToUiJSON) {
       ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
         ${Object.keys(css).map(key => {
           let value = css[key]
+          if (handlePxToVw && typeof value === "string" && value.indexOf('px') !== -1) {
+            value = handlePxToVw(value)
+          }
           return `${convertCamelToHyphen(key)}: ${value};`
         }).join('\n')}
       }
     `
   }
-
+  
   return innerHtml
+}
+
+function toFixed(number, precision) {
+  var multiplier = Math.pow(10, precision + 1);
+  var wholeNumber = Math.floor(number * multiplier);
+  return Math.round(wholeNumber / 10) * 10 / multiplier;
+}
+function createPxReplacer(perRatio, minPixelValue, unitPrecision, unit) {
+  return function (origin, $1) {
+    var pixels = parseFloat($1);
+
+    if (!$1 || pixels <= minPixelValue) {
+      return origin;
+    } else {
+      // @ts-ignore
+      return "".concat(toFixed(pixels / perRatio, unitPrecision)).concat(unit);
+    }
+  };
+}
+function getPxToVw({ viewportWidth = 375, unitPrecision = 5 }) {
+  const REG_PX = /"[^"]+"|'[^']+'|url\([^)]+\)|(\d*\.?\d+)px/g;
+  const vwReplace = createPxReplacer(viewportWidth / 100, 0, unitPrecision, 'vw');
+  return (value) => {
+    return value.replace(REG_PX, vwReplace);
+  }
 }
