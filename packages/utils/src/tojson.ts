@@ -171,6 +171,10 @@ function transformSlotComAry(
       // 设置zIndex样式，组件层级默认越靠后越高，与引擎同步，防止因布局计算问题导致混乱
       style.zIndex = index + 1
 
+      if (style.position === "absolute") {
+        Reflect.deleteProperty(style, "position")
+      }
+
       return {
         id,
         style: {
