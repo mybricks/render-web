@@ -235,9 +235,9 @@ function RenderCom({
   const [, setShow] = useState(false)
 
   useMemo(() => {
-    const { handlePxToVw, debug } = options
+    const { handlePxToVw, debug, disableStyleInjection } = options
 
-    if (!debug && !context.styleMap[id]) {
+    if (!disableStyleInjection && !debug && !context.styleMap[id]) {
       // 非引擎环境 并且 没有插入过style
       context.styleMap[id] = true
       const { pxToRem: configPxToRem } = env

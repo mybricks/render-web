@@ -35,6 +35,7 @@ export default function executor(opts, {observable}) {
 
   const {
     _v,
+    id: jsonID,
     slot: UIRoot,
     coms = {},
     comsAutoRun: ComsAutoRun = {},
@@ -256,7 +257,7 @@ export default function executor(opts, {observable}) {
         }
       }
 
-      if (inReg.comId) {
+      if (inReg.comId && proxyDesc?.frameId !== jsonID) {
         if (inReg.direction === 'inner-input') {
           // const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId]
           // TODO
