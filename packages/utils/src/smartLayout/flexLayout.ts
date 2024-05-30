@@ -24,20 +24,6 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
     const layoutStyleRight = layoutStyle.width + layoutStyle.left
     if (!leftElements.length) {
       // 整行居右
-      // 最后一个元素的居右距离
-      const lastRight = layoutStyleRight - elementStyle.left - elementStyle.width
-
-      // 遍历计算right值
-      rightElements.forEach((element) => {
-        const elementStyle = element.style
-        elementStyle.right = layoutStyleRight - elementStyle.left - elementStyle.width - lastRight
-        // TOD
-        // if (element.elements) {
-        //   element.elements.forEach((element) => {
-        //     element.style.right = element.style.right - lastRight
-        //   })
-        // }
-      })
 
       return {
         style: {
@@ -45,7 +31,7 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
           flexDirection: 'row',
           flexWrap: 'wrap',
           justifyContent: 'flex-end',
-          marginRight: lastRight,
+          marginRight: elementStyle.right,
         },
         elements: calculateLayoutRelationship(rightElements, {
           // @ts-ignore
@@ -60,7 +46,6 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
     } else {
       // 有左有右
       // 第一个元素居左距离
-      const firstLeft = leftElements[0].style.left
       // 左侧是否有填充
       let hasLeftWidthFull = false
       // 左侧宽度
@@ -73,7 +58,6 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
       // 遍历计算left值
       leftElements.forEach((element, index) => {
         const elementStyle = element.style
-        elementStyle.left = elementStyle.left - firstLeft
         if (elementStyle.widthFull) {
           hasLeftWidthFull = true
         }
@@ -82,10 +66,6 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
         }
       })
 
-
-      // 最后一个元素的居右距离
-      // const lastRight = layoutStyleRight - elementStyle.left - elementStyle.width
-      const lastRight = isNotAutoGroup ? layoutStyle.width - elementStyle.left - elementStyle.width : rightElements[rightElements.length - 1].style.right
       // 右侧是否有填充
       let hasRightWidthFull = false
       // 右侧宽度
@@ -98,12 +78,6 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
       // 遍历计算right值
       rightElements.forEach((element, index) => {
         const elementStyle = element.style
-        elementStyle.right = layoutStyleRight - elementStyle.left - elementStyle.width - lastRight
-        if (element.elements) {
-          element.elements.forEach((element) => {
-            element.style.right = element.style.right - lastRight
-          })
-        }
         if (elementStyle.widthFull) {
           hasRightWidthFull = true
         }
@@ -130,13 +104,13 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
         flexDirection: 'row',
         flexWrap: "wrap",
         justifyContent: "space-between",
-        marginLeft: isNotAutoGroup ? firstLeft : 0,
-        marginRight: isNotAutoGroup ? lastRight : 0
+        marginLeft: elementStyle.left,
+        marginRight: elementStyle.right
       }
 
       if (hasLeftWidthFull || hasRightWidthFull) {
         // 任意一边有宽度填充的话，需要设置横向间距
-        parentStyle.columnGap = rightElements[0].style.left - leftWidth - firstLeft
+        parentStyle.columnGap = rightElements[0].style.left - leftWidth
       }
 
       return {
@@ -175,19 +149,12 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
     }
   } else {
     // 没有居右，全局居左
-    // 第一个元素居左距离
-    const firstLeft = elements[0].style.left
-    // 遍历计算left值
-    elements.forEach((element) => {
-      const elementStyle = element.style
-      elementStyle.left = elementStyle.left - firstLeft
-    })
     return {
       style: {
         display: 'flex',
         flexDirection: 'row',
         flexWrap: 'wrap',
-        marginLeft: firstLeft
+        marginLeft: elementStyle.left
       },
       elements: calculateLayoutRelationship(elements, {
         // @ts-ignore

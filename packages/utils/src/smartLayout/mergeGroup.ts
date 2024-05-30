@@ -1,7 +1,7 @@
 import { sortByTopLeft } from "./sort";
 import { getElementAdjacency } from "./relation"
 
-import type { Elements, Element } from "."
+import type { Elements, Element, DefaultLayoutConfig as LayoutConfig } from "."
 
 import { ps, log } from "./combination"
 import { isNumber } from "../type";
@@ -9,7 +9,7 @@ import { isNumber } from "../type";
 /**
  * 基于规则的分组
  */
-export function getCombinationElements(elements: Elements) {
+export function getCombinationElements(elements: Elements, layoutStyle: LayoutConfig['style']) {
   const elementIdToAdjacency = getElementAdjacency(elements)
   /** 通过元素ID查询当前位置信息 */
   const elementIdToPosition = {}
@@ -73,10 +73,90 @@ export function getCombinationElements(elements: Elements) {
   })
 
   if (elements.length !== combinationElements.length) {
-    return getCombinationElements(sortByTopLeft(convertedToElements(combinationElements)))
+    return getCombinationElements(sortByTopLeft(convertedToElements(combinationElements)), layoutStyle)
   }
 
-  return convertedToElements(sortByTopLeft(combinationElements))
+  const res = computeElementOffsetCoordinates(convertedToElements(sortByTopLeft(combinationElements)), layoutStyle)
+
+  // log("🍎真正的结果: ", ps(res))
+
+  return res;
+}
+
+/** 
+ * 根据分组重新计算位置信息
+ */
+function computeElementOffsetCoordinates(elements, layoutStyle) {
+  const elementLength = elements.length
+
+  if (elementLength === 1 && !elements[0].elements) {
+    // 未成组的单组件不做处理
+    return elements
+  }
+
+  if (layoutStyle.flexDirection === "column") {
+    // 纵向排列
+    elements.sort((pre, cur) => {
+      return pre.style.top - cur.style.top
+    })
+  } else {
+    // 横向排列
+    elements.sort((pre, cur) => {
+      return pre.style.left - cur.style.left
+    })
+  }
+
+  let rightIndex
+
+  elements.forEach((element, index) => {
+    const { style, elements } = element
+    if (elements) {
+      computeElementOffsetCoordinates(elements, style)
+
+      elements.forEach((element) => {
+        // 同步宽度铺满
+        if (element.style.widthFull) {
+          style.widthFull = true;
+        }
+        // 同步高度铺满
+        if (element.style.heightFull) {
+          style.heightFull = true;
+        }
+        // 同步居右
+        if (isNumber(element.style.right)) {
+          style.right = 0;
+        }
+        // 同步居下
+        if (isNumber(element.style.bottom)) {
+          style.bottom = 0;
+        }
+      })
+    }
+
+    style.left = style.left - layoutStyle.left
+    style.top = style.top - layoutStyle.top
+
+    if (isNumber(style.right) && !isNumber(rightIndex)) {
+      rightIndex = index
+    }
+  })
+
+  if (isNumber(rightIndex)) {
+    /** 自动成组的纵向没有居右 */
+    const hasNoRight = layoutStyle.flexDirection === "column" && !layoutStyle.isNotAutoGroup
+
+    if (hasNoRight) {
+      elements.slice(rightIndex).forEach((element) => {
+        Reflect.deleteProperty(element.style, "right");
+      })
+    } else {
+      elements.slice(rightIndex).forEach((element) => {
+        element.style.right = layoutStyle.width - element.style.width - element.style.left;
+      })
+    }
+  }
+
+  return elements
 }
 
 /**
@@ -125,51 +205,6 @@ function convertedToElements(elements: Array<Element | Elements>) {
         flexDirection,
         isNotAutoGroup: false
       }
-
-      element.forEach((element) => {
-        const elementStyle = element.style
-        if (elementStyle.widthFull) {
-          parentStyle.widthFull = 1
-        }
-        if (elementStyle.heightFull) {
-          parentStyle.heightFull = 1
-        }
-        if (isNumber(elementStyle.right)) {
-          parentStyle.right = 0
-        }
-        if (isNumber(elementStyle.bottom)) {
-          parentStyle.bottom = 0
-        }
-      })
-
-      if (isNumber(parentStyle.right)) {
-        calculateElements.forEach((element) => {
-          if (isNumber(element.style.right)) {
-            element.style.right = 0 // 整体居右，所以内部居右元素可以设置为0 TODO: 在parent为非widthFull时，可以把right删除？
-          }
-        })
-      }
-      if (isNumber(parentStyle.bottom)) {
-        // 居下
-      }
-
-      if (flexDirection === "column") {
-        // 纵向可以把left删除，父容器设置left
-        calculateElements.forEach((element) => {
-          element.style.left = element.style.left - parentStyle.left
-        })
-      } else {
-        // 横向可以把top删除，父容器设置top
-        // log(2, ps(element))
-      }
-
-      // 如果是纵向合并
-      // if (flexDirection === "column") {
-      //   // parentStyle.right = 0
-      // } else {
-      //   // parentStyle.right = 0
-      // }
-
       convertedElements.push({
         id: element0.id,
         style: parentStyle,

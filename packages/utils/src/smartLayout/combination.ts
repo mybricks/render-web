@@ -44,7 +44,7 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
     return true
   }))
   /** 基于规则开始分组 */
-  let finalElements = getCombinationElements(sortByTopLeft(initElements))
+  let finalElements = getCombinationElements(sortByTopLeft(initElements), layoutConfig.style)
 
   // 纵向比较特殊，如果有bottom或者heightFull，才合并
   // if (finalElements.length === 1 && layoutConfig.style.flexDirection === "column") {
@@ -85,8 +85,9 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
   if (flexDirection === "column") {
     /** 纵向排列 - 向下 */
 
+    // 不是自动自动成组的话，直接使用元素高度，否则需要计算
     /** 当前元素距上边距离，用于计算子元素的外间距marginTop */
-    let currentTop = top;
+    let currentTop = isNotAutoGroup ? 0 : elements[0].style.top;
 
     /** 
      * 将元素从上至下排序
@@ -95,7 +96,6 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
     elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top).forEach((element) => {
       /** 递归计算element.elements */
       const { id, style } = element;
-      /** 当前元素上外间距 */
       const marginTop = style.top - currentTop;
 
       /** 最终的外层样式 */
@@ -118,7 +118,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
       }
 
       /** 当前元素左外间距 */
-      const marginLeft = isNotAutoGroup ? style.left - left : 0; // 如果没成组，需要计算，成组后的left是0，直接是0即可
+      const marginLeft = style.left
 
       /** 当前元素右外间距 */
       const marginRight = width - marginLeft - style.width;
@@ -181,7 +181,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                 id,
                 style: {
                   ...finalStyle,
-                  marginTop
+                  marginTop,
                 }
               })
             } else {
@@ -189,10 +189,8 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                 ...element,
                 id,
                 style: {
+                  ...finalStyle,
                   marginTop,
-                  marginLeft, // 不居中要设置左边距
-                  display: "flex",
-                  flexDirection: style.flexDirection,
                 }
               })
             }
@@ -253,14 +251,8 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
             ...element,
             id,
             style: {
-              // width: 'auto', // 不需要width默认就是auto
               ...finalStyle,
               marginTop,
-              marginLeft,
-              marginRight,
-              // 下面两个也可以不要了
-              // display: 'flex',
-              // flexDirection: style.flexDirection,
             }
           })
         } else {
@@ -332,7 +324,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
 
 
       /** 当前元素上外间距 */
-      const marginTop = style.top - top;
+      const marginTop = style.top; // 前置已经把上间距做好计算了
 
       if (!style.widthFull) {
         /** 当前元素未铺满 */
