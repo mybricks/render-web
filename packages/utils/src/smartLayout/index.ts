@@ -138,6 +138,12 @@ export interface DefaultLayoutConfig extends LayoutConfig {
 
   // 从左往右计算
   startOnLeft?: boolean
+
+  // 上往下计算
+  startOnTop?: boolean
+
+  // 从下往上计算
+  startOnBottom?: boolean
 }
 
 export default function smartLayout(elements: Array<Element>, layoutConfig: LayoutConfig) {

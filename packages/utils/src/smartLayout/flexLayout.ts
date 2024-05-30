@@ -12,7 +12,6 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
   // 找到第一个右对齐元素
   const rightIndex = elements.sort((p, c) => p.style.left - c.style.left).findIndex((element) => isNumber(element.style.right));
   const { style: layoutStyle } = layoutConfig;
-  const { isNotAutoGroup } = layoutStyle
 
   if (rightIndex !== -1) {
     // 有居右元素
@@ -177,51 +176,30 @@ export function columnFlexLayout(element: Element, layoutConfig: LayoutConfig) {
   // 找到第一个下对齐元素
   const bottomIndex = elements.sort((p, c) => p.style.top - c.style.top).findIndex((element) => isNumber(element.style.bottom));
   const { style: layoutStyle } = layoutConfig;
-
-  log("bottomIndex: ", bottomIndex)
+  console.log(bottomIndex, "bottomIndex")
   if (bottomIndex !== -1) {
-
+    log("处理居下的情况 🔥🔥🔥🔥🔥")
   } else {
     // 没有居下，全局居上
-    // 第一个元素居上距离
-    const firstTop = elements[0].style.top
-    // 遍历计算left值
-    elements.forEach((element) => {
-      const elementStyle = element.style
-      elementStyle.top = elementStyle.top - firstTop
-    })
-
-    log(111, ps(elements), ps({
-      // @ts-ignore
-      style: {
-        ...elementStyle,
-        top: 0,
-        bottom: 0,
-        left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
-        right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
-      },
-      startOnLeft: true
-    }))
-    
+    log("elementStyle.top: ", elementStyle.top)
     return {
       style: {
         display: 'flex',
         flexDirection: 'column',
         flexWrap: 'wrap',
-        marginTop: firstTop
+        marginTop: elementStyle.top
       },
       elements: calculateLayoutRelationship(elements, {
         // @ts-ignore
         style: {
           ...elementStyle,
+          // left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
+          // right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
           top: 0,
-          bottom: 0,
-          left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
-          right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
+          bottom: 0
         },
-        // startOnLeft: true
+        startOnTop: true
       })
     }
   }
-
 }

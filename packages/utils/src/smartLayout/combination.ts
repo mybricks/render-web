@@ -68,8 +68,10 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
   const {
     /** 子元素排列方向 */
     flexDirection,
-    /** 父元素距顶距离 */
+    /** 父元素距上距离 */
     top,
+    /** 父元素距下距离 */
+    bottom,
     /** 父元素距左距离 */
     left,
     /** 父元素距右距离 */
@@ -84,10 +86,36 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
 
   if (flexDirection === "column") {
     /** 纵向排列 - 向下 */
+    const { startOnBottom, startOnTop } = layoutConfig
+    /** 元素计算的key */
+    let calculateKey;
+    /** 当前计算值 */
+    let currentKeyValue;
+    /** 最终给到容器的key */
+    let finalKey;
+    /** 横向排列 - 向右 */
+    if (startOnBottom) {
+      // 默认是下边
+      currentKeyValue = isNotAutoGroup ? 0 : elements[0].style.bottom;
+      calculateKey = 'bottom'
+      finalKey = 'marginBottom'
+    } else {
+      // 默认是上边
+      currentKeyValue = isNotAutoGroup ? 0 : elements[0].style.top;
+      calculateKey = 'top'
+      finalKey = 'marginTop'
+    }
 
+    /** 填充具体像素值 */
+    const flexPX: number[] = [];
+    /** 上述数组的index对应的元素位置 calculateComAry[index] */
+    const flexPXIndexToStyleMap = {};
+    /** 设置填充的元素具体像素合 */
+    let flexSumPX = 0;
+
+     
     // 不是自动自动成组的话，直接使用元素高度，否则需要计算
     /** 当前元素距上边距离，用于计算子元素的外间距marginTop */
-    let currentTop = isNotAutoGroup ? 0 : elements[0].style.top;
 
     /** 
      * 将元素从上至下排序
@@ -96,7 +124,6 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
     elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top).forEach((element) => {
       /** 递归计算element.elements */
       const { id, style } = element;
-      const marginTop = style.top - currentTop;
 
       /** 最终的外层样式 */
       let finalStyle = {}
@@ -116,6 +143,11 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
           // finalStyle = parentStyle
         }
       }
+
+      /** 当前元素上下外间距 */
+      const margin = style[calculateKey] - currentKeyValue;
+
+      let finalElement
 
       /** 当前元素左外间距 */
       const marginLeft = style.left
@@ -137,22 +169,22 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
           if (style.flexDirection) {
             console.log("【@mybricks/render-utils: 智能布局计算】: 只有单组件、非自动成组的才参与居中计算，不应该走到这段逻辑，观察一段时间，后续删除")
             /** 成组 - 非单组件 */
-            finalElements.push({
+            finalElement = {
               ...element,
               id,
               style: {
-                marginTop,
+                [finalKey]: margin,
                 display: "flex",
                 justifyContent: "center",
                 flexDirection: style.flexDirection,
               }
-            })
+            }
           } else {
             /** 
              * 未成组 - 单组件 
              * 由于居中，要多套一层div
              */
-            finalElements.push({
+            finalElement = {
               id,
               elements: [{
                 ...element,
@@ -164,11 +196,11 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                 },
               }],
               style: {
-                marginTop,
+                [finalKey]: margin,
                 display: "flex",
                 justifyContent: 'center',
               },
-            })
+            }
           }
         } else {
           /** 不居中 */
@@ -176,23 +208,23 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
             /** 成组 - 非单组件 */
             if (isNumber(style.right)) {
               // 居右
-              finalElements.push({
+              finalElement = {
                 ...element,
                 id,
                 style: {
                   ...finalStyle,
-                  marginTop,
+                  [finalKey]: margin,
                 }
-              })
+              }
             } else {
-              finalElements.push({
+              finalElement = {
                 ...element,
                 id,
                 style: {
                   ...finalStyle,
-                  marginTop,
+                  [finalKey]: margin,
                 }
-              })
+              }
             }
           } else {
             /** 
@@ -204,14 +236,14 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                * 单组件居右
                * 外面再套一层div
                */
-              finalElements.push({
+              finalElement = {
                 id,
                 style: {
                   // 容器样式
                   display: "flex",
                   justifyContent: "flex-end",
                   /** 上距离 */
-                  marginTop,
+                  [finalKey]: margin,
                   /** 右距离 */
                   marginRight: style.right
                 },
@@ -224,22 +256,22 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                     height: style.height,
                   },
                 }]
-              })
+              }
             } else {
               /**
                * 单组件非居右
                * 正常计算
               */
-              finalElements.push({
+              finalElement = {
                 ...element,
                 id,
                 style: {
                   width: style.width,
                   height: style.height,
-                  marginTop,
+                  [finalKey]: margin,
                   marginLeft, // 不居中要设置左边距
                 },
-              })
+              }
             }
           }
         }
@@ -247,34 +279,40 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         /** 当前元素铺满 */
         if (style.flexDirection) {
           /** 成组 - 非单组件 */
-          finalElements.push({
+          finalElement = {
             ...element,
             id,
             style: {
               marginRight,
               ...finalStyle,
-              marginTop,
+              [finalKey]: margin,
             }
-          })
+          }
         } else {
           /** 未成组 - 单组件 */
-          finalElements.push({
+          finalElement = {
             ...element,
             id,
             style: {
               width: 'auto', // TODO: 在tojson.ts内，如果widht是auto，可以把auto也删除
               height: style.height,
-              marginTop,
+              [finalKey]: margin,
               // TODO: 单组件横向铺满，需要放开
               marginRight,
               marginLeft
             }
-          })
+          }
         }
       }
 
+      if (startOnBottom) {
+        finalElements.unshift(finalElement)
+      } else {
+        finalElements.push(finalElement)
+      }
+
       /** 设置当前元素距上边距离，用于计算下一个元素的上外间距 */
-      currentTop = currentTop + marginTop + style.height;
+      currentKeyValue = currentKeyValue + margin + style.height
     });
   } else {
     const { startOnRight, startOnLeft } = layoutConfig
@@ -287,22 +325,22 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
     /** 横向排列 - 向右 */
     if (startOnRight) {
       // 默认是右边
-      currentKeyValue = right
+      currentKeyValue = isNotAutoGroup ? 0 : elements[0].style.right;
       calculateKey = 'right'
       finalKey = 'marginRight'
     } else {
       // 默认是左边
-      currentKeyValue = left
+      currentKeyValue = isNotAutoGroup ? 0 : elements[0].style.left;
       calculateKey = 'left'
       finalKey = 'marginLeft'
     }
-   
-    /** 收集 设置 widthFull 的元素具体宽度，计算 flex 比例 */
-    const flexXWidths: number[] = [];
-    /** 上述数组的index对应的元素位置 elements[index] */
-    const flexXIndexToStyleMap = {};
-    /** 设置 widthFull 的元素具体宽度合 */
-    let flexXSumWidth = 0;
+
+    /** 填充具体像素值 */
+    const flexPX: number[] = [];
+    /** 上述数组的index对应的元素位置 calculateComAry[index] */
+    const flexPXIndexToStyleMap = {};
+    /** 设置填充的元素具体像素合 */
+    let flexSumPX = 0;
 
     /** 
      * 将元素从左至右排序
@@ -318,7 +356,16 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         })
       }
 
-      /** 当前元素左外间距 */
+      if (style.widthFull) {
+        /** push元素具体宽度 */
+        flexPX.push(style.width)
+        /** 计算总宽度 */
+        flexSumPX = flexSumPX + style.width;
+        /** 记录元素位置 */
+        flexPXIndexToStyleMap[flexPX.length - 1] = id;
+      }
+
+      /** 当前元素左右外间距 */
       const margin = style[calculateKey] - currentKeyValue;
 
       let finalElement
@@ -356,14 +403,6 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         }
       } else {
         /** 当前元素铺满 */
-
-        /** push元素具体宽度 */
-        flexXWidths.push(style.width)
-        /** 计算总宽度 */
-        flexXSumWidth = flexXSumWidth + style.width;
-        /** 记录元素位置 */
-        flexXIndexToStyleMap[flexXWidths.length - 1] = id;
-
         if (style.flexDirection) {
           /** 成组 - 非单组件 */
           finalElement = {
@@ -391,21 +430,21 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         }
       }
 
-      if (startOnLeft) {
-        finalElements.push(finalElement)
-      } else {
+      if (startOnRight) {
         finalElements.unshift(finalElement)
+      } else {
+        finalElements.push(finalElement)
       }
 
       /** 设置当前元素外间距，用于计算下一个元素的外间距 */
       currentKeyValue = currentKeyValue + margin + style.width
     })
 
-    if (flexXWidths.length) {
+    if (flexPX.length) {
       // 横向可能存在多个铺满组件，需要计算flex值
-      const gcd = findGCD(flexXWidths)
-      flexXWidths.forEach((width, index) => {
-        const style = finalElements.find((element) => element.id === flexXIndexToStyleMap[index]).style
+      const gcd = findGCD(flexPX)
+      flexPX.forEach((width, index) => {
+        const style = finalElements.find((element) => element.id === flexPXIndexToStyleMap[index]).style
         style.flex = width / gcd
         /** 下面两个属性，需要再观察下，后续这类样式设置需要写明原因或遇到的问题 */
         style.overflow = 'hidden'
