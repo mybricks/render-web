@@ -237,7 +237,8 @@ function RenderCom({
   useMemo(() => {
     const { handlePxToVw, debug, disableStyleInjection } = options
 
-    if (!disableStyleInjection && !debug && !context.styleMap[id]) {
+    // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
+    if (!disableStyleInjection && !context.styleMap[id]) {
       // 非引擎环境 并且 没有插入过style
       context.styleMap[id] = true
       const { pxToRem: configPxToRem } = env
