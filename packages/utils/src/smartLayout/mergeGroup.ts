@@ -76,52 +76,9 @@ export function getCombinationElements(elements: Elements, layoutStyle: LayoutCo
     return getCombinationElements(sortByTopLeft(convertedToElements(combinationElements)), layoutStyle)
   }
 
-  let res = computeElementOffsetCoordinates(convertedToElements(sortByTopLeft(combinationElements)), layoutStyle)
+  const res = computeElementOffsetCoordinates(convertedToElements(sortByTopLeft(combinationElements)), layoutStyle)
 
-  // 纵向排列多个，说明是未成组，如果有居下和高度填充，需要再次合并为一组
-  if (res.length > 1 && layoutStyle.flexDirection === "column" && elements.find((element) => element.style.heightFull || isNumber(element.style.bottom))) {
-    // 这里就是把这些都包一层
-    const parentStyle: any = {
-      heightFull: true,
-      flexDirection: "column",
-      isNotAutoGroup: false,
-    }
-
-    let top, left, width, height
-    res.forEach(({ style }) => {
-      if (!top || top > style.top) {
-        top = style.top
-      }
-      if (!left || left > style.left) {
-        left = style.left
-      }
-      if (!width || width < style.left + style.width) {
-        width = style.left + style.width
-      }
-      if (!height || height < style.top + style.height) {
-        height = style.top + style.height
-      }
-      if (style.widthFull) {
-        parentStyle.widthFull = true
-      }
-    })
-    parentStyle.top = top
-    parentStyle.left = left
-    parentStyle.width = width - left
-    parentStyle.height = height - top
-
-    res.map(({ style }) => {
-      // 重新计算位置
-      style.left = style.left - left;
-      style.top = style.top - top;
-    })
-
-    res = [{
-      id: res[0].id,
-      style: parentStyle,
-      elements: res
-    }]
-  }
+  // log("🍎真正的结果: ", ps(res))
 
   return res;
 }
