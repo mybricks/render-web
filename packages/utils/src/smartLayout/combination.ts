@@ -251,6 +251,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
             ...element,
             id,
             style: {
+              marginRight,
               ...finalStyle,
               marginTop,
             }
