@@ -28,7 +28,7 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
         style: {
           display: 'flex',
           flexDirection: 'row',
-          flexWrap: 'wrap',
+          // flexWrap: 'wrap', // 相同方向去除换行
           justifyContent: 'flex-end',
           marginRight: elementStyle.right,
         },
@@ -152,7 +152,7 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
       style: {
         display: 'flex',
         flexDirection: 'row',
-        flexWrap: 'wrap',
+        // flexWrap: 'wrap', // 相同方向去除换行
         marginLeft: elementStyle.left
       },
       elements: calculateLayoutRelationship(elements, {
