@@ -57,7 +57,57 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
   // }
 
   /** 计算最终的布局关系 */
-  const res = calculateLayoutRelationship(finalElements, layoutConfig);
+  let res = calculateLayoutRelationship(finalElements, layoutConfig);
+
+  if (res.length > 1 && res.find((element) => element.style.heightFact)) {
+    /** 填充具体像素值 */
+    const flexPX: number[] = [];
+    /** 上述数组的index对应的元素位置 calculateComAry[index] */
+    const flexPXIndexToStyleMap = {};
+    /** 设置填充的元素具体像素合 */
+    let flexSumPX = 0;
+
+    res.forEach((element) => {
+      log(ps(element))
+      const { id, style } = element
+      if (style.heightFact) {
+        /** push元素具体宽度 */
+        flexPX.push(style.heightFact)
+        /** 计算总宽度 */
+        flexSumPX = flexSumPX + style.heightFact;
+        /** 记录元素位置 */
+        flexPXIndexToStyleMap[flexPX.length - 1] = id;
+
+        Reflect.deleteProperty(style, "marginBottom")
+      }
+    })
+
+    if (flexPX.length) {
+      // 横向可能存在多个铺满组件，需要计算flex值
+      const gcd = findGCD(flexPX)
+      flexPX.forEach((height, index) => {
+        const style = res.find((element) => element.id === flexPXIndexToStyleMap[index]).style
+        style.flex = height / gcd
+      })
+    }
+
+    const fEle = finalElements[0]
+    const lEle = finalElements[finalElements.length - 1]
+
+    Reflect.deleteProperty(res[0].style, "marginTop")
+
+    res = [{
+      id: res[0].id,
+      elements: res,
+      style: {
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        marginTop: fEle.style.top,
+        marginBottom: layoutConfig.style.height - (lEle.style.top + lEle.style.height)
+      }
+    }]
+  }
   // res.length && log("最终结果: ", ps(res.concat(fixedAbsoluteElements)))
   return res.concat(fixedAbsoluteElements);
 }
@@ -121,7 +171,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
      * 将元素从上至下排序
      * 遍历
      */
-    elements.sort((preElement, curElement) => preElement.style.top - curElement.style.top).forEach((element) => {
+    elements.sort((preElement, curElement) => preElement.style[calculateKey] - curElement.style[calculateKey]).forEach((element) => {
       /** 递归计算element.elements */
       const { id, style } = element;
 
@@ -155,6 +205,12 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
       /** 当前元素右外间距 */
       const marginRight = width - marginLeft - style.width;
 
+      if (style.heightFull) {
+        flexPX.push(style.height)
+        flexSumPX = flexSumPX + style.height;
+        flexPXIndexToStyleMap[flexPX.length - 1] = id;
+      }
+
       if (!style.widthFull) {
         /** 当前元素未铺满 */
         if (
@@ -184,47 +240,51 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
              * 未成组 - 单组件 
              * 由于居中，要多套一层div
              */
+            const childStyle: any = {
+              width: style.width,
+              height: style.height,
+            }
+            const parentStyle: any = {
+              [finalKey]: margin,
+              display: "flex",
+              justifyContent: 'center',
+            }
+            if (style.heightFull) {
+              const marginBottom = height - margin - style.height;
+              childStyle.height = '100%';
+              parentStyle.marginBottom = marginBottom;
+              parentStyle.height = '100%';
+              parentStyle.heightFact = style.height;
+            }
             finalElement = {
               id,
               elements: [{
                 ...element,
                 id,
-                style: {
-                  /** 记录当前元素宽高，可能还要继续计算的 */
-                  width: style.width,
-                  height: style.height,
-                },
+                style: childStyle,
               }],
-              style: {
-                [finalKey]: margin,
-                display: "flex",
-                justifyContent: 'center',
-              },
+              style: parentStyle,
             }
           }
         } else {
           /** 不居中 */
           if (style.flexDirection) {
             /** 成组 - 非单组件 */
-            if (isNumber(style.right)) {
-              // 居右
-              finalElement = {
-                ...element,
-                id,
-                style: {
-                  ...finalStyle,
-                  [finalKey]: margin,
-                }
-              }
-            } else {
-              finalElement = {
-                ...element,
-                id,
-                style: {
-                  ...finalStyle,
-                  [finalKey]: margin,
-                }
-              }
+            // 成组情况下，无论是否居右都无所谓，因为数据来自finalStyle
+            const parentStyle: any = {
+              ...finalStyle,
+              [finalKey]: margin,
+            }
+            if (style.heightFull) {
+              const marginBottom= height - margin - style.height;
+              parentStyle.marginBottom = marginBottom;
+              parentStyle.height = '100%';
+              parentStyle.heightFact = style.height;
+            }
+            finalElement = {
+              ...element,
+              id,
+              style: parentStyle
             }
           } else {
             /** 
@@ -236,25 +296,31 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                * 单组件居右
                * 外面再套一层div
                */
+              const childStyle: any = {
+                width: style.width,
+                height: style.height,
+              }
+              const parentStyle: any = {
+                display: "flex",
+                justifyContent: "flex-end",
+                [finalKey]: margin,
+                marginRight: style.right
+              }
+              if (style.heightFull) {
+                const marginBottom = height - margin - style.height;
+                childStyle.height = '100%';
+                parentStyle.marginBottom = marginBottom;
+                parentStyle.height = '100%';
+                parentStyle.heightFact = style.height;
+              }
+              
               finalElement = {
                 id,
-                style: {
-                  // 容器样式
-                  display: "flex",
-                  justifyContent: "flex-end",
-                  /** 上距离 */
-                  [finalKey]: margin,
-                  /** 右距离 */
-                  marginRight: style.right
-                },
+                style: parentStyle,
                 elements: [{
                   ...element,
                   id,
-                  style: {
-                    // 组件样式
-                    width: style.width,
-                    height: style.height,
-                  },
+                  style: childStyle,
                 }]
               }
             } else {
@@ -262,15 +328,24 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
                * 单组件非居右
                * 正常计算
               */
+              const parentStyle: any = {
+                width: style.width,
+                height: style.height,
+                [finalKey]: margin,
+                marginLeft, // 不居中要设置左边距
+              }
+              if (style.heightFull) {
+                parentStyle.height = '100%';
+                parentStyle.heightFact = style.height;
+                if (isNotAutoGroup) {
+                  const marginBottom = height - margin - style.height;
+                  parentStyle.marginBottom = marginBottom;
+                }
+              }
               finalElement = {
                 ...element,
                 id,
-                style: {
-                  width: style.width,
-                  height: style.height,
-                  [finalKey]: margin,
-                  marginLeft, // 不居中要设置左边距
-                },
+                style: parentStyle,
               }
             }
           }
@@ -279,28 +354,47 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         /** 当前元素铺满 */
         if (style.flexDirection) {
           /** 成组 - 非单组件 */
+
+          const parentStyle: any = {
+            marginRight,
+            ...finalStyle,
+            [finalKey]: margin,
+          }
+
+          if (style.heightFull) {
+            const marginBottom= height - margin - style.height;
+            parentStyle.height = '100%';
+            parentStyle.heightFact = style.height;
+            parentStyle.marginBottom = marginBottom;
+          }
+
           finalElement = {
             ...element,
             id,
-            style: {
-              marginRight,
-              ...finalStyle,
-              [finalKey]: margin,
-            }
+            style: parentStyle
           }
         } else {
           /** 未成组 - 单组件 */
+          const parentStyle: any = {
+            width: 'auto',
+            height: style.height,
+            [finalKey]: margin,
+            marginRight,
+            marginLeft
+          }
+          if (style.heightFull) {
+            parentStyle.height = '100%';
+            parentStyle.heightFact = style.height;
+            if (isNotAutoGroup) {
+              const marginBottom = height - margin - style.height;
+              parentStyle.marginBottom = marginBottom;
+            }
+          }
+
           finalElement = {
             ...element,
             id,
-            style: {
-              width: 'auto', // TODO: 在tojson.ts内，如果widht是auto，可以把auto也删除
-              height: style.height,
-              [finalKey]: margin,
-              // TODO: 单组件横向铺满，需要放开
-              marginRight,
-              marginLeft
-            }
+            style: parentStyle
           }
         }
       }
@@ -314,6 +408,14 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
       /** 设置当前元素距上边距离，用于计算下一个元素的上外间距 */
       currentKeyValue = currentKeyValue + margin + style.height
     });
+    if (flexPX.length) {
+      // 横向可能存在多个铺满组件，需要计算flex值
+      const gcd = findGCD(flexPX)
+      flexPX.forEach((height, index) => {
+        const style = finalElements.find((element) => element.id === flexPXIndexToStyleMap[index]).style
+        style.flex = height / gcd
+      })
+    }
   } else {
     const { startOnRight, startOnLeft } = layoutConfig
     /** 元素计算的key */
@@ -389,16 +491,22 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
             },
           }
         } else {
+          const parentStyle: any = {
+            width: style.width,
+            height: style.height,
+            marginTop,
+            [finalKey]: margin
+          }
+          if (style.heightFull) {
+            parentStyle.height = '100%';
+            const marginBottom = height - marginTop - style.height;
+            parentStyle.marginBottom = marginBottom;
+          }
           /** 未成组 - 单组件 */
           finalElement = {
             ...element,
             id: element.id,
-            style: {
-              width: style.width,
-              height: style.height,
-              marginTop,
-              [finalKey]: margin
-            },
+            style: parentStyle,
           }
         }
       } else {
@@ -417,15 +525,23 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
           }
         } else {
           /** 未成组 - 单组件 */
+          const parentStyle: any = {
+            height: style.height,
+            marginTop,
+            [finalKey]: margin
+          }
+
+          if (style.heightFull) {
+            const marginBottom = height - marginTop - style.height;
+            parentStyle.height = '100%';
+            parentStyle.heightFact = style.height;
+            parentStyle.marginBottom = marginBottom;
+          }
+
           finalElement = {
             ...element,
             id,
-            style: {
-              /** 不需要宽度，最终会设置flex属性 */
-              height: style.height,
-              marginTop,
-              [finalKey]: margin
-            },
+            style: parentStyle
           }
         }
       }

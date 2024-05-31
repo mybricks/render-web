@@ -384,7 +384,11 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
 
     if (Array.isArray(elements)) {
       // 如果有elements说明是成组了，将style内计算用的高度删除
-      Reflect.deleteProperty(style, 'height')
+      if (isNumber(style.height)) {
+        // 如果是具体的值，将style内计算用的高度删除
+        Reflect.deleteProperty(style, 'height')
+      }
+      Reflect.deleteProperty(style, "heightFact")
       // 深度遍历元素节点
       const realElements = traverseElementsToSlotComAry(elements, coms, comIdToSlotComMap)
       if (!["space-between", "center", "flex-end"].includes(style.justifyContent) && realElements.filter((element) => {
@@ -400,6 +404,7 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         // 没有justifyContent属性，并且素有元素的宽度都是fit-content，那么width需要设置为fit-content
         style.width = "fit-content"
       }
+      transformMargin(style, false)
       result.push({
         ...com,
         elements: realElements
@@ -463,7 +468,7 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         modelStyle.flexShrink = 1
       }
 
-      const { marginTop, marginRight, marginBottom, marginLeft } = style;
+      const { marginTop, marginRight, marginBottom, marginLeft, ...other } = style;
       if (isNumber(marginTop)) {
         modelStyle.marginTop = marginTop
       }
@@ -478,32 +483,11 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
       }
 
       if (style.flex) {
-        // 有flex属性，说明是有等比缩放的
         modelStyle.flex = style.flex
-        // modelStyle.margin = style.margin
-        // 删除宽度相关属性
-        Reflect.deleteProperty(modelStyle, "width")
-        Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
-        // 设置最小宽度
-        modelStyle.minWidth = style.minWidth
-      } else if (style.width === 'auto') {
-        // 计算后宽度是等比缩放
-        // modelStyle.margin = style.margin
-        // @ts-ignore
-        modelStyle.width = 'auto'
-        Reflect.deleteProperty(modelStyle, "maxWidth") // 后续去掉，智能布局下没有这个属性了
-      } else {
-        // TODO: 应该全都计算好？
-        // if (!modelStyle.margin) {
-        //   modelStyle.margin = `${style.marginTop || 0}px ${style.marginRight || 0}px ${style.marginBottom || 0}px ${style.marginLeft || 0}px`
-        // }
       }
 
-      // 目前没有 marginBottom
-      // modelStyle.marginBottom = style.marginBottom
-
       // 对组件样式做处理，去除运行时无关的内容
-      coms[id].model.style = getComponentStyle(modelStyle);
+      coms[id].model.style = getComponentStyle(Object.assign(modelStyle, other));
 
       const resultElement: any = {
         ...comIdToSlotComMap[id]
@@ -589,6 +573,17 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   remover("heightAuto");
   remover("heightFull");
 
+  if (style.flex === 1) {
+    style.widthFull = true // TODO: 兼容，同上
+  }
+
+  transformMargin(style);
+
+  return style;
+}
+
+/** 间距转换 */
+function transformMargin(style, hasSize = true) {
   const {
     width,
     height,
@@ -597,37 +592,34 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
     marginBottom,
     marginLeft
   } = style;
-
   // 间距特殊处理
-  if (!width || ["100%", "auto"].includes(width)) {
+  if ((hasSize && !width) || ["100%", "auto"].includes(width)) {
     // 说明是 宽度等比缩放
-    if (marginLeft > 0) {
+    if (isNumber(marginLeft) && marginLeft > 0) {
       // 使用paddingLeft
       style.paddingLeft = marginLeft
-      remover("marginLeft")
+      Reflect.deleteProperty(style, "marginLeft")
     }
-    if (marginRight > 0) {
+    if (isNumber(marginRight) && marginRight > 0) {
       // 使用paddingRight
       style.paddingRight = marginRight
-      remover("marginRight")
+      Reflect.deleteProperty(style, "marginRight")
     }
   }
 
-  if (!height || ["100%", "auto"].includes(height)) {
+  if ((hasSize && !height) || ["100%", "auto"].includes(height)) {
      // 说明是 高度等比缩放
-     if (marginTop > 0) {
+     if (isNumber(marginTop) && marginTop > 0) { 
       // 使用paddingTop
       style.paddingTop = marginTop
-      remover("marginTop")
+      Reflect.deleteProperty(style, "marginTop")
     }
-    if (marginBottom > 0) {
+    if (isNumber(marginBottom) && marginBottom > 0) {
       // 使用paddingBottom
       style.paddingBottom = marginBottom
-      remover("marginBottom")
+      Reflect.deleteProperty(style, "marginBottom")
     }
   }
-
-  return style;
 }
 
 /** 获取组件风格化代码，可用于写入style标签 */
