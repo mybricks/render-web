@@ -437,20 +437,27 @@ function RenderCom({
 
   // --- 2023.2.21 兼容小程序
   jsx = jsx ? (
-    <div id={id} key={id} style={{
-      display: style.display,
-      visibility: style.visibility,
-      // overflow: "hidden",
-      // position: style.position || "relative",
-      position: style.position,
-      flex: style.flex,
-      flexDirection: style.flexDirection,
-      flexShrink: style.flexShrink,
-      ...otherStyle,
-      ...sizeStyle,
-      ...marginStyle,
-      ...(style.ext || {})
-    }} className={classes}>
+    <div
+      id={id}
+      key={id}
+      data-title={title}
+      data-namespace={def.namespace}
+      style={{
+        display: style.display,
+        visibility: style.visibility,
+        // overflow: "hidden",
+        // position: style.position || "relative",
+        position: style.position,
+        flex: style.flex,
+        flexDirection: style.flexDirection,
+        flexShrink: style.flexShrink,
+        ...otherStyle,
+        ...sizeStyle,
+        ...marginStyle,
+        ...(style.ext || {})
+      }}
+      className={classes}
+    >
       <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`} options={options}>
         {jsx}
         {/* TODO */}
