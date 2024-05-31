@@ -108,12 +108,8 @@ export default function RenderSlot({
     // const slotStyle = paramsStyle || style;
     const slotStyle = Object.assign(style, paramsStyle || {})
 
-    /**
-     * 非root，不设置overflow: hidden
-     * 抽屉内部内容超出场景
-     */
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null,...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : "hidden",...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
