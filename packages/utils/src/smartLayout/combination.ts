@@ -146,7 +146,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
     /** 横向排列 - 向右 */
     if (startOnBottom) {
       // 默认是下边
-      currentKeyValue = isNotAutoGroup ? 0 : elements[0].style.bottom;
+      currentKeyValue = isNotAutoGroup ? 0 : elements[elements.length - 1].style.bottom;
       calculateKey = 'bottom'
       finalKey = 'marginBottom'
     } else {
@@ -427,7 +427,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
     /** 横向排列 - 向右 */
     if (startOnRight) {
       // 默认是右边
-      currentKeyValue = isNotAutoGroup ? 0 : elements[0].style.right;
+      currentKeyValue = isNotAutoGroup ? 0 : elements[elements.length - 1].style.right;
       calculateKey = 'right'
       finalKey = 'marginRight'
     } else {
