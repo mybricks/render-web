@@ -405,25 +405,30 @@ function RenderCom({
     }
   }
 
-  let jsx = comDef.runtime({
-    id,
-    env,
-    _env,
-    data,
-    name,
-    title,
-    style,
-    inputs: myInputs,
-    outputs: myOutputs,
-    _inputs: _myInputs,
-    _outputs: _myOutputs,
-    _notifyBindings: _myNotifyBindings,
-    slots: slotsProxy,
-    createPortal,
-    parentSlot,
-    onError,
-    logger,
-  })
+  const Runtime = comDef.runtime
+
+  const jsx = <Runtime
+    id={id}
+    env={env}
+    _env={_env}
+    data={data}
+    name={name}
+    title={title}
+    style={style}
+    inputs={myInputs}
+    outputs={myOutputs}
+    _inputs={_myInputs}
+    _outputs={_myOutputs}
+    _notifyBindings={_myNotifyBindings}
+    slots={slotsProxy}
+    createPortal={createPortal}
+    parentSlot={parentSlot}
+    onError={onError}
+    logger={logger}
+    _onError_={(e) => {
+      throw new Error(e)
+    }}
+  />
 
   useLayoutEffect(() => {
     setShow(true) // 在子组件写入前触发状态更新，会执行上次等待的useEffect，内部inputs是同步执行，最终挂载dom
@@ -460,10 +465,6 @@ function RenderCom({
     >
       <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`} options={options}>
         {jsx}
-        {/* TODO */}
-        {/* <div style={{position: 'absolute', top: 0, left: 0}}>
-          {children}
-        </div> */}
         {children}
       </ErrorBoundary>
     </div>
