@@ -468,7 +468,7 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         modelStyle.flexShrink = 1
       }
 
-      const { marginTop, marginRight, marginBottom, marginLeft, ...other } = style;
+      const { marginTop, marginRight, marginBottom, marginLeft, width, height, ...other } = style;
       if (isNumber(marginTop)) {
         modelStyle.marginTop = marginTop
       }
@@ -484,6 +484,20 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
 
       if (style.flex) {
         modelStyle.flex = style.flex
+      }
+
+      if (!isNumber(width)) {
+        // @ts-ignore
+        modelStyle.width = width
+      }
+      if (!isNumber(height)) {
+        // @ts-ignore
+        modelStyle.height = height
+      }
+
+      // @ts-ignore
+      if (modelStyle.width === "auto") {
+        Reflect.deleteProperty(modelStyle, "maxWidth")
       }
 
       // 对组件样式做处理，去除运行时无关的内容
