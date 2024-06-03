@@ -1403,6 +1403,13 @@ export default function executor(opts, {observable}) {
             Cur.todo = []
           }
           Cur.todo.push(fn)
+        },
+        setSlotValue(slotValues, curScope) {
+          const scope = curScope || Cur.scope
+          Object.entries(slotValues).forEach(([name, value]) => {
+            const key = comId + '-' + slotId + '-' + name
+            _slotValue[`${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`] = value
+          })
         }
       }
     }

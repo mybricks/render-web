@@ -522,6 +522,7 @@ function SlotRender ({
         }
 
         if (isRuntime) {
+          finalProps.setSlotValue(ivs)
           for (let pro in ivs) {
             finalProps.inputs[pro](ivs[pro], finalScope)
           }
@@ -541,6 +542,7 @@ function SlotRender ({
           preInputValues.current = paramsInputValues
         } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues.current) !== JSON.stringify(paramsInputValues))) {
           preInputValues.current = paramsInputValues
+          curProps.setSlotValue(paramsInputValues)
           for (let pro in paramsInputValues) {
             curProps.inputs[pro](paramsInputValues[pro], curScope)
           }
