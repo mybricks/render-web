@@ -408,7 +408,7 @@ function RenderCom({
 
   const Runtime = comDef.runtime
 
-  const jsx = <Runtime
+  let jsx = <Runtime
     id={id}
     env={env}
     _env={_env}
