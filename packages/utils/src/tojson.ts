@@ -582,14 +582,12 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   // 删除引擎带来的运行时无用的样式
   remover("widthFact");
   remover("widthAuto");
-  // remover("widthFull"); // TODO: 暂时不删除，有旧数据需要兼容
+  remover("widthFull");
   remover("heightFact");
   remover("heightAuto");
   remover("heightFull");
 
-  if (style.flex === 1) {
-    style.widthFull = true // TODO: 兼容，同上
-  }
+  style._new = true; // TODO: 有旧数据需要兼容，作为新数据的标识
 
   transformMargin(style);
 

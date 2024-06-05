@@ -782,7 +782,8 @@ function getClasses({style, id}) {
   const classes = [id, css.com]
 
   // 临时兼容
-  if (style.flex === 1 && !style.widthFull) {
+  // style._new 说明是新数据结构，不再需要css.flex
+  if (style.flex === 1 && !style._new) {
     classes.push(css.flex)
   }
 
