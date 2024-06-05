@@ -247,6 +247,7 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
             const parentStyle: any = {
               [finalKey]: margin,
               display: "flex",
+              width: "100%",
               justifyContent: 'center',
             }
             if (style.heightFull) {
