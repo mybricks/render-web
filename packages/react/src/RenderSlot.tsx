@@ -81,12 +81,14 @@ export default function RenderSlot({
   const {style, comAry, layoutTemplate, showType } = slot
 
   if (style.layout === "smart" && layoutTemplate) {
-    const paramsStyle = params?.style;
+    // const paramsStyle = params?.style;
     // const slotStyle = paramsStyle || style;
-    const slotStyle = Object.assign(style, paramsStyle || {})
+    // const slotStyle = Object.assign(style, paramsStyle || {})
+    // 智能布局不接受组件传入的样式，后续看是否放开，一些默认的如display、flexDeriction等不能被覆盖
+    const slotStyle = style
     // 智能布局下，默认flex布局，方向为column
     return (
-      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null, ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: 'flex', flexDirection: "column"}}>
+      <div data-isslot='1' className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null, ...calSlotStyles(slotStyle, true, root, slot.type === "module", options), ...propsStyle, display: 'flex', flexDirection: "column"}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
