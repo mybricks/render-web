@@ -422,14 +422,6 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
       // 设置默认position为relative
       modelStyle.position = style.position || 'relative'
 
-      // 如果是absolute，绝对定位，设置计算的top和left
-      if (modelStyle.position === "absolute") {
-        // @ts-ignore
-        modelStyle.top = style.top
-        // @ts-ignore
-        modelStyle.left = style.left
-      }
-
       if (modelStyle.heightAuto) {
         // 高度适应内容 - 设置height: fit-content
         if (modelStyle.position === "absolute") {
@@ -577,6 +569,13 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
     remover("top");
     remover("right");
     remover("bottom");
+  } else {
+    if (isNumber(style.bottom)) {
+      remover("top");
+    }
+    if (isNumber(style.right)) {
+      remover("left");
+    }
   }
 
   // 删除引擎带来的运行时无用的样式
