@@ -105,7 +105,12 @@ export default function RenderSlot({
   })
 
   if (typeof wrapper === 'function') {
-    return wrapper(itemAry)
+    return wrapper(itemAry.map((item) => {
+      item.getJsx = ({ index, id }) => {
+        return getRenderComJSX({ com: {...item.com, copyId: id}, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options })
+      }
+      return item
+    }))
   } else {
     const paramsStyle = params?.style;
     // const slotStyle = paramsStyle || style;
@@ -120,7 +125,7 @@ export default function RenderSlot({
 }
 
 function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options }) {
-  const {id, def, name, child, brother} = com
+  const {id, def, name, child, brother, copyId} = com
   const comInfo = context.getComInfo(id)
   const { hasPermission, permissions: envPermissions } = env
   const permissionsId = comInfo?.model?.permissions?.id
@@ -152,7 +157,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
   const comDef = getComDef(def)
 
   if (comDef) {
-    const props = context.get({comId: id, scope, _ioProxy: {
+    const props = context.get({comId: id, copyId, scope, _ioProxy: {
       inputs, outputs, _inputs, _outputs
     }})
 
@@ -160,7 +165,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
       const comKey = id + (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
       return {
         id,
-        jsx: <RenderCom key={comKey} com={com}
+        jsx: <RenderCom key={comKey} com={com} index={index}
                         getComDef={getComDef}
                         context={context}
                         scope={scope}
@@ -187,7 +192,8 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                           </RenderCom>,
         name,
         inputs: props.inputsCallable,
-        style: props.style
+        style: props.style,
+        com
       }
     } else {
       return {
@@ -211,6 +217,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
 
 function RenderCom({
                      com,
+                     index,
                      props,
                      scope,
                      template,
@@ -440,7 +447,13 @@ function RenderCom({
   // --- end
 
   if (typeof template === 'function') {
-    jsx = template({id, jsx, name, scope})
+    jsx = template({
+      id,
+      jsx,
+      name,
+      scope,
+      index,
+    })
   }
 
   // --- 2023.2.21 兼容小程序

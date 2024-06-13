@@ -581,11 +581,13 @@ export default function executor(opts, {observable}) {
                          frameId: string,
                          parent
                        },
+                       copyId
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
     const com = Coms[comId]
     if (!com) return null
-    const comInFrameId = comId + (com.frameId || ROOT_FRAME_KEY)
+    const responseComId = copyId || comId
+    const comInFrameId = responseComId + (com.frameId || ROOT_FRAME_KEY)
 
     let frameProps = _Props[comInFrameId]
     if (!frameProps) {
@@ -601,7 +603,7 @@ export default function executor(opts, {observable}) {
     }
 
     while (curScope) {
-      const key = curScope.id + '-' + comId
+      const key = curScope.id + '-' + responseComId
 
       if (curScope.frameId === com.frameId) {
         storeScopeId = curScope.id
@@ -624,7 +626,7 @@ export default function executor(opts, {observable}) {
       curScope = curScope.parent
     }
 
-    const key = (storeScopeId ? (storeScopeId + '-') : '') + comId
+    const key = (storeScopeId ? (storeScopeId + '-') : '') + responseComId
 
     const found = frameProps[key]//global
     if (found) {
@@ -727,13 +729,13 @@ export default function executor(opts, {observable}) {
             })
 
             Promise.resolve().then(() => {
-              const inReg = {comId, def, pinId: name}
+              const inReg = {comId, def, pinId: name, copyId}
               exeInputForCom(inReg, val, scope, reg)
             })
 
             return rtn
           } else {
-            const inReg = {comId, def, pinId: name}
+            const inReg = {comId, def, pinId: name, copyId}
             exeInputForCom(inReg, val, scope)
           }
         }
@@ -992,7 +994,7 @@ export default function executor(opts, {observable}) {
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
-    const {comId, def, pinId, pinType, frameKey, finishPinParentKey, timerPinInputId, targetFrameKey} = inReg
+    const {comId, def, pinId, pinType, frameKey, finishPinParentKey, timerPinInputId, targetFrameKey, copyId} = inReg
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
@@ -1140,7 +1142,7 @@ export default function executor(opts, {observable}) {
           }
         }
       } else {//ui
-        const props = getComProps(comId, scope)
+        const props = getComProps(comId, scope, copyId)
         if (!props) {
           return
         }
@@ -1477,7 +1479,7 @@ export default function executor(opts, {observable}) {
   }
 
   const rst = {
-    get({comId, slotId, scope, _ioProxy}) {
+    get({comId, copyId, slotId, scope, _ioProxy}) {
       let ioProxy
       if (_ioProxy && (_ioProxy.inputs || _ioProxy.outputs || _ioProxy._inputs || _ioProxy._outputs)) {
         ioProxy = _ioProxy
@@ -1486,7 +1488,7 @@ export default function executor(opts, {observable}) {
       if (slotId) {
         return getSlotProps(comId, slotId, scope)
       } else {
-        const rtn = getComProps(comId, scope)
+        const rtn = getComProps(comId, scope, copyId)
         if (ioProxy) {
           return rtn.clone(ioProxy)
         } else {
