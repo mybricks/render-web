@@ -572,27 +572,27 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   } else {
     if (isNumber(style.bottom)) {
       remover("top");
-      if (isNumber(style.bottomAsFixed)) {
-        style.bottom = style.bottomAsFixed
-        remover("bottomAsFixed")
-      }
+      // if (isNumber(style.bottomAsFixed)) {
+      //   style.bottom = style.bottomAsFixed
+      //   remover("bottomAsFixed")
+      // }
     } else {
-      if (isNumber(style.topAsFixed)) {
-        style.top = style.topAsFixed
-        remover("topAsFixed")
-      }
+      // if (isNumber(style.topAsFixed)) {
+      //   style.top = style.topAsFixed
+      //   remover("topAsFixed")
+      // }
     }
     if (isNumber(style.right)) {
       remover("left");
-      if (isNumber(style.rightAsFixed)) {
-        style.right = style.rightAsFixed
-        remover("rightAsFixed")
-      }
+      // if (isNumber(style.rightAsFixed)) {
+      //   style.right = style.rightAsFixed
+      //   remover("rightAsFixed")
+      // }
     } else {
-      if (isNumber(style.leftAsFixed)) {
-        style.left = style.leftAsFixed
-        remover("leftAsFixed")
-      }
+      // if (isNumber(style.leftAsFixed)) {
+      //   style.left = style.leftAsFixed
+      //   remover("leftAsFixed")
+      // }
     }
   }
 
