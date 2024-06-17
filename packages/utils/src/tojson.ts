@@ -142,6 +142,11 @@ function transformSlotComAry(
     let slotWidth = slot.style.width || slot.style.widthFact
     let slotHeight = slot.style.height || slot.style.heightFact
 
+    if (root) {
+      Reflect.deleteProperty(slot.style, "width");
+      Reflect.deleteProperty(slot.style, "height")
+    }
+
     // 插槽内真实宽高需要减去内边距
     if (isNumber(paddingTop)) {
       slotHeight = slotHeight - paddingTop
