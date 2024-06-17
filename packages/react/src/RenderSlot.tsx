@@ -82,7 +82,7 @@ export default function RenderSlot({
   const {style, comAry, layoutTemplate, showType } = slot
 
   if (style.layout === "smart" && layoutTemplate) {
-    // const paramsStyle = params?.style;
+    const paramsStyle = params?.style;
     // const slotStyle = paramsStyle || style;
     const slotStyle = Object.assign(paramsStyle || {}, style)
     // 智能布局不接受组件传入的样式，后续看是否放开，一些默认的如display、flexDeriction等不能被覆盖
