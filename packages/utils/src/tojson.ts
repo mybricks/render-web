@@ -148,7 +148,7 @@ function transformSlotComAry(
     }
 
     // 插槽内真实宽高需要减去内边距
-    if (isNumber(paddingTop)) {
+    if (isNumber(paddingTop)) { // 仅页面画布去除width和height属性
       slotHeight = slotHeight - paddingTop
     }
     if (isNumber(paddingLeft)) {

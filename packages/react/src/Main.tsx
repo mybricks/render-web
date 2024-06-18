@@ -170,7 +170,7 @@ export default function Main({json, options, style = {}, className = '', root = 
         options={options}
         {...json.type === "module" ? { // 模块添加画布的点击事件
           onClick() {
-            options.outputs["click"]();
+            options.outputs?.["click"]();
           }
         } : {}}
       />

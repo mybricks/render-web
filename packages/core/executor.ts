@@ -136,9 +136,9 @@ export default function executor(opts, {observable}) {
                            },//frame
                            isBreakpoint
   ) {
-    if (_isNestedRender) {
-      return
-    }
+    // if (_isNestedRender) {
+    //   return
+    // }
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef, conId} = content
       if (debugLogger) {//存在外部的debugLogger
@@ -162,9 +162,9 @@ export default function executor(opts, {observable}) {
     finishPinParentKey,
     comDef
   }, isBreakpoint) {
-    if (_isNestedRender) {
-      return
-    }
+    // if (_isNestedRender) {
+    //   return
+    // }
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef, conId} = content
     if (conId) {
       if (debugLogger) {//存在外部的debugLogger
