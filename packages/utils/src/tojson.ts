@@ -142,7 +142,7 @@ function transformSlotComAry(
     let slotWidth = slot.style.width || slot.style.widthFact
     let slotHeight = slot.style.height || slot.style.heightFact
 
-    if (root) {
+    if (root && !slot.type) {
       Reflect.deleteProperty(slot.style, "width");
       Reflect.deleteProperty(slot.style, "height")
     }
