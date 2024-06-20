@@ -1,4 +1,4 @@
-import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, SlotStyle, ComponentStyle, Style, Component } from "@mybricks/render-types";
+import { ToJSON, ToUiJSON, Slot, Coms, ComponentNode, DomNode, SlotStyle, ComponentStyle, Style, Component, Slots } from "@mybricks/render-types";
 import smartLayout, { ResultElement } from "./smartLayout";
 import { isNumber } from "./type";
 import { generatePropertyRemover, findGCD } from "./normal";
@@ -661,7 +661,7 @@ type TransformStyle = {
 }
 
 /** 获取组件风格化代码，可用于写入style标签 */
-export function getStyleInnerHtml(
+export async function getStyleInnerHtml(
   toJSON: ToJSON | ToUiJSON,
   options: {
     transformStyle?: (style: TransformStyle) => TransformStyle;
@@ -670,6 +670,7 @@ export function getStyleInnerHtml(
       unitPrecision: number;
     }
   } = {}) {
+  const promiseAry = [];
   let innerHtml = "";
   const { modules, scenes, themes } = toJSON as ToJSON;
   const comThemes = themes?.comThemes;
@@ -703,15 +704,60 @@ export function getStyleInnerHtml(
           const comId = com.id
           if (Array.isArray(selector)) {
             selector.forEach((selector) => {
-              innerHtml += getStyleInnerText({id: comId, css, selector, global})
+              getStyleInnerText({id: comId, css, selector, global})
             })
           } else {
-            innerHtml += getStyleInnerText({id: comId, css, selector, global})
+            getStyleInnerText({id: comId, css, selector, global})
           }
         })
       }
+
+      getStyleInnerText({id: com.id, css: comCssPropertiesToValueString(com.model.style) })
     })
+    traversalSlots(null, {[json.id]: json.slot});
     return innerHtml;
+  }
+  function slotCssPropertiesToValueString(slotStyle: SlotStyle) {
+    const { layout, ...other } = slotStyle;
+    const responseSlotStyle: Style = {}
+    if (layout === "smart") {
+
+    } else if (layout === "flex-column") {
+      responseSlotStyle.display = "flex";
+      responseSlotStyle.flexDirection = "column";
+      Reflect.deleteProperty(slotStyle, "layout");
+    } else if (layout === "flex-row") {
+      responseSlotStyle.display = "flex";
+      responseSlotStyle.flexDirection = "row";
+      Reflect.deleteProperty(slotStyle, "layout");
+    }
+
+    return Object.entries(other).reduce((responseSlotStyle, [key, value]) => {
+      if (["justifyContent", "flexDirection", "alignItems"].includes(key)) {
+        Reflect.deleteProperty(slotStyle, key);
+      }
+      responseSlotStyle[key] = value;
+      return responseSlotStyle;
+    }, responseSlotStyle);
+  }
+  function traversalSlots(comId: string, slots: Slots) {
+    Object.entries(slots).forEach(([slotId, slot]) => {
+      const { style, comAry, layoutTemplate } = slot;
+      getStyleInnerText({ id: comId, global: comId ? false : true, css: slotCssPropertiesToValueString(style), selector: `[data-slot-id="${slotId}"]`});
+      traversalComAry(style.layout === "smart" ? layoutTemplate : comAry);
+    })
+  }
+  function traversalComAry(comAry: (ComponentNode | DomNode)[]) {
+    comAry.forEach((com) => {
+      if ("elements" in com) {
+        traversalComAry(com.elements)
+      } else {
+        const { slots }= com;
+        if (slots) {
+          traversalSlots(com.id, slots);
+        }
+      }
+    })
   }
   function getStyleAry(com: Component) {
     const style = com.model.style
@@ -746,18 +792,30 @@ export function getStyleInnerHtml(
 
     return styleAry
   }
-  function getStyleInnerText ({ id, css, selector, global }) {
+  function getStyleInnerText ({ id, css, selector = "", global = false }) {
     const responseSelector = `${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)}`;
     if (transformStyle) {
       const responseStyle = transformStyle({
         [responseSelector]: css
       });
 
-      return Object.entries(responseStyle).reduce((p, [id, css]) => {
-        return p + '\n' + cssPropertiesToString({ id, css })
-      }, "");
+      if (responseStyle instanceof Promise) {
+        promiseAry.push(new Promise((r) => {
+          responseStyle.then((style) => {
+            innerHtml += Object.entries(style).reduce((p, [id, css]) => {
+              return p + '\n' + cssPropertiesToString({ id, css })
+            }, "");
+            r(style);
+          })
+        }))
+      } else {
+        innerHtml += Object.entries(responseStyle).reduce((p, [id, css]) => {
+          return p + '\n' + cssPropertiesToString({ id, css })
+        }, "");
+      }
+    } else {
+      innerHtml += cssPropertiesToString({ id: responseSelector, css });
     }
-    return cssPropertiesToString({ id: responseSelector, css });
   }
   function cssPropertiesToString({ id, css }: { id: string; css: Style }) {
     return `
@@ -772,6 +830,8 @@ export function getStyleInnerHtml(
       }
     `
   }
+
+  await Promise.all(promiseAry);
   
   return innerHtml
 }
@@ -800,3 +860,18 @@ function getPxToVw({ viewportWidth = 375, unitPrecision = 5 }) {
     return value.replace(REG_PX, vwReplace);
   }
 }
+function comCssPropertiesToValueString(style: Style) {
+  return Object.entries(style).reduce((css, [key, value]) => {
+    if (!["width", "height"].includes(key)) {
+      Reflect.deleteProperty(style, key);
+    }
+    if (["width", "height", "left", "top", "right", "bottom", "marginLeft", "marginRight", "marginTop", "marginBottom", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom"].includes(key) && isNumber(value)) {
+      // 枚举引擎配置
+      css[key] = value + 'px';
+    } else {
+      css[key] = value;
+    }
+    return css;
+  }, {});
+}
+
