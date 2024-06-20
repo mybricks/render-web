@@ -462,7 +462,7 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         // @ts-ignore
         modelStyle.width = "fit-content"
         // 左右布局，适应内容的文本，会把右侧元素挤出画布
-        modelStyle.flexShrink = 1
+        // modelStyle.flexShrink = 1
       }
 
       const { marginTop, marginRight, marginBottom, marginLeft, width, height, ...other } = style;
@@ -656,10 +656,15 @@ function transformMargin(style, hasSize = true) {
   }
 }
 
+type TransformStyle = {
+  [key: string]: Style;
+}
+
 /** 获取组件风格化代码，可用于写入style标签 */
 export function getStyleInnerHtml(
   toJSON: ToJSON | ToUiJSON,
   options: {
+    transformStyle?: (style: TransformStyle) => TransformStyle;
     pxToVw?: {
       viewportWidth: number;
       unitPrecision: number;
@@ -668,7 +673,7 @@ export function getStyleInnerHtml(
   let innerHtml = "";
   const { modules, scenes, themes } = toJSON as ToJSON;
   const comThemes = themes?.comThemes;
-  const { pxToVw } = options;
+  const { pxToVw, transformStyle } = options;
   const handlePxToVw = pxToVw ? getPxToVw(pxToVw) : null;
   
   if (scenes) {
@@ -742,8 +747,21 @@ export function getStyleInnerHtml(
     return styleAry
   }
   function getStyleInnerText ({ id, css, selector, global }) {
+    const responseSelector = `${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)}`;
+    if (transformStyle) {
+      const responseStyle = transformStyle({
+        [responseSelector]: css
+      });
+
+      return Object.entries(responseStyle).reduce((p, [id, css]) => {
+        return p + '\n' + cssPropertiesToString({ id, css })
+      }, "");
+    }
+    return cssPropertiesToString({ id: responseSelector, css });
+  }
+  function cssPropertiesToString({ id, css }: { id: string; css: Style }) {
     return `
-      ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+      ${id} {
         ${Object.keys(css).map(key => {
           let value = css[key]
           if (handlePxToVw && typeof value === "string" && value.indexOf('px') !== -1) {
