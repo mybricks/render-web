@@ -642,6 +642,8 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
     borderTopStyle,
     borderTopWidth,
     boxShadow,
+    top,
+    left,
     ...otherStyle
   } = style;
   let slotStyle = {
