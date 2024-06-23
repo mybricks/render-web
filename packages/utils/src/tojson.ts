@@ -551,6 +551,8 @@ function getSlotStyle(style: SlotStyle) {
   // remover("layout"); // TODO: 目前layout有用的，后续看能不能删除
   // 引擎返回的，干嘛用的这是
   remover("zoom");
+  remover("top");
+  remover("left");
 
   return style;
 }
