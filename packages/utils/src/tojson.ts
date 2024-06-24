@@ -553,6 +553,10 @@ function getSlotStyle(style: SlotStyle) {
   remover("zoom");
   remover("top");
   remover("left");
+  remover("marginLeft");
+  remover("marginTop");
+  remover("marginRight");
+  remover("marginBottom");
 
   return style;
 }

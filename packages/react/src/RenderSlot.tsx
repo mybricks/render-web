@@ -644,6 +644,10 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
     boxShadow,
     top,
     left,
+    marginLeft,
+    marginTop,
+    marginRight,
+    marginBottom,
     ...otherStyle
   } = style;
   let slotStyle = {
