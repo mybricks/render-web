@@ -441,13 +441,13 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
         }
 
         // TODO: 下面这一段暂时用不到了，当时是为了做智能布局下显示隐藏默认占位，目前已经不使用了
-        if (modelStyle.display === "none") {
-          // 已经确认，智能布局下默认是占位的模式，其余动作组件自己来实现
-          modelStyle.visibility = 'hidden'
-        } else {
-          modelStyle.visibility = 'visible'
-        }
-        modelStyle.display = 'flex'
+        // if (modelStyle.display === "none") {
+        //   // 已经确认，智能布局下默认是占位的模式，其余动作组件自己来实现
+        //   modelStyle.visibility = 'hidden'
+        // } else {
+        //   modelStyle.visibility = 'visible'
+        // }
+        // modelStyle.display = 'flex'
         modelStyle.flexDirection = 'column'
 
         /** TODO: 是否在智能布局中 */
