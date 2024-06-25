@@ -20,7 +20,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@mybricks/comlib-core": "^0.0.46"
+    "@mybricks/comlib-core": "^0.0.47"
   },
   "devDependencies": {
     "@types/node": "^20.8.3",
