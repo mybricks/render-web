@@ -390,7 +390,7 @@ function RenderCom({
   const marginStyle = getMarginStyle({style})
 
   const otherStyle: any = {
-    zIndex: style.zIndex
+    zIndex: style.zIndex || 1
   }
 
   if (['fixed', 'absolute'].includes(style.position)) {
@@ -412,7 +412,7 @@ function RenderCom({
       otherStyle.zIndex = 1000;
     } else if (style.position === 'absolute') {
       // otherStyle.zIndex = 10 // 这里再观察一下，目前设置1是和引擎保持一致的
-      // otherStyle.zIndex = 1
+      otherStyle.zIndex = 1
     }
   }
 
