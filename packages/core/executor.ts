@@ -116,6 +116,9 @@ export default function executor(opts, {observable}) {
   /** 变量和作用域的关系 */
   const _varSlotMap = {}
 
+  /** 组件ID-插槽ID 查询slotDef */
+  const _slotDefMap = {}
+
   function _logOutputVal(type: 'com' | 'frame',
                          content:
                            {
@@ -136,9 +139,9 @@ export default function executor(opts, {observable}) {
                            },//frame
                            isBreakpoint
   ) {
-    // if (_isNestedRender) {
-    //   return
-    // }
+    if (_isNestedRender) {
+      return
+    }
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef, conId} = content
       if (debugLogger) {//存在外部的debugLogger
@@ -162,9 +165,9 @@ export default function executor(opts, {observable}) {
     finishPinParentKey,
     comDef
   }, isBreakpoint) {
-    // if (_isNestedRender) {
-    //   return
-    // }
+    if (_isNestedRender) {
+      return
+    }
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef, conId} = content
     if (conId) {
       if (debugLogger) {//存在外部的debugLogger
@@ -266,8 +269,7 @@ export default function executor(opts, {observable}) {
           // console.log('nextScope: ', nextScope)
           // console.log('第一个: ', inReg.frameKey + '-' + inReg.pinId, _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId])
           // console.log('第二个: ', inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId, _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId])
-
-          const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId] || _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId]
+          const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.id ? (nextScope.id + '-') : '') + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId] || _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId]
           if (proxyFn) {
             proxyFn(val)
           }
@@ -581,13 +583,11 @@ export default function executor(opts, {observable}) {
                          frameId: string,
                          parent
                        },
-                       copyId
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
     const com = Coms[comId]
     if (!com) return null
-    const responseComId = copyId || comId
-    const comInFrameId = responseComId + (com.frameId || ROOT_FRAME_KEY)
+    const comInFrameId = comId + (com.frameId || ROOT_FRAME_KEY)
 
     let frameProps = _Props[comInFrameId]
     if (!frameProps) {
@@ -603,7 +603,7 @@ export default function executor(opts, {observable}) {
     }
 
     while (curScope) {
-      const key = curScope.id + '-' + responseComId
+      const key = curScope.id + '-' + comId
 
       if (curScope.frameId === com.frameId) {
         storeScopeId = curScope.id
@@ -626,7 +626,7 @@ export default function executor(opts, {observable}) {
       curScope = curScope.parent
     }
 
-    const key = (storeScopeId ? (storeScopeId + '-') : '') + responseComId
+    const key = (storeScopeId ? (storeScopeId + '-') : '') + comId
 
     const found = frameProps[key]//global
     if (found) {
@@ -729,13 +729,13 @@ export default function executor(opts, {observable}) {
             })
 
             Promise.resolve().then(() => {
-              const inReg = {comId, def, pinId: name, copyId}
+              const inReg = {comId, def, pinId: name}
               exeInputForCom(inReg, val, scope, reg)
             })
 
             return rtn
           } else {
-            const inReg = {comId, def, pinId: name, copyId}
+            const inReg = {comId, def, pinId: name}
             exeInputForCom(inReg, val, scope)
           }
         }
@@ -994,7 +994,7 @@ export default function executor(opts, {observable}) {
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
-    const {comId, def, pinId, pinType, frameKey, finishPinParentKey, timerPinInputId, targetFrameKey, copyId} = inReg
+    const {comId, def, pinId, pinType, frameKey, finishPinParentKey, timerPinInputId, targetFrameKey} = inReg
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
@@ -1142,7 +1142,7 @@ export default function executor(opts, {observable}) {
           }
         }
       } else {//ui
-        const props = getComProps(comId, scope, copyId)
+        const props = getComProps(comId, scope)
         if (!props) {
           return
         }
@@ -1186,6 +1186,7 @@ export default function executor(opts, {observable}) {
 
   function searchComInSlot(slot, comId) {
     let result
+    console.log()
     if (slot?.comAry) {
       slot.comAry.find(com => {
         if (com.id === comId) {
@@ -1206,8 +1207,9 @@ export default function executor(opts, {observable}) {
     return result
   }
 
-  function getSlotProps(comId, slotId, scope, notifyAll?) {
-
+  function getSlotProps(comId, slot, scope, notifyAll?) {
+    const hasSlotDef = typeof slot === "string" ? false : true;
+    const slotId =  hasSlotDef ? slot.id : slot;
     const slotKey = `${comId}-${slotId}`
     let frameProps = _Props[slotKey]
     if (!frameProps) {
@@ -1232,11 +1234,15 @@ export default function executor(opts, {observable}) {
     }
 
     if (!rtn) {
-      const foundCom = searchComInSlot(UIRoot, comId)
-      if (!foundCom?.slots) {
-        return null
+      let slotDef = hasSlotDef ? slot : _slotDefMap[`${comId}-${slotId}`];
+
+      if (!slotDef) {
+        const foundCom = searchComInSlot(UIRoot, comId)
+        if (!foundCom?.slots) {
+          return null
+        }
+        slotDef = foundCom?.slots[slotId]
       }
-      const slotDef = foundCom?.slots[slotId]
 
       //const _outputRegs = {}
       const _inputRegs = {}
@@ -1298,6 +1304,7 @@ export default function executor(opts, {observable}) {
             }
             // TODO: 这里还需要多关注一下
             // console.log("注册_frameOutputProxy: ", {comId, slotId, scope})
+            _frameOutputProxy[`${comId}-${slotId}-${scope?.id}-${name}`] = fn
             _frameOutputProxy[`${comId}-${slotId}-${scope?.parent?.id}-${name}`] = fn
             _frameOutputProxy[key + '-' + name] = fn
             _frameOutputProxy[slotKey + '-' + name] = fn
@@ -1479,16 +1486,19 @@ export default function executor(opts, {observable}) {
   }
 
   const rst = {
-    get({comId, copyId, slotId, scope, _ioProxy}) {
+    get({comId, slotId, slot, scope, _ioProxy}) {
       let ioProxy
       if (_ioProxy && (_ioProxy.inputs || _ioProxy.outputs || _ioProxy._inputs || _ioProxy._outputs)) {
         ioProxy = _ioProxy
       }
 
       if (slotId) {
-        return getSlotProps(comId, slotId, scope)
+        if (slot) {
+          _slotDefMap[`${comId}-${slotId}`] = slot;
+        }
+        return getSlotProps(comId, slot || slotId, scope)
       } else {
-        const rtn = getComProps(comId, scope, copyId)
+        const rtn = getComProps(comId, scope)
         if (ioProxy) {
           return rtn.clone(ioProxy)
         } else {

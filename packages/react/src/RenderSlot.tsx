@@ -89,7 +89,7 @@ export default function RenderSlot({
     // const slotStyle = style
     // 智能布局下，默认flex布局，方向为column
     return (
-      <div data-isslot='1' onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null, ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: 'flex', flexDirection: "column"}}>
+      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null, ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: 'flex', flexDirection: "column"}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
@@ -108,7 +108,7 @@ export default function RenderSlot({
   if (typeof wrapper === 'function') {
     return wrapper(itemAry.map((item) => {
       item.getJsx = ({ index, id }) => {
-        return getRenderComJSX({ com: {...item.com, copyId: id}, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options })
+        return getRenderComJSX({ com: {...item.com, dynamicId: id}, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options })
       }
       return item
     }))
@@ -118,7 +118,7 @@ export default function RenderSlot({
     const slotStyle = Object.assign(style, paramsStyle || {})
 
     return (
-      <div data-isslot='1' onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null,...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle}}>
+      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null,...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
@@ -126,7 +126,7 @@ export default function RenderSlot({
 }
 
 function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options }) {
-  const {id, def, name, child, brother, copyId} = com
+  const {id, def, name, child, brother, dynamicId} = com
   const comInfo = context.getComInfo(id)
   const { hasPermission, permissions: envPermissions } = env
   const permissionsId = comInfo?.model?.permissions?.id
@@ -158,7 +158,10 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
   const comDef = getComDef(def)
 
   if (comDef) {
-    const props = context.get({comId: id, copyId, scope, _ioProxy: {
+    const props = context.get({comId: id, dynamicId, scope: scope ? {
+      ...scope,
+      id: dynamicId ? scope.id + '-' + dynamicId : scope.id
+    } : null, _ioProxy: {
       inputs, outputs, _inputs, _outputs
     }})
 
@@ -232,7 +235,7 @@ function RenderCom({
                      children,
                      options
                    }) {
-  const {id, def, name, slots = {}}: Com = com
+  const {id, def, name, slots = {}, dynamicId}: Com = com
   const {
     data,
     title,
@@ -304,7 +307,7 @@ function RenderCom({
       // if (slot?.type === 'scope') {
         if (scope) {
           currentScope = {
-            id: scope.id + '-' + scope.frameId,
+            id: scope.id + '-' + scope.frameId + `${dynamicId ? '-' + dynamicId : ''}`,
             frameId: slotId,
             parentComId: id,
             parent: scope
@@ -312,7 +315,7 @@ function RenderCom({
         }
       // }
 
-      const props = context.get({comId: id, slotId, scope: currentScope})
+      const props = context.get({comId: id, slotId, slot, scope: currentScope})
 
       // const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
@@ -419,7 +422,7 @@ function RenderCom({
   const Runtime = comDef.runtime
 
   let jsx = <Runtime
-    id={id}
+    id={dynamicId || id}
     env={env}
     _env={_env}
     data={data}
