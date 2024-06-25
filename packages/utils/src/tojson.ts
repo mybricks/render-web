@@ -246,6 +246,10 @@ function transformSlotComAry(
         remover("width")
       }
     }
+    // @ts-ignore
+    slot.comAry = {
+      length: slot.comAry.length
+    }
     // 计算最终结果
     slot.layoutTemplate = traverseElementsToSlotComAry(layoutTemplate, coms, comIdToSlotComMap)
   } else {
@@ -366,6 +370,9 @@ function transformSlotComAry(
 
       // 对组件样式做处理，去除运行时无关的内容
       component.model.style = getComponentStyle(style);
+
+      // 删除用于计算的具体宽高值
+      Reflect.deleteProperty(component, "style")
     })
 
     if (flexPX.length) {
@@ -521,6 +528,9 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
 
       result.push(resultElement)
     }
+
+    // 删除用于计算的具体宽高值
+    Reflect.deleteProperty(coms[id], "style")
   })
 
   return result
