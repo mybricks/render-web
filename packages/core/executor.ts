@@ -139,9 +139,9 @@ export default function executor(opts, {observable}) {
                            },//frame
                            isBreakpoint
   ) {
-    if (_isNestedRender) {
-      return
-    }
+    // if (_isNestedRender) {
+    //   return
+    // }
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef, conId} = content
       if (debugLogger) {//存在外部的debugLogger
@@ -165,9 +165,9 @@ export default function executor(opts, {observable}) {
     finishPinParentKey,
     comDef
   }, isBreakpoint) {
-    if (_isNestedRender) {
-      return
-    }
+    // if (_isNestedRender) {
+    //   return
+    // }
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef, conId} = content
     if (conId) {
       if (debugLogger) {//存在外部的debugLogger
@@ -976,7 +976,9 @@ export default function executor(opts, {observable}) {
       },
       _notifyBindings,
       logger,
-      onError: (!_isNestedRender && debug) ? (error) => onError({comId, error, title: com.title}) : onError
+      onError: (
+        // !_isNestedRender && 
+        debug) ? (error) => onError({comId, error, title: com.title}) : onError
     }
 
     frameProps[key] = rtn
@@ -1110,7 +1112,9 @@ export default function executor(opts, {observable}) {
               _notifyBindings: props._notifyBindings,
               _inputsCallable: props._inputsCallable,
               logger,
-              onError: (!_isNestedRender && debug) ? (error) => onError({comId, error, title: jsCom.title}) : onError
+              onError: (
+                // !_isNestedRender && 
+                debug) ? (error) => onError({comId, error, title: jsCom.title}) : onError
             })
           }
 
@@ -1448,7 +1452,9 @@ export default function executor(opts, {observable}) {
             outputs: props.outputs,
             _inputsCallable: props._inputsCallable,
             logger,
-            onError: (!_isNestedRender && debug) ? (error) => onError({comId: id, error, title: jsCom.title}) : onError
+            onError: (
+              // !_isNestedRender && 
+              debug) ? (error) => onError({comId: id, error, title: jsCom.title}) : onError
           })
         }
       })
