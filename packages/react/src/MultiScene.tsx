@@ -11,6 +11,60 @@ import executor from '../../core/executor'
 
 import lazyCss from './MultiScene.lazy.less'
 
+class DebugHistory {
+  history: {
+    id: string;
+    todo: any[]
+  }[] = [];
+  index = -1;
+
+  constructor(scene: any) {
+    if (scene.type !== "popup") {
+      this.history[++this.index] = {
+        id: scene.id,
+        todo: []
+      };
+    }
+  }
+
+  go(id: string) {
+    // 打开
+    this.history = this.history.slice(0, ++this.index).concat({
+      id,
+      todo: []
+    });
+  }
+
+  back() {
+    // 回退
+    if (this.index > 0) {
+      return this.history[--this.index];
+    }
+  }
+
+  forward() {
+    // 前进
+    if (this.history.length > this.index + 1) {
+      return this.history[++this.index];
+    }
+  }
+
+  redirect(id: string) {
+    // 重定向
+    if (this.index > -1) {
+      this.history = this.history.slice(0, this.index).concat({
+        id,
+        todo: []
+      });
+    }
+  }
+
+  setTodo(todo: any) {
+    this.history[this.index].todo = todo
+  }
+
+}
+
 const css = lazyCss.locals
 
 export default function MultiScene ({json, options}) {
@@ -19,7 +73,7 @@ export default function MultiScene ({json, options}) {
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap, debugHistory} = useMemo(() => {
     if (options.sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === options.sceneId)
       if (index !== -1) {
@@ -74,6 +128,7 @@ export default function MultiScene ({json, options}) {
       themes: json.themes,
       permissions: json.permissions || [],
       globalVarMap: {},
+      debugHistory: new DebugHistory(json.scenes[0])
     }
   }, [])
 
@@ -222,7 +277,7 @@ export default function MultiScene ({json, options}) {
     // }, options.env?.canvas)
 
     // canvas.id = id
-    env.canvas.open = async (sceneId, params, openType) => {
+    env.canvas.open = async (sceneId, params, openType, historyType) => {
       // console.log(`打开场景 -> ${sceneId}`)
       let scenes = scenesMap[sceneId]
 
@@ -269,6 +324,14 @@ export default function MultiScene ({json, options}) {
           scenesMap[sceneId].show = true;
           setCount((count) => count+1)
         } else {
+          if (!historyType) {
+            // 没有历史类型，需要记录打开和重定向
+            if (openType === "blank") {
+              debugHistory.go(sceneId)
+            } else if (openType === "redirect") {
+              debugHistory.redirect(sceneId)
+            }
+          }
           Object.entries(scenesMap).forEach(([key, scenes]: any) => {
             if (key === sceneId) {
               if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
@@ -313,6 +376,28 @@ export default function MultiScene ({json, options}) {
             setCount((count) => count+1)
           }
         }
+      }
+    }
+
+    // 回退
+    env.canvas.back = () => {
+      const back = debugHistory.back();
+      if (back) {
+        const { id, todo } = back;
+        env.canvas.open(id, null, "blank", "back")
+        const scenes = scenesMap[id]
+        scenes.todo = todo
+      }
+    }
+
+    // 前进
+    env.canvas.forward = () => {
+      const forward = debugHistory.forward();
+      if (forward) {
+        const { id, todo } = forward;
+        env.canvas.open(id, null, "blank", "forward")
+        const scenes = scenesMap[id]
+        scenes.todo = todo
       }
     }
 
@@ -759,11 +844,14 @@ export default function MultiScene ({json, options}) {
               _notifyBindings(_refs, comId, bindings, value)
             }
           })
+          // 记录历史todo
+          debugHistory.setTodo(todo);
   
           scenes.todo = []
         } else if (!disableAutoRun) {
           scenes.disableAutoRun = true
           Promise.resolve().then(() => {
+            const todo = []
             scenes.json.inputs?.forEach?.((input) => {
               const { id, mockData } = input
               let value = void 0
@@ -774,8 +862,18 @@ export default function MultiScene ({json, options}) {
                   value = mockData
                 }
               }
+              // 记录历史todo
+              todo.push({
+                type: "inputs",
+                todo: {
+                  pinId: id,
+                  value
+                }
+              })
               inputs[id](value)
             })
+
+            debugHistory.setTodo(todo);
           })
         }
 
