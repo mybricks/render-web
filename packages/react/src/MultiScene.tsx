@@ -265,33 +265,38 @@ export default function MultiScene ({json, options}) {
       options.scenesLoaded?.(scenes.json)
 
       if (openType) {
-        Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-          if (key === sceneId) {
-            if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
-              scenes.useEntryAnimation = true
+        if (openType === "none") {
+          scenesMap[sceneId].show = true;
+          setCount((count) => count+1)
+        } else {
+          Object.entries(scenesMap).forEach(([key, scenes]: any) => {
+            if (key === sceneId) {
+              if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
+                scenes.useEntryAnimation = true
+              } else {
+                scenes.useEntryAnimation = false
+              }
+              scenes.show = true
+              if (scenes.type === 'popup') {
+                setPopupIds((popupIds) => {
+                  return [...popupIds, sceneId]
+                })
+              } else {
+                setCount((count) => count+1)
+              }
             } else {
-              scenes.useEntryAnimation = false
+              scenes.show = false
+              scenes._refs = null
+              if (scenes.type === 'popup') {
+                setPopupIds((popupIds) => {
+                  return popupIds.filter((id) => id !== scenes.json.id)
+                })
+              } else {
+                setCount((count) => count+1)
+              }
             }
-            scenes.show = true
-            if (scenes.type === 'popup') {
-              setPopupIds((popupIds) => {
-                return [...popupIds, sceneId]
-              })
-            } else {
-              setCount((count) => count+1)
-            }
-          } else {
-            scenes.show = false
-            scenes._refs = null
-            if (scenes.type === 'popup') {
-              setPopupIds((popupIds) => {
-                return popupIds.filter((id) => id !== scenes.json.id)
-              })
-            } else {
-              setCount((count) => count+1)
-            }
-          }
-        })
+          })
+        }
       } else {
         if (!scenes.show) {
           if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
