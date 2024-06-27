@@ -91,6 +91,11 @@ export interface Element {
     isNotAutoGroup?: boolean;
 
     position?: string;
+
+    /** 
+     * 是否x轴居中
+     */
+    xCenter?: boolean;
   };
   /**
    * 子组件，如果组件被分为一组

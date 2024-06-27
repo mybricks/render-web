@@ -32,6 +32,8 @@ export interface ComponentStyle extends Style {
   widthFull?: boolean;
   /** 宽度 */
   width?: number;
+  /** x轴居中标识 */
+  xCenter?: boolean;
 }
 
 export interface ToJSON {

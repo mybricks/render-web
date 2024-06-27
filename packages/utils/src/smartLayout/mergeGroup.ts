@@ -107,6 +107,7 @@ function computeElementOffsetCoordinates(elements, layoutStyle) {
   }
 
   let rightIndex
+  let xCenterIndex
 
   elements.forEach((element, index) => {
     const { style, elements } = element
@@ -136,12 +137,16 @@ function computeElementOffsetCoordinates(elements, layoutStyle) {
     style.left = style.left - layoutStyle.left
     style.top = style.top - layoutStyle.top
 
+    if (style.xCenter && !isNumber(xCenterIndex)) {
+      xCenterIndex = index
+    }
+
     if (isNumber(style.right) && !isNumber(rightIndex)) {
       rightIndex = index
     }
   })
 
-  if (isNumber(rightIndex)) {
+  if (isNumber(rightIndex) || isNumber(xCenterIndex)) {
     /** 自动成组的纵向没有居右 */
     const hasNoRight = layoutStyle.flexDirection === "column" && !layoutStyle.isNotAutoGroup
 
@@ -150,7 +155,7 @@ function computeElementOffsetCoordinates(elements, layoutStyle) {
         Reflect.deleteProperty(element.style, "right");
       })
     } else {
-      elements.slice(rightIndex).forEach((element) => {
+      elements.slice(isNumber(xCenterIndex) ? (xCenterIndex + 1) : rightIndex).forEach((element) => {
         element.style.right = layoutStyle.width - element.style.width - element.style.left;
       })
     }

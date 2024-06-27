@@ -203,6 +203,8 @@ function transformSlotComAry(
           heightFull: style.heightFull,
           // 是否自适应 -> 适应内容
           heightAuto: style.heightAuto,
+          // 引擎标记为居中
+          xCenter: style.xCenter,
         },
       }
     }), {
@@ -530,7 +532,9 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
     }
 
     // 删除用于计算的具体宽高值
-    Reflect.deleteProperty(coms[id], "style")
+    if (coms[id]) {
+      Reflect.deleteProperty(coms[id], "style")
+    }
   })
 
   return result
