@@ -118,7 +118,7 @@ export default function RenderSlot({
     const slotStyle = Object.assign(style, paramsStyle || {})
 
     return (
-      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null,...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle}}>
+      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null,...calSlotStyles(slotStyle, !!paramsStyle || slot.type === "module", root, slot.type === "module", options), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
