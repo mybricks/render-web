@@ -624,6 +624,7 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   remover("heightFact");
   remover("heightAuto");
   remover("heightFull");
+  remover("proxyStyle");
 
   style._new = true; // TODO: 有旧数据需要兼容，作为新数据的标识
 
@@ -779,6 +780,7 @@ export async function getStyleInnerHtml(
     const style = com.model.style
     let styleAry = style.styleAry
     const themesId = style.themesId
+    Reflect.deleteProperty(style, "proxyStyle")
     Reflect.deleteProperty(style, 'styleAry')
     Reflect.deleteProperty(style, 'themesId')
 
