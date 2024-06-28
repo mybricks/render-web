@@ -766,6 +766,7 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
   remover("heightAuto");
   remover("heightFull");
   remover("proxyStyle");
+  remover("maxWidth"); // 103.0.5060.53（正式版本） (arm64) 元素设置maxWidth后，宽度塌陷
 
   style._new = true; // TODO: 有旧数据需要兼容，作为新数据的标识
 
