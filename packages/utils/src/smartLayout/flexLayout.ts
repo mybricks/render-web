@@ -15,241 +15,128 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
   const xCenterIndex = elements.findIndex((element) => element.style.xCenter);
   const { style: layoutStyle } = layoutConfig;
 
-  // console.log({
-  //   rightIndex,
-  //   xCenterIndex
-  // })
-
   if (xCenterIndex !== -1) {
-    // 有居中的话，居中的权限是最高的
-    // console.log("横向排列计算 有居中: ", elements)
-    // 有居右元素
-    // 居左的元素
+    // 居中的权限最高，左侧居左，右侧居右
+    /** 左侧元素 */
     const leftElements = elements.slice(0, xCenterIndex);
-    // 居右的元素
-    const rightElements = elements.slice(xCenterIndex + 1);
-    // 有左有右
-    // 第一个元素居左距离
-    // 左侧是否有填充
-    let hasLeftWidthFull = false
-    // 左侧宽度
-    let leftWidth = 0
-    let leftStyle: Style = {
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: "wrap",
-    }
-    // 遍历计算left值
-    leftElements.forEach((element, index) => {
-      const elementStyle = element.style
-      if (elementStyle.widthFull) {
-        hasLeftWidthFull = true
-      }
-      if (index === leftElements.length - 1) {
-        leftWidth = elementStyle.left + elementStyle.width
-      }
-    })
-    const hasLeft = !!leftElements.length;
-
-    // 右侧是否有填充
-    let hasRightWidthFull = false
-    // 右侧宽度
-    let rightWidth = 0
-    let rightStyle: Style = {
-      display: 'flex',
-      flexDirection: 'row',
-      flexWrap: "wrap",
-    }
-    // 遍历计算right值
-    rightElements.forEach((element, index) => {
-      const elementStyle = element.style
-      if (elementStyle.widthFull) {
-        hasRightWidthFull = true
-      }
-      if (index === rightElements.length - 1) {
-        rightWidth = elementStyle.left + elementStyle.width - rightElements[0].style.left
-      }
-    })
-
-    const hasRight = !!rightElements.length;
-
-    if (hasLeftWidthFull && !hasRightWidthFull) {
-      /** 左填充 右不填充 */
-      leftStyle.flex = 1
-    } else if (!hasLeftWidthFull && hasRightWidthFull) {
-      /** 左不填充 右填充 */
-      rightStyle.flex = 1
-    } else if (hasLeftWidthFull && hasRightWidthFull) {
-      /** 两边都填充 */
-      const gcd = findGCD([leftWidth, rightWidth])
-      leftStyle.flex = leftWidth / gcd;
-      rightStyle.flex = rightWidth / gcd;
-    }
-
-    const parentStyle: Style = {
-      display: 'flex',
-      flexDirection: 'row',
-      // flexWrap: "wrap",
-      justifyContent: "space-between",
-      // marginLeft: elementStyle.left,
-      // marginRight: elementStyle.right
-    }
-
+    /** 中间元素 */
     const xCenterElement = elements[xCenterIndex];
-
-    // if (hasLeftWidthFull || hasRightWidthFull) {
-    //   // 任意一边有宽度填充的话，需要设置横向间距
-    //   // parentStyle.columnGap = rightElements[0].style.left - leftWidth
-    //   parentStyle.columnGap = (xCenterElement.style.left || xCenterElement.style.right) - (leftWidth > rightWidth ? leftWidth : rightWidth)
-    // }
-
-
-
-
-    // 再套一层
-    const flexLeftStyle = {
-      flex: 1,
+    /** 右侧元素 */
+    const rightElements = elements.slice(xCenterIndex + 1);
+    /** 父容器样式 */
+    const parentContainerStyle: Style = {
       display: 'flex',
+      flexDirection: 'row',
+      justifyContent: "space-between",
     }
-    const flexRightStyle = {
-      flex: 1,
+    /** 左侧容器样式 */
+    const leftContainerStyle: Style = {
       display: 'flex',
+      flexDirection: 'row',
+      flexWrap: "wrap",
+
+      flex: 1,
+    }
+    /** 左侧二层容器样式 */
+    const leftSecondContainerStyle: Style = {
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: "wrap",
+      paddingLeft: elementStyle.left
+    }
+    /** 右侧容器样式 */
+    const rightContainerStyle: Style = {
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: "wrap",
+
+      flex: 1,
       justifyContent: 'flex-end',
     }
-    leftStyle.paddingLeft = elementStyle.left
-    rightStyle.paddingRight = elementStyle.right
-
-    leftWidth += (elementStyle.left || 0)
-    rightWidth += (elementStyle.right || 0)
-
-  
-
-    // rightWidth = elementStyle.width - rightElements[0].style.left
-
-    // console.log(elementStyle.right, 123)
-    // console.log(elementStyle.left, 456)
-    // console.log(rightElements[0].style.left, 'rightElements[0].style.left')
-
-    // console.log("elementStyle: ", elementStyle)
-
-    // console.log({
-    //   leftWidth,
-    //   rightWidth
-    // })
-    // console.log({
-    //   leftStyle,
-    //   rightStyle
-    // })
-
-    if (leftWidth > rightWidth) {
-      // right设置paddingLeft
-      rightStyle.paddingLeft = (xCenterElement.style.left || xCenterElement.style.right) - rightWidth;
-    } else {
-      // left设置paddingRight
-      leftStyle.paddingRight = (xCenterElement.style.left || xCenterElement.style.right) - leftWidth;
+    /** 左侧二层容器样式 */
+    const rightSecondContainerStyle: Style = {
+      display: 'flex',
+      flexDirection: 'row',
+      flexWrap: "wrap",
+      paddingRight: elementStyle.right
     }
 
-    // if (leftWidth > rightWidth) {
-    //   // right设置paddingLeft
-    //   rightStyle.paddingLeft = (xCenterElement.style.left || xCenterElement.style.right) - rightWidth - parentStyle.columnGap;
-    // } else {
-    //   // left设置paddingRight
-    //   leftStyle.paddingRight = (xCenterElement.style.left || xCenterElement.style.right) - leftWidth - parentStyle.columnGap;
-    // }
-    // leftStyle.flex = 1
-    // rightStyle.flex = 1
-    Reflect.deleteProperty(leftStyle, "flex")
-    Reflect.deleteProperty(rightStyle, "flex")
+    /** 重新组合的elements */
+    const responseElements = [];
 
-    // 如果宽度是填充，设置最小的gap
+    if (leftElements.length) {
+      // 左侧有元素
+      responseElements.push({
+        id: leftElements[0].id,
+        style: leftContainerStyle,
+        elements: [{
+          id: leftElements[0].id,
+          style: leftSecondContainerStyle,
+          elements: calculateLayoutRelationship(leftElements, {
+            // @ts-ignore
+            style: {
+              ...elementStyle,
+              left: 0,
+              right: 0
+            },
+            startOnLeft: true
+          })
+        }]
+      })
+      // responseElements.push({
+      //   id: leftElements[0].id,
+      //   style: leftContainerStyle,
+      //   elements: calculateLayoutRelationship(leftElements, {
+      //     // @ts-ignore
+      //     style: {
+      //       ...elementStyle,
+      //       left: 0,
+      //       right: 0
+      //     },
+      //     startOnLeft: true
+      //   })
+      // })
+    }
+
+    responseElements.push(xCenterElement);
+
+    if (rightElements.length) {
+      // 右侧有元素
+      responseElements.push({
+        id: rightElements[0].id,
+        style: rightContainerStyle,
+        elements: [{
+          id: rightElements[0].id,
+          style: rightSecondContainerStyle,
+          elements: calculateLayoutRelationship(rightElements, {
+            // @ts-ignore
+            style: {
+              ...elementStyle,
+              left: 0,
+              right: 0
+            },
+            startOnRight: true
+          })
+        }]
+      })
+      // responseElements.push({
+      //   id: rightElements[0].id,
+      //   style: rightContainerStyle,
+      //   elements: calculateLayoutRelationship(rightElements, {
+      //     // @ts-ignore
+      //     style: {
+      //       ...elementStyle,
+      //       left: 0,
+      //       right: 0
+      //     },
+      //     startOnRight: true
+      //   })
+      // })
+    }
 
     return {
-      style: parentStyle,
-      elements: [
-        hasLeft ? {
-          id: leftElements[0].id,
-          style: flexLeftStyle,
-          elements: [
-            {
-              id: leftElements[0].id,
-              // @ts-ignore
-              style: leftStyle,
-              elements: calculateLayoutRelationship(leftElements, {
-                // @ts-ignore
-                style: {
-                  ...elementStyle,
-                  left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
-                  right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
-                },
-                startOnLeft: true
-              })
-            },
-          ]
-        } : {
-          id: 'left',
-          style: {
-            flex: 1
-          },
-          elements: []
-        },
-        // {
-        //   id: leftElements[0].id,
-        //   // @ts-ignore
-        //   style: leftStyle,
-        //   elements: calculateLayoutRelationship(leftElements, {
-        //     // @ts-ignore
-        //     style: {
-        //       ...elementStyle,
-        //       left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
-        //       right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
-        //     },
-        //     startOnLeft: true
-        //   })
-        // },
-        elements[xCenterIndex],
-        hasRight ? {
-          id: rightElements[0].id,
-          style: flexRightStyle,
-          elements: [
-            {
-              id: rightElements[0].id,
-              // @ts-ignore
-              style: rightStyle,
-              elements: calculateLayoutRelationship(rightElements, {
-                // @ts-ignore
-                style: {
-                  ...elementStyle,
-                  left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
-                  right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
-                },
-                startOnRight: true
-              })
-            }
-          ]
-        } : {
-          id: 'right',
-          style: {
-            flex: 1
-          },
-          elements: []
-        }
-
-
-        // {
-        //   id: rightElements[0].id,
-        //   // @ts-ignore
-        //   style: rightStyle,
-        //   elements: calculateLayoutRelationship(rightElements, {
-        //     // @ts-ignore
-        //     style: {
-        //       ...elementStyle,
-        //       left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
-        //       right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
-        //     },
-        //     startOnRight: true
-        //   })
-        // }
-      ]
+      style: parentContainerStyle,
+      elements: responseElements
     } as any
   } else if (rightIndex !== -1) {
     // 有居右元素
