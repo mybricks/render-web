@@ -187,7 +187,7 @@ function transformSlotComAry(
         }
       })
 
-      if (!top) {
+      if (typeof top !== "number") {
         // 没有组件
         if (com) {
           const componentModalStyle = coms[com.id].model.style;
