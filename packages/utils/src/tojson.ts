@@ -137,7 +137,11 @@ function transformSlotComAry(
     const paddingTop = parseFloat(slot.style.paddingTop)
     const paddingLeft = parseFloat(slot.style.paddingLeft)
     const paddingRight = parseFloat(slot.style.paddingRight)
-    const paddingBottom = parseFloat(slot.style.paddingBottom) 
+    const paddingBottom = parseFloat(slot.style.paddingBottom)
+
+    /** 兼容设置过padding的数据，如果设置过padding，不做自动padding处理 */
+    const autoPadding = !paddingTop && !paddingLeft && !paddingBottom && !paddingTop
+
     // 插槽可能不存在width、height属性，需要从widthFact、heightFact获取具体的宽高
     let slotWidth = slot.style.width || slot.style.widthFact
     let slotHeight = slot.style.height || slot.style.heightFact
@@ -147,18 +151,151 @@ function transformSlotComAry(
       Reflect.deleteProperty(slot.style, "height")
     }
 
-    // 插槽内真实宽高需要减去内边距
-    if (isNumber(paddingTop)) { // 仅页面画布去除width和height属性
-      slotHeight = slotHeight - paddingTop
-    }
-    if (isNumber(paddingLeft)) {
-      slotWidth = slotWidth - paddingLeft
-    }
-    if (isNumber(paddingRight)) {
-      slotWidth = slotWidth - paddingRight
-    }
-    if (isNumber(paddingBottom)) {
-      slotHeight = slotHeight - paddingBottom
+    if (autoPadding) {
+      // 需要自动计算内间距
+      let left, top, width, height;
+
+      calculateComAry.forEach(({ id }) => {
+        const modelStyle = coms[id].model.style;
+        if (!["absolute", "fixed"].includes(modelStyle.position)) {
+          const calculateStyle = coms[id].style;
+
+          if (typeof modelStyle.bottom === "number") {
+            modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom
+          }
+          if (typeof modelStyle.right === "number") {
+            modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right
+          }
+
+          if (modelStyle.top < top || top === undefined) {
+            // 找最小top，最高点
+            top = modelStyle.top;
+          }
+
+          if (modelStyle.left < left || left === undefined) {
+            // 找最小left，最左侧点
+            left = modelStyle.left;
+          }
+          if (modelStyle.left + calculateStyle.width > width || width === undefined) {
+            // 找最宽的，用于计算右侧间距
+            width = modelStyle.left + calculateStyle.width
+          }
+          if (modelStyle.top + calculateStyle.height > height || height === undefined) {
+            // 找最高的，用于计算底部间距
+            height = modelStyle.top + calculateStyle.height
+          }
+        }
+      })
+
+      if (!top) {
+        // 没有组件
+        if (com) {
+          const componentModalStyle = coms[com.id].model.style;
+          if (componentModalStyle.heightAuto) {
+            slot.style.paddingBottom = `${slotHeight}px`;
+          }
+          if (componentModalStyle.widthAuto) {
+            slot.style.paddingRight = `${slotWidth}px`;
+          }
+        } else {
+          // @ts-ignore
+          if (slot.style.heightAuto) {
+            slot.style.paddingBottom = `${slotHeight}px`;
+          }
+          // @ts-ignore
+          if (slot.style.widthAuto) {
+            slot.style.paddingRight = `${slotWidth}px`;
+          }
+        }
+      } else {
+        if (com) {
+          const componentModalStyle = coms[com.id].model.style;
+          if (componentModalStyle.heightAuto) {
+            slot.style.paddingTop = `${top}px`;
+            const bottom = slotHeight - height;
+            slot.style.paddingBottom = `${bottom}px`;
+          }
+          if (componentModalStyle.widthAuto) {
+            slot.style.paddingLeft = `${left}px`;
+            const right = slotWidth - width;
+            slot.style.paddingRight = `${right}px`;
+          }
+
+          const bottom = slotHeight - height;
+          const right = slotWidth - width;
+
+          // 根据新的画布重新计算位置信息
+          calculateComAry.forEach(({ id }) => {
+            const modelStyle = coms[id].model.style;
+            const calculateStyle = coms[id].style;
+
+            if (componentModalStyle.heightAuto) {
+              if (typeof modelStyle.bottom === "number") {
+                // 居下
+                modelStyle.bottom = modelStyle.bottom - bottom;
+                modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
+              } else {
+                modelStyle.top = modelStyle.top - top;
+              }
+            }
+
+            if (componentModalStyle.widthAuto) {
+              if (typeof modelStyle.right === "number") {
+                // 居右
+                modelStyle.right = modelStyle.right - right;
+                modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
+              } else {
+                modelStyle.left = modelStyle.left - left;
+              }
+            }
+          })
+
+        } else {
+          slot.style.paddingTop = `${top}px`;
+          slot.style.paddingLeft = `${left}px`;
+          const right = slotWidth - width;
+          const bottom = slotHeight - height;
+          slot.style.paddingRight = `${right}px`;
+          slot.style.paddingBottom = `${bottom}px`;
+          slotWidth = slotWidth - left - right;
+          slotHeight = slotHeight - top - bottom;
+  
+          // 根据新的画布重新计算位置信息
+          calculateComAry.forEach(({ id }) => {
+            const modelStyle = coms[id].model.style;
+            const calculateStyle = coms[id].style;
+            if (typeof modelStyle.bottom === "number") {
+              // 居下
+              modelStyle.bottom = modelStyle.bottom - bottom;
+              modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
+            } else {
+              modelStyle.top = modelStyle.top - top;
+            }
+  
+            if (typeof modelStyle.right === "number") {
+              // 居右
+              modelStyle.right = modelStyle.right - right;
+              modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
+            } else {
+              modelStyle.left = modelStyle.left - left;
+            }
+          }) 
+        }
+      }
+    } else {
+      // 插槽内真实宽高需要减去内边距
+      if (isNumber(paddingTop)) { // 仅页面画布去除width和height属性
+        slotHeight = slotHeight - paddingTop
+      }
+      if (isNumber(paddingLeft)) {
+        slotWidth = slotWidth - paddingLeft
+      }
+      if (isNumber(paddingRight)) {
+        slotWidth = slotWidth - paddingRight
+      }
+      if (isNumber(paddingBottom)) {
+        slotHeight = slotHeight - paddingBottom
+      }
     }
     
     // 智能布局计算
