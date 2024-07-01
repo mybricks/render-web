@@ -83,7 +83,7 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
           // };
 
           if (typeof intersectIdsToIndexMap[element.id] !== 'number' && typeof intersectIdsToIndexMap[nextElement.id] !== 'number') {
-            intersectElements.push([element, nextElement])
+            intersectElements.push([idToElementMap[element.id], idToElementMap[nextElement.id]])
             isIntersectIdsMap[element.id] = {
               index: i
             }
@@ -93,7 +93,7 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
             intersectIdsToIndexMap[element.id] = intersectElements.length - 1
             intersectIdsToIndexMap[nextElement.id] = intersectElements.length - 1
           } else if (typeof intersectIdsToIndexMap[nextElement.id] !== 'number') {
-            intersectElements[intersectIdsToIndexMap[element.id]].push(nextElement)
+            intersectElements[intersectIdsToIndexMap[element.id]].push(idToElementMap[nextElement.id])
             intersectIdsToIndexMap[nextElement.id] = intersectIdsToIndexMap[element.id]
             isIntersectIdsMap[nextElement.id] = {
               index: j
@@ -119,81 +119,7 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
   const finalElements = newElements.filter((element) => {
     if (element) {
       deepBrother(element)
-      const { style, children } = element
-
-      if (children.length) {
-        let hasWidthFull = false;
-        let hasHeightFull = false;
-        let top, left
-
-        children.forEach((element) => {
-          const { style } = element;
-          if (style.widthFull) {
-            hasWidthFull = true
-          }
-          if (style.heightFull) {
-            hasHeightFull = true
-          }
-
-          if (typeof top !== "number" || top > style.top) {
-            top = style.top
-          }
-          if (typeof left !== "number" || left > style.left) {
-            left = style.left
-          }
-        })
-
-
-        element.children = combination(children.map((child) => {
-          return {
-            ...child,
-            style: {
-              ...child.style,
-              top: child.style.top - style.top - (hasHeightFull ? 0 : top),
-              left: child.style.left - style.left - (hasWidthFull ? 0 : left),
-              right: isNumber(child.style.right) ? (style.left + style.width) - (child.style.left + child.style.width) : null,
-              // bottom: 1
-            }
-          }
-        }), {
-          style: {
-            width: style.width,
-            height: style.height,
-            isNotAutoGroup: true,
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            flexDirection: "column"
-          },
-          // root: true
-        });
-
-        // 如果包含内元素没有宽高填充，不使用100%，
-        const parentStyle: any = {
-          position: 'absolute',
-          top: 0,
-          left: 0
-        }
-        if (hasWidthFull) {
-          parentStyle.width = "100%"
-        } else {
-          parentStyle.left = left
-        }
-        if (hasHeightFull) {
-          parentStyle.height = "100%"
-        } else {
-          parentStyle.top = top
-        }
-
-        element.child = {
-          id: element.children[0].id,
-          style: parentStyle,
-          elements: element.children
-        }
-
-        Reflect.deleteProperty(element, "children")
-      }
+      handleChildren(element)
     }
     return element
   })
@@ -215,8 +141,13 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
 
   return finalElements.concat(intersectElements.map((elements) => {
 
-    let top, left, width, height
-    elements.forEach(({ style }) => {
+    let top, left, width, height, xCenterCount = 0
+    elements.forEach((element) => {
+      const { style } = element
+      if (style.xCenter) {
+        xCenterCount = xCenterCount + 1
+      }
+      handleChildren(element)
       if (typeof top !== "number") {
         top = style.top
       } else if (top > style.top) {
@@ -248,6 +179,7 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
       // flexDirection: 'column',
       isNotAutoGroup: true,
       isIntersect: true,
+      xCenter: xCenterCount === elements.length ? true : false
     }
 
     return {
@@ -256,6 +188,84 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
       elements
     }
   }))
+}
+
+function handleChildren(element) {
+  const { style, children } = element;
+  if (children.length) {
+    let hasWidthFull = false;
+    let hasHeightFull = false;
+    let top, left
+
+    children.forEach((element) => {
+      const { style } = element;
+      if (style.widthFull) {
+        hasWidthFull = true
+      }
+      if (style.heightFull) {
+        hasHeightFull = true
+      }
+
+      if (typeof top !== "number" || top > style.top) {
+        top = style.top
+      }
+      if (typeof left !== "number" || left > style.left) {
+        left = style.left
+      }
+    })
+
+
+    element.children = combination(children.map((child) => {
+      return {
+        ...child,
+        style: {
+          ...child.style,
+          top: child.style.top - style.top - (hasHeightFull ? 0 : top),
+          left: child.style.left - style.left - (hasWidthFull ? 0 : left),
+          right: isNumber(child.style.right) ? (style.left + style.width) - (child.style.left + child.style.width) : null,
+          // bottom: 1
+        }
+      }
+    }), {
+      style: {
+        width: style.width,
+        height: style.height,
+        isNotAutoGroup: true,
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        flexDirection: "column"
+      },
+      // root: true
+    });
+
+    // 如果包含内元素没有宽高填充，不使用100%，
+    const parentStyle: any = {
+      position: 'absolute',
+      top: 0,
+      left: 0
+    }
+    if (hasWidthFull) {
+      parentStyle.width = "100%"
+    } else {
+      parentStyle.left = left
+    }
+    if (hasHeightFull) {
+      parentStyle.height = "100%"
+    } else {
+      parentStyle.top = top
+    }
+
+    element.child = {
+      id: element.children[0].id,
+      style: parentStyle,
+      elements: element.children
+    }
+
+    Reflect.deleteProperty(element, "children")
+  }
+  return element
 }
 
 export function getElementRelation({width: widthA, height: heightA, top: topA, left: leftA}, {width: widthB, height: heightB, top: topB, left: leftB}) {
