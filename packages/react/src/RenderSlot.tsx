@@ -89,7 +89,7 @@ export default function RenderSlot({
     // const slotStyle = style
     // 智能布局下，默认flex布局，方向为column
     return (
-      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null, ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: 'flex', flexDirection: "column"}}>
+      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: 'flex', flexDirection: "column"}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
@@ -118,7 +118,7 @@ export default function RenderSlot({
     const slotStyle = Object.assign(style, paramsStyle || {})
 
     return (
-      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{overflow: root ? (showType === "module" ? "hidden" : "hidden auto") : null,...calSlotStyles(slotStyle, !!paramsStyle || slot.type === "module", root, slot.type === "module", options), ...propsStyle}}>
+      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle || slot.type === "module", root, slot.type === "module", options), ...propsStyle}}>
         {itemAry.map(item => item.jsx)}
       </div>
     )
@@ -651,6 +651,8 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
     marginTop,
     marginRight,
     marginBottom,
+    overflowX,
+    overflowY,
     ...otherStyle
   } = style;
   let slotStyle = {
@@ -684,6 +686,8 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
     borderTopStyle,
     borderTopWidth,
     boxShadow,
+    overflowX,
+    overflowY,
   } as any
   // 兼容旧的style
   if (background) {
