@@ -243,10 +243,10 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
     const parentStyle: any = {
       top,
       left,
-      width,
-      height,
-      flexDirection: 'column',
-      isNotAutoGroup: false,
+      width: width - left,
+      height: height - top,
+      // flexDirection: 'column',
+      isNotAutoGroup: true,
       isIntersect: true,
     }
 

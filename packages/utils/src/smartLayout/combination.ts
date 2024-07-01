@@ -200,6 +200,17 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
             },
             startOnTop: true
           })
+        } else {
+          element.elements = calculateLayoutRelationship(element.elements, {
+            // @ts-ignore
+            style: {
+              ...element.style,
+              flexDirection: "column",
+              top: 0,
+              bottom: 0,
+            },
+            startOnTop: true
+          })
         }
       }
 
