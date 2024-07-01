@@ -89,6 +89,8 @@ export interface Element {
      * 自动成组 - 计算获得的 false
      */
     isNotAutoGroup?: boolean;
+    /** 子元素是否由合并而来 */
+    isIntersect?: boolean;
 
     position?: string;
 

@@ -23,6 +23,11 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
 
   /** 最终的元素列表 */
   let newElements = [];
+  /** 相交的元素 */
+  let intersectElements = [];
+  /** 已经相交的元素的id */
+  const isIntersectIdsMap = {};
+  const intersectIdsToIndexMap = {};
 
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];
@@ -70,6 +75,24 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
           // isBrotherIdsMap[nextElement.id] = {
           //   index: j
           // };
+
+          if (typeof intersectIdsToIndexMap[element.id] !== 'number' && typeof intersectIdsToIndexMap[nextElement.id] !== 'number') {
+            intersectElements.push([element, nextElement])
+            isIntersectIdsMap[element.id] = {
+              index: i
+            }
+            isIntersectIdsMap[nextElement.id] = {
+              index: j
+            }
+            intersectIdsToIndexMap[element.id] = intersectElements.length - 1
+            intersectIdsToIndexMap[nextElement.id] = intersectElements.length - 1
+          } else if (typeof intersectIdsToIndexMap[nextElement.id] !== 'number') {
+            intersectElements[intersectIdsToIndexMap[element.id]].push(nextElement)
+            intersectIdsToIndexMap[nextElement.id] = intersectIdsToIndexMap[element.id]
+            isIntersectIdsMap[nextElement.id] = {
+              index: j
+            }
+          }
         }
       }
     }
@@ -81,6 +104,9 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
     newElements[value.index] = null;
   })
   Object.entries(isChildrenIdsMap).forEach(([key, value]: any) => {
+    newElements[value.index] = null;
+  })
+  Object.entries(isIntersectIdsMap).forEach(([key, value]: any) => {
     newElements[value.index] = null;
   })
 
@@ -148,7 +174,49 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
     })
   }
 
-  return finalElements
+  return finalElements.concat(intersectElements.map((elements) => {
+
+    let top, left, width, height
+    elements.forEach(({ style }) => {
+      if (typeof top !== "number") {
+        top = style.top
+      } else if (top > style.top) {
+        top = style.top
+      }
+      if (typeof left !== "number") {
+        left = style.left
+      } else if (left > style.left) {
+        left = style.left
+      }
+      if (typeof width !== "number") {
+        width = style.left + style.width
+      } else if (width < style.left + style.width) {
+        width = style.left + style.width
+      }
+      if (typeof height !== "number") {
+        height = style.top + style.height
+      } else if (height < style.top + style.height) {
+        height = style.top + style.height
+      }
+    })
+
+    /** 父元素样式 */
+    const parentStyle: any = {
+      top,
+      left,
+      width,
+      height,
+      flexDirection: 'column',
+      isNotAutoGroup: false,
+      isIntersect: true,
+    }
+
+    return {
+      id: elements[0].id,
+      style: parentStyle,
+      elements
+    }
+  }))
 }
 
 export function getElementRelation({width: widthA, height: heightA, top: topA, left: leftA}, {width: widthB, height: heightB, top: topB, left: leftB}) {

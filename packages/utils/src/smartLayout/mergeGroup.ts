@@ -181,22 +181,28 @@ function convertedToElements(elements: Array<Element | Elements>) {
       const flexDirection = height >= element0.style.height + element1.style.height ? "column" : "row"
       const element0FlexDirection = element0.style.flexDirection
       const element1FlexDirection = element1.style.flexDirection
+      // 如果是前置已经计算为相交了，就不需要再拆开了
+      const element0IsIntersect = element0.style.isIntersect
+      const element1IsIntersect = element1.style.isIntersect
       let calculateElements = element
 
       if (!element0FlexDirection && !element1FlexDirection) {
-
       } else {
         if (element0FlexDirection === flexDirection) {
           if (element0FlexDirection === element1FlexDirection) {
-            calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])]
+            calculateElements = [...(element0IsIntersect ? [element0] : element0.elements), ...((element1.elements && !element1IsIntersect) ? element1.elements : [element1])]
+            // calculateElements = [...element0.elements, ...(element1.elements ? element1.elements : [element1])]
           } else {
-            calculateElements = [...element0.elements, element1]
+            calculateElements = [...(element0IsIntersect ? [element0] : element0.elements), element1]
+            // calculateElements = [...element0.elements, element1]
           }
         } else if (element1FlexDirection === flexDirection) {
           if (element1FlexDirection === element0FlexDirection) {
-            calculateElements = [...(element0.elements ? element0.elements : [element0]), ...element1.elements]
+            calculateElements = [...((element0.elements && !element0IsIntersect) ? element0.elements : [element0]), ...(element1IsIntersect ? [element1] : element1.elements)]
+            // calculateElements = [...(element0.elements ? element0.elements : [element0]), ...element1.elements]
           } else {
-            calculateElements = [element0, ...element1.elements]
+            calculateElements = [element0, ...(element1IsIntersect ? [element1] : element1.elements)]
+            // calculateElements = [element0, ...element1.elements]
           }
         }
       }
