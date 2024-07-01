@@ -40,7 +40,7 @@ export default function Main({json, options, style = {}, className = '', root = 
        * 2. 场景（页面）
        * 3. 非模块
        */
-      style.minHeight = slot.style.height;
+      // style.minHeight = slot.style.height;
       style.flex = 1
     }
 
