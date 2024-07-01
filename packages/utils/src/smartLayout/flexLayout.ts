@@ -96,6 +96,14 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
       //     startOnLeft: true
       //   })
       // })
+    } else {
+      responseElements.push({
+        id: 'left',
+        style: {
+          flex: 1
+        },
+        elements: []
+      })
     }
 
     responseElements.push(xCenterElement);
@@ -132,6 +140,14 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
       //     startOnRight: true
       //   })
       // })
+    } else {
+      responseElements.push({
+        id: 'right',
+        style: {
+          flex: 1
+        },
+        elements: []
+      })
     }
 
     return {
