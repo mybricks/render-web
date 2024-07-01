@@ -60,12 +60,18 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
       const elementRelation = getElementRelation(elementStyle, nextElementStyle)
 
       if (elementRelation) {
-        if (elementRelation === "include") {
+        if (elementRelation === "include-left") {
           /** 包含，是children */
           childrenToIdMap[nextElement.id] = element.id;
           idToElementMap[element.id].children.push(idToElementMap[nextElement.id]);
           isChildrenIdsMap[nextElement.id] = {
             index: j
+          }
+        } else if (elementRelation === "include-right") {
+          childrenToIdMap[element.id] = nextElement.id;
+          idToElementMap[nextElement.id].children.push(idToElementMap[element.id]);
+          isChildrenIdsMap[element.id] = {
+            index: i
           }
         } else {
           /** 相交，是brother */
@@ -232,17 +238,27 @@ export function getElementRelation({width: widthA, height: heightA, top: topA, l
     return false; // 两个矩形不相交、也就不可能包含
   } else {
     if (
-      /** 被对比元素左侧大于对比元素 */
-      leftB >= leftA &&
-      /** 被对比元素上册大于对比元素 */
-      topB >= topA &&
-      /** 被对比元素右侧大于对比元素 */
-      rightA >= rightB &&
-      /** 被对比元素下侧大于对于元素 */
-      bottomA >= bottomB
+       /** 被对比元素左侧大于对比元素 */
+       leftB >= leftA &&
+       /** 被对比元素上册大于对比元素 */
+       topB >= topA &&
+       /** 被对比元素右侧大于对比元素 */
+       rightA >= rightB &&
+       /** 被对比元素下侧大于对于元素 */
+       bottomA >= bottomB
     ) {
-      /** 说明是包含 */
-      return "include";
+      return "include-left"
+    } else if (
+      /** 被对比元素左侧大于对比元素 */
+      leftB <= leftA &&
+      /** 被对比元素上册大于对比元素 */
+      topB <= topA &&
+      /** 被对比元素右侧大于对比元素 */
+      rightA <= rightB &&
+      /** 被对比元素下侧大于对于元素 */
+      bottomA <= bottomB
+    ) {
+      return "include-right"
     }
 
     return "intersect";
