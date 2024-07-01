@@ -1,5 +1,5 @@
 import { isNumber } from "../type";
-import combination from './combination';
+import combination, { log, ps } from './combination';
 import { checkTopIntersects, checkRightIntersects, checkBottomIntersects, checkLeftIntersects } from "./checkForShadowIntersection";
 
 import type { Elements } from ".";
@@ -122,13 +122,35 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
       const { style, children } = element
 
       if (children.length) {
+        let hasWidthFull = false;
+        let hasHeightFull = false;
+        let top, left
+
+        children.forEach((element) => {
+          const { style } = element;
+          if (style.widthFull) {
+            hasWidthFull = true
+          }
+          if (style.heightFull) {
+            hasHeightFull = true
+          }
+
+          if (typeof top !== "number" || top > style.top) {
+            top = style.top
+          }
+          if (typeof left !== "number" || left > style.left) {
+            left = style.left
+          }
+        })
+
+
         element.children = combination(children.map((child) => {
           return {
             ...child,
             style: {
               ...child.style,
-              top: child.style.top - style.top,
-              left: child.style.left - style.left,
+              top: child.style.top - style.top - (hasHeightFull ? 0 : top),
+              left: child.style.left - style.left - (hasWidthFull ? 0 : left),
               right: isNumber(child.style.right) ? (style.left + style.width) - (child.style.left + child.style.width) : null,
               // bottom: 1
             }
@@ -147,15 +169,26 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
           // root: true
         });
 
+        // 如果包含内元素没有宽高填充，不使用100%，
+        const parentStyle: any = {
+          position: 'absolute',
+          top: 0,
+          left: 0
+        }
+        if (hasWidthFull) {
+          parentStyle.width = "100%"
+        } else {
+          parentStyle.left = left
+        }
+        if (hasHeightFull) {
+          parentStyle.height = "100%"
+        } else {
+          parentStyle.top = top
+        }
+
         element.child = {
           id: element.children[0].id,
-          style: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%"
-          },
+          style: parentStyle,
           elements: element.children
         }
 
