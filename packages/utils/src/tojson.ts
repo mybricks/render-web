@@ -234,25 +234,27 @@ function transformSlotComAry(
           // 根据新的画布重新计算位置信息
           calculateComAry.forEach(({ id }) => {
             const modelStyle = coms[id].model.style;
-            const calculateStyle = coms[id].style;
+            if (!["absolute", "fixed"].includes(modelStyle.position)) {
+              const calculateStyle = coms[id].style;
 
-            if (componentModalStyle.heightAuto) {
-              if (typeof modelStyle.bottom === "number") {
-                // 居下
-                modelStyle.bottom = modelStyle.bottom - bottom;
-                modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
-              } else {
-                modelStyle.top = modelStyle.top - top;
+              if (componentModalStyle.heightAuto) {
+                if (typeof modelStyle.bottom === "number") {
+                  // 居下
+                  modelStyle.bottom = modelStyle.bottom - bottom;
+                  modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
+                } else {
+                  modelStyle.top = modelStyle.top - top;
+                }
               }
-            }
-
-            if (componentModalStyle.widthAuto) {
-              if (typeof modelStyle.right === "number") {
-                // 居右
-                modelStyle.right = modelStyle.right - right;
-                modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
-              } else {
-                modelStyle.left = modelStyle.left - left;
+  
+              if (componentModalStyle.widthAuto) {
+                if (typeof modelStyle.right === "number") {
+                  // 居右
+                  modelStyle.right = modelStyle.right - right;
+                  modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
+                } else {
+                  modelStyle.left = modelStyle.left - left;
+                }
               }
             }
           })
@@ -270,21 +272,23 @@ function transformSlotComAry(
           // 根据新的画布重新计算位置信息
           calculateComAry.forEach(({ id }) => {
             const modelStyle = coms[id].model.style;
-            const calculateStyle = coms[id].style;
-            if (typeof modelStyle.bottom === "number") {
-              // 居下
-              modelStyle.bottom = modelStyle.bottom - bottom;
-              modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
-            } else {
-              modelStyle.top = modelStyle.top - top;
-            }
-  
-            if (typeof modelStyle.right === "number") {
-              // 居右
-              modelStyle.right = modelStyle.right - right;
-              modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
-            } else {
-              modelStyle.left = modelStyle.left - left;
+            if (!["absolute", "fixed"].includes(modelStyle.position)) {
+              const calculateStyle = coms[id].style;
+              if (typeof modelStyle.bottom === "number") {
+                // 居下
+                modelStyle.bottom = modelStyle.bottom - bottom;
+                modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
+              } else {
+                modelStyle.top = modelStyle.top - top;
+              }
+    
+              if (typeof modelStyle.right === "number") {
+                // 居右
+                modelStyle.right = modelStyle.right - right;
+                modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
+              } else {
+                modelStyle.left = modelStyle.left - left;
+              }
             }
           }) 
         }
