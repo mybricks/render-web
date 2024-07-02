@@ -223,9 +223,13 @@ function transformSlotComAry(
 
           const bottom = slotHeight - height;
           const right = slotWidth - width;
-
-          slotHeight = slotHeight - bottom - top;
-          slotWidth = slotWidth - left - right
+          
+          if (componentModalStyle.heightAuto) {
+            slotHeight = slotHeight - bottom - top;
+          }
+          if (componentModalStyle.widthAuto) {
+            slotWidth = slotWidth - left - right
+          }
 
           // 根据新的画布重新计算位置信息
           calculateComAry.forEach(({ id }) => {

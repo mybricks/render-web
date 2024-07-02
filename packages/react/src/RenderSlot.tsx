@@ -830,7 +830,7 @@ function getSizeStyle({style}) {
   const {width, height, maxWidth, flexX, minWidth, minHeight, rotation} = style
 
   if (!width && !flexX) {
-    sizeStyle.width = "100%"
+    // sizeStyle.width = "100%"
   } else if (isNumber(width)) {
     sizeStyle.width = width + "px"
   } else if (width) {
