@@ -16,6 +16,8 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
   const { style: layoutStyle } = layoutConfig;
 
   if (xCenterIndex !== -1) {
+    // @ts-ignore
+    const { parentStyle } = elementStyle;
     // 居中的权限最高，左侧居左，右侧居右
     /** 左侧元素 */
     const leftElements = elements.slice(0, xCenterIndex);
@@ -58,7 +60,7 @@ export function rowFlexLayout(element: Element, layoutConfig: LayoutConfig): {
       display: 'flex',
       flexDirection: 'row',
       flexWrap: "wrap",
-      paddingRight: elementStyle.right
+      paddingRight: parentStyle ? parentStyle.width - elementStyle.width - elementStyle.left : elementStyle.right
     }
 
     /** 重新组合的elements */

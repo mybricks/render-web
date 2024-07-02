@@ -73,10 +73,10 @@ export function getCombinationElements(elements: Elements, layoutStyle: LayoutCo
   })
 
   if (elements.length !== combinationElements.length) {
-    return getCombinationElements(sortByTopLeft(convertedToElements(combinationElements)), layoutStyle)
+    return getCombinationElements(sortByTopLeft(convertedToElements(combinationElements, layoutStyle)), layoutStyle)
   }
 
-  const res = computeElementOffsetCoordinates(convertedToElements(sortByTopLeft(combinationElements)), layoutStyle)
+  const res = computeElementOffsetCoordinates(convertedToElements(sortByTopLeft(combinationElements), layoutStyle), layoutStyle)
 
   // log("🍎真正的结果: ", ps(res))
 
@@ -168,7 +168,7 @@ function computeElementOffsetCoordinates(elements, layoutStyle) {
  * 将分组元素数组转换为新的元素
  * 这里其实就是合并相同方向的元素
  */
-function convertedToElements(elements: Array<Element | Elements>) {
+function convertedToElements(elements: Array<Element | Elements>, layoutStyle: LayoutConfig['style']) {
   const convertedElements = []
 
   elements.forEach((element) => {
@@ -214,7 +214,8 @@ function convertedToElements(elements: Array<Element | Elements>) {
         width,
         height,
         flexDirection,
-        isNotAutoGroup: false
+        isNotAutoGroup: false,
+        parentStyle: layoutStyle
       }
       convertedElements.push({
         id: element0.id,
