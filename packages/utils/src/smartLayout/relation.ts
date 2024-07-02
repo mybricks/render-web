@@ -139,8 +139,12 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
     })
   }
 
-  return finalElements.concat(intersectElements.map((elements) => {
-
+  return finalElements.concat(intersectElements.filter((elements) => {
+    // 过滤已经成为包含的元素
+    return elements.every((element) => {
+      return !isChildrenIdsMap[element.id]
+    })
+  }).map((elements) => {
     let top, left, width, height, xCenterCount = 0
     elements.forEach((element) => {
       const { style } = element
