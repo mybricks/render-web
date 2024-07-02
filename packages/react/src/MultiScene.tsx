@@ -320,6 +320,9 @@ export default function MultiScene ({json, options}) {
       options.scenesLoaded?.(scenes.json)
 
       if (openType) {
+        if (openType === "popup") { // 兼容小程序场景的标签页打开
+          scenes.disableAutoRun = false
+        }
         if (openType === "none") {
           scenesMap[sceneId].show = true;
           setCount((count) => count+1)
