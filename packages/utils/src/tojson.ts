@@ -157,7 +157,7 @@ function transformSlotComAry(
 
       calculateComAry.forEach(({ id }) => {
         const modelStyle = coms[id].model.style;
-        if (!["absolute", "fixed"].includes(modelStyle.position)) {
+        if (!["fixed"].includes(modelStyle.position)) {
           const calculateStyle = coms[id].style;
 
           if (typeof modelStyle.bottom === "number") {
@@ -234,7 +234,7 @@ function transformSlotComAry(
           // 根据新的画布重新计算位置信息
           calculateComAry.forEach(({ id }) => {
             const modelStyle = coms[id].model.style;
-            if (!["absolute", "fixed"].includes(modelStyle.position)) {
+            if (!["fixed"].includes(modelStyle.position)) {
               const calculateStyle = coms[id].style;
 
               if (componentModalStyle.heightAuto) {
@@ -272,7 +272,7 @@ function transformSlotComAry(
           // 根据新的画布重新计算位置信息
           calculateComAry.forEach(({ id }) => {
             const modelStyle = coms[id].model.style;
-            if (!["absolute", "fixed"].includes(modelStyle.position)) {
+            if (!["fixed"].includes(modelStyle.position)) {
               const calculateStyle = coms[id].style;
               if (typeof modelStyle.bottom === "number") {
                 // 居下
