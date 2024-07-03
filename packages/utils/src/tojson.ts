@@ -260,34 +260,51 @@ function transformSlotComAry(
           })
 
         } else {
-          slot.style.paddingTop = `${top}px`;
-          slot.style.paddingLeft = `${left}px`;
-          const right = slotWidth - width;
+          if (slot.style.heightAuto || !slot.type) {
+            slot.style.paddingTop = `${top}px`;
+            const bottom = slotHeight - height;
+            slot.style.paddingBottom = `${bottom}px`;
+          }
+          if (slot.style.widthAuto) {
+            slot.style.paddingLeft = `${left}px`;
+            const right = slotWidth - width;
+            slot.style.paddingRight = `${right}px`;
+          }
+
           const bottom = slotHeight - height;
-          slot.style.paddingRight = `${right}px`;
-          slot.style.paddingBottom = `${bottom}px`;
-          slotWidth = slotWidth - left - right;
-          slotHeight = slotHeight - top - bottom;
+          const right = slotWidth - width;
+          
+          if (slot.style.heightAuto || !slot.type) {
+            slotHeight = slotHeight - bottom - top;
+          }
+          if (slot.style.widthAuto) {
+            slotWidth = slotWidth - left - right
+          }
   
           // 根据新的画布重新计算位置信息
           calculateComAry.forEach(({ id }) => {
             const modelStyle = coms[id].model.style;
             if (!["fixed"].includes(modelStyle.position)) {
               const calculateStyle = coms[id].style;
-              if (typeof modelStyle.bottom === "number") {
-                // 居下
-                modelStyle.bottom = modelStyle.bottom - bottom;
-                modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
-              } else {
-                modelStyle.top = modelStyle.top - top;
+
+              if (slot.style.heightAuto || !slot.type) {
+                if (typeof modelStyle.bottom === "number") {
+                  // 居下
+                  modelStyle.bottom = modelStyle.bottom - bottom;
+                  modelStyle.top = slotHeight - calculateStyle.height - modelStyle.bottom;
+                } else {
+                  modelStyle.top = modelStyle.top - top;
+                }
               }
-    
-              if (typeof modelStyle.right === "number") {
-                // 居右
-                modelStyle.right = modelStyle.right - right;
-                modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
-              } else {
-                modelStyle.left = modelStyle.left - left;
+
+              if (slot.style.widthAuto) {
+                if (typeof modelStyle.right === "number") {
+                  // 居右
+                  modelStyle.right = modelStyle.right - right;
+                  modelStyle.left = slotWidth - calculateStyle.width - modelStyle.right;
+                } else {
+                  modelStyle.left = modelStyle.left - left;
+                }
               }
             }
           }) 
