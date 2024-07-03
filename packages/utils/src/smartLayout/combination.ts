@@ -234,6 +234,8 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
       if (!style.widthFull) {
         /** 当前元素未铺满 */
         if (
+          /** 没有right属性 */
+          typeof style.right !== "number" && 
           /** 当前元素左侧距容器间距与右侧距容器间距相同时 */
           (Math.abs(marginLeft - marginRight) <= 1 || style.xCenter) && 
           /** 非自动成组 - 搭建时手动框选成组 */
