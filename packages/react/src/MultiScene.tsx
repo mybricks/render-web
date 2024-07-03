@@ -73,7 +73,7 @@ export default function MultiScene ({json, options}) {
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
-  const {scenesMap, scenesOperateInputsTodo, themes, permissions, globalVarMap, debugHistory, env} = useMemo(() => {
+  const {scenesMap, scenesOperateInputsTodo, globalVarMap, debugHistory, env} = useMemo(() => {
     const { sceneId, env, disableAutoRun } = options;
     if (sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === sceneId)
@@ -109,7 +109,8 @@ export default function MultiScene ({json, options}) {
     env.getModuleJSON = (moduleId: string) => {
       return modules?.[moduleId]?.json
     }
-    env.themes = themes
+    const permissions = json.permissions || []
+    env.themes = json.themes
     env.permissions = permissions
     const hasPermission = env.hasPermission;
     if (typeof hasPermission === 'function') {
@@ -402,8 +403,6 @@ export default function MultiScene ({json, options}) {
         }
       }, {}),
       scenesOperateInputsTodo: {},
-      themes: json.themes,
-      permissions: json.permissions || [],
       globalVarMap: {},
       debugHistory: new DebugHistory(json.scenes[0]),
       globalFxIdToFrame,
