@@ -847,8 +847,10 @@ export default function MultiScene ({json, options}) {
               _notifyBindings(_refs, comId, bindings, value)
             }
           })
-          // 记录历史todo
-          debugHistory.setTodo(todo);
+          if (!scenes.type) {
+            // 页面记录历史todo
+            debugHistory.setTodo(todo);
+          }
   
           scenes.todo = []
         } else if (!disableAutoRun) {
@@ -875,8 +877,10 @@ export default function MultiScene ({json, options}) {
               })
               inputs[id](value)
             })
-
-            debugHistory.setTodo(todo);
+            if (!scenes.type) {
+              // 页面记录历史todo
+              debugHistory.setTodo(todo);
+            }
           })
         }
 
