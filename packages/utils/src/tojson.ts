@@ -260,11 +260,13 @@ function transformSlotComAry(
           })
 
         } else {
+          // @ts-ignore
           if (slot.style.heightAuto || !slot.type) {
             slot.style.paddingTop = `${top}px`;
             const bottom = slotHeight - height;
             slot.style.paddingBottom = `${bottom}px`;
           }
+          // @ts-ignore
           if (slot.style.widthAuto) {
             slot.style.paddingLeft = `${left}px`;
             const right = slotWidth - width;
@@ -273,10 +275,11 @@ function transformSlotComAry(
 
           const bottom = slotHeight - height;
           const right = slotWidth - width;
-          
+          // @ts-ignore
           if (slot.style.heightAuto || !slot.type) {
             slotHeight = slotHeight - bottom - top;
           }
+          // @ts-ignore
           if (slot.style.widthAuto) {
             slotWidth = slotWidth - left - right
           }
@@ -286,7 +289,7 @@ function transformSlotComAry(
             const modelStyle = coms[id].model.style;
             if (!["fixed"].includes(modelStyle.position)) {
               const calculateStyle = coms[id].style;
-
+              // @ts-ignore
               if (slot.style.heightAuto || !slot.type) {
                 if (typeof modelStyle.bottom === "number") {
                   // 居下
@@ -296,7 +299,7 @@ function transformSlotComAry(
                   modelStyle.top = modelStyle.top - top;
                 }
               }
-
+              // @ts-ignore
               if (slot.style.widthAuto) {
                 if (typeof modelStyle.right === "number") {
                   // 居右
