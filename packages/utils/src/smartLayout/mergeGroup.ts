@@ -155,9 +155,19 @@ function computeElementOffsetCoordinates(elements, layoutStyle) {
         Reflect.deleteProperty(element.style, "right");
       })
     } else {
-      elements.slice(isNumber(xCenterIndex) ? (xCenterIndex + 1) : rightIndex).forEach((element) => {
-        element.style.right = layoutStyle.width - element.style.width - element.style.left;
-      })
+      if (layoutStyle.flexDirection === "column") {
+        // 如果是纵向，有right的计算right
+        elements.forEach((element) => {
+          if (typeof element.style.right === "number") {
+            element.style.right = layoutStyle.width - element.style.width - element.style.left;
+          }
+        })
+      } else {
+        // 如果是横向的，右侧都要计算right
+        elements.slice(isNumber(xCenterIndex) ? (xCenterIndex + 1) : rightIndex).forEach((element) => {
+          element.style.right = layoutStyle.width - element.style.width - element.style.left;
+        })
+      }
     }
   }
 
