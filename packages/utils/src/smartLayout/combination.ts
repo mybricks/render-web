@@ -191,26 +191,26 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
           // const { style: parentStyle, elements } = columnFlexLayout(element, layoutConfig)
           // element.elements = elements
           // finalStyle = parentStyle
-          element.elements = calculateLayoutRelationship(element.elements, {
-            // @ts-ignore
-            style: {
-              ...element.style,
-              top: 0,
-              bottom: 0,
-            },
-            startOnTop: true
-          })
+          // element.elements = calculateLayoutRelationship(element.elements, {
+          //   // @ts-ignore
+          //   style: {
+          //     ...element.style,
+          //     top: 0,
+          //     bottom: 0,
+          //   },
+          //   startOnTop: true
+          // })
         } else {
-          element.elements = calculateLayoutRelationship(element.elements, {
-            // @ts-ignore
-            style: {
-              ...element.style,
-              flexDirection: "column",
-              top: 0,
-              bottom: 0,
-            },
-            startOnTop: true
-          })
+          // element.elements = calculateLayoutRelationship(element.elements, {
+          //   // @ts-ignore
+          //   style: {
+          //     ...element.style,
+          //     flexDirection: "column",
+          //     top: 0,
+          //     bottom: 0,
+          //   },
+          //   startOnTop: true
+          // })
         }
       }
 
