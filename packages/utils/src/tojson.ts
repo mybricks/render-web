@@ -115,9 +115,15 @@ function transformSlotComAry(
 ) {
   // 通过组件ID查找对应的Slot.comAry内组件信息
   const comIdToSlotComMap: ComIdToSlotComMap = {}
-  const { comAry } = slot
+
+  slot.comAry = slot.comAry.filter(({ id }) => {
+    const com = coms[id];
+
+    return com && !com.isTemp;
+  })
+
   // 过滤脏数据，不过也不应该有脏数据，需要引擎把控
-  const calculateComAry = comAry.filter(({id}) => coms[id])
+  const calculateComAry = slot.comAry;
   // 目前引擎可以通过这个字段来判断是否智能布局
   if (slot.style.layout === "smart") {
     calculateComAry.forEach((com) => {

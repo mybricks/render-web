@@ -269,6 +269,11 @@ export interface Component {
    * 在引擎geoView配置中 scenes.adder[0].template.asRoot = true
    */
   asRoot?: boolean;
+  /** 
+   * 是否在画布外
+   * 临时组件，不渲染ui，但是数据源、逻辑面板仍存在
+   */
+  isTemp?: boolean;
 
   /** 
    * TODO: 定义为全局组件，当前只有 全局变量 
