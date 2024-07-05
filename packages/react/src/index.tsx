@@ -101,6 +101,9 @@ class Context {
     if (pxToVw) {
       handlePxToVw = getPxToVw(pxToVw)
       options.handlePxToVw = handlePxToVw
+      env.pxToVw = handlePxToVw
+    } else {
+      env.pxToVw = (v: any) => v;
     }
 
     // px转rem响应式相关
