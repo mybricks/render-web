@@ -36,6 +36,7 @@ interface RenderOptions {
   env: any;
   // TODO: 改造完成后在透出的类型里隐藏
   _isNestedRender?: boolean;
+  _isNestCom?: boolean;
   [key: string]: any;
 }
 
@@ -180,13 +181,13 @@ class Context {
     if (!env.renderCom) {
       env.renderCom = (json: any, options2: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, ...options2, _isNestedRender: true, _context: this })
+        return render(json, { ...options, ...options2, _isNestedRender: true, _isNestCom: true, _context: this })
       }
     } else {
       const renderCom = env.renderCom
       env.renderCom = (json: any, options2: any) => {
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderCom(json, { ...options, ...options2, _isNestedRender: true, _context: this })
+        return renderCom(json, { ...options, ...options2, _isNestedRender: true, _isNestCom: true, _context: this })
       }
     }
     const body = document.body
@@ -467,6 +468,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
         logger: _context.logger,
         scenesOperate: options.scenesOperate,
         _isNestedRender: options._isNestedRender,
+        _isNestCom: options._isNestCom,
         _context
       }, {
         observable: _context.observable
