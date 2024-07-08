@@ -10,8 +10,8 @@ const tsConfig: ts.Settings = {
   skipLibCheck: true, // 跳过库文件检查
 
 
-  // allowSyntheticDefaultImports: true,
-  // moduleResolution: "node"
+  allowSyntheticDefaultImports: true,
+  moduleResolution: "node"
 }
 
 // TypeScript编译任务
@@ -24,5 +24,24 @@ function compileTs() {
   tsResult.js.pipe(dest);
   tsResult.dts.pipe(dest);
 }
+function compileLib() {
+  const tsResult = gulp.src(["**/*.ts", "!scripts/**"], {
+    base: cwd
+  }).pipe(ts({
+    module: "commonjs", // esm commonjs
+    target: "es6", // 目标
+    declaration: true, // 自动生成.d.ts
+    skipLibCheck: true, // 跳过库文件检查
+  
+  
+    allowSyntheticDefaultImports: true,
+    moduleResolution: "node"
+  }))
+  const dest = gulp.dest('dist/lib');
+
+  tsResult.js.pipe(dest);
+  tsResult.dts.pipe(dest);
+}
 
 compileTs();
+compileLib();

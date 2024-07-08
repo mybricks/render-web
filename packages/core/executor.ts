@@ -12,19 +12,54 @@ import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
+interface ExecutorProps {
+  /** MyBricks引擎产出的tojson */
+  json: any;
+  /** 获取组件定义 */
+  getComDef: (def: { namespace: string; version: string; }) => {
+    /** 组件runtime函数 */
+    runtime: (params: any) => any;
+    [key: string]: any;
+  };
+  /** 组件props入参env */
+  env: any;
+  ref?: (params: {
+    /** 根slot样式 */
+    style?: any;
+    /** 运行自执行节点 */
+    run: () => void;
+    /** 调用主卡片的输入 */
+    inputs: { [pinId: string]: (value: any, sceneId?: number, log?: boolean) => void }
+    outputs: (id: string, fn: Function) => void;
+    /** 节点运行时信息 */
+    get: any;
+    /** 组件基础信息 */
+    getComInfo: any;
+  }) => void;
+  onError?: (error: Error) => void;
+  logger?: typeof console;
+}
+
+interface ExecutorConfig {
+  observable?: <T extends object>(data: T) => T;
+}
+
 /**
  * TODO:
  * 1. fromCon 是什么？能不能干掉
  */
 
-export default function executor(opts, {observable}) {
+export default function executor(opts: ExecutorProps, config: ExecutorConfig = {}) {
+  const {
+    observable = (data) => data,
+  } = config;
   const {
     json,
     getComDef,
     env,
     ref,
-    onError,
-    logger,
+    onError = () => {},
+    logger = console,
     debug,
     debugLogger,
     _isNestedRender,

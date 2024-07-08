@@ -1,8 +1,8 @@
 {
   "name": "@mybricks/render-core",
-  "version": "0.0.1",
+  "version": "0.0.4",
   "description": "",
-  "main": "dist/es/index.js",
+  "main": "dist/lib/index.js",
   "module": "dist/es/index.js",
   "typings": "dist/es/index.d.ts",
   "scripts": {
