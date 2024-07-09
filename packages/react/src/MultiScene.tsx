@@ -307,7 +307,7 @@ export default function MultiScene ({json, options}) {
             observable: _context.observable//传递获取响应式的方法
           })
         } else {
-          env.fetchServiceFx?.(frameId, todo.value).then(({ id, value }: any) => {
+          env.callServiceFx?.(frameId, todo.value).then(({ id, value }: any) => {
             parentScope.outputs[id](value);
           })
         }
