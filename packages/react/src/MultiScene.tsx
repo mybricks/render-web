@@ -306,6 +306,10 @@ export default function MultiScene ({json, options}) {
           }, {//////TODO goon
             observable: _context.observable//传递获取响应式的方法
           })
+        } else {
+          env.fetchServiceFx?.(frameId, todo.value).then(({ id, value }: any) => {
+            parentScope.outputs[id](value);
+          })
         }
       },
       inputs({frameId, parentScope, value, pinId}) {
