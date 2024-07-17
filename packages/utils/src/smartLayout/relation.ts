@@ -197,7 +197,7 @@ export function handleIntersectionsAndInclusions(elements: Elements) {
 }
 
 function handleChildren(element) {
-  const { style, children } = element;
+  const { style: pStyle, children } = element;
   if (children.length) {
     let hasWidthFull = false;
     let hasHeightFull = false;
@@ -205,6 +205,8 @@ function handleChildren(element) {
 
     children.forEach((element) => {
       const { style } = element;
+      style.top = style.top - pStyle.top
+      style.left = style.left - pStyle.left
       if (style.widthFull) {
         hasWidthFull = true
       }
@@ -226,16 +228,19 @@ function handleChildren(element) {
         ...child,
         style: {
           ...child.style,
-          top: child.style.top - style.top - (hasHeightFull ? 0 : top),
-          left: child.style.left - style.left - (hasWidthFull ? 0 : left),
-          right: isNumber(child.style.right) ? (style.left + style.width) - (child.style.left + child.style.width) : null,
+          // top: child.style.top - pStyle.top - (hasHeightFull ? 0 : top),
+          // left: child.style.left - pStyle.left - (hasWidthFull ? 0 : left),
+          top: child.style.top - top,
+          left: child.style.left - left,
+          // TODO: right
+          right: isNumber(child.style.right) ? (pStyle.left + pStyle.width) - (child.style.left + child.style.width) : null,
           // bottom: 1
         }
       }
     }), {
       style: {
-        width: style.width,
-        height: style.height,
+        width: pStyle.width,
+        height: pStyle.height,
         isNotAutoGroup: true,
         top: 0,
         left: 0,

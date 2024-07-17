@@ -40,6 +40,7 @@ function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inpu
     }
     return (
       <div
+        id={id}
         key={id}
         style={finalStyle}
       >

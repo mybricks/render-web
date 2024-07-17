@@ -3,6 +3,7 @@ import smartLayout, { ResultElement } from "./smartLayout";
 import { isNumber } from "./type";
 import { generatePropertyRemover, findGCD } from "./normal";
 import { convertCamelToHyphen } from "./regexp";
+import { uuid } from "./normal";
 
 /** 处理引擎提供的toJSON数据 */
 export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
@@ -946,6 +947,10 @@ export async function getStyleInnerHtml(
   function traversalComAry(comAry: (ComponentNode | DomNode)[]) {
     comAry.forEach((com) => {
       if ("elements" in com) {
+        const id = `u_${uuid(5)}`;
+        com.id = id;
+
+        getStyleInnerText({id, css: comCssPropertiesToValueString(com.style) })
         traversalComAry(com.elements)
       } else {
         const { slots }= com;

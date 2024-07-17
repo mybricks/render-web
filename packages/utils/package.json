@@ -1,6 +1,6 @@
 {
   "name": "@mybricks/render-utils",
-  "version": "0.0.43",
+  "version": "0.0.45",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
