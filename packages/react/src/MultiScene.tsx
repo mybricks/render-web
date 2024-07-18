@@ -140,7 +140,11 @@ export default function MultiScene ({json, options}) {
 
       if (!scenes) {
         if (typeof options.scenesLoader !== 'function') {
-          console.error(`缺少场景信息: ${sceneId}`)
+          if (env.history) {
+            env.history.go(sceneId);
+          } else {
+            console.error(`缺少场景信息: ${sceneId}`)
+          }
           return
         }
         const json = await options.scenesLoader({id: sceneId})

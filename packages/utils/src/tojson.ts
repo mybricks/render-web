@@ -1064,14 +1064,16 @@ function getPxToVw({ viewportWidth = 375, unitPrecision = 5 }) {
 }
 function comCssPropertiesToValueString(style: Style) {
   return Object.entries(style).reduce((css, [key, value]) => {
-    if (!["width", "height"].includes(key)) {
+    if (!["width", "height", "display"].includes(key)) {
       Reflect.deleteProperty(style, key);
     }
     if (["width", "height", "left", "top", "right", "bottom", "marginLeft", "marginRight", "marginTop", "marginBottom", "paddingLeft", "paddingRight", "paddingTop", "paddingBottom"].includes(key) && isNumber(value)) {
       // 枚举引擎配置
       css[key] = value + 'px';
     } else {
-      css[key] = value;
+      if (key !== "display") {
+        css[key] = value;
+      }
     }
     return css;
   }, {});
