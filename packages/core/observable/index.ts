@@ -47,6 +47,9 @@ export function hijackReactcreateElement(props) {
             }
           })
         }
+        if (props.__no_hijack__) {
+          return createElement(...args)
+        }
 
         if (args.length > 0 && typeof fn === "function") {
           if (!fn.prototype ||

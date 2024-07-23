@@ -1235,7 +1235,6 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
   function searchComInSlot(slot, comId) {
     let result
-    console.log()
     if (slot?.comAry) {
       slot.comAry.find(com => {
         if (com.id === comId) {
