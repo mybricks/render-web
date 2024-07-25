@@ -718,7 +718,7 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
 
   // 这里还需要根据是否在智能布局环境下
   if (isModule) {
-    slotStyle.transform = 'scale(1)';
+    // slotStyle.transform = 'scale(1)';
     if (style.heightAuto) {
       slotStyle.height = "fit-content"
     } else if (style.heightFull) {
