@@ -134,6 +134,11 @@ export default function MultiScene ({json, options}) {
       globalFxIdToFrame[fx.id] = fx;
     });
 
+    const firstScene = json.scenes[0];
+    const normalStatus = {
+      lastSceneId: firstScene.type === 'popup' ? null : firstScene.id,
+    };
+
     env.canvas.open = async (sceneId, params, openType, historyType) => {
       // console.log(`打开场景 -> ${sceneId}`)
       let scenes = scenesMap[sceneId]
@@ -196,49 +201,54 @@ export default function MultiScene ({json, options}) {
               debugHistory.redirect(sceneId)
             }
           }
-          Object.entries(scenesMap).forEach(([key, scenes]: any) => {
-            if (key === sceneId) {
-              if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
-                scenes.useEntryAnimation = true
+
+          const lastScene = scenesMap[normalStatus.lastSceneId];
+          const scene = scenesMap[sceneId];
+
+          if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
+            scene.useEntryAnimation = true
+          } else {
+            scene.useEntryAnimation = false
+          }
+          scene.show = true
+          scene.hidden = false
+
+          if (lastScene) {
+            // 有上一个
+            if (!historyType) {
+              // 主动调用env.canvas.open
+              if (openType === "redirect") {
+                // 重定向 销毁
+                lastScene.show = false
+                lastScene._refs = null
+                lastScene.alreadyOpened = false
               } else {
-                scenes.useEntryAnimation = false
-              }
-              scenes.show = true
-              if (scenes.type === 'popup') {
-                setPopupIds((popupIds) => {
-                  return [...popupIds, sceneId]
-                })
-              } else {
-                setCount((count) => count+1)
+                lastScene.hidden = true
+                lastScene.alreadyOpened = true
               }
             } else {
-              scenes.show = false
-              scenes._refs = null
-              if (scenes.type === 'popup') {
-                setPopupIds((popupIds) => {
-                  return popupIds.filter((id) => id !== scenes.json.id)
-                })
+              // 调用后退或前进
+              if (historyType === "back") {
+                // 后退销毁
+                lastScene.show = false
+                lastScene._refs = null
+                lastScene.alreadyOpened = false
               } else {
-                setCount((count) => count+1)
+                // 前进不销毁吧
+                lastScene.hidden = true
+                lastScene.alreadyOpened = true
               }
             }
-          })
+          }
+          setCount((count) => count+1)
+          normalStatus.lastSceneId = sceneId
         }
       } else {
         if (!scenes.show) {
-          if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
-            scenes.useEntryAnimation = true
-          } else {
-            scenes.useEntryAnimation = false
-          }
           scenes.show = true
-          if (scenes.type === 'popup') {
-            setPopupIds((popupIds) => {
-              return [...popupIds, sceneId]
-            })
-          } else {
-            setCount((count) => count+1)
-          }
+          setPopupIds((popupIds) => {
+            return [...popupIds, sceneId]
+          })
         }
       }
     }
@@ -317,9 +327,10 @@ export default function MultiScene ({json, options}) {
         }
       },
       inputs({frameId, parentScope, value, pinId}) {
-        // console.log('场景触发inputs: ', {
-        //   frameId, parentScope, value, pinId
-        // })
+        console.log('场景触发inputs: ', {
+          frameId, parentScope, value, pinId
+        })
+        console.log(normalStatus, "normalStatus")
         const scenes = scenesMap[frameId]
         if (!scenes) {
           if (!scenesOperateInputsTodo[frameId]) {
@@ -331,8 +342,10 @@ export default function MultiScene ({json, options}) {
             scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
           }
         } else {
+          if (scenes.alreadyOpened) {
+            return
+          }
           scenes.parentScope = parentScope
-
           if (scenes._refs) {
             scenes._refs.inputs[pinId](value)
           } else {
@@ -561,7 +574,7 @@ export default function MultiScene ({json, options}) {
 
       if (scene.show) {
         let className = scene.useEntryAnimation ? css.main : ''
-        let style = scene.type === 'popup' ? {position: 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00'} : {}
+        let style = {}
         if (scene.main) {
           // 主场景
           const { className: optsClassName, style: optsStyle  } = options
@@ -571,6 +584,9 @@ export default function MultiScene ({json, options}) {
           if (optsStyle) {
             style = Object.assign(style, optsStyle)
           }
+        }
+        if (scene.hidden) {
+          style.display = "none"
         }
         
         return scene.show && (
