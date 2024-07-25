@@ -327,10 +327,9 @@ export default function MultiScene ({json, options}) {
         }
       },
       inputs({frameId, parentScope, value, pinId}) {
-        console.log('场景触发inputs: ', {
-          frameId, parentScope, value, pinId
-        })
-        console.log(normalStatus, "normalStatus")
+        // console.log('场景触发inputs: ', {
+        //   frameId, parentScope, value, pinId
+        // })
         const scenes = scenesMap[frameId]
         if (!scenes) {
           if (!scenesOperateInputsTodo[frameId]) {
