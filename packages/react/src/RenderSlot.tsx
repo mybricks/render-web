@@ -90,7 +90,7 @@ export default function RenderSlot({
     // const slotStyle = style
     // 智能布局下，默认flex布局，方向为column
     return (
-      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: 'flex', flexDirection: "column"}}>
+      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: propsStyle?.display === "none" ? "none" : 'flex', flexDirection: "column"}}>
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
           return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
         })}
