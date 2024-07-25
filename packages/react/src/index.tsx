@@ -402,6 +402,9 @@ export { transformToJSON }
 
 export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions) {
   let json = toJson
+  if (!options.sceneOpenType) {
+    options.sceneOpenType = "redirect"
+  }
 
   // 调试或搭建态需要处理
   if (options.env.edit || options.env.runtime?.debug) {
