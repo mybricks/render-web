@@ -449,6 +449,12 @@ function RenderCom({
     setShow(true) // 在子组件写入前触发状态更新，会执行上次等待的useEffect，内部inputs是同步执行，最终挂载dom
   }, [])
 
+  useEffect(() => {
+    return () => {
+      props.destroy();
+    }
+  }, [])
+
   // --- end
 
   if (typeof template === 'function') {

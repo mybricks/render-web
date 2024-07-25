@@ -1019,6 +1019,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
         return rtn
       },
+      destroy() {
+        Reflect.deleteProperty(frameProps, key)
+      },
       _notifyBindings,
       logger,
       onError: (
@@ -1429,6 +1432,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         },
         destroy() {
           if (scope) {
+            Reflect.deleteProperty(frameProps, `${scope.id}-${scope.frameId}`)
             const frameKey = `${scope.parentComId}-${scope.frameId}`
             const slotMap = _varSlotMap[frameKey]
             if (slotMap) {
