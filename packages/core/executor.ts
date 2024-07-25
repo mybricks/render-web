@@ -155,6 +155,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   /** 组件ID-插槽ID 查询slotDef */
   const _slotDefMap = {}
 
+  /** 
+   * 作用域ID对应到组件的ComInFrameId
+   * 在插槽销毁时清除
+   */
+  const _scopeIdToComInFrameIdMap = {};
+
   function _logOutputVal(type: 'com' | 'frame',
                          content:
                            {
@@ -673,6 +679,11 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     const key = (storeScopeId ? (storeScopeId + '-') : '') + comId
 
+    if (storeScopeId) {
+      const comInFrameIdMap = _scopeIdToComInFrameIdMap[storeScopeId] ||= {};
+      comInFrameIdMap[comInFrameId] = key;
+    }
+
     const found = frameProps[key]//global
     if (found) {
       return found
@@ -1018,9 +1029,6 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         Object.setPrototypeOf(rtn, this)
 
         return rtn
-      },
-      destroy() {
-        Reflect.deleteProperty(frameProps, key)
       },
       _notifyBindings,
       logger,
@@ -1432,6 +1440,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         },
         destroy() {
           if (scope) {
+            const comInFrameIdMap = _scopeIdToComInFrameIdMap[scope.id];
+            if (comInFrameIdMap) {
+              Object.entries(comInFrameIdMap).forEach(([key, value]) => {
+                Reflect.deleteProperty(_Props[key], value);
+              })
+            }
             Reflect.deleteProperty(frameProps, `${scope.id}-${scope.frameId}`)
             const frameKey = `${scope.parentComId}-${scope.frameId}`
             const slotMap = _varSlotMap[frameKey]
