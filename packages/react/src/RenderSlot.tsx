@@ -394,7 +394,7 @@ function RenderCom({
   const marginStyle = getMarginStyle({style})
 
   const otherStyle: any = {
-    zIndex: style.zIndex || 1
+    zIndex: style.zIndex
   }
 
   if (['fixed', 'absolute'].includes(style.position)) {
