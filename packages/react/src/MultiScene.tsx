@@ -214,29 +214,31 @@ export default function MultiScene ({json, options}) {
           scene.hidden = false
 
           if (lastScene) {
-            // 有上一个
-            if (!historyType) {
-              // 主动调用env.canvas.open
-              if (openType === "redirect") {
-                // 重定向 销毁
-                lastScene.show = false
-                lastScene._refs = null
-                lastScene.alreadyOpened = false
+            if (lastScene.json.id !== scene.json.id) {
+              // 有上一个
+              if (!historyType) {
+                // 主动调用env.canvas.open
+                if (openType === "redirect") {
+                  // 重定向 销毁
+                  lastScene.show = false
+                  lastScene._refs = null
+                  lastScene.alreadyOpened = false
+                } else {
+                  lastScene.hidden = true
+                  lastScene.alreadyOpened = true
+                }
               } else {
-                lastScene.hidden = true
-                lastScene.alreadyOpened = true
-              }
-            } else {
-              // 调用后退或前进
-              if (historyType === "back") {
-                // 后退销毁
-                lastScene.show = false
-                lastScene._refs = null
-                lastScene.alreadyOpened = false
-              } else {
-                // 前进不销毁吧
-                lastScene.hidden = true
-                lastScene.alreadyOpened = true
+                // 调用后退或前进
+                if (historyType === "back") {
+                  // 后退销毁
+                  lastScene.show = false
+                  lastScene._refs = null
+                  lastScene.alreadyOpened = false
+                } else {
+                  // 前进不销毁吧
+                  lastScene.hidden = true
+                  lastScene.alreadyOpened = true
+                }
               }
             }
           }
