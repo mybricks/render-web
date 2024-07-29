@@ -1501,6 +1501,11 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           })
         }
       }
+
+      if (scope) {
+        const comInFrameIdMap = _scopeIdToComInFrameIdMap[scope.id.split('-')[0]] ||= {};
+        comInFrameIdMap[slotKey] = key
+      }
     }
 
     return rtn
