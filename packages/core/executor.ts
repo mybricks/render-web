@@ -1440,12 +1440,26 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         },
         destroy() {
           if (scope) {
-            const comInFrameIdMap = _scopeIdToComInFrameIdMap[scope.id];
-            if (comInFrameIdMap) {
-              Object.entries(comInFrameIdMap).forEach(([key, value]) => {
-                Reflect.deleteProperty(_Props[key], value);
-              })
+            let needDelete = false;
+            const scopeParent = scope.parent;
+
+            if (!scopeParent) {
+              needDelete = true;
+            } else {
+              if (!_scopeIdToComInFrameIdMap[scopeParent.id]) {
+                needDelete = true;
+              }
             }
+            if (needDelete) {
+              const comInFrameIdMap = _scopeIdToComInFrameIdMap[scope.id];
+              if (comInFrameIdMap) {
+                Object.entries(comInFrameIdMap).forEach(([key, value]) => {
+                  Reflect.deleteProperty(_Props[key], value);
+                })
+                Reflect.deleteProperty(_scopeIdToComInFrameIdMap, scope.id)
+              }
+            }
+
             Reflect.deleteProperty(frameProps, `${scope.id}-${scope.frameId}`)
             const frameKey = `${scope.parentComId}-${scope.frameId}`
             const slotMap = _varSlotMap[frameKey]
