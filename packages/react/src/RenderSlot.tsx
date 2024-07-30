@@ -247,10 +247,11 @@ function RenderCom({
     _outputs: _myOutputs,
     _notifyBindings: _myNotifyBindings
   } = props
+  const { rootId } = options
   const [, setShow] = useState(false)
 
   useMemo(() => {
-    const { handlePxToVw, debug, disableStyleInjection } = options
+    const { handlePxToVw, debug, disableStyleInjection, rootId } = options
 
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
     if (!disableStyleInjection && !context.styleMap[id]) {
@@ -271,10 +272,16 @@ function RenderCom({
           }
           if (Array.isArray(selector)) {
             selector.forEach((selector) => {
-              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+              innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+              if (rootId && global) {
+                innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+              }
             })
           } else {
-            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+            innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+            if (rootId && global) {
+              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+            }
           }
           
         })
@@ -424,6 +431,7 @@ function RenderCom({
 
   let jsx = <Runtime
     id={dynamicId || id}
+    _id={rootId ? `${rootId}_${id}` : id}
     env={env}
     _env={_env}
     data={data}
@@ -464,7 +472,8 @@ function RenderCom({
   // --- 2023.2.21 兼容小程序
   jsx = jsx ? (
     <div
-      id={id}
+      // id={id}
+      id={rootId ? `${rootId}_${id}` : id}
       key={id}
       data-title={title}
       data-namespace={def.namespace}
@@ -940,8 +949,7 @@ function getStyleAry ({ env, style, def }) {
 }
 
 function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw}) {
-  return `
-    ${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+  return `${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
       ${Object.keys(css).map(key => {
         let value = css[key]
         if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
@@ -952,5 +960,5 @@ function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxT
         return `${convertCamelToHyphen(key)}: ${value};`
       }).join('\n')}
     }
-  `
+  `;
 }
