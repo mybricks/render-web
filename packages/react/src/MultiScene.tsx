@@ -74,7 +74,7 @@ export default function MultiScene ({json, options}) {
   const [pageScenes, setPageScenes] = useState<any>([])
 
   const {scenesMap, scenesOperateInputsTodo, globalVarMap, debugHistory, env} = useMemo(() => {
-    const { sceneId, env, disableAutoRun } = options;
+    const { sceneId, env, disableAutoRun, globalVariable } = options;
     if (sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === sceneId)
       if (index !== -1) {
@@ -379,15 +379,20 @@ export default function MultiScene ({json, options}) {
       },
       getGlobalComProps(comId) {
         // 从主场景获取真实数据
-        return scenesMap[json.scenes[0].id]._refs?.get({comId}) || {
-          data: {
-            val: globalVarMap[comId]
-          }
-        }
+        // const val = options.globalVariable?.get(comId) || globalVarMap[comId]
+        const val = globalVariable ? {data:{val: globalVariable.get(comId)}} : (comId in globalVarMap ? {data:{val: globalVarMap[comId]}} : scenesMap[json.scenes[0].id]._refs?.get({comId}))
+        
+        return val;
+        // return scenesMap[json.scenes[0].id]._refs?.get({comId}) || {
+        //   data: {
+        //     val: globalVarMap[comId]
+        //   }
+        // }
       },
       exeGlobalCom({ com, value, pinId }) {
         const globalComId = com.id
         globalVarMap[globalComId] = value
+        globalVariable?.set(globalComId, value)
         Object.keys(scenesMap).forEach((key) => {
           const scenes = scenesMap[key]
           if (scenes.show && scenes._refs) {
