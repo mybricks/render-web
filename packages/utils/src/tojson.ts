@@ -32,16 +32,16 @@ export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
     if (Array.isArray(fxFrames)) {
       // 将全局组件信息合并入fxjson
       fxFrames.forEach((fxFrame) => {
-        if (comsReg) {
+        if (comsReg && fxFrame.coms) {
           Object.assign(fxFrame.coms, comsReg)
         }
-        if (consReg) {
+        if (consReg && fxFrame.cons) {
           Object.assign(fxFrame.cons, consReg)
         }
-        if (pinRels) {
+        if (pinRels && fxFrame.pinRels) {
           Object.assign(fxFrame.pinRels, pinRels)
         }
-        if (pinProxies) {
+        if (pinProxies && fxFrame.pinProxies) {
           Object.assign(fxFrame.pinProxies, pinProxies)
         }
       })
@@ -54,16 +54,16 @@ export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
         const { json } = module
         // 模块在搭建时已被引擎调用transformToJSON处理，不用重复处理
 
-        if (comsReg) {
+        if (comsReg && json.coms) {
           Object.assign(json.coms, comsReg)
         }
-        if (consReg) {
+        if (consReg && json.cons) {
           Object.assign(json.cons, consReg)
         }
-        if (pinRels) {
+        if (pinRels && json.pinRels) {
           Object.assign(json.pinRels, pinRels)
         }
-        if (pinProxies) {
+        if (pinProxies && json.pinProxies) {
           Object.assign(json.pinProxies, pinProxies)
         }
       })
@@ -74,16 +74,16 @@ export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
       // 智能布局相关计算
       transformSlotComAry(scene.slot, scene.coms)
       // 将全局组件信息合并入场景json
-      if (comsReg) {
+      if (comsReg && scene.coms) {
         Object.assign(scene.coms, comsReg)
       }
-      if (consReg) {
+      if (consReg && scene.cons) {
         Object.assign(scene.cons, consReg)
       }
-      if (pinRels) {
+      if (pinRels && scene.pinRels) {
         Object.assign(scene.pinRels, pinRels)
       }
-      if (pinProxies) {
+      if (pinProxies && scene.pinProxies) {
         Object.assign(scene.pinProxies, pinProxies)
       }
     })
