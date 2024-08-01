@@ -468,7 +468,7 @@ export default function MultiScene ({json, options}) {
         const { inputs, outputs } = _refs
         const disableAutoRun = scenes.disableAutoRun
 
-        scenes.json.outputs.forEach((output) => {
+        scenes.json.outputs?.forEach((output) => {
           outputs(output.id, (value) => {
             // TODO: 临时，后续应该给场景一个回调
             if (output.id === 'apply') {
