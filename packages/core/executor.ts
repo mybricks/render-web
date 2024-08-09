@@ -1056,37 +1056,41 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
-      const sty = props.style
-      let display = sty.display
-      let visibility = sty.visibility
-
-      if (pinId === 'show') {
-        display = ''
-        visibility = 'visible'
-      } else if (pinId === 'hide') {
-        display = 'none'
-        visibility = 'hidden'
-      } else if (pinId === 'showOrHide') {
-        if (typeof val === 'undefined') {
-          if (display === 'none') {
-            display = ''
-            visibility = 'visible'
+      if (pinId === "_setStyle") {
+        _context?.options?.stylization?.setStyle(comId, val);
+      } else {
+        const sty = props.style
+        let display = sty.display
+        // let visibility = sty.visibility
+  
+        if (pinId === 'show') {
+          display = ''
+          // visibility = 'visible'
+        } else if (pinId === 'hide') {
+          display = 'none'
+          // visibility = 'hidden'
+        } else if (pinId === 'showOrHide') {
+          if (typeof val === 'undefined') {
+            if (display === 'none') {
+              display = ''
+              // visibility = 'visible'
+            } else {
+              display = 'none'
+              // visibility = 'hidden'
+            }
           } else {
-            display = 'none'
-            visibility = 'hidden'
+            display = val ? '' : 'none'
+            // visibility = val ? 'visible' : 'hidden'
           }
-        } else {
-          display = val ? '' : 'none'
-          visibility = val ? 'visible' : 'hidden'
         }
+  
+        // if (!sty.inSmartLayout) {
+        //   // 不在智能布局下，设置display，智能布局下默认占位
+        //   sty.display = display
+        // }
+        sty.display = display
+        // sty.visibility = visibility
       }
-
-      if (!sty.inSmartLayout) {
-        // 不在智能布局下，设置display，智能布局下默认占位
-        // sty.display = display
-      }
-      sty.display = display
-      // sty.visibility = visibility
 
       const comDef = getComDef(def)
       if (!comDef) return
