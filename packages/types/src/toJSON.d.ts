@@ -288,9 +288,34 @@ type Coms = {
   [key: string]: Component;
 }
 
+export interface NextCon {
+  /** 组件ID */
+  comId: string;
+  /** 上一个结束时下一个开始，需要对应 */
+  finishPinParentKey?: string;
+  startPinParentKey?: string;
+
+  pinType: "normal" | "timer" | "ext" | "config";
+  pinId: string;
+  /** 控制执行 */
+  timerPinInputId?: string;
+  /** 作用域key */
+  frameKey?: string;
+
+  def: {
+    namespace: string;
+     /** 类型 - 没有rtType的是ui组件 */
+     rtType?: "js" | "js-autorun"
+  }
+
+  type: "com" | "frame";
+}
+
+export type NextCons = Array<NextCon>;
+
 /** 逻辑面板连线信息 */
 type Cons = {
-  [key: string]: Array<any>; // 后续用到了再补充
+  [key: string]: Array<NextCon>; // 后续用到了再补充
 }
 
 /** 输入对应的输出映射关系 */

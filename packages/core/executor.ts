@@ -65,6 +65,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     _isNestedRender,
     _isNestCom,
     _context,
+    _getComProps,
   } = opts
 
   const scenesOperate = opts.scenesOperate || env.scenesOperate
@@ -81,6 +82,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     pinValueProxies: PinValueProxies = {},
     type: JsonType
   } = json
+  // window._getJSON = () => json
   let Coms = coms;
   if (_v === "2024-diff") {
     Coms = new Proxy(coms, {
@@ -116,10 +118,14 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   const _Env = env
 
   const _Props: any = {}
+  if (!window._getProps) {
+    window._getProps = () => _Props
+  }
 
   const _frameOutputProxy: any = {}
 
   const _exedJSCom = {}
+  // window._getExedJSCom = () => _exedJSCom
 
   const _frameOutput: any = {}
 
@@ -137,6 +143,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
   // 多输入
   const _valueBarrier: any = {}
+
+  // window._getValueBarrier = () => _valueBarrier
 
   // 等待的pin
   const _timerPinWait: any = {}
@@ -160,6 +168,25 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
    * 在插槽销毁时清除
    */
   const _scopeIdToComInFrameIdMap = {};
+
+  // window._getScopeIdToComInFrameIdMap = () => _scopeIdToComInFrameIdMap;
+
+  //  window._hello = () => {
+  //   return {
+  //     _frameOutputProxy,
+  //     _exedJSCom,
+  //     _frameOutput,
+  //     _nextConsPinKeyMap,
+  //     _valueBarrier,
+  //     _timerPinWait,
+  //     _slotValue,
+  //     _variableRelationship,
+  //     _var,
+  //     _varSlotMap,
+  //     _slotDefMap,
+  //     _scopeIdToComInFrameIdMap
+  //   }
+  //  }
 
   function _logOutputVal(type: 'com' | 'frame',
                          content:
@@ -242,13 +269,90 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           comId: (pInReg.targetFrameKey || pInReg.frameKey).split('-')[0]
         }
       } else {
-        _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
+        // _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
         if (fromCon && fromCon.finishPinParentKey !== inReg.startPinParentKey) {
           return
         }
   
         if (proxyDesc.type === 'frame') {//call fx frame
+          // const isFrameOutput = inReg.def.namespace === 'mybricks.core-comlib.frame-output'
   
+          // if (isFrameOutput && nextScope) {
+          //   proxyDesc.frameId = nextScope.proxyComProps.id
+          //   myScope = nextScope.parent
+          // }
+          const isFn = inReg.def.namespace === 'mybricks.core-comlib.fn'
+  
+          if (isFn) {
+            const {frameId, comId, pinId} = proxyDesc
+            const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
+            const cons = Cons[idPre + '-' + pinId]
+            if (!cons) {
+              // 没有cons认为是走的全局变量
+              _logOutputVal('frame', {comId, frameId, pinHostId: pinId, val: val,sceneId: null})
+              if (frameId !== ROOT_FRAME_KEY) {
+                if (json.id === frameId) {
+                  _frameOutput[pinId](val)
+                } else {
+                  const comProps = getComProps(inReg.comId, nextScope)
+                  scenesOperate?.open({
+                    frameId,
+                    todo: {
+                      pinId,
+                      value: val
+                    },
+                    comProps,
+                    parentScope: comProps
+                  })
+                }
+              }
+            } else {
+              executor({
+                ...opts,
+                _getComProps(comId) {
+                  const res = getComProps(comId, nextScope);
+                  // console.log("外面的ui组件 _getComProps: ", res)
+                  return res;
+                  // return getComProps(comId, nextScope)
+                },
+                ref: (refs) => {
+                  const comInfo = refs.getComInfo(inReg.comId)
+                  const { configs } = comInfo.model.data;
+                  const { frameId, pinId } = proxyDesc
+                  const outputs = comInfo.outputs;
+                  const myScope = null;
+                  
+                  if (outputs?.length) {
+                    const comProps = getComProps(inReg.comId, nextScope)
+                    // const myScope = {
+                    //   id: uuid(10, 16),
+                    //   frameId: proxyDesc.frameId,
+                    //   parent: nextScope,
+                    //   proxyComProps: comProps
+                    // }
+                    // console.log("outputs: ", outputs)
+                    outputs.forEach((output) => {
+                      refs.outputs(output, (value) => {
+                        const outPin = comProps.outputs[output]
+                        if (outPin) {
+                          outPin(value, nextScope)
+                        }
+                      })
+                    })
+                  }
+                  if (configs) {
+                    Object.entries(configs).forEach(([key, value]) => {
+                      refs.inputs[key](value, void 0, true, frameId, myScope);
+                    })
+                  }
+                  refs.inputs[pinId](val, void 0, true, frameId, myScope);
+                  refs.run(frameId, myScope);
+                }
+              }, config)
+            }
+            return 
+          }
+
           const comProps = getComProps(inReg.comId, nextScope)
           let myScope: any
           //if (!curScope) {
@@ -261,28 +365,6 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           }
           //}
   
-          // const isFrameOutput = inReg.def.namespace === 'mybricks.core-comlib.frame-output'
-  
-          // if (isFrameOutput && nextScope) {
-          //   proxyDesc.frameId = nextScope.proxyComProps.id
-          //   myScope = nextScope.parent
-          // }
-          const isFn = inReg.def.namespace === 'mybricks.core-comlib.fn'
-  
-          if (isFn) {
-            const { configs } = comProps.data
-            if (configs) {
-              Object.entries(configs).forEach(([key, value]) => {
-                const { frameId, comId, pinId } = proxyDesc
-                const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
-                const cons = Cons[idPre + '-' + key]
-                if (cons) {
-                  exeCons({logProps: null, cons, val: value, curScope: myScope})
-                }
-              })
-            }
-          }
-  
           exeInputForFrame({ options: proxyDesc, value: val, scope: myScope, comProps })
   
           if (!isFrameOutput) {
@@ -290,6 +372,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           }
           return
         }
+        _slotValue[`${proxyDesc.frameId}-${proxyDesc.pinId}`] = val
       }
     }
 
@@ -634,10 +717,16 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                          frameId: string,
                          parent
                        },
+                       fake?: boolean, // 创建内部假的
                        //ioProxy?: { inputs, outputs, _inputs, _outputs }
   ) {
     const com = Coms[comId]
     if (!com) return null
+    const def = com.def
+    const isJS = def.rtType?.match(/^js/gi)
+    if ((_getComProps && !isJS && !fake) || (_getComProps && def.namespace === "mybricks.core-comlib.var")) {
+      return _getComProps(comId)
+    }
     const comInFrameId = comId + (com.frameId || ROOT_FRAME_KEY)
 
     let frameProps = _Props[comInFrameId]
@@ -689,7 +778,6 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       return found
     }
 
-    const def = com.def
     const model = com.model
 
     // let nModel = opts ? JSON.parse(JSON.stringify(model)) : model
@@ -1003,9 +1091,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       }
     }
 
-    const isJS = def.rtType?.match(/^js/gi)
+    // const isJS = def.rtType?.match(/^js/gi)
 
-    const rtn = {
+    let rtn = {
       id: com.id,
       title: com.title,
       frameId: com.frameId,
@@ -1032,6 +1120,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       },
       _notifyBindings,
       logger,
+      destroy: () => {
+        rtn = null;
+      },
       onError: (
         // !_isNestedRender && 
         debug) ? (error) => onError({comId, error, title: com.title}) : onError
@@ -1227,7 +1318,15 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                   if (Object.prototype.toString.call(name) === '[object Symbol]') {
                     return
                   }
-                  props.outputs[name](val, scope, inReg)//with current scope
+                  if (_getComProps) {
+                    // 说明在里面
+                    const comProps = getComProps(comId, scope, true)
+                    // 内部假的输出
+                    comProps.outputs[name](val, scope, inReg)//with current scope
+                  } else {
+                    props.outputs[name](val, scope, inReg)//with current scope
+                  }
+                  // props.outputs[name](val, scope, inReg)//with current scope
                 }
               }
             })
@@ -1332,6 +1431,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         }
       })
 
+      const _slotValueKeys = new Set();
+
       const inputs = new Proxy({}, {
         get(target, name) {
           const exe = function (val, curScope) {//set data
@@ -1342,7 +1443,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             let scope = curScope || Cur.scope
             const key = comId + '-' + slotId + '-' + name
             const cons = Cons[key]
-            _slotValue[`${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`] = val
+            const _slotValueKey = `${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`;
+            _slotValueKeys.add(_slotValueKey)
+            _slotValue[_slotValueKey] = val
 
             if (cons) {
               exeCons({logProps: ['frame', {comId, frameId: slotId, pinHostId: name, val}], cons, val, curScope: scope})
@@ -1458,6 +1561,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               const comInFrameIdMap = _scopeIdToComInFrameIdMap[scope.id];
               if (comInFrameIdMap) {
                 Object.entries(comInFrameIdMap).forEach(([key, value]) => {
+                  Reflect.deleteProperty(_exedJSCom, value)
+                  if (!_Props[key][value].setSlotValue) {
+                    _Props[key][value].destroy();
+                  }
                   Reflect.deleteProperty(_Props[key], value);
                 })
                 Reflect.deleteProperty(_scopeIdToComInFrameIdMap, scope.id)
@@ -1474,8 +1581,14 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             }
           }
 
+          _slotValueKeys.forEach((_slotValueKey: string) => {
+            Reflect.deleteProperty(_slotValue, _slotValueKey)
+          })
+
           // Reflect.deleteProperty(_Props, key)
           Reflect.deleteProperty(frameProps, key)
+
+          rtn = null;
         },
         //_outputRegs,
         _inputs,
@@ -1501,7 +1614,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           const scope = curScope || Cur.scope
           Object.entries(slotValues).forEach(([name, value]) => {
             const key = comId + '-' + slotId + '-' + name
-            _slotValue[`${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`] = value
+            const _slotValueKey = `${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`;
+            _slotValueKeys.add(_slotValueKey)
+            _slotValue[_slotValueKey] = value
           })
         }
       }
@@ -1570,6 +1685,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             },
             comProps,
             parentScope: scope.proxyComProps
+            // parentScope: scope?.proxyComProps || {
+            //   outputs: _frameOutput
+            // }
           })
         }
       }
@@ -1605,16 +1723,16 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   if (typeof ref === 'function') {
     const refs = {
       style: UIRoot?.style,
-      run() {
-        exeForFrame({frameId: ROOT_FRAME_KEY})
+      run(frameId = ROOT_FRAME_KEY, scope = null) {
+        exeForFrame({frameId, scope})
       },
       inputs: new Proxy({}, {
         get(target, pinId) {
-          return function (val,sceneId = void 0, log = true) {
+          return function (val,sceneId = void 0, log = true, frameId = ROOT_FRAME_KEY, scope = null) {
             if (Object.prototype.toString.call(pinId) === '[object Symbol]') {
               return
             }
-            exeInputForFrame({ options: {frameId: ROOT_FRAME_KEY, pinId,sceneId }, value: val, scope: void 0, log })
+            exeInputForFrame({ options: {frameId, pinId,sceneId }, value: val, scope, log })
           }
         }
       }),

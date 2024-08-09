@@ -1,33 +1,25 @@
 import React, {
   memo,
-  useRef,
-  useMemo,
   useState,
   useEffect,
-  useCallback
 } from "react";
-import { 
-  proxyToRaw,
-  rawToProxy,
-  globalTaskEmitter,
-  globalReactionStack
-} from "./global";
-import { isObject, pxToRem, pxToVw } from "../utils";
-import baseHandlers from "./handles";
+import { isObject, pxToRem } from "../utils";
 
 const globalKey = "__render-web-createElement__";
-let createElement;
+let createElement: any;
 
 /**
  * 劫持 React.createElement 函数
  */
-export function hijackReactcreateElement(props) {
+export function hijackReactcreateElement(props: any) {
   const { pxToRem: configPxToRem, pxToVw: handlePxToVw } = props
+  // @ts-ignore
   if (!React[globalKey]) {
+    // @ts-ignore
     React[globalKey] = true;
     createElement = React.createElement;
 
-    React.createElement = function(...args) {
+    React.createElement = function(...args: any) {
       let [fn, props] = args;
       if (props) {
         const style = props.style
@@ -75,7 +67,7 @@ export function hijackReactcreateElement(props) {
 
 const PROP_ENHANCED = `__enhanced__`
 
-function enhanceComponent(fn, isRefCom = false) {
+function enhanceComponent(fn: any, isRefCom = false) {
   let obFn = fn[PROP_ENHANCED]
 
   if (!obFn) {
@@ -107,29 +99,25 @@ function enhanceComponent(fn, isRefCom = false) {
   return obFn
 }
 
-function enhance(component, memoIt = true) {
-  function hoc (props, refs) {
-    const ref = useRef<Reaction | null>(null);
+function enhance(component: any, memoIt = true) {
+  function hoc (props: any, refs: any) {
     const [, setState] = useState([]);
-  
-    useMemo(() => {
-      if (!ref.current) {
-        ref.current = new Reaction(() => setState([]));
-      }
-    }, []);
   
     useEffect(() => {
       return () => {
-        ref.current?.destroy();
-        ref.current = null;
+        // TODO: 这里有个奇怪的销毁问题
+        destroy(setState);
       };
     }, []);
   
     let render;
-  
-    ref.current?.track(() => {
-      render = component(props, refs);
-    });
+
+    run({
+      update: setState,
+      run: () => {
+        render = component(props, refs);
+      }
+    })
   
     return render;
   }
@@ -139,40 +127,247 @@ function enhance(component, memoIt = true) {
   return memoIt ? memo(hoc) : hoc
 }
 
-export function observable<T extends object>(obj: T): T {
-  if (!isObject(obj)) {
-    return {} as any;
-  }
+let obId = 0;
 
-  // 是否传入已被observable处理的obj
-  if (proxyToRaw.has(obj)) {
-    return obj;
-  }
+const updates: any[] = [];
 
-  // 是否传入已observable处理过的obj，若否，则创建
-  return rawToProxy.get(obj) || createObservable(obj);
+// @ts-ignore
+// window._updates = () => updates;
+
+const run = ({
+  update, // 依赖变更触发的事件
+  run // 执行收集依赖
+}: any) => {
+  updates.unshift(update);
+  run();
+  const index = updates.indexOf(update);
+  if (index !== -1) {
+    updates.splice(index, 1);
+  }
 }
 
-function createObservable (obj) {
-  const handlers = baseHandlers;
-  const observable = new Proxy(obj, handlers);
-
-  rawToProxy.set(obj, observable);
-  proxyToRaw.set(observable, obj);
-
-  globalTaskEmitter.addTask(obj);
-
-  return observable;
+const destroy = (update: any) => {
+  dep.destroy(update);
 }
 
-class Reaction {
-  constructor(private update) {}
+let _obRegex = /^_ob\d+_/;
 
-  track(fn) {
-    globalReactionStack.autoRun(this.update, fn);
+const dep: any = {
+  _obToKey: {}, 
+  event: {},
+  reverse: new WeakMap(),
+  on(_ob: any, key: any, fn: any) {
+    const { _obToKey, event, reverse } = this;
+    const _obKey = _ob + key;
+
+    if (!_obToKey[_ob]) {
+      // 没有对应_ob+prop，创建一个set
+      _obToKey[_ob] = new Set();
+    }
+    _obToKey[_ob].add(_obKey);
+
+    if (!event[_obKey]) {
+      // 没有对应_ob+prop，创建一个set
+      event[_obKey] = new Set();
+    }
+    // 添加fn
+    event[_obKey].add(fn);
+
+    if (!reverse.get(fn)) {
+      // fn反向查询_ob+prop
+      reverse.set(fn, new Set());
+    }
+    // 添加_obKey
+    reverse.get(fn).add(_obKey);
+  },
+  emit(key: any, args: any) {
+    const fns = new WeakSet();
+    // 根据_ob+prop找到fn
+    const events = this.event[key];
+    if (!events) return;
+    // 遍历执行fn
+    events.forEach((fn: any) => {
+      if (fns.has(fn)) return;
+      fns.add(fn);
+      fn(args);
+    });
+  },
+  destroy(fn: any) {
+    const { reverse } = this;
+    const eventKeys = reverse.get(fn);
+    if (eventKeys) {
+      const { event, _obToKey } = this;
+      eventKeys.forEach((eventKey: string) => {
+        const events = event[eventKey];
+        const _ob = eventKey.match(_obRegex)![0];
+        const keys = _obToKey[_ob];
+        if (keys) {
+          keys.delete(eventKey);
+          if (!keys.size) {
+            Reflect.deleteProperty(_obToKey, _ob);
+          }
+        }
+        events.delete(fn)
+        if (!events.size) {
+          Reflect.deleteProperty(event, eventKey)
+        }
+      })
+      reverse.delete(fn);
+    }
+  },
+  destroy2(_ob: any) {
+    const { _obToKey, event, reverse } = this;
+    const keys = _obToKey[_ob];
+    if (keys) {
+      keys.forEach((key: any) => {
+        const events = event[key];
+        events.forEach((fn: any) => {
+          const keys = reverse.get(fn);
+          if (keys) {
+            keys.delete(key)
+            if (!keys.size) {
+              reverse.delete(fn)
+            }
+          }
+        })
+        Reflect.deleteProperty(event, key)
+      })
+      Reflect.deleteProperty(_obToKey, _ob);
+    }
   }
+};
 
-  destroy() {
-    globalTaskEmitter.deleteReaction(this.update);
+// const dep: any = {
+//   event: {},
+//   reverse: new WeakMap(),
+//   on(key: any, fn: any) {
+//     if (!this.event[key]) {
+//       // 没有对应_ob+prop，创建一个set
+//       this.event[key] = new Set();
+//     }
+//     // 添加fn
+//     this.event[key].add(fn);
+
+//     if (!this.reverse.get(fn)) {
+//       // fn反向查询_ob+prop
+//       this.reverse.set(fn, new Set());
+//     }
+//     // 添加key
+//     this.reverse.get(fn).add(key);
+//   },
+//   emit(key: any, args: any) {
+//     const fns = new WeakSet();
+//     // 根据_ob+prop找到fn
+//     const events = this.event[key];
+//     if (!events) return;
+//     // 遍历执行fn
+//     events.forEach((fn: any) => {
+//       if (fns.has(fn)) return;
+//       fns.add(fn);
+//       fn(args);
+//     });
+//   },
+//   destroy(fn: any) {
+//     const eventKeys = this.reverse.get(fn);
+//     if (eventKeys) {
+//       const { event } = this;
+//       eventKeys.forEach((eventKey: string) => {
+//         const events = event[eventKey];
+//         events.delete(fn)
+//         if (!events.size) {
+//           Reflect.deleteProperty(event, eventKey)
+//         }
+//       })
+//       this.reverse.delete(fn);
+//     }
+//   }
+// };
+
+// @ts-ignore
+// window._getDep = () => {
+//   return {
+//     dep,
+//     eventLength: Object.keys(dep.event).length,
+//     _obToKey: Object.keys(dep._obToKey).length,
+//   }
+// }
+
+/** 内容变更，原先对象上的监听需要删除 */
+const destroy2 = (value: any) => {
+  if (value?._ob) {
+    dep.destroy2(value._ob);
+    Object.entries(value).forEach(([, value]) => {
+      destroy2(value);
+    })
+  }
+}
+
+// const a = new Proxy([], {
+//   get(target, key) {
+//     console.log("get: ", {
+//       target,
+//       key
+//     })
+//     return Reflect.get(target, key)
+//   },
+//   set(target, key, value) {
+//     Reflect.set(target, key, value)
+//     console.log("set: ", {
+//       target, key, value
+//     })
+//     return true;
+//   }
+// })
+
+const handler: ProxyHandler<any> = {
+  set(target: any, prop: any, newValue: any, receiver: any) {
+    const previousValue = Reflect.get(target, prop, receiver);
+    const result = Reflect.set(target, prop, newValue, receiver);
+    if (previousValue !== newValue || (Array.isArray(target) && prop === "length")) {
+      dep.emit(target._ob + prop, []);
+      destroy2(previousValue);
+    }
+    return result;
+  },
+  get(target: any, prop: any, receiver: any) {
+    const result = Reflect.get(target, prop, receiver);
+
+    if (["_ob", "constructor", Symbol.toPrimitive, Symbol.toStringTag, Symbol.iterator].includes(prop)) {
+      return result
+    }
+
+    const currentRun = updates[0];
+
+    if (currentRun) {
+      if (Reflect.get(target, "__model_style__", receiver)) {
+        if (prop === "display") {
+          dep.on(target._ob, prop, currentRun)
+        } else if (prop === "styleAry") {
+          return result
+        }
+      } else {
+        dep.on(target._ob, prop, currentRun)
+      }
+    }
+    if (isObject(result)) {
+      if (result._ob) {
+        return result
+      } else {
+        const observableResult = observable(result);
+        Reflect.set(target, prop, observableResult, receiver);
+        return observableResult
+      }
+    }
+
+    return result
+  }
+}
+
+export function observable<T extends object & {_ob: string}>(obj: T): T {
+  if (obj._ob) {
+    return obj
+  } else {
+    obj._ob = `_ob${++obId}_`;
+    return new Proxy(obj, handler);
   }
 }
