@@ -105,7 +105,9 @@ class Context {
         //   }
         // },
         onComplete(fn: any) {
-          onCompleteCallBacks.push(fn)
+          if (debug) {
+            onCompleteCallBacks.push(fn)
+          }
         }
       }
     }
@@ -468,8 +470,9 @@ class Stylization {
 
     if (styleAry.length) {
       const { rootId, root, options } = this;
-      const { env, handlePxToVw } = options
+      const { env, handlePxToVw, debug } = options
       const { pxToRem: configPxToRem } = env
+      const prefix = debug ? "#_geoview-wrapper_ ": ""
       let innerText = ''
       styleAry.forEach(({css, selector, global}: any) => {
         if (selector === ':root') {
@@ -477,15 +480,15 @@ class Stylization {
         }
         if (Array.isArray(selector)) {
           selector.forEach((selector) => {
-            innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+            innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
             if (rootId && global) {
-              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw, prefix})
             }
           })
         } else {
-          innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+          innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
           if (rootId && global) {
-            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw, prefix})
           }
         }
       })
@@ -509,8 +512,8 @@ class Stylization {
   }
 }
 
-function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw}: any) {
-  return `${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw, prefix}: any) {
+  return `${prefix}${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
       ${Object.keys(css).map(key => {
         let value = css[key]
         if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
