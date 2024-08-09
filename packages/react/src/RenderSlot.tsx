@@ -251,46 +251,47 @@ function RenderCom({
   const [, setShow] = useState(false)
 
   useMemo(() => {
-    const { handlePxToVw, debug, disableStyleInjection, rootId } = options
-
+    const { handlePxToVw, debug, disableStyleInjection, rootId, stylization } = options
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
-    if (!disableStyleInjection && !context.styleMap[id]) {
+    if (!disableStyleInjection && !stylization.hasComId(id)) {
       // 非引擎环境 并且 没有插入过style
-      context.styleMap[id] = true
-      const { pxToRem: configPxToRem } = env
+      // context.styleMap[id] = true
+      stylization.setComId(id);
+      // const { pxToRem: configPxToRem } = env
       const styleAry = getStyleAry({ env, def, style })
 
       if (Array.isArray(styleAry)) {
-        const root = getStylesheetMountNode();
-        const styleTag = document.createElement('style')
-        let innerText = ''
+        stylization.setStyle(id, styleAry);
+        // const root = getStylesheetMountNode();
+        // const styleTag = document.createElement('style')
+        // let innerText = ''
 
-        styleTag.id = id
-        styleAry.forEach(({css, selector, global}) => {
-          if (selector === ':root') {
-            selector = '> *:first-child'
-          }
-          if (Array.isArray(selector)) {
-            selector.forEach((selector) => {
-              innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
-              if (rootId && global) {
-                innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
-              }
-            })
-          } else {
-            innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
-            if (rootId && global) {
-              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
-            }
-          }
+        // styleTag.id = id
+        // styleAry.forEach(({css, selector, global}) => {
+        //   if (selector === ':root') {
+        //     selector = '> *:first-child'
+        //   }
+        //   if (Array.isArray(selector)) {
+        //     selector.forEach((selector) => {
+        //       innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+        //       if (rootId && global) {
+        //         innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+        //       }
+        //     })
+        //   } else {
+        //     innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+        //     if (rootId && global) {
+        //       innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+        //     }
+        //   }
           
-        })
-        styleTag.innerHTML = innerText
-        if (root) {
-          root.appendChild(styleTag)
-        } else {
-          document.head.appendChild(styleTag)
-        }
+        // })
+        // styleTag.innerHTML = innerText
+        // if (root) {
+        //   root.appendChild(styleTag)
+        // } else {
+        //   document.head.appendChild(styleTag)
+        // }
       }
       // TODO
       Reflect.deleteProperty(style, 'styleAry')
@@ -948,17 +949,17 @@ function getStyleAry ({ env, style, def }) {
   return styleAry
 }
 
-function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw}) {
-  return `${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
-      ${Object.keys(css).map(key => {
-        let value = css[key]
-        if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
-          value = pxToRem(value)
-        } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
-          value = handlePxToVw(value)
-        }
-        return `${convertCamelToHyphen(key)}: ${value};`
-      }).join('\n')}
-    }
-  `;
-}
+// function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw}) {
+//   return `${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+//       ${Object.keys(css).map(key => {
+//         let value = css[key]
+//         if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+//           value = pxToRem(value)
+//         } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+//           value = handlePxToVw(value)
+//         }
+//         return `${convertCamelToHyphen(key)}: ${value};`
+//       }).join('\n')}
+//     }
+//   `;
+// }

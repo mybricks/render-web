@@ -21,7 +21,7 @@ import NotificationLess from './Notification/style.lazy.less';
 import { setLoggerSilent } from '../../core/logger';
 import Notification from './Notification';
 import executor from '../../core/executor'
-import { compareVersion, deepCopy, getStylesheetMountNode, getPxToVw } from '../../core/utils';
+import { compareVersion, deepCopy, getStylesheetMountNode, getPxToVw, convertCamelToHyphen, pxToRem } from '../../core/utils';
 import type { ToJSON, MultiSceneToJSON } from "./types";
 // @ts-ignore
 import coreLib from '@mybricks/comlib-core';
@@ -91,9 +91,32 @@ class Context {
   observable = defaultObservable
 
   // 传入的配置项
-  constructor(public options: RenderOptions, json) {
+  constructor(public options: RenderOptions, json: any) {
     this._v = json._v
-    const { env, debug, observable, onError, plugins = [] } = options
+    const { env, debug, observable, onError, plugins = [], rootId } = options
+    const { onCompleteCallBacks } = this
+    /** 一些默认值 */
+    // 运行时，默认为runtime模式
+    if (!env.runtime) {
+      env.runtime = {
+        // debug: {
+        //   onComplete(fn: any) {
+        //     onCompleteCallBacks.push(fn)
+        //   }
+        // },
+        onComplete(fn: any) {
+          onCompleteCallBacks.push(fn)
+        }
+      }
+    }
+    // 样式加载dom节点
+    const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
+    options.stylization = new Stylization({
+      rootId,
+      root: LOAD_CSS_LAZY_ROOT,
+      options,
+      onCompleteCallBacks
+    });
     this.mode = debug ? 'development' : 'production'
 
     let handlePxToVw;
@@ -136,29 +159,12 @@ class Context {
     } else {
       this.observable = observable
     }
-    // 样式加载dom节点
-    const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
     // 各种lazycss加载
     loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
     loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
     loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
     loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
 
-    const { onCompleteCallBacks } = this
-    /** 一些默认值 */
-    // 运行时，默认为runtime模式
-    if (!env.runtime) {
-      env.runtime = {
-        // debug: {
-        //   onComplete(fn: any) {
-        //     onCompleteCallBacks.push(fn)
-        //   }
-        // },
-        onComplete(fn: any) {
-          onCompleteCallBacks.push(fn)
-        }
-      }
-    }
     // 国际化，是否可以去除？？，PC通用组件库内使用
     // TODO: 去除
     if (!env.i18n) {
@@ -373,6 +379,151 @@ class Context {
   }
 }
 
+class Stylization {
+  options: any;
+  /** 挂载节点 */
+  root: any;
+  /** 唯一标识 */
+  rootId: any;
+  /** ID到style标签的映射 */
+  styleMap: any = {};
+
+  /** 组件默认样式，仅触发一次 */
+  comMap: any = {};
+
+  constructor({ rootId, root, options, onCompleteCallBacks }: any) {
+    this.root = root;
+    this.rootId = rootId
+    this.options = options
+    const { styleMap } = this;
+
+    let destory = () => {
+      Object.entries(styleMap).forEach(([_, style]) => {
+        root.removeChild(style);
+      })
+    }
+
+    onCompleteCallBacks.push(destory)
+  }
+
+  /** 是否添加过默认样式 */
+  hasComId(id: any) {
+    return this.comMap[id];
+  }
+
+  /** 设置添加过的comId */
+  setComId(id: any) {
+    this.comMap[id] = true;
+  }
+  
+  /** 添加style标签 */
+  add(id: any, style: any) {
+    this.styleMap[id] = style;
+  }
+
+  /** 获取style标签 */
+  get(id: any) {
+    return this.styleMap[id];
+  }
+
+  /** 删除style标签 */
+  delete(id: any) {
+    const { styleMap } = this;
+    const style = styleMap[id];
+    this.root.removeChild(style);
+    Reflect.deleteProperty(styleMap, id);
+  }
+
+  /** 更新style标签 */
+  update(id: any, innerHTML: any) {
+    const style = this.styleMap[id];
+    style.innerHTML = innerHTML;
+  }
+
+  /** 设置样式 */
+  setStyle(id: any, sa: any) {
+    let styleAry: any = [];
+
+    // TODO: 处理global
+    // const obj = {
+    //   ":global.button": {
+    //     "backgroundColor": "pink",
+    //     "borderTopColor": "rgba(114,46,209,1)",
+    //     "borderRightColor": "rgba(114,46,209,1)",
+    //     "borderBottomColor": "rgba(114,46,209,1)",
+    //     "borderLeftColor": "rgba(114,46,209,1)"
+    //   },
+    // }
+
+    if (Array.isArray(sa)) {
+      styleAry = sa;
+    } else {
+      Object.entries(sa).forEach(([selector, css]) => {
+        styleAry.push({
+          selector,
+          css
+        })
+      })
+    }
+
+    if (styleAry.length) {
+      const { rootId, root, options } = this;
+      const { env, handlePxToVw } = options
+      const { pxToRem: configPxToRem } = env
+      let innerText = ''
+      styleAry.forEach(({css, selector, global}: any) => {
+        if (selector === ':root') {
+          selector = '> *:first-child'
+        }
+        if (Array.isArray(selector)) {
+          selector.forEach((selector) => {
+            innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+            if (rootId && global) {
+              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+            }
+          })
+        } else {
+          innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw})
+          if (rootId && global) {
+            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
+          }
+        }
+      })
+
+      let styleTag = this.get(id);
+
+      if (styleTag) {
+        styleTag.innerHTML = innerText
+      } else {
+        styleTag = document.createElement('style')
+        // styleTag.id = id
+        styleTag.innerHTML = innerText
+        if (root) {
+          root.appendChild(styleTag)
+        } else {
+          document.head.appendChild(styleTag)
+        }
+        this.add(id, styleTag)
+      }
+    }
+  }
+}
+
+function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw}: any) {
+  return `${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+      ${Object.keys(css).map(key => {
+        let value = css[key]
+        if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+          value = pxToRem(value)
+        } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+          value = handlePxToVw(value)
+        }
+        return `${convertCamelToHyphen(key)}: ${value};`
+      }).join('\n')}
+    }
+  `;
+}
+
 const MyBricksRenderContext = createContext<any>({})
 
 export function MyBricksRenderProvider ({ children, value }: any) {
@@ -440,6 +591,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
       executor({
         json,
         getComDef: (def: any) => _context.getComDef(def),
+        // @ts-ignore
         events: options.events,
         env: options.env,
         ref(_refs: any) {
