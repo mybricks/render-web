@@ -66,6 +66,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     _isNestCom,
     _context,
     _getComProps,
+    rootId,
   } = opts
 
   const scenesOperate = opts.scenesOperate || env.scenesOperate
@@ -1148,7 +1149,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === "_setStyle") {
-        _context?.options?.stylization?.setStyle(comId, val);
+        const styleId = rootId ? `${rootId}_${comId}` : comId;
+        _context?.options?.stylization?.setComId(styleId)
+        _context?.options?.stylization?.setStyle(styleId, val);
       } else {
         const sty = props.style
         let display = sty.display

@@ -253,15 +253,17 @@ function RenderCom({
   useMemo(() => {
     const { handlePxToVw, debug, disableStyleInjection, rootId, stylization } = options
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
-    if (!disableStyleInjection && !stylization.hasComId(id)) {
+    const styleId = rootId ? `${rootId}_${id}` : id;
+    if (!disableStyleInjection && !stylization.hasComId(styleId)) {
       // 非引擎环境 并且 没有插入过style
       // context.styleMap[id] = true
-      stylization.setComId(id);
+      stylization.setComId(styleId);
       // const { pxToRem: configPxToRem } = env
       const styleAry = getStyleAry({ env, def, style })
 
       if (Array.isArray(styleAry)) {
-        stylization.setStyle(id, styleAry);
+        // stylization.setStyle(id, styleAry);
+        stylization.setStyle(styleId, styleAry);
         // const root = getStylesheetMountNode();
         // const styleTag = document.createElement('style')
         // let innerText = ''

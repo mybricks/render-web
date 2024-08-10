@@ -115,7 +115,8 @@ export default function Main({json, options, style = {}, className = '', root = 
         scenesOperate: options.scenesOperate,
         _isNestedRender: options._isNestedRender,
         _isNestCom: options._isNestCom,
-        _context
+        _context,
+        rootId: options.rootId
       }, {//////TODO goon
         observable: _context.observable
       })

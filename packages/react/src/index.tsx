@@ -176,14 +176,26 @@ class Context {
     if (!env.renderModule) {
       // 模块组件内调用
       env.renderModule = (json: any, options2: any) => {
+        const rootId1 = options.rootId
+        const rootId2 = options2.rootId
+        let rootId = rootId1 || rootId2;
+        if (rootId1 && rootId2) {
+          rootId = rootId1 + '_' + rootId2
+        }
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, ...options2, env, _isNestedRender: true, _context: this })
+        return render(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
       }
     } else {
       const renderModule = env.renderModule
       env.renderModule = (json: any, options2: any) => {
+        const rootId1 = options.rootId
+        const rootId2 = options2.rootId
+        let rootId = rootId1 || rootId2;
+        if (rootId1 && rootId2) {
+          rootId = rootId1 + '_' + rootId2
+        }
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderModule(json, { ...options, ...options2, env, _isNestedRender: true, _context: this })
+        return renderModule(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
       }
     }
     if (!env.renderCom) {
@@ -480,13 +492,13 @@ class Stylization {
         }
         if (Array.isArray(selector)) {
           selector.forEach((selector) => {
-            innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
+            innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
             if (rootId && global) {
               innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw, prefix})
             }
           })
         } else {
-          innerText = innerText + getStyleInnerText({id: rootId ? `${rootId}_${id}` : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
+          innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
           if (rootId && global) {
             innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw, prefix})
           }
