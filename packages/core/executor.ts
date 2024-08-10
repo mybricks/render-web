@@ -724,7 +724,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     if (!com) return null
     const def = com.def
     const isJS = def.rtType?.match(/^js/gi)
-    if ((_getComProps && !isJS && !fake) || (_getComProps && def.namespace === "mybricks.core-comlib.var")) {
+    if ((_getComProps && !isJS && !fake) || (_getComProps && def.namespace === "mybricks.core-comlib.var" && !fake)) {
       return _getComProps(comId)
     }
     const comInFrameId = comId + (com.frameId || ROOT_FRAME_KEY)
@@ -1288,7 +1288,14 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                       }
                     }
                   }
-                  props.outputs[name](val, scope, inReg)
+                  if (_getComProps) {
+                    // 说明在里面
+                    const comProps = getComProps(comId, scope, true)
+                    // 内部假的输出
+                    comProps.outputs[name](val, scope, inReg)//with current scope
+                  } else {
+                    props.outputs[name](val, scope, inReg)//with current scope
+                  }
                 }
               }
             }))
