@@ -794,12 +794,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     const _inputRegs = {}
     const _inputTodo = {}
 
-    const addInputTodo = (inputId, val, fromCon, fromScope) => {
+    const addInputTodo = (inputId, val, fromCon, fromScope, next) => {
       let ary = inputTodo[inputId]
       if (!ary) {
         inputTodo[inputId] = ary = []
       }
-      ary.push({val, fromCon, fromScope})
+      ary.push({val, fromCon, fromScope, next})
     }
 
     const inputs = function (ioProxy?: {
@@ -831,16 +831,16 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             inputRegs[name] = fn
             const ary = inputTodo[name]
             if (ary) {
-              ary.forEach(({val, fromCon, fromScope}) => {
+              ary.forEach(({val, fromCon, fromScope, next}) => {
                 fn(val, new Proxy({}, {//relOutputs
                   get(target, name) {
                     return function (val) {
                       if (Object.prototype.toString.call(name) === '[object Symbol]') {
                         return
                       }
-                      const fn = outputs()[name]
+                      const fn = next || outputs()[name]
                       if (typeof fn === 'function') {
-                        fn(val, fromScope || curScope, fromCon)
+                        fn(val, fromScope || curScope, fromCon, false, name)
                       } else {
                         throw new Error(`outputs.${name} not found`)
                       }
@@ -1303,6 +1303,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               }
             }))
           } else {
+            console.log("计算组件的addInputTodo: ", def)
             props.addInputTodo(pinId, val, inReg, scope)
           }
         }
@@ -1344,7 +1345,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
           fn(val, nowRels)
         } else {
-          props.addInputTodo(pinId, val, inReg, scope)
+          props.addInputTodo(pinId, val, inReg, scope, _getComProps ? (val, a, b, c, name) => {
+            // 说明在里面
+            const comProps = getComProps(comId, scope, true)
+            // 内部假的输出
+            comProps.outputs[name](val, scope, inReg)//with current scope
+          } : null)
         }
       }
     }
