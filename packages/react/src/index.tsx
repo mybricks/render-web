@@ -173,30 +173,40 @@ class Context {
       env.i18n = (text: unknown) => text
     }
     // 渲染模块，提供的默认能力，引擎环境内引擎提供
-    if (!env.renderModule) {
-      // 模块组件内调用
-      env.renderModule = (json: any, options2: any) => {
-        const rootId1 = options.rootId
-        const rootId2 = options2.rootId
-        let rootId = rootId1 || rootId2;
-        if (rootId1 && rootId2) {
-          rootId = rootId1 + '_' + rootId2
-        }
-        // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
+    // if (!env.renderModule) {
+    //   // 模块组件内调用
+    //   env.renderModule = (json: any, options2: any) => {
+    //     const rootId1 = options.rootId
+    //     const rootId2 = options2.rootId
+    //     let rootId = rootId1 || rootId2;
+    //     if (rootId1 && rootId2) {
+    //       rootId = rootId1 + '_' + rootId2
+    //     }
+    //     // 最终还是调render-wen提供的render函数，渲染toJSON
+    //     return render(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
+    //   }
+    // } else {
+    //   const renderModule = env.renderModule
+    //   env.renderModule = (json: any, options2: any) => {
+    //     const rootId1 = options.rootId
+    //     const rootId2 = options2.rootId
+    //     let rootId = rootId1 || rootId2;
+    //     if (rootId1 && rootId2) {
+    //       rootId = rootId1 + '_' + rootId2
+    //     }
+    //     // 最终还是调render-wen提供的render函数，渲染toJSON
+    //     return renderModule(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
+    //   }
+    // }
+    env.renderModule = (json: any, options2: any) => {
+      const rootId1 = options.rootId
+      const rootId2 = options2.rootId
+      let rootId = rootId1 || rootId2;
+      if (rootId1 && rootId2) {
+        rootId = rootId1 + '_' + rootId2
       }
-    } else {
-      const renderModule = env.renderModule
-      env.renderModule = (json: any, options2: any) => {
-        const rootId1 = options.rootId
-        const rootId2 = options2.rootId
-        let rootId = rootId1 || rootId2;
-        if (rootId1 && rootId2) {
-          rootId = rootId1 + '_' + rootId2
-        }
-        // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderModule(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
-      }
+      // 最终还是调render-wen提供的render函数，渲染toJSON
+      return render(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
     }
     if (!env.renderCom) {
       env.renderCom = (json: any, options2: any) => {
@@ -562,6 +572,18 @@ export function useMyBricksRenderContext () {
   return context
 }
 
+const ModuleContext = createContext<any>({})
+export function ModuleContextProvider ({ children, value }: any) {
+  return (
+    <ModuleContext.Provider value={value}>
+      {children}
+    </ModuleContext.Provider>
+  )
+}
+export function useModuleContext () {
+  return useContext(ModuleContext)
+}
+
 import { transformToJSON } from "../../utils/src"
 
 export { transformToJSON }
@@ -581,10 +603,11 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
   } else {
     let jsx = null
     if ("scenes" in json)  {
-      if (options._isNestedRender || options.debug) {
-        options.env = deepCopy(options.env)
-        // TODO：需不需要把runtime.debug删了，这里弹窗是这样判断是否在调试环境的
-      }
+      // TODO: 测试一下多场景的云组件
+      // if (options._isNestedRender || options.debug) {
+      //   options.env = deepCopy(options.env)
+      //   // TODO：需不需要把runtime.debug删了，这里弹窗是这样判断是否在调试环境的
+      // }
       // console.time("xxx")
       // transformToJSON(json);
       // console.timeEnd("xxx")
@@ -645,13 +668,28 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
       }) 
       return null
     }
+
+    if (options._isNestCom) {
+      // rendercom渲染，是个画布，需要将当前env透传
+      const env = deepCopy(options.env);
+      // env.
+      jsx = (
+        <ModuleContextProvider value={{env}}>
+          {jsx}
+        </ModuleContextProvider>
+      )
+    }
+    
     // 如果是嵌套渲染，不再重复嵌套Provider
     if (options._isNestedRender) {
+      // 嵌套渲染，直接return即可
       return jsx
     }
     return (
       <MyBricksRenderProvider value={new Context(options, json)}>
-        {jsx}
+        <ModuleContextProvider value={{env: options.env}}>
+          {jsx}
+        </ModuleContextProvider>
       </MyBricksRenderProvider>
     )
   }

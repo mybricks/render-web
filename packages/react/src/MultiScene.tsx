@@ -6,7 +6,7 @@ import React, {
 } from 'react'
 
 import Main from './Main'
-import { useMyBricksRenderContext } from '.'
+import { useModuleContext, useMyBricksRenderContext } from '.'
 import executor from '../../core/executor'
 
 import lazyCss from './MultiScene.lazy.less'
@@ -69,12 +69,14 @@ const css = lazyCss.locals
 
 export default function MultiScene ({json, options}) {
   const _context = useMyBricksRenderContext()
+  const _moduleContext = useModuleContext()
   const [count, setCount] = useState(0)
   const [popupIds, setPopupIds] = useState<any>([])
   const [pageScenes, setPageScenes] = useState<any>([])
 
   const {scenesMap, scenesOperateInputsTodo, globalVarMap, debugHistory, env} = useMemo(() => {
-    const { sceneId, env, disableAutoRun, globalVariable } = options;
+    const { sceneId, disableAutoRun, globalVariable } = options;
+    const { env } = _moduleContext;
     if (sceneId) {
       const index = json.scenes.findIndex((scenes) => scenes.id === sceneId)
       if (index !== -1) {

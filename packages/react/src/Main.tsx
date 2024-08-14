@@ -9,7 +9,7 @@
 
 import React, { useMemo, useLayoutEffect } from 'react';
 
-import { useMyBricksRenderContext } from './index'
+import { useModuleContext, useMyBricksRenderContext } from './index'
 import executor from '../../core/executor'
 import RenderSlot from './RenderSlot';
 import Notification from './Notification';
@@ -30,9 +30,11 @@ interface Props {
 
 export default function Main({json, options, style = {}, className = '', root = true, from}: Props) {
   const _context = useMyBricksRenderContext()
+  const _moduleContext = useModuleContext();
   
   const { env, onError, logger, slot, getComDef } = useMemo(() => {
-    const { env, debug } = options
+    const { debug } = options
+    const { env } = _moduleContext;
     const slot = json.slot
     if (!env.canvas.isValid && !options._isNestedRender && debug && from === 'scene' && slot && slot.type !== "module" && slot.showType !== "module") {
       /**
