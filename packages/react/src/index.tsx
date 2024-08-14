@@ -494,13 +494,13 @@ class Stylization {
           selector.forEach((selector) => {
             innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
             if (rootId && global) {
-              innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw, prefix})
+              innerText = innerText + getStyleInnerText({id: id.replace(new RegExp(`${rootId}_`), ""), css, selector, global, configPxToRem, handlePxToVw, prefix})
             }
           })
         } else {
           innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
           if (rootId && global) {
-            innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw, prefix})
+            innerText = innerText + getStyleInnerText({id: id.replace(new RegExp(`${rootId}_`), ""), css, selector, global, configPxToRem, handlePxToVw, prefix})
           }
         }
       })
