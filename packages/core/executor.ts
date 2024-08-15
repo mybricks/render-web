@@ -264,6 +264,22 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     let inReg = pInReg
 
     if (proxyDesc) {
+      if (proxyDesc.type === "myFrame") {
+        const slotProps = _Props[`${pInReg.comId}-${proxyDesc.frameId}`]
+        if (slotProps) {
+          const entries = Object.entries(slotProps);
+          const filterSlot = entries.length > 1;
+  
+          Object.entries(slotProps).forEach(([key, slotProps]) => {
+            if (key === "slot" && filterSlot) {
+              return
+            }
+            slotProps.inputs[proxyDesc.pinId](val)
+          })
+        }
+
+        return
+      }
       const isFrameOutput = inReg.def?.namespace === 'mybricks.core-comlib.frame-output'
       if (isFrameOutput) {
         inReg = {
