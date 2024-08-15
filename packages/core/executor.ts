@@ -175,6 +175,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
    */
   const _scopeIdToComInFrameIdMap = {};
 
+   /** 作用域插槽的输入 */
+   const _scopeInputTodoMap = {};
+
   // window._getScopeIdToComInFrameIdMap = () => _scopeIdToComInFrameIdMap;
 
   //  window._hello = () => {
@@ -265,17 +268,28 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     if (proxyDesc) {
       if (proxyDesc.type === "myFrame") {
-        const slotProps = _Props[`${pInReg.comId}-${proxyDesc.frameId}`]
-        if (slotProps) {
-          const entries = Object.entries(slotProps);
-          const filterSlot = entries.length > 1;
-  
-          Object.entries(slotProps).forEach(([key, slotProps]) => {
-            if (key === "slot" && filterSlot) {
-              return
+        const slotPropsMap = _Props[`${pInReg.comId}-${proxyDesc.frameId}`]
+        if (slotPropsMap) {
+          const entries = Object.entries(slotPropsMap);
+          if (entries.length === 1) {
+            const slotProps = entries[0][1]
+            if (slotProps.curScope) {
+              slotProps.inputs[proxyDesc.pinId](val)
+            } else {
+              _scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = {
+                pinId: proxyDesc.pinId,
+                value: val
+              };
             }
-            slotProps.inputs[proxyDesc.pinId](val)
-          })
+          } else {
+            const filterSlot = entries.length > 1;
+            Object.entries(slotPropsMap).forEach(([key, slotProps]) => {
+              if (key === "slot" && filterSlot) {
+                return
+              }
+              slotProps.inputs[proxyDesc.pinId](val)
+            })
+          }
         }
 
         return
@@ -1529,11 +1543,19 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
       rtn = frameProps[key] = {
         type: slotDef?.type,
-        run(newScope) {
+        run(newScope, scopeTodo) {
           let scope = Cur.scope
           if (newScope && scope !== newScope) {
             Cur.scope = newScope
             scope = newScope
+          }
+          if (scopeTodo) {
+            const todo = _scopeInputTodoMap[`${comId}-${scope.frameId}`]
+            if (todo) {
+              const { pinId, value } = todo
+              rtn.inputs[pinId](value)
+            }
+            return
           }
           // Cur.scope = scope//更新当前scope
 
@@ -1621,6 +1643,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                 Reflect.deleteProperty(_var, `${key}-${scope.id}`)
               })
             }
+
+            Reflect.deleteProperty(_scopeInputTodoMap, `${comId}-${scope.frameId}`)
           }
 
           _slotValueKeys.forEach((_slotValueKey: string) => {
