@@ -66,6 +66,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     _isNestCom,
     _context,
     _getComProps,
+    _getSlotValue,
+    _frameId,
     rootId,
   } = opts
 
@@ -119,9 +121,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   const _Env = env
 
   const _Props: any = {}
-  if (!window._getProps) {
-    window._getProps = () => _Props
-  }
+  // if (!window._getProps) {
+  //   window._getProps = () => _Props
+  // }
 
   const _frameOutputProxy: any = {}
 
@@ -152,6 +154,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
   // 当前输入项
   const _slotValue: any = {}
+  // if (!window._slotValue) {
+  //   window._slotValue = () => _slotValue
+  // }
   
   const _variableRelationship: any = {}
 
@@ -316,6 +321,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                   return res;
                   // return getComProps(comId, nextScope)
                 },
+                _getSlotValue(slotValueKey) {
+                  return getSlotValue(slotValueKey, nextScope)
+                },
+                _frameId: frameId,
                 ref: (refs) => {
                   const comInfo = refs.getComInfo(inReg.comId)
                   const { configs } = comInfo.model.data;
@@ -1239,7 +1248,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           if (jsCom.global) {
             const globalProps = scenesOperate?.getGlobalComProps(comId)
             if (globalProps) {
-              props.data = globalProps.data
+              props.data.val = globalProps.data.val
             }
           }
           const scopeId = scope?.id
@@ -1285,9 +1294,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                     if (pinValueProxy) {
                       const frameId = pinValueProxy.frameId
                       const slotValueKey = `${frameId === json.id ? ROOT_FRAME_KEY : (targetFrameKey || frameKey)}-${pinValueProxy.pinId}`
-                      val = getSlotValue(slotValueKey, scope)
+                      const gsv = (frameId === _frameId ? getSlotValue : (_getSlotValue || getSlotValue))
+                      val = gsv(slotValueKey, scope)
                       if (typeof val === 'undefined') {
-                        val = getSlotValue(slotValueKey, null)
+                        val = gsv(slotValueKey, null)
                       }
                     }
                   }
