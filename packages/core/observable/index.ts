@@ -367,7 +367,13 @@ export function observable<T extends object & {_ob: string}>(obj: T): T {
   if (obj._ob) {
     return obj
   } else {
-    obj._ob = `_ob${++obId}_`;
+    // obj._ob = `_ob${++obId}_`;
+    Object.defineProperty(obj, '_ob', {
+      value: `_ob${++obId}_`,
+      enumerable: false, // 不允许枚举
+      writable: false, // 不允许修改
+      configurable: false // 不允许配置
+    });
     return new Proxy(obj, handler);
   }
 }
