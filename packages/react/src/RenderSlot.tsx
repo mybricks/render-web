@@ -161,7 +161,8 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
   if (comDef) {
     const props = context.get({comId: id, dynamicId, scope: scope ? {
       ...scope,
-      id: dynamicId ? scope.id + '-' + dynamicId : scope.id
+      id: dynamicId ? scope.id + '-' + dynamicId : scope.id,
+      dynamicId,
     } : null, _ioProxy: {
       inputs, outputs, _inputs, _outputs
     }})
@@ -321,7 +322,8 @@ function RenderCom({
             id: scope.id + '-' + scope.frameId + `${dynamicId ? '-' + dynamicId : ''}`,
             frameId: slotId,
             parentComId: id,
-            parent: scope
+            parent: scope,
+            dynamicId
           }
         }
       // }

@@ -782,13 +782,19 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       curScope = _Props[`${com.parentComId}-${com.frameId}`]?.slot?.curScope
     }
 
+    let dynamicId;
+
     while (curScope) {
+      if (curScope.dynamicId) {
+        dynamicId = curScope.dynamicId
+      }
+      
       const key = curScope.id + '-' + comId
 
       if (curScope.frameId === com.frameId) {
         storeScopeId = curScope.id
 
-        const found = frameProps[key]
+        const found = dynamicId ? frameProps[`${storeScopeId}-${dynamicId}-${comId}`] : frameProps[key]
         if (found) {
           return found
         } else {
