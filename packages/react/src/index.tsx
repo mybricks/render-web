@@ -7,7 +7,8 @@
  * mybricks@126.com
  */
 
-import React, { useEffect, useContext, createContext } from "react";
+import React, { useEffect, useContext, createContext, useRef, useLayoutEffect } from "react";
+import ReactDOM from "react-dom";
 
 import Main from "./Main";
 import pkg from "../package.json";
@@ -672,9 +673,13 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     if (options._isNestCom) {
       // rendercom渲染，是个画布，需要将当前env透传
       const env = deepCopy(options.env);
-      // env.
+      let modules;
+      const jsonModules = json.modules
+      if (jsonModules) {
+        modules = new Modules(jsonModules)
+      }
       jsx = (
-        <ModuleContextProvider value={{env}}>
+        <ModuleContextProvider value={{env, modules}}>
           {jsx}
         </ModuleContextProvider>
       )
@@ -685,13 +690,64 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
       // 嵌套渲染，直接return即可
       return jsx
     }
+    let modules;
+    const jsonModules = json.modules
+    if (jsonModules) {
+      modules = new Modules(jsonModules)
+    }
     return (
       <MyBricksRenderProvider value={new Context(options, json)}>
-        <ModuleContextProvider value={{env: options.env}}>
+        <ModuleContextProvider value={{env: options.env, modules}}>
           {jsx}
         </ModuleContextProvider>
       </MyBricksRenderProvider>
     )
+  }
+}
+
+class Modules {
+  private _isReact18 = !!ReactDOM.createRoot
+  private _renderMap: any = {};
+  constructor(private _jsons: any) {}
+
+  get(moduleId: string) {
+    const { _renderMap, _jsons, _isReact18 } = this;
+    return {
+      render() {
+        const _conetxt = useMyBricksRenderContext();
+        const _moduleContext = useModuleContext();
+        const divRef = useRef<any>();
+
+        useLayoutEffect(() => {
+          const dom = _renderMap[moduleId];
+          if (dom) {
+            divRef.current.appendChild(dom);
+          } else {
+            const dom = document.createElement("div");
+            const moduleJson = _jsons[moduleId].json;
+            const module = (
+              <MyBricksRenderProvider value={_conetxt}>
+                <ModuleContextProvider value={_moduleContext}>
+                  {_moduleContext.env.renderModule(moduleJson, {})}
+                </ModuleContextProvider>
+              </MyBricksRenderProvider>
+            )
+
+            if (_isReact18) {
+              // @ts-ignore
+              const root = ReactDOM.createRoot(dom);
+              root.render(module);
+            } else {
+              ReactDOM.render(module, dom)
+            }
+            _renderMap[moduleId] = dom;
+            divRef.current.appendChild(dom);
+          }
+        }, [])
+
+        return <div ref={divRef}/>
+      }
+    }
   }
 }
 

@@ -10,7 +10,7 @@
 import React, { useEffect, useMemo, useRef, useLayoutEffect, useState } from "react";
 
 import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen, getStylesheetMountNode} from "../../core/utils";
-
+import { useModuleContext } from './index'
 import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
 
@@ -237,6 +237,7 @@ function RenderCom({
                      children,
                      options
                    }) {
+  const _moduleContext = useModuleContext();
   const {id, def, name, slots = {}, dynamicId}: Com = com
   const {
     data,
@@ -456,6 +457,7 @@ function RenderCom({
     _onError_={(e) => {
       throw new Error(e)
     }}
+    modules={_moduleContext.modules}
   />
 
   useLayoutEffect(() => {
@@ -669,6 +671,12 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
     marginBottom,
     overflowX,
     overflowY,
+    height,
+    heightAuto,
+    heightFull,
+    width,
+    widthAuto,
+    widthFull,
     ...otherStyle
   } = style;
   let slotStyle = {
@@ -734,9 +742,9 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
   // 这里还需要根据是否在智能布局环境下
   if (isModule) {
     // slotStyle.transform = 'scale(1)';
-    if (style.heightAuto) {
+    if (heightAuto) {
       slotStyle.height = "fit-content"
-    } else if (style.heightFull) {
+    } else if (heightFull) {
       // if (isEdit) {
       //   slotStyle.height = style.height
       // } else {
@@ -744,12 +752,12 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
       // }
       slotStyle.height = "100%"
     } else {
-      slotStyle.height = style.height
+      slotStyle.height = height
     }
 
-    if (style.widthAuto) {
+    if (widthAuto) {
       slotStyle.width = "fit-content"
-    } else if (style.widthFull) {
+    } else if (widthFull) {
       slotStyle.width = "100%"
       // if (isEdit) {
       //   slotStyle.width = style.width
@@ -757,7 +765,7 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
       //   slotStyle.width = "100%"
       // }
     } else {
-      slotStyle.width = style.width
+      slotStyle.width = width
     }
   }
 
