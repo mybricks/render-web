@@ -1632,7 +1632,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               if (comInFrameIdMap) {
                 Object.entries(comInFrameIdMap).forEach(([key, value]) => {
                   Reflect.deleteProperty(_exedJSCom, value)
-                  if (!_Props[key][value].setSlotValue) {
+                  if (_Props[key][value] && !_Props[key][value].setSlotValue) {
                     _Props[key][value].destroy();
                   }
                   Reflect.deleteProperty(_Props[key], value);
