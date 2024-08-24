@@ -703,6 +703,12 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     if (jsonModules) {
       modules = new Modules(jsonModules)
     }
+    
+    if (!("scenes" in json) && json.type === "module") {
+      // 非多场景的module，说明是引擎搭建态的模块，把edit设置为null
+      options.env.edit = null;
+    }
+
     return (
       <MyBricksRenderProvider value={new Context(options, json)}>
         <ModuleContextProvider value={{env: options.env, modules}}>
