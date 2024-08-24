@@ -148,7 +148,7 @@ export default function MultiScene ({json, options}) {
       if (!scenes) {
         if (typeof options.scenesLoader !== 'function') {
           if (env.history) {
-            env.history.go(sceneId);
+            env.history.go(sceneId, params);
           } else {
             console.error(`缺少场景信息: ${sceneId}`)
           }
@@ -518,15 +518,32 @@ export default function MultiScene ({json, options}) {
           Promise.resolve().then(() => {
             const todo = []
             scenes.json.inputs?.forEach?.((input) => {
-              const { id, mockData } = input
+              const { id, mockData, type, extValues } = input
+              console.log("input: ", input)
+              console.log("mockData: ", mockData)
               let value = void 0
-              if (options.debug && typeof mockData !== 'undefined') {
-                try {
-                  value = JSON.parse(decodeURIComponent(mockData))
-                } catch {
-                  value = mockData
+              if (options.debug) {
+                if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
+                  try {
+                    value = JSON.parse(decodeURIComponent(extValues.config.defaultValue))
+                  } catch {
+                    value = extValues.config.defaultValue
+                  }
+                } else {
+                  try {
+                    value = JSON.parse(decodeURIComponent(mockData))
+                  } catch {
+                    value = mockData
+                  }
                 }
               }
+              // if (options.debug && typeof mockData !== 'undefined') {
+              //   try {
+              //     value = JSON.parse(decodeURIComponent(mockData))
+              //   } catch {
+              //     value = mockData
+              //   }
+              // }
               // 记录历史todo
               todo.push({
                 type: "inputs",

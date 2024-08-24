@@ -641,13 +641,21 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
             const jsonInputs = (json as ToJSON).inputs
             if (inputs && Array.isArray(jsonInputs)) {
               jsonInputs.forEach((input) => {
-                const { id, mockData } = input
+                const { id, mockData, type, extValues } = input
                 let value = void 0
-                if (options.debug && typeof mockData !== 'undefined') {
-                  try {
-                    value = JSON.parse(decodeURIComponent(mockData))
-                  } catch {
-                    value = mockData
+                if (options.debug) {
+                  if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
+                    try {
+                      value = JSON.parse(decodeURIComponent(extValues.config.defaultValue))
+                    } catch {
+                      value = extValues.config.defaultValue
+                    }
+                  } else {
+                    try {
+                      value = JSON.parse(decodeURIComponent(mockData))
+                    } catch {
+                      value = mockData
+                    }
                   }
                 }
                 inputs[id](value)
