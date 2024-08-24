@@ -519,8 +519,6 @@ export default function MultiScene ({json, options}) {
             const todo = []
             scenes.json.inputs?.forEach?.((input) => {
               const { id, mockData, type, extValues } = input
-              console.log("input: ", input)
-              console.log("mockData: ", mockData)
               let value = void 0
               if (options.debug) {
                 if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
@@ -537,13 +535,6 @@ export default function MultiScene ({json, options}) {
                   }
                 }
               }
-              // if (options.debug && typeof mockData !== 'undefined') {
-              //   try {
-              //     value = JSON.parse(decodeURIComponent(mockData))
-              //   } catch {
-              //     value = mockData
-              //   }
-              // }
               // 记录历史todo
               todo.push({
                 type: "inputs",
