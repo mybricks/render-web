@@ -12,6 +12,10 @@ import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
+const generateMissingComponentMessage = (def: any) => {
+  return `未找到组件(${def.namespace}@${def.version})定义`
+}
+
 interface ExecutorProps {
   /** MyBricks引擎产出的tojson */
   json: any;
@@ -36,7 +40,7 @@ interface ExecutorProps {
     /** 组件基础信息 */
     getComInfo: any;
   }) => void;
-  onError?: (error: Error) => void;
+  onError?: (error: Error | string) => void;
   logger?: typeof console;
 }
 
@@ -1008,7 +1012,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             }
 
             const comDef = getComDef(def)
-            if (!comDef) return
+            if (!comDef) {
+              onError(generateMissingComponentMessage(def))
+              return
+            }
 
             const evts = model.outputEvents
             let cons
@@ -1232,12 +1239,18 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       }
 
       const comDef = getComDef(def)
-      if (!comDef) return
+      if (!comDef) {
+        onError(generateMissingComponentMessage(def))
+        return
+      }
       _logInputVal({com: props, val, pinHostId: pinId, frameKey, finishPinParentKey, comDef, conId: inReg.id})
     } else if (pinType === 'config') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
-      if (!comDef) return
+      if (!comDef) {
+        onError(generateMissingComponentMessage(def))
+        return
+      }
       //logInputVal(props.title, comDef, pinId, val);
       _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
@@ -1260,7 +1273,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     } else if (pinType === 'timer') {
       const props = getComProps(comId, scope);
       const comDef = getComDef(def);
-      if (!comDef) return
+      if (!comDef) {
+        onError(generateMissingComponentMessage(def))
+        return
+      }
       _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
       const timerKey = timerPinInputId + '-' + frameKey + (scope?.id ? `-${scope.id}` : '')
       const timerWaitInfo = _timerPinWait[timerKey]
@@ -1280,7 +1296,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         if (jsCom) {
           const props = getComProps(comId, scope)
           const comDef = getComDef(def)
-          if (!comDef) return
+          if (!comDef) {
+            onError(generateMissingComponentMessage(def))
+            return
+          }
           if (jsCom.global) {
             const globalProps = scenesOperate?.getGlobalComProps(comId)
             if (globalProps) {
@@ -1359,7 +1378,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           return
         }
         const comDef = getComDef(def)
-        if (!comDef) return
+        if (!comDef) {
+          onError(generateMissingComponentMessage(def))
+          return
+        }
         _logInputVal({com: props, pinHostId: pinId, val, frameKey, finishPinParentKey, comDef, conId: inReg.id})
 
 
@@ -1715,7 +1737,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         if (jsCom) {
           const props = getComProps(id, scope)
           const comDef = getComDef(def)
-          if (!comDef) return
+          if (!comDef) {
+            onError(generateMissingComponentMessage(def))
+            return
+          }
 
           comDef.runtime({
             env: _Env,
