@@ -1,5 +1,14 @@
 import { Style } from "./css";
 
+export interface Def {
+  /** 唯一命名空间 */
+  namespace: string;
+  /** 版本号 */
+  version: string;
+  /** 类型 - 没有rtType的是ui组件 */
+  rtType?: "js" | "js-autorun"
+}
+
 /** 组件模型样式信息 */
 export interface ComponentStyle extends Style {
   /** 风格化配置样式 */
@@ -232,14 +241,7 @@ export interface Component {
   /** 组件唯一ID，由MyBricks引擎搭建时管控 */
   id: string;
   /** 基础信息 */
-  def: {
-    /** 唯一命名空间 */
-    namespace: string;
-    /** 版本号 */
-    version: string;
-    /** 类型 - 没有rtType的是ui组件 */
-    rtType?: "js" | "js-autorun"
-  }
+  def: Def;
   /** 组件名称 */
   title: string;
   /** 模型 */
@@ -302,11 +304,7 @@ export interface NextCon {
   /** 作用域key */
   frameKey?: string;
 
-  def: {
-    namespace: string;
-     /** 类型 - 没有rtType的是ui组件 */
-     rtType?: "js" | "js-autorun"
-  }
+  def: Def;
 
   type: "com" | "frame";
 }
@@ -413,12 +411,7 @@ export interface ComponentNode {
   /** 复制相关，保证不同ID，有相同的name（解决搭建时style风格化相关问题） */
   name: string;
   /** 组件基础信息 */
-  def: {
-    /** 命名空间 */
-    namespace: string;
-    /** 版本号 */
-    version: string;
-  }
+  def: Def;
   /** 插槽 id => Slot，不一定有 */
   slots?: Slots
 }
