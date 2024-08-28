@@ -1829,6 +1829,41 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             if (Object.prototype.toString.call(pinId) === '[object Symbol]') {
               return
             }
+
+            // 解决云组件、模块等relOutputs问题
+            if (json.inputs?.length) {
+              const [relPinId, count] = pinId.split("&execute&");
+              if (count) {
+                const rels = PinRels[`${ROOT_FRAME_KEY}-${relPinId}`];
+                if (rels) {
+                  const nextScope = null;
+                  executor({
+                    ...opts,
+                    _getComProps(comId) {
+                      const res = getComProps(comId, nextScope);
+                      return res;
+                    },
+                    _getSlotValue(slotValueKey) {
+                      return getSlotValue(slotValueKey, nextScope)
+                    },
+                    _frameId: frameId,
+                    ref: (refs) => {
+                      const { inputs, outputs } = refs;
+                      rels.forEach((outputId) => {
+                        outputs(outputId, (...args) => {
+                          const id = `${outputId}&execute&${count}`;
+                          _frameOutput[id](...args)
+                          Reflect.deleteProperty(_frameOutput, id);
+                        })
+                      })
+                      inputs[relPinId](val)
+                    }
+                  }, config)
+                  return;
+                }
+              }
+            }
+
             exeInputForFrame({ options: {frameId, pinId,sceneId }, value: val, scope, log })
           }
         }
