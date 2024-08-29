@@ -708,7 +708,8 @@ function traverseElementsToSlotComAry(comAry: ResultElement[], coms: Coms, comId
 
     // 删除用于计算的具体宽高值
     if (coms[id]) {
-      Reflect.deleteProperty(coms[id], "style")
+      // TODO: 兼容错误
+      // Reflect.deleteProperty(coms[id], "style")
     }
   })
 
