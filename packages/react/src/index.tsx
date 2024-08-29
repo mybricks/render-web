@@ -296,7 +296,9 @@ class Context {
     // TODO: 通过options传入，而非env
     if (!!env.silent) {
       // 调试模式下有debugger，所以无论silent设置，都没有影响
-      setLoggerSilent();
+      if (!localStorage.getItem("MYBRICKS_LOG")) {
+        setLoggerSilent();
+      }
     }
     // 是否显示错误通知
     // TODO: 通过options传入，而非env
