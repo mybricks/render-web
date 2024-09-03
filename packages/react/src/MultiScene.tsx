@@ -148,7 +148,7 @@ export default function MultiScene ({json, options}) {
       if (!scenes) {
         if (typeof options.scenesLoader !== 'function') {
           if (env.history) {
-            env.history.go(sceneId, params);
+            env.history.go(sceneId, params, openType);
           } else {
             console.error(`缺少场景信息: ${sceneId}`)
           }
