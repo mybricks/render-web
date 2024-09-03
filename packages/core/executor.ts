@@ -72,6 +72,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     _getComProps,
     _getSlotValue,
     _frameId,
+    _parentFrameOutput,
     rootId,
   } = opts
 
@@ -359,6 +360,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                   return getSlotValue(slotValueKey, nextScope)
                 },
                 _frameId: frameId,
+                _parentFrameOutput: _parentFrameOutput || _frameOutput,
                 ref: (refs) => {
                   const comInfo = refs.getComInfo(inReg.comId)
                   const { configs } = comInfo.model.data;
@@ -447,6 +449,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           const proxyFn = _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.id ? (nextScope.id + '-') : '') + inReg.pinId] || _frameOutputProxy[inReg.comId + '-' + inReg.frameId + '-' + (nextScope?.parent?.id ? (nextScope.parent.id + '-') : '') + inReg.pinId] || _frameOutputProxy[inReg.frameKey + '-' + inReg.pinId]
           if (proxyFn) {
             proxyFn(val)
+          } else {
+            _frameOutput[inReg.pinId]?.(val)
           }
         } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
           const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
@@ -465,7 +469,11 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           }
         }
 
-        _frameOutput[inReg.pinId]?.(val)
+        if (_parentFrameOutput) {
+          _parentFrameOutput[inReg.pinId]?.(val)
+        } else {
+          _frameOutput[inReg.pinId]?.(val)
+        }
       }
     } else {
       throw new Error(`尚未实现`)
