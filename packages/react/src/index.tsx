@@ -413,20 +413,20 @@ class Stylization {
   /** 唯一标识 */
   rootId: any;
   /** ID到style标签的映射 */
-  styleMap: any = {};
+  // styleMap: any = {};
 
   /** 组件默认样式，仅触发一次 */
-  comMap: any = {};
+  // comMap: any = {};
 
   constructor({ rootId, root, options, onCompleteCallBacks }: any) {
     this.root = root;
     this.rootId = rootId
     this.options = options
-    const { styleMap } = this;
+    const { _cssMap } = this;
 
     let destory = () => {
-      Object.entries(styleMap).forEach(([_, style]) => {
-        root.removeChild(style);
+      Object.entries(_cssMap).forEach(([_, style]) => {
+        root.removeChild(style.tag);
       })
     }
 
@@ -434,42 +434,144 @@ class Stylization {
   }
 
   /** 是否添加过默认样式 */
-  hasComId(id: any) {
-    return this.comMap[id];
-  }
+  // hasComId(id: any) {
+  //   return this.comMap[id];
+  // }
 
   /** 设置添加过的comId */
-  setComId(id: any) {
-    this.comMap[id] = true;
-  }
+  // setComId(id: any) {
+  //   this.comMap[id] = true;
+  // }
   
-  /** 添加style标签 */
-  add(id: any, style: any) {
-    this.styleMap[id] = style;
+  // /** 添加style标签 */
+  // add(id: any, style: any) {
+  //   this.styleMap[id] = style;
+  // }
+
+  // /** 获取style标签 */
+  // get(id: any) {
+  //   return this.styleMap[id];
+  // }
+
+  // /** 删除style标签 */
+  // delete(id: any) {
+  //   const { styleMap } = this;
+  //   const style = styleMap[id];
+  //   this.root.removeChild(style);
+  //   Reflect.deleteProperty(styleMap, id);
+  // }
+
+  // /** 更新style标签 */
+  // update(id: any, innerHTML: any) {
+  //   const style = this.styleMap[id];
+  //   style.innerHTML = innerHTML;
+  // }
+
+  // /** 设置样式 */
+  // setStyle2(id: any, sa: any) {
+  //   let styleAry: any = [];
+
+  //   // TODO: 处理global
+  //   // const obj = {
+  //   //   ":global.button": {
+  //   //     "backgroundColor": "pink",
+  //   //     "borderTopColor": "rgba(114,46,209,1)",
+  //   //     "borderRightColor": "rgba(114,46,209,1)",
+  //   //     "borderBottomColor": "rgba(114,46,209,1)",
+  //   //     "borderLeftColor": "rgba(114,46,209,1)"
+  //   //   },
+  //   // }
+
+  //   if (Array.isArray(sa)) {
+  //     styleAry = sa;
+  //   } else {
+  //     Object.entries(sa).forEach(([selector, css]) => {
+  //       styleAry.push({
+  //         selector,
+  //         css
+  //       })
+  //     })
+  //   }
+
+  //   if (styleAry.length) {
+  //     const { rootId, root, options } = this;
+  //     const { env, handlePxToVw, debug } = options
+  //     const { pxToRem: configPxToRem } = env
+  //     const prefix = debug ? "#_geoview-wrapper_ ": ""
+  //     let innerText = ''
+  //     styleAry.forEach(({css, selector, global}: any) => {
+  //       if (selector === ':root') {
+  //         selector = '> *:first-child'
+  //       }
+  //       if (Array.isArray(selector)) {
+  //         selector.forEach((selector) => {
+  //           innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
+  //           if (rootId && global) {
+  //             innerText = innerText + getStyleInnerText({id: id.replace(new RegExp(`${rootId}_`), ""), css, selector, global, configPxToRem, handlePxToVw, prefix})
+  //           }
+  //         })
+  //       } else {
+  //         innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
+  //         if (rootId && global) {
+  //           innerText = innerText + getStyleInnerText({id: id.replace(new RegExp(`${rootId}_`), ""), css, selector, global, configPxToRem, handlePxToVw, prefix})
+  //         }
+  //       }
+  //     })
+
+  //     let styleTag = this.get(id);
+
+  //     if (styleTag) {
+  //       styleTag.innerHTML = innerText
+  //     } else {
+  //       styleTag = document.createElement('style')
+  //       // styleTag.id = id
+  //       styleTag.innerHTML = innerText
+  //       if (root) {
+  //         root.appendChild(styleTag)
+  //       } else {
+  //         document.head.appendChild(styleTag)
+  //       }
+  //       this.add(id, styleTag)
+  //     }
+  //   }
+  // }
+
+
+
+
+  /** 查找是否添加过组件的默认风格化配置 */
+  private _defaultStyleMap: Record<string, boolean> = {}
+
+  /** 判断是否添加过默认风格化配置 */
+  hasDefaultStyle(id: string) {
+    return this._defaultStyleMap[id];
   }
 
-  /** 获取style标签 */
-  get(id: any) {
-    return this.styleMap[id];
+  /** 标记组件ID已经添加过风格化配置 */
+  setDefaultStyle(id: string) {
+    this._defaultStyleMap[id] = true;
   }
 
-  /** 删除style标签 */
-  delete(id: any) {
-    const { styleMap } = this;
-    const style = styleMap[id];
-    this.root.removeChild(style);
-    Reflect.deleteProperty(styleMap, id);
-  }
-
-  /** 更新style标签 */
-  update(id: any, innerHTML: any) {
-    const style = this.styleMap[id];
-    style.innerHTML = innerHTML;
-  }
-
+  /** 
+   * styleId到样式信息的映射
+   * @example
+   * const _cssMap = {
+   *  styleId: {
+   *    tag: <style />,
+   *    css: {
+   *      "selector": {
+   *        "background-color": "red"
+   *      },
+   *      ...
+   *    }
+   *  }
+   * }
+   */
+  private _cssMap: Record<string, Record<string, Record<string, any>>> = {}
+  
   /** 设置样式 */
-  setStyle(id: any, sa: any) {
-    let styleAry: any = [];
+  setStyle(id: string, style: any) {
+    let styleAry = [] as {css: string, selector: string, global?: boolean }[];
 
     // TODO: 处理global
     // const obj = {
@@ -482,10 +584,10 @@ class Stylization {
     //   },
     // }
 
-    if (Array.isArray(sa)) {
-      styleAry = sa;
+    if (Array.isArray(style)) {
+      styleAry = style;
     } else {
-      Object.entries(sa).forEach(([selector, css]) => {
+      Object.entries(style).forEach(([selector, css]: any) => {
         styleAry.push({
           selector,
           css
@@ -498,59 +600,104 @@ class Stylization {
       const { env, handlePxToVw, debug } = options
       const { pxToRem: configPxToRem } = env
       const prefix = debug ? "#_geoview-wrapper_ ": ""
-      let innerText = ''
-      styleAry.forEach(({css, selector, global}: any) => {
+
+      const styleMap: any = {};
+      styleAry.forEach(({css, selector, global}) => {
         if (selector === ':root') {
           selector = '> *:first-child'
         }
-        if (Array.isArray(selector)) {
-          selector.forEach((selector) => {
-            innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
-            if (rootId && global) {
-              innerText = innerText + getStyleInnerText({id: id.replace(new RegExp(`${rootId}_`), ""), css, selector, global, configPxToRem, handlePxToVw, prefix})
+        (Array.isArray(selector) ? selector : [selector]).forEach((selector) => {
+          let cssSelector = (rootId && global) ? id.replace(new RegExp(`${rootId}_`), "") : (rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id);
+          cssSelector = `${prefix}${global ? '' : `#${cssSelector} `}${selector.replace(/\{id\}/g, `${cssSelector}`)}`;
+          const style: Record<string, any> = {};
+          Object.entries(css).forEach(([key, value]) => {
+            if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+              value = pxToRem(value)
+            } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+              value = handlePxToVw(value)
             }
+            style[convertCamelToHyphen(key)] = value
           })
-        } else {
-          innerText = innerText + getStyleInnerText({id: rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id, css, selector, global, configPxToRem, handlePxToVw, prefix})
-          if (rootId && global) {
-            innerText = innerText + getStyleInnerText({id: id.replace(new RegExp(`${rootId}_`), ""), css, selector, global, configPxToRem, handlePxToVw, prefix})
-          }
-        }
+          styleMap[cssSelector] = style;
+
+
+
+          // function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw, prefix}: any) {
+          //   return `${prefix}${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+          //       ${Object.keys(css).map(key => {
+          //         let value = css[key]
+          //         if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+          //           value = pxToRem(value)
+          //         } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+          //           value = handlePxToVw(value)
+          //         }
+          //         return `${convertCamelToHyphen(key)}: ${value};`
+          //       }).join('\n')}
+          //     }
+          //   `;
+          // }
+
+
+
+
+        })
       })
 
-      let styleTag = this.get(id);
+      const _css = this._cssMap[id];
 
-      if (styleTag) {
-        styleTag.innerHTML = innerText
-      } else {
-        styleTag = document.createElement('style')
-        // styleTag.id = id
-        styleTag.innerHTML = innerText
-        if (root) {
-          root.appendChild(styleTag)
-        } else {
-          document.head.appendChild(styleTag)
+      if (!_css) {
+        const styleTag = document.createElement('style');
+        this._cssMap[id] = {
+          tag: styleTag,
+          css: styleMap
         }
-        this.add(id, styleTag)
+        root.appendChild(styleTag);
+
+        Object.entries(styleMap).forEach(([key, value]: any) => {
+          styleTag.sheet!.insertRule(`${key} {${Object.entries(value).map(([key, value]) => {
+            return `${key}: ${value};`
+          }).join("")}}`)
+        })
+      } else {
+        const { tag: styleTag, css } = _css;
+        const cssRulesMap: any = Array.from(styleTag.sheet.cssRules).reduce((p: any, c: any) => {
+          p[c.selectorText] = c;
+          return p;
+        }, {});
+        Object.entries(styleMap).forEach(([key, value]: any) => {
+          const cssRuleStyle = cssRulesMap[key]?.style;
+          if (cssRuleStyle) {
+            const style = css[key];
+            Object.entries(value).forEach(([key, value]) => {
+              style[key] = value;
+              cssRuleStyle[key] = value;
+            })
+          } else {
+            css[key] = value;
+            styleTag.sheet!.insertRule(`${key} {${Object.entries(value).map(([key, value]) => {
+              return `${key}: ${value};`
+            }).join("")}}`)
+          }
+        })
       }
     }
   }
 }
 
-function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw, prefix}: any) {
-  return `${prefix}${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
-      ${Object.keys(css).map(key => {
-        let value = css[key]
-        if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
-          value = pxToRem(value)
-        } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
-          value = handlePxToVw(value)
-        }
-        return `${convertCamelToHyphen(key)}: ${value};`
-      }).join('\n')}
-    }
-  `;
-}
+// function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw, prefix}: any) {
+//   return `${prefix}${global ? '' : `#${id} `}${selector.replace(/\{id\}/g, `${id}`)} {
+//       ${Object.keys(css).map(key => {
+//         let value = css[key]
+//         if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
+//           value = pxToRem(value)
+//         } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
+//           value = handlePxToVw(value)
+//         }
+//         return `${convertCamelToHyphen(key)}: ${value};`
+//       }).join('\n')}
+//     }
+//   `;
+// }
 
 const MyBricksRenderContext = createContext<any>({})
 

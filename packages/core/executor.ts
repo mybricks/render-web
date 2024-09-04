@@ -1210,7 +1210,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === "_setStyle") {
         const styleId = rootId ? `${rootId}_${comId}` : comId;
-        _context?.options?.stylization?.setComId(styleId)
+        // _context?.options?.stylization?.setComId(styleId)
         _context?.options?.stylization?.setStyle(styleId, val);
       } else {
         const sty = props.style

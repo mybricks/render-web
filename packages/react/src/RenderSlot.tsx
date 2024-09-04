@@ -256,10 +256,11 @@ function RenderCom({
     const { handlePxToVw, debug, disableStyleInjection, rootId, stylization } = options
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
     const styleId = rootId ? `${rootId}_${id}` : id;
-    if (!disableStyleInjection && !stylization.hasComId(styleId)) {
+    if (!disableStyleInjection && !stylization.hasDefaultStyle(styleId)) {
+      stylization.setDefaultStyle(styleId);
       // 非引擎环境 并且 没有插入过style
       // context.styleMap[id] = true
-      stylization.setComId(styleId);
+      // stylization.setComId(styleId);
       // const { pxToRem: configPxToRem } = env
       const styleAry = getStyleAry({ env, def, style })
 
