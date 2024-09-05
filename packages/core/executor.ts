@@ -72,7 +72,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     _getComProps,
     _getSlotValue,
     _frameId,
-    _parentFrameOutput,
+    // _parentFrameOutput,
     rootId,
   } = opts
 
@@ -360,7 +360,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                   return getSlotValue(slotValueKey, nextScope)
                 },
                 _frameId: frameId,
-                _parentFrameOutput: _parentFrameOutput || _frameOutput,
+                // _parentFrameOutput: _parentFrameOutput || _frameOutput,
                 ref: (refs) => {
                   const comInfo = refs.getComInfo(inReg.comId)
                   const { configs } = comInfo.model.data;
@@ -450,7 +450,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           if (proxyFn) {
             proxyFn(val)
           } else {
-            _frameOutput[inReg.pinId]?.(val)
+            // _frameOutput[inReg.pinId]?.(val)
+            console.log("未找到proxyFn: ", inReg)
           }
         } else if (inReg.direction === 'inner-output' && inReg.pinType === 'joint') {//joint
           const cons = Cons[inReg.comId + '-' + inReg.frameId + '-' + inReg.pinId]
@@ -469,11 +470,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           }
         }
 
-        if (_parentFrameOutput) {
-          _parentFrameOutput[inReg.pinId]?.(val)
-        } else {
-          _frameOutput[inReg.pinId]?.(val)
-        }
+        // if (_parentFrameOutput) {
+        //   _parentFrameOutput[inReg.pinId]?.(val)
+        // } else {
+        //   _frameOutput[inReg.pinId]?.(val)
+        // }
+        _frameOutput[inReg.pinId]?.(val)
       }
     } else {
       throw new Error(`尚未实现`)
