@@ -403,7 +403,7 @@ function RenderCom({
     }
   }, [])
 
-  const classes = getClasses({style, id})
+  const classes = getClasses({style, id, rootId})
   const sizeStyle = getSizeStyle({style})
   const marginStyle = getMarginStyle({style})
 
@@ -480,8 +480,8 @@ function RenderCom({
   // --- 2023.2.21 兼容小程序
   jsx = jsx ? (
     <div
-      // id={id}
-      id={rootId ? `${rootId}_${id}` : id}
+      id={id}
+      // id={rootId ? `${rootId}_${id}` : id}
       key={id}
       data-title={title}
       data-namespace={def.namespace}
@@ -831,8 +831,8 @@ function calSlotClasses(slotStyle) {
   return rtn.join(' ')
 }
 
-function getClasses({style, id}) {
-  const classes = [id, css.com]
+function getClasses({style, id, rootId}) {
+  const classes = [rootId ? `${rootId}_${id}` : id, css.com]
 
   // 临时兼容
   // style._new 说明是新数据结构，不再需要css.flex

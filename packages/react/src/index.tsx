@@ -608,7 +608,8 @@ class Stylization {
         }
         (Array.isArray(selector) ? selector : [selector]).forEach((selector) => {
           let cssSelector = (rootId && global) ? id.replace(new RegExp(`${rootId}_`), "") : (rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id);
-          cssSelector = `${prefix}${global ? '' : `#${cssSelector} `}${selector.replace(/\{id\}/g, `${cssSelector}`)}`;
+          // cssSelector = `${prefix}${global ? '' : `#${cssSelector} `}${selector.replace(/\{id\}/g, `${cssSelector}`)}`;
+          cssSelector = `${prefix}${global ? '' : `.${cssSelector} `}${selector.replace(/\{id\}/g, `${cssSelector}`)}`;
           const style: Record<string, any> = {};
           Object.entries(css).forEach(([key, value]) => {
             if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
