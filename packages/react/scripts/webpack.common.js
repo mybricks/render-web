@@ -9,7 +9,6 @@ const TerserPlugin = require("terser-webpack-plugin");
 
 module.exports = {
   // mode: 'production',
-  target: ['web', 'es5'],
   entry: './src/build.ts',
   output: {
     globalObject: 'this',
@@ -39,7 +38,7 @@ module.exports = {
               transpileOnly: true,
               compilerOptions: {
                 module: 'es6',
-                target: 'es5'
+                target: 'es6'
               }
             }
           }
