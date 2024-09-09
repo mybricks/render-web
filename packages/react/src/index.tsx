@@ -599,7 +599,7 @@ class Stylization {
       const { rootId, root, options } = this;
       const { env, handlePxToVw, debug } = options
       const { pxToRem: configPxToRem } = env
-      const prefix = debug ? "#_geoview-wrapper_ ": ""
+      const prefix = debug ? "#_geoview-wrapper_ ": "#_mybricks-render_ "
 
       const styleMap: any = {};
       styleAry.forEach(({css, selector, global}) => {
@@ -609,7 +609,7 @@ class Stylization {
         (Array.isArray(selector) ? selector : [selector]).forEach((selector) => {
           let cssSelector = (rootId && global) ? id.replace(new RegExp(`${rootId}_`), "") : (rootId ? (id.startsWith(rootId) ? id : `${rootId}_${id}`) : id);
           // cssSelector = `${prefix}${global ? '' : `#${cssSelector} `}${selector.replace(/\{id\}/g, `${cssSelector}`)}`;
-          cssSelector = `${prefix}${global ? '' : `.${cssSelector} `}${selector.replace(/\{id\}/g, `${cssSelector}`)}`;
+          cssSelector = `${debug ? prefix : (global ? "" : prefix)}${global ? '' : `.${cssSelector} `}${selector.replace(/\{id\}/g, `${cssSelector}`)}`;
           const style: Record<string, any> = {};
           Object.entries(css).forEach(([key, value]) => {
             if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
@@ -862,7 +862,9 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     return (
       <MyBricksRenderProvider value={new Context(options, json)}>
         <ModuleContextProvider value={{env: options.env, modules}}>
-          {jsx}
+          <div id="_mybricks-render_" style={{width: "100%", height: "100%"}}>
+            {jsx}
+          </div>
         </ModuleContextProvider>
       </MyBricksRenderProvider>
     )
