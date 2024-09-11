@@ -255,7 +255,7 @@ function RenderCom({
   useMemo(() => {
     const { handlePxToVw, debug, disableStyleInjection, rootId, stylization } = options
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
-    const styleId = rootId ? `${rootId}_${id}` : id;
+    const styleId = rootId ? `${rootId}-${id}` : id;
     if (!disableStyleInjection && !stylization.hasDefaultStyle(styleId)) {
       stylization.setDefaultStyle(styleId);
       // 非引擎环境 并且 没有插入过style
@@ -438,7 +438,7 @@ function RenderCom({
 
   let jsx = <Runtime
     id={dynamicId || id}
-    _id={rootId ? `${rootId}_${id}` : id}
+    _id={rootId ? `${rootId}-${id}` : id}
     env={env}
     _env={_env}
     data={data}
@@ -485,6 +485,7 @@ function RenderCom({
       key={id}
       data-title={title}
       data-namespace={def.namespace}
+      data-nested-id={rootId ? `${rootId}-${id}` : id}
       style={{
         display: style.display,
         visibility: style.visibility,
@@ -832,7 +833,7 @@ function calSlotClasses(slotStyle) {
 }
 
 function getClasses({style, id, rootId}) {
-  const classes = [rootId ? `${rootId}_${id}` : id, css.com]
+  const classes = [rootId ? `${rootId}-${id}` : id, css.com]
 
   // 临时兼容
   // style._new 说明是新数据结构，不再需要css.flex
