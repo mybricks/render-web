@@ -7,7 +7,7 @@ import React, {
 
 import Main from './Main'
 import { useModuleContext, useMyBricksRenderContext } from '.'
-import executor from '../../core/executor'
+import executor, { Var } from '../../core/executor'
 
 import lazyCss from './MultiScene.lazy.less'
 
@@ -411,7 +411,8 @@ export default function MultiScene ({json, options}) {
         //       globalCom.outputs[pinId](value, true, null, true)
         //     }
         // })
-      }
+      },
+      var: new Var()
     }
 
     env.scenesOperate = scenesOperate

@@ -202,6 +202,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   //   }
   //  }
 
+  /** 变量绑定 */
+  const _varBinding = new Var();
+
   function _logOutputVal(type: 'com' | 'frame',
                          content:
                            {
@@ -1127,32 +1130,43 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     function _notifyBindings(val) {
       if (com.global) {
-        scenesOperate?._notifyBindings(val, com)
-        return
-      }
-      const {bindingsTo} = com.model
-      if (bindingsTo) {
-        for (let comId in bindingsTo) {
-          const com = getComProps(comId)
-          if (com) {
-            const bindings = bindingsTo[comId]
-            if (Array.isArray(bindings)) {
-              bindings.forEach((binding) => {
-                let nowObj = com
-                const ary = binding.split(".")
-                ary.forEach((nkey, idx) => {
-                  if (idx !== ary.length - 1) {
-                    nowObj = nowObj[nkey];
-                  } else {
-                    nowObj[nkey] = val;
-                  }
-                })
-              })
-            }
-          }
-        }
+        scenesOperate.var.changed(comId, val)
+      } else {
+        _varBinding.changed(comId, val)
       }
     }
+
+    // function _notifyBindings(val) {
+    //   if (com.global) {
+    //     scenesOperate?._notifyBindings(val, com)
+    //     return
+    //   }
+    //   const {bindingsTo} = com.model
+    //   if (bindingsTo) {
+    //     for (let comId in bindingsTo) {
+    //       const com = getComProps(comId)
+    //       if (com) {
+    //         const bindings = bindingsTo[comId]
+    //         if (Array.isArray(bindings)) {
+    //           bindings.forEach((binding) => {
+    //             let nowObj = com
+    //             const ary = binding.split(".")
+    //             ary.forEach((nkey, idx) => {
+    //               if (idx !== ary.length - 1) {
+    //                 nowObj = nowObj[nkey];
+    //               } else {
+    //                 nowObj[nkey] = val;
+    //               }
+    //             })
+    //           })
+    //         }
+    //       }
+    //     }
+    //   }
+    // }
+
+    // 变量绑定
+    let varBindings = new Set();
 
     // const isJS = def.rtType?.match(/^js/gi)
 
@@ -1185,6 +1199,13 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       logger,
       destroy: () => {
         rtn = null;
+        varBindings.forEach(({ id, callBack, global }) => {
+          if (global) {
+            scenesOperate.var.destroy(id, callBack)
+          } else {
+            _varBinding.destroy(id, callBack)
+          }
+        })
       },
       onError: (
         // !_isNestedRender && 
@@ -1192,6 +1213,37 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     }
 
     frameProps[key] = rtn
+
+    const { bindingsFrom } = com.model
+    if (bindingsFrom) {
+      Object.entries(bindingsFrom).forEach(([binding, varId]) => {
+        const varCom = coms[varId]
+        const callBack = (value) => {
+          let data = rtn;
+          const ary = binding.split(".")
+          ary.forEach((nkey, idx) => {
+            if (idx !== ary.length - 1) {
+              data = data[nkey];
+            } else {
+              data[nkey] = value;
+            }
+          })
+        }
+        if (varCom.global) {
+          varBindings.add({ id: varId, callBack, global: true })
+          // 全局的
+          scenesOperate.var.regist(varId, callBack)
+        } else {
+          varBindings.add({ id: varId, callBack })
+          // 局部的
+          _varBinding.regist(varId, callBack)
+        }
+      })
+    }
+
+    
+
+    
 
     return rtn
   }
@@ -1891,4 +1943,48 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   }
 
   return rst
+}
+
+/** 变量相关操作 */
+export class Var {
+  _varChangeCallBack = new Map<string, Set<(value: string) => void>>();
+  
+  /**
+   * 注册全局变量的变更监听
+   * @param {string} id - 全局变量的ID
+   * @param {function} cb - 回调函数，当全局变量值改变时调用
+   */      
+  regist(id: string, cb: (value: any) => void) {
+    let callBack = this._varChangeCallBack.get(id)
+    if (!callBack) {
+      callBack = new Set()
+      this._varChangeCallBack.set(id, callBack)
+    }
+    callBack.add(cb)
+  }
+  /**
+   * 销毁全局变量的变更监听
+   * @param {string} id - 全局变量的ID
+   * @param {function} cb - 回调函数，当全局变量值改变时调用
+   */  
+  destroy(id: string, cb: (value: any) => void) {
+    const callBack = this._varChangeCallBack.get(id)
+    if (callBack) {
+      callBack.delete(cb)
+    }
+  }
+
+  /**
+   * 全局变量值变更
+   * @param {string} id - 全局变量的ID
+   * @param {string} value - 全局变量的当前变更的值
+   */
+  changed(id: string, value: any) {
+    const callBack = this._varChangeCallBack.get(id)
+    if (callBack) {
+      callBack.forEach((cb) => {
+        cb(value)
+      })
+    }
+  }
 }
