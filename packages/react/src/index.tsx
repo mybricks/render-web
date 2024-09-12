@@ -620,7 +620,13 @@ class Stylization {
             }
             style[convertCamelToHyphen(key)] = value
           })
-          styleMap[cssSelector] = style;
+          // styleMap[cssSelector] = style;
+          // 如果有同名，后添加的权重更高，覆盖前者
+          if (!styleMap[cssSelector]) {
+            styleMap[cssSelector] = style
+          } else {
+            styleMap[cssSelector] = Object.assign(styleMap[cssSelector], style)
+          }
         })
       })
 
