@@ -933,8 +933,9 @@ function getStyleAry ({ env, style, def }) {
   const { themesId } = style
   const { namespace } = def
 
-  if (!themesId && !styleAry) {
-    // 去找默认值
+  // if (!themesId && !styleAry) {
+  if (!themesId) {
+    // 没有themesId，查找默认值
     const comThemeAry = comThemes[namespace]
     if (Array.isArray(comThemeAry)) {
       const comTheme = comThemeAry.find(({ isDefault }) => isDefault)
@@ -943,10 +944,9 @@ function getStyleAry ({ env, style, def }) {
       }
     }
   } else if (themesId === '_defined') {
-    // 使用styleAry
-    // styleAry = style.styleAry
+    // 说明用户修改过风格化样式，读当前styleAry即可
   } else {
-    // 去找相应的内容
+    // 根据themesId查找相应的内容
     const comThemeAry = comThemes[namespace]
     if (Array.isArray(comThemeAry)) {
       const comTheme = comThemeAry.find(({ id }) => id === themesId)
