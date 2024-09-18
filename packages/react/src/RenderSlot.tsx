@@ -833,7 +833,8 @@ function calSlotClasses(slotStyle) {
 }
 
 function getClasses({style, id, rootId}) {
-  const classes = [rootId ? `${rootId}-${id}` : id, css.com]
+  // const classes = [rootId ? `${rootId}-${id}` : id, css.com]
+  const classes = [id, css.com]
 
   // 临时兼容
   // style._new 说明是新数据结构，不再需要css.flex
