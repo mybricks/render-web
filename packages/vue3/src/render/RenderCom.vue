@@ -21,7 +21,7 @@
 // import { Button } from 'ant-design-vue'
 // import Button from "/Users/lianglihao/Documents/GitHub/comlib-pc-vue3/src/button/runtime.vue"
 // import { ref, inject, useCssModule } from 'vue';
-const { ref, inject, useCssModule } = window.Vue
+const { ref, inject, useCssModule, computed } = window.Vue
 defineOptions({
   inheritAttrs: false,
 });
@@ -361,20 +361,22 @@ if (['fixed', 'absolute'].includes(style.position)) {
 //   // }
 // }
 
-const divStyle = {
-  display: style.display,
-  visibility: style.visibility,
-  // overflow: "hidden",
-  // position: style.position || "relative",
-  position: style.position,
-  flex: style.flex,
-  flexDirection: style.flexDirection,
-  flexShrink: style.flexShrink,
-  ...otherStyle,
-  ...sizeStyle,
-  ...marginStyle,
-  ...(style.ext || {})
-}
+const divStyle = computed(() => {
+  return {
+    display: style.display,
+    visibility: style.visibility,
+    // overflow: "hidden",
+    // position: style.position || "relative",
+    position: style.position,
+    flex: style.flex,
+    flexDirection: style.flexDirection,
+    flexShrink: style.flexShrink,
+    ...otherStyle,
+    ...sizeStyle,
+    ...marginStyle,
+    ...(style.ext || {})
+  }
+})
 
 // console.log("divStyle: ", divStyle)
 
