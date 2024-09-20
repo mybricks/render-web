@@ -80,10 +80,10 @@ class Context {
     }
   } = {}
   // 组件runtime入参
-  onError: (error: Error | string) => void = (e) => {
-    console.error(e);
-    Notification.error(e);
-  }
+  // onError: (error: Error | string) => void = (e) => {
+  //   console.error(e);
+  //   Notification.error(e);
+  // }
   // onError: (params: Error | string) => null
   // 组件runtime入参
   logger: any
@@ -93,6 +93,14 @@ class Context {
 
   // 传入的配置项
   constructor(public options: RenderOptions, json: any) {
+    const { errorHandler } = options
+    this.onError = (e, comInfo) => {
+      console.error(e);
+      Notification.error(e);
+      if (comInfo) {
+        errorHandler?.(e, comInfo)
+      }
+    }
     this._v = json._v
     const { env, debug, observable, onError, plugins = [], rootId } = options
     const { onCompleteCallBacks } = this

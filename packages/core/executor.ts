@@ -1209,7 +1209,16 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       },
       onError: (
         // !_isNestedRender && 
-        debug) ? (error) => onError({comId, error, title: com.title}) : onError
+        debug) ? (error) => {
+          onError({comId, error, title: com.title})
+        } : (error) => {
+          onError(error, {
+            id: com.id,
+            title: com.title,
+            frameId: com.frameId,
+            parentComId: com.parentComId,
+          })
+        }
     }
 
     frameProps[key] = rtn
@@ -1392,9 +1401,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               _notifyBindings: props._notifyBindings,
               _inputsCallable: props._inputsCallable,
               logger,
-              onError: (
-                // !_isNestedRender && 
-                debug) ? (error) => onError({comId, error, title: jsCom.title}) : onError
+              onError,
+              // onError: (
+              //   // !_isNestedRender && 
+              //   debug) ? (error) => onError({comId, error, title: jsCom.title}) : onError
             })
           }
 
@@ -1811,9 +1821,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             outputs: props.outputs,
             _inputsCallable: props._inputsCallable,
             logger,
-            onError: (
-              // !_isNestedRender && 
-              debug) ? (error) => onError({comId: id, error, title: jsCom.title}) : onError
+            onError: props.onError,
+            // onError: (
+            //   // !_isNestedRender && 
+            //   debug) ? (error) => onError({comId: id, error, title: jsCom.title}) : onError
           })
         }
       })
