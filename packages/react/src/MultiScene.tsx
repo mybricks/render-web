@@ -577,7 +577,17 @@ export default function MultiScene ({json, options}) {
           }
         },
         destroyAllPopup() {
-          setPopupIds([]);
+          setPopupIds((popupIds) => {
+            popupIds.forEach((id) => {
+              const scenes = scenesMap[id]
+              if (scenes) {
+                scenes.show = false
+                scenes.todo = []
+                scenes._refs = null
+              }
+            })
+            return []
+          })
         }
       },
       scenesOperate: env.scenesOperate
