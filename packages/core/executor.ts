@@ -1403,7 +1403,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               _notifyBindings: props._notifyBindings,
               _inputsCallable: props._inputsCallable,
               logger,
-              onError,
+              onError: props.onError,
               // onError: (
               //   // !_isNestedRender && 
               //   debug) ? (error) => onError({comId, error, title: jsCom.title}) : onError
