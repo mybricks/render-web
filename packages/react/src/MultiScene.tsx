@@ -575,6 +575,9 @@ export default function MultiScene ({json, options}) {
               setCount((count) => count+1)
             }
           }
+        },
+        destroyAllPopup() {
+          setPopupIds([]);
         }
       },
       scenesOperate: env.scenesOperate

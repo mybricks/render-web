@@ -61,6 +61,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     json,
     getComDef,
     env,
+    _env,
     ref,
     onError = () => {},
     logger = console,
@@ -123,7 +124,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     })
   }
 
-  const _Env = env
+  const Env = env
 
   const _Props: any = {}
   // if (!window._getProps) {
@@ -1394,7 +1395,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             _exedJSCom[myId] = true
 
             comDef.runtime({//exe once
-              env: _Env,
+              env: Env,
+              _env,
               data: props.data,
               inputs: props.inputs,
               outputs: props.outputs,
@@ -1815,7 +1817,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           }
 
           comDef.runtime({
-            env: _Env,
+            env: Env,
+            _env,
             data: props.data,
             inputs: props.inputs,
             outputs: props.outputs,
