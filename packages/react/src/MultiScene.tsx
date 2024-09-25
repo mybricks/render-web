@@ -141,7 +141,7 @@ export default function MultiScene ({json, options}) {
       lastSceneId: firstScene.type === 'popup' ? null : firstScene.id,
     };
 
-    env.canvas.open = async (sceneId, params, openType, historyType) => {
+    env.canvas.open = async (sceneId, params, openType, historyType, configs) => {
       // console.log(`打开场景 -> ${sceneId}`)
       let scenes = scenesMap[sceneId]
 
@@ -252,6 +252,13 @@ export default function MultiScene ({json, options}) {
           scenes.show = true
           setPopupIds((popupIds) => {
             return [...popupIds, sceneId]
+          })
+        }
+      }
+      if (configs) {
+        if (configs.callInputs) {
+          configs.callInputs.forEach(({ frameId, value, pinId }) => {
+            scenesOperate.inputs({ frameId, value, pinId })
           })
         }
       }
