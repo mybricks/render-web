@@ -882,6 +882,8 @@ class Modules {
             divRef.current.appendChild(dom);
           } else {
             const dom = document.createElement("div");
+            dom.style.width = "100%";
+            dom.style.height = "100%";
             const moduleJson = _jsons[moduleId].json;
             const module = (
               <MyBricksRenderProvider value={_conetxt}>
@@ -903,7 +905,7 @@ class Modules {
           }
         }, [])
 
-        return <div ref={divRef}/>
+        return <div ref={divRef} style={{ height: "100%", width: "100%" }}/>
       }
     }
   }

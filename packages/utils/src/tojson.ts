@@ -543,6 +543,8 @@ function transformSlotComAry(
         // TODO: 根组件，默认设置为height:100%，目前为了小程序场景做的修改，持续观察下
         // @ts-ignore
         style.height = '100%';
+        // @ts-ignore
+        style.width = '100%';
       }
 
       // 对组件样式做处理，去除运行时无关的内容
