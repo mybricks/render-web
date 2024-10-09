@@ -578,7 +578,7 @@ class Stylization {
   private _cssMap: Record<string, Record<string, Record<string, any>>> = {}
   
   /** 设置样式 */
-  setStyle(id: string, style: any) {
+  setStyle(id: string, style: any, notOverwrite: boolean = false) {
     let styleAry = [] as {css: string, selector: string, global?: boolean }[];
 
     // TODO: 处理global
@@ -607,7 +607,7 @@ class Stylization {
     const comId = splitIds[splitIds.length - 1]
 
     if (styleAry.length) {
-      const { rootId, root, options } = this;
+      const { root, options } = this;
       const { env, handlePxToVw, debug } = options
       const { pxToRem: configPxToRem } = env
       const prefix = debug ? "#_geoview-wrapper_ ": ""
@@ -664,6 +664,10 @@ class Stylization {
           if (cssRuleStyle) {
             const style = css[key];
             Object.entries(value).forEach(([key, value]) => {
+              if (notOverwrite && cssRuleStyle[key]) {
+                // 不允许覆盖，并且已经有相同的key了
+                return
+              }
               style[key] = value;
               cssRuleStyle[key] = value;
             })

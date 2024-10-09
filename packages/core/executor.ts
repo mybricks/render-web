@@ -1179,6 +1179,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       data: isJS ? modelData : observable(modelData),
       style: isJS ? modelStyle : observable(modelStyle),
       _inputRegs: inputRegs,
+      scopeId: storeScopeId,
       addInputTodo,
       inputs: inputs(),
       inputsCallable,
@@ -1273,7 +1274,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === "_setStyle") {
-        const styleId = rootId ? `${rootId}-${comId}` : comId;
+        const { scopeId } = props
+        // const styleId = rootId ? `${rootId}-${comId}` : comId;
+        const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${comId}` : `${rootId}-${comId}`) : (scopeId ? `${scopeId}-${comId}` : comId)
         // _context?.options?.stylization?.setComId(styleId)
         _context?.options?.stylization?.setStyle(styleId, val);
       } else {
