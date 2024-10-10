@@ -183,7 +183,7 @@ export function easyClone(val: any) {
 
 export function easyDeepCopy(obj: any, cache: any = []) {
   const type = Object.prototype.toString.call(obj)
-  if (obj === null || typeof obj !== 'object' || type.startsWith('[object HTML')) {
+  if (obj === null || typeof obj !== 'object' || type.startsWith('[object HTML') || type === '[object FormData]') {
     return obj
   }
 
@@ -201,7 +201,7 @@ export function easyDeepCopy(obj: any, cache: any = []) {
   })
 
   Object.keys(obj).forEach(key => {
-    copy[key] = deepCopy(obj[key], cache)
+    copy[key] = easyDeepCopy(obj[key], cache)
   })
 
   return copy
@@ -209,7 +209,7 @@ export function easyDeepCopy(obj: any, cache: any = []) {
 
 export function deepCopy(obj: any, cache: any = []) {
   const type = Object.prototype.toString.call(obj)
-  if (obj === null || typeof obj !== 'object' || type.startsWith('[object HTML')) {
+  if (obj === null || typeof obj !== 'object' || type.startsWith('[object HTML') || type === '[object FormData]') {
     return obj
   }
 

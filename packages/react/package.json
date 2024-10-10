@@ -1,6 +1,6 @@
 {
   "name": "@mybricks/render-web",
-  "version": "1.3.35",
+  "version": "1.3.36",
   "description": "Render for web projects",
   "main": "index.min.js",
   "scripts": {
@@ -20,7 +20,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@mybricks/comlib-core": "^0.0.51"
+    "@mybricks/comlib-core": "^0.0.52"
   },
   "devDependencies": {
     "@types/node": "^20.8.3",

@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal} from './logger';
-import {uuid, dataSlim, easyClone, easyDeepCopy} from "./utils";
+import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -73,6 +73,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     _getComProps,
     _getSlotValue,
     _frameId,
+    _getSlotPropsMap,
+    _getScopeInputTodoMap,
     // _parentFrameOutput,
     rootId,
   } = opts
@@ -277,7 +279,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     if (proxyDesc) {
       if (proxyDesc.type === "myFrame") {
-        const slotPropsMap = _Props[`${pInReg.comId}-${proxyDesc.frameId}`]
+        const slotPropsMap = _getSlotPropsMap ? _getSlotPropsMap(`${pInReg.comId}-${proxyDesc.frameId}`) : _Props[`${pInReg.comId}-${proxyDesc.frameId}`]
         if (slotPropsMap) {
           const entries = Object.entries(slotPropsMap);
           if (entries.length === 1) {
@@ -285,7 +287,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             if (slotProps.curScope) {
               slotProps.inputs[proxyDesc.pinId](val)
             } else {
-              _scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = {
+              const scopeInputTodoMap = _getScopeInputTodoMap ? _getScopeInputTodoMap() : _scopeInputTodoMap
+              scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = {
                 pinId: proxyDesc.pinId,
                 value: val
               };
@@ -299,6 +302,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               slotProps.inputs[proxyDesc.pinId](val)
             })
           }
+        } else {
+          const scopeInputTodoMap = _getScopeInputTodoMap ? _getScopeInputTodoMap() : _scopeInputTodoMap
+          scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = {
+            pinId: proxyDesc.pinId,
+            value: val
+          };
         }
 
         return
@@ -362,6 +371,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                 },
                 _getSlotValue(slotValueKey) {
                   return getSlotValue(slotValueKey, nextScope)
+                },
+                _getSlotPropsMap(id) {
+                  return _getSlotPropsMap ? _getSlotPropsMap(id) : _Props[id]
+                },
+                _getScopeInputTodoMap() {
+                  return _getScopeInputTodoMap ? _getScopeInputTodoMap() : _scopeInputTodoMap;
                 },
                 _frameId: frameId,
                 // _parentFrameOutput: _parentFrameOutput || _frameOutput,
@@ -1265,7 +1280,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       val = getSlotValue(key, scope.parent)
     }
 
-    return easyClone(val)
+    return easyDeepCopy(val)
   }
 
   function exeInputForCom(inReg, val, scope, outputRels?) {
