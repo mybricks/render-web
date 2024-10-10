@@ -299,6 +299,11 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               if (key === "slot" && filterSlot) {
                 return
               }
+              const { curScope } = slotProps
+              // 没有scope或者parentComId与comId不同
+              if (!curScope || curScope.parentComId !== pInReg.comId) {
+                return
+              }
               slotProps.inputs[proxyDesc.pinId](val)
             })
           }
