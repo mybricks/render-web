@@ -9,7 +9,7 @@
 
 import React, { useEffect, useMemo, useRef, useLayoutEffect, useState } from "react";
 
-import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen, getStylesheetMountNode} from "../../core/utils";
+import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen, getStylesheetMountNode, fillProxy} from "../../core/utils";
 import { useModuleContext } from './index'
 import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
@@ -308,7 +308,7 @@ function RenderCom({
 
   const comDef = getComDef(def)
 
-  const slotsProxy = new Proxy(slots, {
+  const slotsProxy = fillProxy(slots, {
     get(target, slotId: string) {
       const slot = slots[slotId]
       if (!slot) {
@@ -393,7 +393,7 @@ function RenderCom({
       if (slotProps) {
         return {
           get _inputs() {
-            return new Proxy({}, {
+            return fillProxy({}, {
               get(target, name) {
                 const fn = slotProps._inputRegs[name]
                 return fn

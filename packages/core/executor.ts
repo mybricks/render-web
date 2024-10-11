@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal} from './logger';
-import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy} from "./utils";
+import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -96,7 +96,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   // window._getJSON = () => json
   let Coms = coms;
   if (_v === "2024-diff") {
-    Coms = new Proxy(coms, {
+    Coms = fillProxy(coms, {
       get(target, key) {
         const result = target[key];
         if (!result || result._ready) {
@@ -889,7 +889,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       inputs,
       outputs
     }) {
-      return new Proxy({}, {
+      return fillProxy({}, {
         ownKeys(target) {
           return com.inputs
         },
@@ -915,7 +915,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             const ary = inputTodo[name]
             if (ary) {
               ary.forEach(({val, fromCon, fromScope, next}) => {
-                fn(val, new Proxy({}, {//relOutputs
+                fn(val, fillProxy({}, {//relOutputs
                   get(target, name) {
                     return function (val) {
                       if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -939,7 +939,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       })
     }
 
-    const inputsCallable = new Proxy({}, {
+    const inputsCallable = fillProxy({}, {
       get(target, name) {
         return function (val) {
           if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -970,7 +970,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       }
     })
 
-    const _inputsCallable = new Proxy({}, {
+    const _inputsCallable = fillProxy({}, {
       get(target, name) {
         return function (val) {
           if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -993,7 +993,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       inputs,
       outputs
     }) {
-      return new Proxy({}, {
+      return fillProxy({}, {
         ownKeys(target) {
           return com.outputs
         },
@@ -1115,7 +1115,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       })
     }
 
-    const _inputs = new Proxy({}, {
+    const _inputs = fillProxy({}, {
       get(target, name, receiver) {
         return function (fn) {
           if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1133,7 +1133,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       }
     })
 
-    const _outputs = new Proxy({}, {
+    const _outputs = fillProxy({}, {
       get(target, name, receiver) {
         return function (val) {
           if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1435,7 +1435,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
           const fn = props._inputRegs[pinId]
           if (typeof fn === 'function') {
-            fn(val, new Proxy({}, {//relOutputs
+            fn(val, fillProxy({}, {//relOutputs
               get(target, name) {
                 return function (val: any) {
                   if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1488,7 +1488,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           if (outputRels) {
             nowRels = outputRels
           } else {
-            nowRels = new Proxy({}, {//relOutputs
+            nowRels = fillProxy({}, {//relOutputs
               get(target, name) {
                 return function (val) {
                   if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1601,7 +1601,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
       const Cur = {scope, todo}//保存当前scope，在renderSlot中调用run方法会被更新
 
-      const _inputs = new Proxy({}, {
+      const _inputs = fillProxy({}, {
         get(target, name) {
           return function (fn) {
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1614,7 +1614,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
       const _slotValueKeys = new Set();
 
-      const inputs = new Proxy({}, {
+      const inputs = fillProxy({}, {
         get(target, name) {
           const exe = function (val, curScope) {//set data
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1643,7 +1643,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         }
       })
 
-      const outputs = new Proxy({}, {
+      const outputs = fillProxy({}, {
         get(target, name, receiver) {
           return function (fn) {//proxy for com's outputs
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1922,7 +1922,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       run(frameId = ROOT_FRAME_KEY, scope = null) {
         exeForFrame({frameId, scope})
       },
-      inputs: new Proxy({}, {
+      inputs: fillProxy({}, {
         get(target, pinId) {
           return function (val,sceneId = void 0, log = true, frameId = ROOT_FRAME_KEY, scope = null) {
             if (Object.prototype.toString.call(pinId) === '[object Symbol]') {

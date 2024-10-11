@@ -3,7 +3,7 @@ import React, {
   useState,
   useEffect,
 } from "react";
-import { isObject, pxToRem } from "../utils";
+import { isObject, pxToRem, fillProxy } from "../utils";
 
 const globalKey = "__render-web-createElement__";
 let createElement: any;
@@ -302,23 +302,6 @@ const destroy2 = (value: any) => {
   }
 }
 
-// const a = new Proxy([], {
-//   get(target, key) {
-//     console.log("get: ", {
-//       target,
-//       key
-//     })
-//     return Reflect.get(target, key)
-//   },
-//   set(target, key, value) {
-//     Reflect.set(target, key, value)
-//     console.log("set: ", {
-//       target, key, value
-//     })
-//     return true;
-//   }
-// })
-
 const handler: ProxyHandler<any> = {
   set(target: any, prop: any, newValue: any, receiver: any) {
     const previousValue = Reflect.get(target, prop, receiver);
@@ -374,6 +357,6 @@ export function observable<T extends object & {_ob: string}>(obj: T): T {
       writable: false, // 不允许修改
       configurable: false // 不允许配置
     });
-    return new Proxy(obj, handler);
+    return fillProxy(obj, handler);
   }
 }

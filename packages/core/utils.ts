@@ -242,3 +242,14 @@ export function deepCopy(obj: any, cache: any = []) {
 
   return copy
 }
+
+
+const hasProxy = typeof Proxy !== 'undefined';
+
+export const fillProxy = (obj: any, handler: any) => {
+  if (hasProxy) {
+    return new Proxy(obj, handler);
+  } else {
+    console.log("环境内没有Proxy")
+  }
+}
