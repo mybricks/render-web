@@ -1873,6 +1873,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         if (json.id === frameId) {
           _frameOutput[pinId](value)
         } else {
+          if (!scope) {
+            // 没有scope，说明是在当前，
+            return
+          }
           scenesOperate?.open({
             frameId,
             todo: {
