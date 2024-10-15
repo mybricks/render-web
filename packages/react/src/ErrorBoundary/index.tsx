@@ -24,6 +24,7 @@ export default class ErrorBoundary extends React.PureComponent<Props> {
   componentDidCatch(error, errorInfo) {
     this.props.options?.errorHandler?.(error, errorInfo);
     Notification.error(error);
+    console.error(error)
     this.setState({
       error: error?.stack || error?.message || error?.toString?.(),
       errorInfo:

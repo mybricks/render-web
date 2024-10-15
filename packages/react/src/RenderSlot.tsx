@@ -309,8 +309,8 @@ function RenderCom({
   const comDef = getComDef(def)
 
   const slotsProxy = fillProxy(slots, {
-    get(target, slotId: string) {
-      const slot = slots[slotId]
+    get(target, slotId: string, _, ext) {
+      const slot = ext ? ext.value : slots[slotId]
       if (!slot) {
         return
       }
