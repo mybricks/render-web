@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal} from './logger';
-import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy} from "./utils";
+import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy, hasProxy} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -898,7 +898,15 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       inputs,
       outputs
     }) {
-      return fillProxy({}, {
+      return fillProxy(hasProxy ? {} : (com.inputs?.reduce((p, c) => {
+        const pidx = c.indexOf('.')
+        if (pidx !== -1) {
+          p[c.slice(0, pidx)] = true
+        } else {
+          p[c] = true;
+        }
+        return p
+      }, {}) || {}), {
         ownKeys(target) {
           return com.inputs
         },
@@ -924,7 +932,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             const ary = inputTodo[name]
             if (ary) {
               ary.forEach(({val, fromCon, fromScope, next}) => {
-                fn(val, fillProxy({}, {//relOutputs
+                fn(val, fillProxy(hasProxy ? {} : (PinRels[`${comId}-${name}`]?.reduce((p, c) => {
+                  p[c] = true;
+                  return p
+                }, {}) || {}), {//relOutputs
                   get(target, name) {
                     return function (val) {
                       if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1002,7 +1013,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       inputs,
       outputs
     }) {
-      return fillProxy({}, {
+      return fillProxy(hasProxy ? {} : (com.outputs?.reduce((p, c) => {
+        p[c] = true;
+        return p
+      }, {}) || {}), {
         ownKeys(target) {
           return com.outputs
         },
@@ -1444,7 +1458,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
           const fn = props._inputRegs[pinId]
           if (typeof fn === 'function') {
-            fn(val, fillProxy({}, {//relOutputs
+            fn(val, fillProxy(hasProxy ? {} : (PinRels[`${comId}-${pinId}`]?.reduce((p, c) => {
+              p[c] = true;
+              return p
+            }, {}) || {}), {//relOutputs
               get(target, name) {
                 return function (val: any) {
                   if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1497,7 +1514,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           if (outputRels) {
             nowRels = outputRels
           } else {
-            nowRels = fillProxy({}, {//relOutputs
+            nowRels = fillProxy(hasProxy ? {} : (PinRels[`${comId}-${pinId}`]?.reduce((p, c) => {
+              p[c] = true;
+              return p
+            }, {}) || {}), {//relOutputs
               get(target, name) {
                 return function (val) {
                   if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1610,7 +1630,35 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
       const Cur = {scope, todo}//保存当前scope，在renderSlot中调用run方法会被更新
 
-      const _inputs = fillProxy({}, {
+      // if (slot.title === "表单容器") {
+      //   console.log("cominfo: ", coms[comId])
+      //   console.log("slot: ", slot)
+      // }
+
+      const _inputsOriginal = {};
+      const inputsOriginal = {};
+      const outputsOriginal = {};
+
+      if (!hasProxy) {
+        const frames = coms[comId].frames
+        if (frames) {
+          const frame = frames.find(({ id }) => id === slotId);
+          if (frame) {
+            const { _inputs, inputs, outputs } = frame;
+            _inputs.forEach(({ id }) => {
+              _inputsOriginal[id] = true
+            })
+            inputs.forEach(({ id }) => {
+              inputsOriginal[id] = true
+            })
+            outputs.forEach(({ id }) => {
+              outputsOriginal[id] = true
+            })
+          }
+        }
+      }
+
+      const _inputs = fillProxy(_inputsOriginal, {
         get(target, name) {
           return function (fn) {
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1623,7 +1671,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
       const _slotValueKeys = new Set();
 
-      const inputs = fillProxy({}, {
+      const inputs = fillProxy(inputsOriginal, {
         get(target, name) {
           const exe = function (val, curScope) {//set data
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1652,7 +1700,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         }
       })
 
-      const outputs = fillProxy({}, {
+      const outputs = fillProxy(outputsOriginal, {
         get(target, name, receiver) {
           return function (fn) {//proxy for com's outputs
             if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1935,7 +1983,17 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       run(frameId = ROOT_FRAME_KEY, scope = null) {
         exeForFrame({frameId, scope})
       },
-      inputs: fillProxy({}, {
+      inputs: fillProxy({
+        y: () => {
+          return {}
+        },
+        n: () => {
+          return json.inputs?.reduce((p, c) => {
+            p[c.id] = true
+            return p
+          }, {}) || {}
+        }
+      }, {
         get(target, pinId) {
           return function (val,sceneId = void 0, log = true, frameId = ROOT_FRAME_KEY, scope = null) {
             if (Object.prototype.toString.call(pinId) === '[object Symbol]') {

@@ -244,12 +244,58 @@ export function deepCopy(obj: any, cache: any = []) {
 }
 
 
-const hasProxy = typeof Proxy !== 'undefined';
+export const hasProxy = typeof Proxy !== 'undefined';
+// export const hasProxy = false;
 
 export const fillProxy = (obj: any, handler: any) => {
   if (hasProxy) {
-    return new Proxy(obj, handler);
+    return new Proxy(obj, handler)
   } else {
-    console.log("环境内没有Proxy")
+    let res;
+    if (Array.isArray(obj)) {
+      const array: any = [];
+      Object.entries(obj).forEach(([key, value]) => {
+        defineReactive({target: array, key, value}, handler)
+      })
+      res = array;
+    } else {
+      const newObj: any = {};
+      Object.entries(obj).forEach(([key, value]) => {
+        defineReactive({target: newObj, key, value}, handler)
+      })
+      res = newObj;
+    }
+    if (obj._ob) {
+      Object.defineProperty(res, '_ob', {
+        value: obj._ob,
+        enumerable: false, // 不允许枚举
+        writable: false, // 不允许修改
+        configurable: false // 不允许配置
+      });
+    }
+    return res
   }
+}
+
+const defineReactive = ({ target, key, value }: any, handler: any) => {
+  if (["__model_style__", "constructor", Symbol.toPrimitive, Symbol.toStringTag, Symbol.iterator].includes(key)) {
+    target[key] = value
+    return
+  }
+  Object.defineProperty(target, key, {
+    get() {
+      return handler.get(target, key, target, { value })
+    },
+    set(newValue) {
+      return handler.set(target, key, newValue, target, {
+        previousValue: value,
+        next() {
+          value = newValue;
+          return true
+        }
+      })
+    },
+    enumerable: true,
+    configurable: false
+  })
 }

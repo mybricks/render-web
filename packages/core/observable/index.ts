@@ -302,18 +302,18 @@ const destroy2 = (value: any) => {
   }
 }
 
-const handler: ProxyHandler<any> = {
-  set(target: any, prop: any, newValue: any, receiver: any) {
-    const previousValue = Reflect.get(target, prop, receiver);
-    const result = Reflect.set(target, prop, newValue, receiver);
+const handler: any = {
+  set(target: any, prop: any, newValue: any, receiver: any, ext: any /** 外部输入，说明非Proxy环境 */) {
+    const previousValue = ext ? ext.previousValue : Reflect.get(target, prop, receiver);
+    const result = ext ? ext.next(newValue) : Reflect.set(target, prop, newValue, receiver);
     if (previousValue !== newValue || (Array.isArray(target) && prop === "length")) {
       dep.emit(target._ob + prop, []);
       destroy2(previousValue);
     }
     return result;
   },
-  get(target: any, prop: any, receiver: any) {
-    const result = Reflect.get(target, prop, receiver);
+  get(target: any, prop: any, receiver: any, ext: any /** 外部输入，说明非Proxy环境 */) {
+    const result = ext ? ext.value : Reflect.get(target, prop, receiver);
 
     if (["_ob", "constructor", Symbol.toPrimitive, Symbol.toStringTag, Symbol.iterator].includes(prop)) {
       return result
