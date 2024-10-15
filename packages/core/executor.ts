@@ -281,7 +281,16 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       if (proxyDesc.type === "myFrame") {
         const slotPropsMap = _getSlotPropsMap ? _getSlotPropsMap(`${pInReg.comId}-${proxyDesc.frameId}`) : _Props[`${pInReg.comId}-${proxyDesc.frameId}`]
         if (slotPropsMap) {
-          const entries = Object.entries(slotPropsMap);
+          const entries = Object.entries(slotPropsMap).filter(([key, slotProps]) => {
+            if (key === "slot") {
+              return true
+            }
+            const { curScope } = slotProps
+            if (!curScope || curScope.parentComId !== pInReg.comId) {
+              return false
+            }
+            return true
+          });
           if (entries.length === 1) {
             const slotProps = entries[0][1]
             if (slotProps.curScope) {
@@ -295,7 +304,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             }
           } else {
             const filterSlot = entries.length > 1;
-            Object.entries(slotPropsMap).forEach(([key, slotProps]) => {
+            entries.forEach(([key, slotProps]) => {
               if (key === "slot" && filterSlot) {
                 return
               }
