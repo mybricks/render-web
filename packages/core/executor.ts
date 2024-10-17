@@ -1174,7 +1174,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     function _notifyBindings(val) {
       if (com.global) {
-        scenesOperate.var.changed(comId, val)
+        scenesOperate?.var.changed(comId, val)
       } else {
         _varBinding.changed(comId, val)
       }
@@ -1246,7 +1246,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         rtn = null;
         varBindings.forEach(({ id, callBack, global }) => {
           if (global) {
-            scenesOperate.var.destroy(id, callBack)
+            scenesOperate?.var.destroy(id, callBack)
           } else {
             _varBinding.destroy(id, callBack)
           }
@@ -1286,7 +1286,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         if (varCom.global) {
           varBindings.add({ id: varId, callBack, global: true })
           // 全局的
-          scenesOperate.var.regist(varId, callBack)
+          scenesOperate?.var.regist(varId, callBack)
         } else {
           varBindings.add({ id: varId, callBack })
           // 局部的
