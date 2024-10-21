@@ -1983,17 +1983,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       run(frameId = ROOT_FRAME_KEY, scope = null) {
         exeForFrame({frameId, scope})
       },
-      inputs: fillProxy({
-        y: () => {
-          return {}
-        },
-        n: () => {
-          return json.inputs?.reduce((p, c) => {
-            p[c.id] = true
-            return p
-          }, {}) || {}
-        }
-      }, {
+      inputs: fillProxy(hasProxy ? {} : json.inputs?.reduce((p, c) => {
+        p[c.id] = true
+        return p
+      }, {}) || {}, {
         get(target, pinId) {
           return function (val,sceneId = void 0, log = true, frameId = ROOT_FRAME_KEY, scope = null) {
             if (Object.prototype.toString.call(pinId) === '[object Symbol]') {
