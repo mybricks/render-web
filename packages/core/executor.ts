@@ -375,8 +375,19 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                 }
               }
             } else {
+              const comInfo = Coms[inReg.comId]
+              const { configs } = comInfo.model.data;
               executor({
                 ...opts,
+                json: {
+                  ...json,
+                  inputs: comInfo.inputs.concat(configs || []).map(id => {
+                    return { id }
+                  }),
+                  outputs: comInfo.outputs.map(id => {
+                    return { id }
+                  }),
+                },
                 _getComProps(comId) {
                   const res = getComProps(comId, nextScope);
                   // console.log("外面的ui组件 _getComProps: ", res)
@@ -395,8 +406,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                 _frameId: frameId,
                 // _parentFrameOutput: _parentFrameOutput || _frameOutput,
                 ref: (refs) => {
-                  const comInfo = refs.getComInfo(inReg.comId)
-                  const { configs } = comInfo.model.data;
+                  // const comInfo = refs.getComInfo(inReg.comId)
+                  // const { configs } = comInfo.model.data;
                   const { frameId, pinId } = proxyDesc
                   const outputs = comInfo.outputs;
                   const myScope = null;
