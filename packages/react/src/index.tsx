@@ -122,7 +122,10 @@ class Context {
     }
     if (!env.libMybricks) {
       env.libMybricks = {
-        comRef: (fn) => fn
+        comRef: (fn) => fn,
+        renderCom: (Fn, props) => {
+          return <Fn {...props}/>
+        }
       }
     }
     // 样式加载dom节点
