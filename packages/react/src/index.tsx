@@ -120,6 +120,11 @@ class Context {
         }
       }
     }
+    if (!env.libMybricks) {
+      env.libMybricks = {
+        comRef: (fn) => fn
+      }
+    }
     // 样式加载dom节点
     const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
     options.stylization = new Stylization({
