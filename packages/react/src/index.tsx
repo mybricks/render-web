@@ -123,8 +123,9 @@ class Context {
     if (!env.libMybricks) {
       env.libMybricks = {
         comRef: (fn) => fn,
-        renderCom: (Fn, props) => {
-          return <Fn {...props}/>
+        renderCom: (Fn, props = {}) => {
+          const { props: nextProps = {} } = props;
+          return <Fn {...nextProps}/>
         }
       }
     }
