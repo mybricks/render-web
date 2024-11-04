@@ -120,8 +120,8 @@ class Context {
         }
       }
     }
-    if (!env.libMybricks) {
-      env.libMybricks = {
+    if (!env.mybricksSdk) {
+      env.mybricksSdk = {
         comRef: (fn) => fn,
         renderCom: (Fn, props = {}) => {
           const { props: nextProps = {} } = props;
