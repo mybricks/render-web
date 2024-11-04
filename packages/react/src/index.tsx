@@ -262,10 +262,11 @@ class Context {
           document.head.appendChild(styleEle);
         },
         remove: (id: string) => {
-          const el = document.getElementById(id);
-          if (el && el.parentElement) {
-            el.parentElement.removeChild(el)
-          }
+          // 不需要remove
+          // const el = document.getElementById(id);
+          // if (el && el.parentElement) {
+          //   el.parentElement.removeChild(el)
+          // }
         }
       }
     }
