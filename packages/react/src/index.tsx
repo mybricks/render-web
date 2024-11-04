@@ -248,6 +248,27 @@ class Context {
         }
       }
     }
+    if (!env.canvas.css) {
+      env.canvas.css = {
+        set: (id: string, content: string) => {
+          const el = document.getElementById(id);
+          if (el) {
+            el.innerText = content
+            return
+          }
+          const styleEle = document.createElement('style')
+          styleEle.id = id;
+          styleEle.innerText = content
+          document.head.appendChild(styleEle);
+        },
+        remove: (id: string) => {
+          const el = document.getElementById(id);
+          if (el && el.parentElement) {
+            el.parentElement.removeChild(el)
+          }
+        }
+      }
+    }
     // 用于调试时弹窗类挂载
     if (!('canvasElement' in env)) {
       // 引擎环境内引擎提供，非引擎环境默认body
