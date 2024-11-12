@@ -2020,6 +2020,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                     _getSlotValue(slotValueKey) {
                       return getSlotValue(slotValueKey, nextScope)
                     },
+                    _getSlotPropsMap(id) {
+                      return _getSlotPropsMap ? _getSlotPropsMap(id) : _Props[id]
+                    },
+                    _getScopeInputTodoMap() {
+                      return _getScopeInputTodoMap ? _getScopeInputTodoMap() : _scopeInputTodoMap;
+                    },
                     _frameId: frameId,
                     ref: (refs) => {
                       const { inputs, outputs } = refs;

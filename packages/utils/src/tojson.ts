@@ -797,6 +797,9 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
       //   remover("leftAsFixed")
       // }
     }
+    if (style.widthFull) {
+      style.width = "100%"
+    }
   }
 
   // 删除引擎带来的运行时无用的样式
