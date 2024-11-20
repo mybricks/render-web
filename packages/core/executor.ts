@@ -1444,7 +1444,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
           const fn = props._inputRegs[pinId]
           if (typeof fn === 'function') {
-            fn(val, fillProxy({}, {//relOutputs
+            fn(easyDeepCopy(val), fillProxy({}, {//relOutputs
               get(target, name) {
                 return function (val: any) {
                   if (Object.prototype.toString.call(name) === '[object Symbol]') {
@@ -1475,7 +1475,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             }))
           } else {
             console.log("计算组件的addInputTodo: ", def)
-            props.addInputTodo(pinId, val, inReg, scope)
+            props.addInputTodo(pinId, easyDeepCopy(val), inReg, scope)
           }
         }
       } else {//ui
@@ -1493,6 +1493,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
         const fn = props._inputRegs[pinId]
         if (typeof fn === 'function') {
+          console.log("输入ui: ")
           let nowRels
           if (outputRels) {
             nowRels = outputRels
@@ -1517,9 +1518,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             })
           }
 
-          fn(val, nowRels)
+          fn(easyDeepCopy(val), nowRels)
         } else {
-          props.addInputTodo(pinId, val, inReg, scope, _getComProps ? (val, a, b, c, name) => {
+          props.addInputTodo(pinId, easyDeepCopy(val), inReg, scope, _getComProps ? (val, a, b, c, name) => {
             // 说明在里面
             const comProps = getComProps(comId, scope, true)
             // 内部假的输出
