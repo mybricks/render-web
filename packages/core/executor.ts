@@ -1493,7 +1493,6 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
         const fn = props._inputRegs[pinId]
         if (typeof fn === 'function') {
-          console.log("输入ui: ")
           let nowRels
           if (outputRels) {
             nowRels = outputRels
