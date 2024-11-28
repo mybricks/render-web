@@ -65,7 +65,9 @@ const Render = forwardRef((({ children }: PropsWithChildren, ref) => {
       // 有新的key，使用Provider注入，断开上层嵌套
       return (
         <Provider value={{ _key }}>
-          <Next>{children}</Next>
+          <Next>{cloneElement(children, {
+            [proKey]: _key,
+          })}</Next>
         </Provider>
       )
     }
