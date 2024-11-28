@@ -35,7 +35,7 @@ const Next = ({ children }: PropsWithChildren) => {
       case "[object Symbol]":
         return <SymbolNext>{children}</SymbolNext>
       default:
-        console.log("Next 未处理: ", typeString, children);
+        //console.log("Next 未处理: ", typeString, children);
         return children;
     }
   }
@@ -107,7 +107,7 @@ const ObjectNext = ({ children }: NextProps) => {
     case REACT_MEMO_TYPE:
       return <MemoNext>{children}</MemoNext>;
     default:
-      console.log("ObjectNext 未处理: ", children)
+      //console.log("ObjectNext 未处理: ", children)
       return children;
   }
 }
@@ -116,9 +116,9 @@ const ForwardRefNext = ({ children }: NextProps) => {
   const { props, ref, type } = children as any;
   const next = type.render(props, ref)
 
-  if (next && !Array.isArray(next) && next.props.children) {
+  if (next && !Array.isArray(next) && next.props.children && typeof props.children === "function") {
     return cloneElement(next, {
-      children: <Render>{next.props.children}</Render> 
+      children: <Render>{next.props.children}</Render>
     })
   }
 
@@ -153,7 +153,7 @@ const MemoNext = ({ children }: NextProps) => {
 
     return <Render>{next}</Render>
   } else {
-    console.log("MemoNext 未处理: ", children);
+    //console.log("MemoNext 未处理: ", children);
   }
 
   return children;
@@ -167,7 +167,7 @@ const FunctionNext = ({ children }: NextProps) => {
     const Next = useMemo(() => {
       return ClassNext(children.type);
     }, [])
-    
+
     return <Next {...props}/>
   }
 
