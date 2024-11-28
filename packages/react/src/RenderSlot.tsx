@@ -13,6 +13,7 @@ import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen, getStylesheetMoun
 import { useModuleContext } from './index'
 import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
+import AiRender from "./AiRender";
 
 const css = lazyCss.locals
 
@@ -171,7 +172,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
       const comKey = id + (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
       return {
         id,
-        jsx: <RenderCom key={comKey} com={com} index={index}
+        jsx: <RenderCom key={comKey} com={com} comInfo={comInfo} index={index}
                         getComDef={getComDef}
                         context={context}
                         scope={scope}
@@ -223,6 +224,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
 
 function RenderCom({
                      com,
+                     comInfo,
                      index,
                      props,
                      scope,
@@ -463,6 +465,10 @@ function RenderCom({
     }}
     modules={_moduleContext.modules}
   />
+
+  if (comInfo?.model?.isAICode) {
+    jsx = <AiRender>{jsx}</AiRender>
+  }
 
   useLayoutEffect(() => {
     setShow(true) // 在子组件写入前触发状态更新，会执行上次等待的useEffect，内部inputs是同步执行，最终挂载dom
