@@ -450,13 +450,13 @@ export default function MultiScene ({json, options}) {
   useMemo(() => {
     if (options.ref) {
       const ref = options.ref
-      options.ref = (cb) => (_refs) => {
-        cb(_refs)
-        return ref.call(options, _refs)
+      options.ref = (cb) => (_refs, json) => {
+        cb(_refs, json)
+        return ref.call(options, _refs, json)
       }
     } else {
-      options.ref = (cb) => (_refs) => {
-        cb(_refs)
+      options.ref = (cb) => (_refs, json) => {
+        cb(_refs, json)
       }
     }
   }, [])

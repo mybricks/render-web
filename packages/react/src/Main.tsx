@@ -105,7 +105,7 @@ export default function Main({json, options, style = {}, className = '', root = 
         ref(_refs: any) {
           refs = _refs
           if (typeof options.ref === 'function') {
-            options.ref(_refs)
+            options.ref(_refs, json)
             // 如果被代理，那么inputs由外部处理
             activeTriggerInput = false
           }
