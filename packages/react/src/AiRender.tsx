@@ -185,6 +185,9 @@ const ClassNext = (Component: any) => {
       if (!children) {
         return children;
       }
+      if (Array.isArray(children)) {
+        return <Render>{children}</Render>
+      }
       const { props } = children;
       const { children: nextChildren } = props;
 
