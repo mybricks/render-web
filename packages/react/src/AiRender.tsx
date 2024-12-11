@@ -62,7 +62,24 @@ const Render = forwardRef((({ children }: PropsWithChildren, ref) => {
       if (_contextKey?.startsWith(_key)) {
         _key = _contextKey;
       }
+      
+      const mergeProps = props._data;
       // 有新的key，使用Provider注入，断开上层嵌套
+      if (mergeProps) {
+        const nextProps = {...props, [proKey]: _key};
+        Object.entries(mergeProps).forEach(([key, value]) => {
+          // TODO:后续处理对象、数组等
+          if (typeof value !== "object" || !value) {
+            nextProps[key] = value;
+          }
+        })
+        return (
+          <Provider value={{ _key }}>
+            <Next>{cloneElement(children, nextProps)}</Next>
+          </Provider>
+        )
+      }
+
       return (
         <Provider value={{ _key }}>
           <Next>{cloneElement(children, {
