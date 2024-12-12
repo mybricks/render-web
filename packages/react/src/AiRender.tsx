@@ -1,4 +1,4 @@
-import React, { isValidElement, cloneElement, createContext, useContext, Component, forwardRef, useMemo } from "react";
+import React, { isValidElement, cloneElement, createContext, useContext, Component, forwardRef, useMemo, useCallback } from "react";
 import type { PropsWithChildren, ReactElement } from "react";
 
 const REACT_ELEMENT_TYPE = Symbol.for('react.element');
@@ -66,18 +66,22 @@ const Render = forwardRef((({ children }: PropsWithChildren, ref) => {
       const mergeProps = props._data;
       // 有新的key，使用Provider注入，断开上层嵌套
       if (mergeProps) {
-        const nextProps = {...props, [proKey]: _key};
-        Object.entries(mergeProps).forEach(([key, value]) => {
-          // TODO:后续处理对象、数组等
-          if (typeof value !== "object" || !value) {
-            nextProps[key] = value;
-          }
-        })
-        return (
-          <Provider value={{ _key }}>
-            <Next>{cloneElement(children, nextProps)}</Next>
-          </Provider>
-        )
+        const ProxyNext = useCallback(({props}) => {
+          const nextProps = {...props, [proKey]: _key};
+          Object.entries(mergeProps).forEach(([key, value]) => {
+            // TODO:后续处理对象、数组等
+            if (typeof value !== "object" || !value) {
+              nextProps[key] = value;
+            }
+          })
+          return (
+            <Provider value={{ _key }}>
+              <Next>{cloneElement(children, nextProps)}</Next>
+            </Provider>
+          )
+        }, [])
+        
+        return <ProxyNext props={props}/>
       }
 
       return (
