@@ -15,7 +15,7 @@ const REACT_MEMO_TYPE = Symbol.for('react.memo');
 const REACT_LAZY_TYPE = Symbol.for('react.lazy');
 const REACT_OFFSCREEN_TYPE = Symbol.for('react.offscreen');
 
-const proKey = `data-com-key`
+const proKey = `data-com-id`
 
 const Context = createContext<{_key: string | null}>({ _key: null });
 const Provider = Context.Provider;
@@ -50,51 +50,77 @@ const Render = forwardRef((({ children }: PropsWithChildren, ref) => {
   }
 
   if (isValidElement(children)) {
-    const { props, key: childrenKey } = children;
-    const { _key: _contextKey } = useContext(Context);
-    let _key = props[proKey] || _contextKey;
+    const { props } = children;
+    const _key = props[proKey]
+    if (_key) {
+      const { _key: _contextKey } = useContext(Context);
 
-    if (childrenKey) {
-      _key = _key ? `${_key}_${childrenKey}` : childrenKey;
-    }
-
-    if (_key && _key !== _contextKey) {
-      if (_contextKey?.startsWith(_key)) {
-        _key = _contextKey;
-      }
-      
-      const mergeProps = props._data;
-      // 有新的key，使用Provider注入，断开上层嵌套
-      if (mergeProps) {
-        const ProxyNext = useCallback(({props}) => {
-          const nextProps = {...props, [proKey]: _key};
-          Object.entries(mergeProps).forEach(([key, value]) => {
-            // TODO:后续处理对象、数组等
-            if (typeof value !== "object" || !value) {
-              nextProps[key] = value;
-            }
-          })
-          return (
-            <Provider value={{ _key }}>
-              <Next>{cloneElement(children, nextProps)}</Next>
-            </Provider>
-          )
-        }, [])
-        
-        return <ProxyNext props={props}/>
-      }
-
-      return (
-        <Provider value={{ _key }}>
+      if (_key !== _contextKey) {
+        return (
+          <Provider value={{ _key }}>
+            <Next>{cloneElement(children, {
+              [proKey]: null
+            })}</Next>
+          </Provider>
+        )
+      } else {
+        return (
           <Next>{cloneElement(children, {
-            [proKey]: _key,
+            [proKey]: null
           })}</Next>
-        </Provider>
-      )
+        )
+      }
     }
 
     return <Next>{children}</Next>
   }
+
+  // if (isValidElement(children)) {
+  //   const { props, key: childrenKey } = children;
+  //   const { _key: _contextKey } = useContext(Context);
+  //   let _key = props[proKey] || _contextKey;
+
+  //   if (childrenKey) {
+  //     _key = _key ? `${_key}_${childrenKey}` : childrenKey;
+  //   }
+
+  //   if (_key && _key !== _contextKey) {
+  //     if (_contextKey?.startsWith(_key)) {
+  //       _key = _contextKey;
+  //     }
+      
+  //     const mergeProps = props._data;
+  //     // 有新的key，使用Provider注入，断开上层嵌套
+  //     if (mergeProps) {
+  //       const ProxyNext = useCallback(({props}) => {
+  //         const nextProps = {...props, [proKey]: _key};
+  //         Object.entries(mergeProps).forEach(([key, value]) => {
+  //           // TODO:后续处理对象、数组等
+  //           if (typeof value !== "object" || !value) {
+  //             nextProps[key] = value;
+  //           }
+  //         })
+  //         return (
+  //           <Provider value={{ _key }}>
+  //             <Next>{cloneElement(children, nextProps)}</Next>
+  //           </Provider>
+  //         )
+  //       }, [])
+        
+  //       return <ProxyNext props={props}/>
+  //     }
+
+  //     return (
+  //       <Provider value={{ _key }}>
+  //         <Next>{cloneElement(children, {
+  //           [proKey]: _key,
+  //         })}</Next>
+  //       </Provider>
+  //     )
+  //   }
+
+  //   return <Next>{children}</Next>
+  // }
 
   return children;
 }) as any)
@@ -109,12 +135,24 @@ const StringNext = ({ children }: NextProps) => {
   const { _key } = useContext(Context)
   const { props } = children;
   const { children: nextChildren } = props;
-  const next = cloneElement(children, {
-    [proKey]:_key,
+
+  if (_key) {
+    return cloneElement(children, {
+      [proKey]: _key,
+      children: nextChildren ? <Provider value={{ _key: null }}><Render>{nextChildren}</Render></Provider> : null
+    })
+  }
+
+  return cloneElement(children, {
     children: nextChildren ? <Render>{nextChildren}</Render> : null
   })
 
-  return next;
+  // const next = cloneElement(children, {
+  //   [proKey]: _key,
+  //   children: nextChildren ? <Render>{nextChildren}</Render> : null
+  // })
+
+  // return next;
 }
 
 const ObjectNext = ({ children }: NextProps) => {
