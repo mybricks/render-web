@@ -599,6 +599,9 @@ function SlotRender ({
           }
           curProps.run()
         }
+      } else {
+        // 没有inputValues，默认触发一次
+        curProps.run(null, true)
       }
     }
   }, [params?.inputValues])

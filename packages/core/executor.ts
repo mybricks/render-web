@@ -297,10 +297,17 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               slotProps.inputs[proxyDesc.pinId](val)
             } else {
               const scopeInputTodoMap = _getScopeInputTodoMap ? _getScopeInputTodoMap() : _scopeInputTodoMap
-              scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = {
-                pinId: proxyDesc.pinId,
-                value: val
-              };
+              if (!scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`]) {
+                scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = [{
+                  pinId: proxyDesc.pinId,
+                  value: val
+                }];
+              } else {
+                scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`].push({
+                  pinId: proxyDesc.pinId,
+                  value: val
+                }) 
+              }
             }
           } else {
             const filterSlot = entries.length > 1;
@@ -318,10 +325,18 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
           }
         } else {
           const scopeInputTodoMap = _getScopeInputTodoMap ? _getScopeInputTodoMap() : _scopeInputTodoMap
-          scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = {
-            pinId: proxyDesc.pinId,
-            value: val
-          };
+
+          if (!scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`]) {
+            scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`] = [{
+              pinId: proxyDesc.pinId,
+              value: val
+            }];
+          } else {
+            scopeInputTodoMap[`${pInReg.comId}-${proxyDesc.frameId}`].push({
+              pinId: proxyDesc.pinId,
+              value: val
+            });
+          }
         }
 
         return
@@ -1678,14 +1693,22 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
       rtn = frameProps[key] = {
         type: slotDef?.type,
         run(newScope, scopeTodo) {
+          // console.log("run => ", newScope, scopeTodo, _scopeInputTodoMap)
           let scope = Cur.scope
           if (newScope && scope !== newScope) {
             Cur.scope = newScope
             scope = newScope
           }
           if (scopeTodo) {
+            if (!scope) {
+              return 
+            }
             const todo = _scopeInputTodoMap[`${comId}-${scope.frameId}`]
-            if (todo) {
+            if (Array.isArray(todo)) {
+              todo.forEach(({pinId, value}) => {
+                rtn.inputs[pinId](value)
+              })
+            } else if (todo) {
               const { pinId, value } = todo
               rtn.inputs[pinId](value)
             }
