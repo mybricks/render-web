@@ -68,7 +68,6 @@ export default function combination(elements: Elements, layoutConfig: LayoutConf
     let flexSumPX = 0;
 
     res.forEach((element) => {
-      log(ps(element))
       const { id, style } = element
       if (style.heightFact) {
         /** push元素具体宽度 */
