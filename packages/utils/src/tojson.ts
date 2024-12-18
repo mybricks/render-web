@@ -117,7 +117,14 @@ function transformSlotComAry(
   // 通过组件ID查找对应的Slot.comAry内组件信息
   const comIdToSlotComMap: ComIdToSlotComMap = {}
 
+  // 去除重复id
+  const filterMap = {};
+
   slot.comAry = slot.comAry.filter(({ id }) => {
+    if (filterMap[id]) {
+      return false
+    }
+    filterMap[id] = true;
     const com = coms[id];
 
     return com && !com.isTemp;
