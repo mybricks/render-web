@@ -173,6 +173,17 @@ const ObjectNext = ({ children }: NextProps) => {
 
 const ForwardRefNext = ({ children }: NextProps) => {
   const { props, ref, type } = children as any;
+
+  const nextChildren = props.children
+
+  if (nextChildren) {
+    return cloneElement(children, {
+      children: Array.isArray(nextChildren) ? nextChildren.map((child) => {
+        return <Render>{child}</Render>
+      }) : <Render>{nextChildren}</Render> 
+    })
+  }
+
   const next = type.render(props, ref)
 
   if (next && !Array.isArray(next) && next.props.children && typeof props.children === "function") {
