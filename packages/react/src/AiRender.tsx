@@ -44,8 +44,8 @@ const Next = ({ children }: PropsWithChildren) => {
 
 const Render = ({ children }: PropsWithChildren) => {
   if (Array.isArray(children)) {
-    return children.map((child, index) => {
-      return <Render key={index}>{child}</Render>;
+    return children.map((child) => {
+      return <Render key={child?.key}>{child}</Render>;
     })
   }
 
