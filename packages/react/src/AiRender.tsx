@@ -178,15 +178,12 @@ const ForwardRefNext = ({ children }: NextProps) => {
 
   if (nextChildren) {
     if (typeof nextChildren === "function") {
-      if (!props.children.__airender__) {
-        const oriNextChildren = nextChildren;
-        props.children = (...args) => {
-          const res = oriNextChildren(...args)
-          return <Render>{res}</Render>
+      const oriNextChildren = nextChildren;
+      return cloneElement(children, {
+        children: (...args) => {
+          return <Render>{oriNextChildren(...args)}</Render>
         }
-        props.children.__airender__ = true;
-      }
-      return children
+      })
     }
     return cloneElement(children, {
       children: Array.isArray(nextChildren) ? nextChildren.map((child) => {
