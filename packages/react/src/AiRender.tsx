@@ -42,7 +42,7 @@ const Next = ({ children }: PropsWithChildren) => {
   return children;
 }
 
-const Render = forwardRef((({ children }: PropsWithChildren, ref) => {
+const Render = ({ children }: PropsWithChildren) => {
   if (Array.isArray(children)) {
     return children.map((child, index) => {
       return <Render key={index}>{child}</Render>;
@@ -123,7 +123,7 @@ const Render = forwardRef((({ children }: PropsWithChildren, ref) => {
   // }
 
   return children;
-}) as any)
+}
 
 export default Render;
 
@@ -177,6 +177,17 @@ const ForwardRefNext = ({ children }: NextProps) => {
   const nextChildren = props.children
 
   if (nextChildren) {
+    if (typeof nextChildren === "function") {
+      if (!props.children.__airender__) {
+        const oriNextChildren = nextChildren;
+        props.children = (...args) => {
+          const res = oriNextChildren(...args)
+          return <Render>{res}</Render>
+        }
+        props.children.__airender__ = true;
+      }
+      return children
+    }
     return cloneElement(children, {
       children: Array.isArray(nextChildren) ? nextChildren.map((child) => {
         return <Render>{child}</Render>
@@ -184,19 +195,19 @@ const ForwardRefNext = ({ children }: NextProps) => {
     })
   }
 
-  const next = type.render(props, ref)
+  if (!type.render.__airender__) {
+    type.render.__airender__ = true;
+    const oriRender = type.render;
 
-  if (next && !Array.isArray(next) && next.props.children && typeof props.children === "function") {
-    return cloneElement(next, {
-      children: <Render>{next.props.children}</Render>
-    })
+    type.render = (...args) => {
+      const res = oriRender(...args)
+      return <Render>{res}</Render>
+    };
+
+    type.render.__airender__ = true;
   }
 
-  return (
-    <Render>
-      {next}
-    </Render>
-  )
+  return children;
 }
 
 const ProviderNext = ({ children }: NextProps) => {
