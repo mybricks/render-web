@@ -467,7 +467,7 @@ function RenderCom({
   />
 
   if (comInfo?.model?.isAICode) {
-    jsx = <AiRender>{jsx}</AiRender>
+    jsx = <AiRender _data={data}>{jsx}</AiRender>
   }
 
   useLayoutEffect(() => {

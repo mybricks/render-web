@@ -17,7 +17,7 @@ const REACT_OFFSCREEN_TYPE = Symbol.for('react.offscreen');
 
 const proKey = `data-com-id`
 
-const Context = createContext<{_key: string | null}>({ _key: null });
+const Context = createContext<{_key?: string | null, _data?: any}>({ _key: null, _data: null });
 const Provider = Context.Provider;
 
 const Next = ({ children }: PropsWithChildren) => {
@@ -42,7 +42,52 @@ const Next = ({ children }: PropsWithChildren) => {
   return children;
 }
 
-const Render = ({ children }: PropsWithChildren) => {
+/** 解决响应式，多嵌套一层 */
+const ProxyNext = ({ children, mergeProps }) => {
+  const oriProps = {...children.props};
+  Object.entries(mergeProps).forEach(([key, value]) => {
+    if (!(key in oriProps)) {
+      // 没有key，直接写
+      oriProps[key] = value
+    } else {
+      const valueType = Object.prototype.toString.call(value)
+      if (valueType === '[object Array]') {
+        // 数组，遍历合并
+        const oriValue = oriProps[key]
+        value.forEach((item, index) => {
+          if (item) {
+            oriValue[index] = item
+          }
+        })
+        oriProps[key] = [...oriValue]
+      } else if (valueType === '[object Object]') {
+        // 对象，合并
+        oriProps[key] = {
+          ...oriProps[key],
+          ...value
+        }
+      } else {
+        // 覆盖
+        oriProps[key] = value
+      }
+    }
+  })
+  
+  return (
+    <Next>
+      {cloneElement(children, oriProps)}
+    </Next>
+  )
+}
+
+const Render = ({ _data, children }: PropsWithChildren<{ _data?: any }>) => {
+  if (_data) {
+    return (
+      <Provider value={{ _data }}>
+        <Render>{children}</Render>
+      </Provider>
+    )
+  }
   if (Array.isArray(children)) {
     return children.map((child) => {
       return <Render key={child?.key}>{child}</Render>;
@@ -53,14 +98,21 @@ const Render = ({ children }: PropsWithChildren) => {
     const { props } = children;
     const _key = props[proKey]
     if (_key) {
-      const { _key: _contextKey } = useContext(Context);
+      const { _key: _contextKey, _data } = useContext(Context);
 
       if (_key !== _contextKey) {
+        // 新的key
+        const mergeProps = _data[_key];
+
         return (
-          <Provider value={{ _key }}>
-            <Next>{cloneElement(children, {
-              [proKey]: null
-            })}</Next>
+          <Provider value={{ _key, _data }}>
+            {mergeProps ? (
+              <ProxyNext mergeProps={mergeProps}>
+               {children}
+              </ProxyNext>
+            ) : (
+              <Next>{children}</Next>
+            )}
           </Provider>
         )
       } else {
@@ -132,14 +184,14 @@ interface NextProps {
 }
 
 const StringNext = ({ children }: NextProps) => {
-  const { _key } = useContext(Context)
+  const { _key, _data } = useContext(Context)
   const { props } = children;
   const { children: nextChildren } = props;
 
   if (_key) {
     return cloneElement(children, {
       [proKey]: _key,
-      children: nextChildren ? <Provider value={{ _key: null }}><Render>{nextChildren}</Render></Provider> : null
+      children: nextChildren ? <Provider value={{ _key: null, _data }}><Render>{nextChildren}</Render></Provider> : null
     })
   }
 
