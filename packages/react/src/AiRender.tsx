@@ -241,6 +241,7 @@ const FunctionNext = ({ children }: NextProps) => {
   const { type, props } = children as any;
 
   if ((type as any).prototype instanceof Component) {
+    return children
     // class组件
     const Next = useMemo(() => {
       return ClassNext(children.type);
