@@ -244,8 +244,16 @@ const ForwardRefNext = ({ children }: NextProps) => {
     // })
   }
 
-  if (!type.render.__airender__) {
-    type.render.__airender__ = true;
+  if (type.__airender__) {
+    // 编辑态覆盖了render，需要替换回来
+    type.__airender__ = null;
+    const oriRender = type.__ori__;
+    type.render = (...args) => {
+      const res = oriRender(...args)
+      return <Render>{res}</Render>
+    };
+    type.__runairender__ = true;
+  } else if (!type.__runairender__) {
     const oriRender = type.render;
 
     type.render = (...args) => {
@@ -253,7 +261,7 @@ const ForwardRefNext = ({ children }: NextProps) => {
       return <Render>{res}</Render>
     };
 
-    type.render.__airender__ = true;
+    type.__runairender__ = true;
   }
 
   return children;
