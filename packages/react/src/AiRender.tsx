@@ -89,9 +89,13 @@ const Render = ({ _data, children }: PropsWithChildren<{ _data?: any }>) => {
     )
   }
   if (Array.isArray(children)) {
-    return children.map((child) => {
-      return <Render key={child?.key}>{child}</Render>;
+    return Children.map(children, (child) => {
+      return <Render>{child}</Render>
     })
+    // return children.map((child) => {
+    //   console.log("child?.key => ", child?.key)
+    //   return <Render key={child?.key}>{child}</Render>;
+    // })
   }
 
   if (isValidElement(children)) {
