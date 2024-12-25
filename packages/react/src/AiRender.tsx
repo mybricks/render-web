@@ -1,4 +1,4 @@
-import React, { isValidElement, cloneElement, createContext, useContext, Component, forwardRef, useMemo, useCallback } from "react";
+import React, { isValidElement, cloneElement, createContext, useContext, Component, forwardRef, useMemo, useCallback, Children } from "react";
 import type { PropsWithChildren, ReactElement } from "react";
 
 const REACT_ELEMENT_TYPE = Symbol.for('react.element');
@@ -237,11 +237,11 @@ const ForwardRefNext = ({ children }: NextProps) => {
         }
       })
     }
-    return cloneElement(children, {
-      children: Array.isArray(nextChildren) ? nextChildren.map((child) => {
-        return <Render>{child}</Render>
-      }) : <Render>{nextChildren}</Render> 
-    })
+    // return cloneElement(children, {
+    //   children: Array.isArray(nextChildren) ? nextChildren.map((child) => {
+    //     return <Render>{child}</Render>
+    //   }) : <Render>{nextChildren}</Render> 
+    // })
   }
 
   if (!type.render.__airender__) {
