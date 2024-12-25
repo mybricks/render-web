@@ -117,9 +117,7 @@ const Render = ({ _data, children }: PropsWithChildren<{ _data?: any }>) => {
         )
       } else {
         return (
-          <Next>{cloneElement(children, {
-            [proKey]: null
-          })}</Next>
+          <Next>{children}</Next>
         )
       }
     }
