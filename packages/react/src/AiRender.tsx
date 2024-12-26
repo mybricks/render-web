@@ -80,14 +80,19 @@ const ProxyNext = ({ children, mergeProps }: any) => {
   )
 }
 
-const Render = ({ _data, children }: PropsWithChildren<{ _data?: any }>) => {
-  if (_data) {
+const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any }>) => {
+  if (_initData) {
     return (
-      <Provider value={{ _data }}>
+      <Provider value={{ _data: _initData }}>
         <Render>{children}</Render>
       </Provider>
     )
   }
+  const { _key: _contextKey, _data } = useContext(Context);
+  if (!_data) {
+    return children;
+  }
+  
   if (Array.isArray(children)) {
     return Children.map(children, (child) => {
       return <Render>{child}</Render>
@@ -102,7 +107,7 @@ const Render = ({ _data, children }: PropsWithChildren<{ _data?: any }>) => {
     const { props } = children;
     const _key = props[proKey]
     if (_key) {
-      const { _key: _contextKey, _data } = useContext(Context);
+      // const { _key: _contextKey, _data } = useContext(Context);
 
       if (_key !== _contextKey) {
         // 新的key
@@ -303,7 +308,6 @@ const MemoNext = ({ children }: NextProps) => {
   const { type, props } = children as any;
 
   if (typeof type.type === 'function') {
-    return children;
     const next = type.type(props)
     return <Render>{next}</Render>
   } if (type.type["$$typeof"] === REACT_FORWARD_REF_TYPE) {
