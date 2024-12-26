@@ -303,6 +303,7 @@ const MemoNext = ({ children }: NextProps) => {
   const { type, props } = children as any;
 
   if (typeof type.type === 'function') {
+    return children;
     const next = type.type(props)
     return <Render>{next}</Render>
   } if (type.type["$$typeof"] === REACT_FORWARD_REF_TYPE) {
