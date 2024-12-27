@@ -1,4 +1,4 @@
-import React, { isValidElement, cloneElement, createElement, createContext, useContext, Component, forwardRef, useMemo, useCallback, Children } from "react";
+import React, { isValidElement, cloneElement, createContext, useContext, Component, forwardRef, useMemo, useCallback, Children } from "react";
 import type { PropsWithChildren, ReactElement } from "react";
 
 const REACT_ELEMENT_TYPE = Symbol.for('react.element');
@@ -280,28 +280,18 @@ const ForwardRefNext = ({ children }: NextProps) => {
     // })
   }
 
-  const oriRender = type.render;
-
-  return createElement({
-    ...type,
-    render: (...args: any) => {
-      const res = oriRender(...args)
-      return <Render>{res}</Render>
-    }
-  }, props)
-
-  // if (type.__airender__ || !type.__runairender__) {
-  //   renderFunctionHijack({
-  //     type,
-  //     render: type.render,
-  //     next: (oriRender) => {
-  //       type.render = (...args) => {
-  //         const res = oriRender(...args)
-  //         return <Render>{res}</Render>
-  //       };
-  //     }
-  //   })
-  // }
+  if (type.__airender__ || !type.__runairender__) {
+    renderFunctionHijack({
+      type,
+      render: type.render,
+      next: (oriRender) => {
+        type.render = (...args) => {
+          const res = oriRender(...args)
+          return <Render>{res}</Render>
+        };
+      }
+    })
+  }
 
   return children;
 }
@@ -340,28 +330,19 @@ const FunctionNext = ({ children }: NextProps) => {
   const { type, props } = children as any;
 
   if ((type as any).prototype instanceof Component) {
-    return cloneElement({
-      ...children,
-      type: class Com extends type {
-        render() {
-          const res = super.render();
-          return <Render>{res}</Render>
+    if (type.__airender__ || !type.__runairender__) {
+      renderFunctionHijack({
+        type,
+        render: type.prototype.render,
+        next: (oriRender) => {
+          type.prototype.render = function () {
+            const res = oriRender.call(this)
+            return <Render>{res}</Render>
+          };
         }
-      }
-    }, props);
-    // if (type.__airender__ || !type.__runairender__) {
-    //   renderFunctionHijack({
-    //     type,
-    //     render: type.prototype.render,
-    //     next: (oriRender) => {
-    //       type.prototype.render = function () {
-    //         const res = oriRender.call(this)
-    //         return <Render>{res}</Render>
-    //       };
-    //     }
-    //   })
-    // }
-    // return children
+      })
+    }
+    return children
   }
 
   return <Render>{type(props)}</Render>
