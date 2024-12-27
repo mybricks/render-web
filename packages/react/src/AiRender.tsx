@@ -81,17 +81,17 @@ const ProxyNext = ({ children, mergeProps }: any) => {
 }
 
 const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any }>) => {
-  if (_initData) {
-    return (
-      <Provider value={{ _data: _initData }}>
-        <Render>{children}</Render>
-      </Provider>
-    )
-  }
-  const { _key: _contextKey, _data } = useContext(Context);
-  if (!_data) {
-    return children;
-  }
+  // if (_initData) {
+  //   return (
+  //     <Provider value={{ _data: _initData }}>
+  //       <Render>{children}</Render>
+  //     </Provider>
+  //   )
+  // }
+  // const { _key: _contextKey, _data } = useContext(Context);
+  // if (!_data) {
+  //   return children;
+  // }
   
   if (Array.isArray(children)) {
     return Children.map(children, (child) => {
@@ -107,23 +107,28 @@ const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any 
     const { props } = children;
     const _key = props[proKey]
     if (_key) {
-      // const { _key: _contextKey, _data } = useContext(Context);
+      const { _key: _contextKey } = useContext(Context);
 
       if (_key !== _contextKey) {
         // 新的key
-        const mergeProps = _data[_key];
-
         return (
-          <Provider value={{ _key, _data }}>
-            {mergeProps ? (
-              <ProxyNext mergeProps={mergeProps}>
-               {children}
-              </ProxyNext>
-            ) : (
-              <Next>{children}</Next>
-            )}
+          <Provider value={{ _key }}>
+            <Next>{children}</Next>
           </Provider>
         )
+        // const mergeProps = _data[_key];
+
+        // return (
+        //   <Provider value={{ _key, _data }}>
+        //     {mergeProps ? (
+        //       <ProxyNext mergeProps={mergeProps}>
+        //        {children}
+        //       </ProxyNext>
+        //     ) : (
+        //       <Next>{children}</Next>
+        //     )}
+        //   </Provider>
+        // )
       } else {
         return (
           <Next>{cloneElement(children, {
