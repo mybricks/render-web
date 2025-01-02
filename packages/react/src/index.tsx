@@ -123,6 +123,7 @@ class Context {
     if (!env.mybricksSdk) {
       env.mybricksSdk = {
         comRef: (fn) => fn,
+        comDef: (fn) => fn,
         renderCom: (Fn, props = {}) => {
           const { props: nextProps = {} } = props;
           return <Fn {...nextProps}/>
@@ -678,37 +679,42 @@ class Stylization {
           css: styleMap
         }
         root.appendChild(styleTag);
+        
+        let innerHTML = "";
 
         Object.entries(styleMap).forEach(([key, value]: any) => {
-          styleTag.sheet!.insertRule(`${key} {${Object.entries(value).map(([key, value]) => {
+          innerHTML += `${key} {${Object.entries(value).map(([key, value]) => {
             return `${key}: ${value};`
-          }).join("")}}`)
+          }).join("")}}`
         })
+        styleTag.innerHTML = innerHTML
+
       } else {
         const { tag: styleTag, css } = _css;
-        const cssRulesMap: any = Array.from(styleTag.sheet.cssRules).reduce((p: any, c: any) => {
-          p[c.selectorText] = c;
-          return p;
-        }, {});
         Object.entries(styleMap).forEach(([key, value]: any) => {
-          const cssRuleStyle = cssRulesMap[key]?.style;
-          if (cssRuleStyle) {
+          const style = css[key];
+          if (style) {
             const style = css[key];
             Object.entries(value).forEach(([key, value]) => {
-              if (notOverwrite && cssRuleStyle[key]) {
+              if (notOverwrite && style[key]) {
                 // 不允许覆盖，并且已经有相同的key了
                 return
               }
               style[key] = value;
-              cssRuleStyle[key] = value;
             })
           } else {
             css[key] = value;
-            styleTag.sheet!.insertRule(`${key} {${Object.entries(value).map(([key, value]) => {
-              return `${key}: ${value};`
-            }).join("")}}`)
           }
         })
+
+        let innerHTML = "";
+
+        Object.entries(css).forEach(([key, value]: any) => {
+          innerHTML += `${key} {${Object.entries(value).map(([key, value]) => {
+            return `${key}: ${value};`
+          }).join("")}}`
+        })
+        styleTag.innerHTML = innerHTML
       }
     }
   }
