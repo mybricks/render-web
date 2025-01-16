@@ -1,11 +1,3 @@
-// const log = console.log;
-
-// console.log = (...args) => {
-//   if (args[0] === 1) {
-//     return log("toCode => ", ...args.slice(1));
-//   }
-// };
-
 import * as CSS from "csstype";
 
 interface Style extends CSS.Properties {
@@ -66,6 +58,7 @@ interface Scene {
   coms: Record<string, ComInfo>;
   pinRels: Record<string, string[]>;
   deps: Def[];
+  comsAutoRun: Record<string, { id: string }[]>;
 }
 
 interface DiagramCon {
@@ -92,8 +85,12 @@ interface Diagram {
   id: string;
   starter: {
     comId: string;
+    frameId: string;
     pinId: string;
-    type: "com";
+    pinAry: {
+      id: string;
+    }[];
+    type: "com" | "frame";
   };
   conAry: DiagramCon[];
 }
@@ -140,8 +137,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
       (pre, cur) => {
         const [npm, dependency] = cur;
         return (
-          pre +
-          `import { ${Array.from(dependency).join(", ")} } from "${npm}";\n`
+          pre + `import { ${Array.from(dependency).join(", ")} } from "${npm}";`
         );
       },
       "",
@@ -191,11 +187,15 @@ class Code {
 
     const nextCode: string[] = [];
 
-    Object.entries(this.events).forEach(([, diagramId]) => {
-      const diagram = this.frame.diagrams.find(
-        (diagram) => diagram.id === diagramId,
-      )!;
+    // Object.entries(this.events).forEach(([, diagramId]) => {
+    //   const diagram = this.frame.diagrams.find(
+    //     (diagram) => diagram.id === diagramId,
+    //   )!;
 
+    //   nextCode.push(this.handleDiagram(diagram));
+    // });
+
+    this.frame.diagrams.forEach((diagram) => {
       nextCode.push(this.handleDiagram(diagram));
     });
 
@@ -210,35 +210,170 @@ class Code {
     // console.log(1, "当前 处理 diagram => ", diagram);
     const { starter, conAry } = diagram;
 
-    const startNodes = conAry.filter(
-      (con) =>
-        con.from.id === starter.pinId && con.from.parent.id === starter.comId,
-    );
+    if (
+      diagram.starter.type === "frame" &&
+      diagram.starter.frameId === this.scene.id
+    ) {
+      // useEffect 卡片 main
+      // [TODO]: 先默认只有一个输入，下一步fx考虑多输入了
+      const startNodes = conAry.filter(
+        (con) => con.from.id === starter.pinAry[0].id,
+      );
 
-    // 步骤
-    let nextStep = 0;
+      // main卡片默认是_rootFrame_
+      const comsAutoRun = this.scene.comsAutoRun["_rootFrame_"];
 
-    // 节点声明
-    const nodesDeclaration = new Set();
+      // 节点声明
+      const nodesDeclaration = new Set<string>();
 
-    // 节点调用
-    const nodesInvocation = new Set();
+      // 节点调用
+      const nodesInvocation = new Set<string>();
 
-    // 记录多输入，当全部到达后，写入代码
-    const multipleInputsNodes: Record<
+      // 记录多输入，当全部到达后，写入代码
+      const multipleInputsNodes: Record<
+        string,
+        {
+          step: number[];
+          value: string[];
+          inputsTitle: string[];
+        }
+      > = {};
+
+      const res = this.handleDiagramNext({
+        startNodes,
+        diagram,
+        defaultValue: "undefined",
+        nextStep: startNodes.length - 1,
+        nodesDeclaration,
+        nodesInvocation,
+        multipleInputsNodes,
+      });
+
+      if (comsAutoRun) {
+        comsAutoRun.reduce((cur, pre) => {
+          const startNodes = conAry.filter(
+            (con) => con.from.parent.id === pre.id,
+          );
+
+          const res = this.handleDiagramNext({
+            startNodes: [
+              {
+                from: {
+                  id: "",
+                  title: "",
+                  parent: {
+                    id: "",
+                  },
+                },
+                id: "",
+                to: {
+                  id: "",
+                  title: "自动执行",
+                  parent: {
+                    id: pre.id,
+                  },
+                },
+              },
+            ],
+            diagram,
+            defaultValue: "",
+            nextStep: cur + startNodes.length,
+            nodesDeclaration,
+            nodesInvocation,
+            multipleInputsNodes,
+          });
+
+          return res.nextStep;
+        }, res.nextStep);
+      }
+
+      return `useEffect(() => {
+      ${nodesDeclaration.size ? "// 节点声明" : ""}
+      ${Array.from(nodesDeclaration).join("\n")}
+
+      ${Array.from(nodesInvocation).join("\n\n")}
+      }, [])`;
+    } else {
+      const startNodes = conAry.filter(
+        (con) =>
+          con.from.id === starter.pinId && con.from.parent.id === starter.comId,
+      );
+
+      const toComInfo = this.scene.coms[starter.comId];
+      const componentName = generateComponentNameByDef(toComInfo.def);
+
+      // 节点声明
+      const nodesDeclaration = new Set<string>();
+
+      // 节点调用
+      const nodesInvocation = new Set<string>();
+
+      // 记录多输入，当全部到达后，写入代码
+      const multipleInputsNodes: Record<
+        string,
+        {
+          step: number[];
+          value: string[];
+          inputsTitle: string[];
+        }
+      > = {};
+
+      this.handleDiagramNext({
+        startNodes,
+        diagram,
+        defaultValue: "value",
+        nextStep: startNodes.length - 1,
+        nodesDeclaration,
+        nodesInvocation,
+        multipleInputsNodes,
+      });
+
+      // const { nodesInvocation, nodesDeclaration } = this.handleDiagramNext({
+      //   startNodes,
+      //   diagram,
+      //   defaultValue: "value",
+      // });
+
+      return `const ${componentName}_${starter.comId}_${starter.pinId} = (value) => {
+        ${nodesDeclaration.size ? "// 节点声明" : ""}
+        ${Array.from(nodesDeclaration).join("\n")}
+  
+        ${Array.from(nodesInvocation).join("\n\n")}
+      }`;
+    }
+  }
+
+  handleDiagramNext({
+    startNodes,
+    diagram,
+    defaultValue,
+    nextStep,
+    nodesDeclaration,
+    nodesInvocation,
+    multipleInputsNodes,
+  }: {
+    startNodes: DiagramCon[];
+    diagram: Diagram;
+    defaultValue: string;
+    nextStep: number;
+    nodesDeclaration: Set<string>;
+    nodesInvocation: Set<string>;
+    multipleInputsNodes: Record<
       string,
       {
         step: number[];
         value: string[];
         inputsTitle: string[];
       }
-    > = {};
+    >;
+  }) {
+    const { conAry } = diagram;
 
     const handleNext = (
       nodes: DiagramCon[],
       { value, currentNextStep }: { value: string; currentNextStep: number },
     ) => {
-      nodes.forEach((node, index) => {
+      nodes.forEach((node, nodeIndex) => {
         const toComInfo = this.scene.coms[node.to.parent.id];
         const componentName = generateComponentNameByDef(toComInfo.def);
 
@@ -252,9 +387,9 @@ class Code {
 
         nextStep++;
 
-        const isJsMultipleInputs = validateJsMultipleInputs(
-          toComInfo.inputs[0],
-        );
+        const isJsMultipleInputs = toComInfo.inputs[0] // 没有输入默认判定为启始组件
+          ? validateJsMultipleInputs(toComInfo.inputs[0])
+          : false;
 
         if (isJsMultipleInputs) {
           // 多输入，需要等待输入到达，且入参为数组
@@ -269,19 +404,24 @@ class Code {
             (inputId) => inputId === node.to.id,
           );
 
+          nextStep--;
+
           // multipleInputsNodes[toComInfo.id].step[inputIndex] = nextStep - 1;
-          multipleInputsNodes[toComInfo.id].step[inputIndex] = currentNextStep;
+          multipleInputsNodes[toComInfo.id].step[inputIndex] =
+            currentNextStep + nodeIndex;
           multipleInputsNodes[toComInfo.id].value[inputIndex] = value;
           multipleInputsNodes[toComInfo.id].inputsTitle[inputIndex] =
             node.to.title;
 
           if (
-            multipleInputsNodes[toComInfo.id].value.length !==
+            multipleInputsNodes[toComInfo.id].value.filter((v) => v).length !==
             toComInfo.inputs.length
           ) {
             // 输入没有完全到达，不走到下一步
             return;
           }
+
+          nextStep++;
         }
 
         const nextMap: Record<
@@ -347,7 +487,7 @@ class Code {
               .join(", ")}`;
           });
         } else {
-          notes = `// [${currentNextStep + index}] -> (${node.to.title}) ${toComInfo.title}`;
+          notes = `// [${currentNextStep + nodeIndex}] -> (${node.to.title}) ${toComInfo.title}`;
 
           Object.entries(nextMap).forEach(([, { from, conAry }]) => {
             notes += `\n// ${from.from.title} >> ${conAry
@@ -394,37 +534,25 @@ class Code {
       });
     };
 
-    const startNotes: string[] = [];
-    startNodes.forEach((startNode, index) => {
-      const toComInfo = this.scene.coms[startNode.to.parent.id];
-      startNotes.push(
-        `// ${startNode.from.title}开始 >> [${index}] (${startNode.to.title}) ${toComInfo.title}`,
-      );
-    });
+    if (defaultValue) {
+      const startNotes: string[] = [];
+      startNodes.forEach((startNode, index) => {
+        const toComInfo = this.scene.coms[startNode.to.parent.id];
+        // nextStep = index;
+        startNotes.push(
+          `// ${startNode.from.title}开始 >> [${index}] (${startNode.to.title}) ${toComInfo.title}`,
+        );
+      });
 
-    nodesInvocation.add(startNotes.join("\n"));
+      nodesInvocation.add(startNotes.join("\n"));
+    }
 
     handleNext(startNodes, {
-      value: "value",
-      currentNextStep: 0,
+      value: defaultValue,
+      currentNextStep: nextStep,
     });
 
-    const toComInfo = this.scene.coms[starter.comId];
-    const componentName = generateComponentNameByDef(toComInfo.def);
-
-    // console.log(1, "整体 res => ", {
-    //   nodesInvocation,
-    //   nodesDeclaration,
-    // });
-
-    // console.log(1, "JS部分 => ", Array.from(nodesInvocation).join("\n\n"));
-
-    return `const ${componentName}_${starter.comId}_${starter.pinId} = (value) => {
-      ${nodesDeclaration.size ? "// 节点声明" : ""}
-      ${Array.from(nodesDeclaration).join("\n")}
-
-      ${Array.from(nodesInvocation).join("\n\n")}
-    }`;
+    return { nodesInvocation, nodesDeclaration, nextStep };
   }
 
   toCode() {

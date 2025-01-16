@@ -38,17 +38,39 @@ const Hoc = forwardRef((props: Props, ref) => {
       const observableData = observable(data);
       const registeredRef: Record<string, (value: Subject<unknown>) => void> = {
         show(value: Subject<unknown>) {
-          value.subscribe(() => {
+          if (value?.subscribe) {
+            value.subscribe(() => {
+              setDisplay("");
+            });
+          } else {
             setDisplay("");
-          });
+          }
         },
         hide(value: Subject<unknown>) {
-          value.subscribe(() => {
+          if (value?.subscribe) {
+            value.subscribe(() => {
+              setDisplay("none");
+            });
+          } else {
             setDisplay("none");
-          });
+          }
         },
         showOrHide(value: Subject<unknown>) {
-          value.subscribe((value) => {
+          if (value?.subscribe) {
+            value.subscribe((value) => {
+              setDisplay((display) => {
+                if (typeof value === "undefined") {
+                  if (display === "none") {
+                    return "";
+                  } else {
+                    return "none";
+                  }
+                } else {
+                  return value ? "" : "none";
+                }
+              });
+            });
+          } else {
             setDisplay((display) => {
               if (typeof value === "undefined") {
                 if (display === "none") {
@@ -60,7 +82,7 @@ const Hoc = forwardRef((props: Props, ref) => {
                 return value ? "" : "none";
               }
             });
-          });
+          }
         },
       };
       const inputs = new Proxy(
@@ -71,7 +93,25 @@ const Hoc = forwardRef((props: Props, ref) => {
               registeredRef[key] = (value) => {
                 const rels: Record<string, Subject<unknown>> = {};
 
-                value.subscribe((value) => {
+                if (value?.subscribe) {
+                  value.subscribe((value) => {
+                    input(
+                      value,
+                      new Proxy(
+                        {},
+                        {
+                          get(target, key: string) {
+                            return (value: unknown) => {
+                              (rels[key] || (rels[key] = new Subject())).next(
+                                value,
+                              );
+                            };
+                          },
+                        },
+                      ),
+                    );
+                  });
+                } else {
                   input(
                     value,
                     new Proxy(
@@ -87,7 +127,7 @@ const Hoc = forwardRef((props: Props, ref) => {
                       },
                     ),
                   );
-                });
+                }
 
                 return new Proxy(
                   {},

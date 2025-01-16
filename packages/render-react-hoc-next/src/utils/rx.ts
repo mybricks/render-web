@@ -6,6 +6,10 @@ export class Subject<T> {
 
   constructor() {}
 
+  get value() {
+    return this._values[0];
+  }
+
   next(value: T) {
     this._values[0] = value;
     this._observers.forEach((observer) => observer(value));

@@ -2,6 +2,7 @@
 import { RegisterInput } from "./types";
 import { Subject } from "@/utils/rx";
 import context from "./context";
+import { Empty } from "./constants";
 
 interface Props {
   props: {
@@ -70,14 +71,35 @@ const hoc = (props: Props) => {
     outputs,
   });
 
-  return (value: Subject<unknown> | Subject<unknown>[]) => {
+  return (
+    value: Subject<unknown> | Subject<unknown>[] | typeof Empty = Empty,
+  ) => {
     if (Array.isArray(value)) {
       const length = value.length;
       let valueAry: Record<string, unknown> = {};
       value.forEach((value, index) => {
-        value.subscribe((value) => {
+        if (value?.subscribe) {
+          value.subscribe((value) => {
+            valueAry[componentProps.inputs[index]] = value;
+            if (Object.keys(valueAry).length === length) {
+              valueInput(
+                valueAry,
+                new Proxy(
+                  {},
+                  {
+                    get(target, key: string) {
+                      return (value: unknown) => {
+                        (rels[key] || (rels[key] = new Subject())).next(value);
+                      };
+                    },
+                  },
+                ),
+              );
+              valueAry = {};
+            }
+          });
+        } else {
           valueAry[componentProps.inputs[index]] = value;
-
           if (Object.keys(valueAry).length === length) {
             valueInput(
               valueAry,
@@ -94,24 +116,42 @@ const hoc = (props: Props) => {
             );
             valueAry = {};
           }
-        });
+        }
       });
     } else {
-      value.subscribe((value) => {
-        valueInput(
-          value,
-          new Proxy(
-            {},
-            {
-              get(target, key: string) {
-                return (value: unknown) => {
-                  (rels[key] || (rels[key] = new Subject())).next(value);
-                };
+      if (value !== Empty) {
+        if (value?.subscribe) {
+          value.subscribe((value) => {
+            valueInput(
+              value,
+              new Proxy(
+                {},
+                {
+                  get(target, key: string) {
+                    return (value: unknown) => {
+                      (rels[key] || (rels[key] = new Subject())).next(value);
+                    };
+                  },
+                },
+              ),
+            );
+          });
+        } else {
+          valueInput(
+            value,
+            new Proxy(
+              {},
+              {
+                get(target, key: string) {
+                  return (value: unknown) => {
+                    (rels[key] || (rels[key] = new Subject())).next(value);
+                  };
+                },
               },
-            },
-          ),
-        );
-      });
+            ),
+          );
+        }
+      }
     }
 
     return new Proxy(
