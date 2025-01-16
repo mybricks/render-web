@@ -144,7 +144,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
     );
 
     res = `
-      import React, { useRef } from "react"
+      import React, { useRef, useEffect } from "react"
       ${dependencyImportCode}
       import { Provider } from "@mybricks/render-react-hoc";
 

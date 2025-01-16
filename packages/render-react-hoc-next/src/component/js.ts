@@ -2,7 +2,6 @@
 import { RegisterInput } from "./types";
 import { Subject } from "@/utils/rx";
 import context from "./context";
-import { Empty } from "./constants";
 
 interface Props {
   props: {
@@ -71,15 +70,15 @@ const hoc = (props: Props) => {
     outputs,
   });
 
-  return (
-    value: Subject<unknown> | Subject<unknown>[] | typeof Empty = Empty,
-  ) => {
+  return function (
+    value?: Subject<unknown> | Array<Subject<unknown> | unknown> | unknown,
+  ) {
     if (Array.isArray(value)) {
       const length = value.length;
       let valueAry: Record<string, unknown> = {};
       value.forEach((value, index) => {
         if (value?.subscribe) {
-          value.subscribe((value) => {
+          (value as Subject).subscribe((value) => {
             valueAry[componentProps.inputs[index]] = value;
             if (Object.keys(valueAry).length === length) {
               valueInput(
@@ -119,9 +118,9 @@ const hoc = (props: Props) => {
         }
       });
     } else {
-      if (value !== Empty) {
-        if (value?.subscribe) {
-          value.subscribe((value) => {
+      if (arguments.length) {
+        if ((value as Subject)?.subscribe) {
+          (value as Subject).subscribe((value) => {
             valueInput(
               value,
               new Proxy(

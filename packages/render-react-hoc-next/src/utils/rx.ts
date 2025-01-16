@@ -1,6 +1,6 @@
-type Observer<T> = (value: T) => void;
+type Observer<T = unknown> = (value: T) => void;
 
-export class Subject<T> {
+export class Subject<T = unknown> {
   _values: T[] = [];
   _observers: Set<Observer<T>> = new Set();
 
