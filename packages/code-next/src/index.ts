@@ -65,6 +65,7 @@ interface Scene {
   slot: Slot;
   coms: Record<string, ComInfo>;
   pinRels: Record<string, string[]>;
+  deps: Def[];
 }
 
 interface DiagramCon {
@@ -107,24 +108,63 @@ interface ToJSON {
   scenes: Scene[];
 }
 
-const toCode = (tojson: ToJSON) => {
+interface Config {
+  /** 组件namespace到npm包的映射 */
+  namespaceToNpmMap: Record<string, string>;
+}
+
+const toCode = (tojson: ToJSON, config: Config) => {
   const { frames, scenes } = tojson;
+  const { namespaceToNpmMap } = config;
 
   let res = "";
 
   scenes.forEach((scene) => {
     // 找到对应的scene对应的frame
     const frame = frames.find((frame) => frame.id === scene.id);
-
     const code = new Code(scene, frame!);
     const { ui, js } = code.toCode();
+    const dependencyImport: Record<string, Set<string>> = {};
+
+    scene.deps.forEach((def) => {
+      const npm = namespaceToNpmMap[def.namespace];
+
+      if (!dependencyImport[npm]) {
+        dependencyImport[npm] = new Set();
+      }
+
+      dependencyImport[npm].add(generateComponentNameByDef(def));
+    });
+
+    const dependencyImportCode = Object.entries(dependencyImport).reduce(
+      (pre, cur) => {
+        const [npm, dependency] = cur;
+        return (
+          pre +
+          `import { ${Array.from(dependency).join(", ")} } from "${npm}";\n`
+        );
+      },
+      "",
+    );
 
     res = `
-      ${js}
+      import React, { useRef } from "react"
+      ${dependencyImportCode}
 
-      return (
-        ${ui}
-      )
+      export default function () {
+        ${js}
+
+        return (
+          <Provider
+            env={{
+              runtime: true,
+              i18n: (value) => value
+            }}
+          >
+            ${ui}
+          </Provider>
+        )
+      }
     `;
   });
 
