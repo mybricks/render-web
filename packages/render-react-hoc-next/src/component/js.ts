@@ -2,6 +2,7 @@
 import { RegisterInput } from "./types";
 import { Subject } from "@/utils/rx";
 import context from "./context";
+import { validateJsMultipleInputs } from "../utils/normal";
 
 interface Props {
   props: {
@@ -70,14 +71,30 @@ const hoc = (props: Props) => {
     outputs,
   });
 
-  return function (
-    value?: Subject<unknown> | Array<Subject<unknown> | unknown> | unknown,
-  ) {
-    if (Array.isArray(value)) {
-      const length = value.length;
+  const isJsMultipleInputs = componentProps.inputs[0]
+    ? validateJsMultipleInputs(componentProps.inputs[0])
+    : false;
+
+  const exeOutputs = new Proxy(
+    {},
+    {
+      get(target, key: string) {
+        return rels[key] || (rels[key] = new Subject());
+      },
+    },
+  );
+
+  const exe = () => {
+    return exeOutputs;
+  };
+
+  exe.input = (...args: Array<Subject | unknown>) => {
+    if (isJsMultipleInputs) {
+      // 多输入模式
+      const length = args.length;
       let valueAry: Record<string, unknown> = {};
-      value.forEach((value, index) => {
-        if (value?.subscribe) {
+      args.forEach((value, index) => {
+        if ((value as Subject)?.subscribe) {
           (value as Subject).subscribe((value) => {
             valueAry[componentProps.inputs[index]] = value;
             if (Object.keys(valueAry).length === length) {
@@ -118,24 +135,9 @@ const hoc = (props: Props) => {
         }
       });
     } else {
-      if (arguments.length) {
-        if ((value as Subject)?.subscribe) {
-          (value as Subject).subscribe((value) => {
-            valueInput(
-              value,
-              new Proxy(
-                {},
-                {
-                  get(target, key: string) {
-                    return (value: unknown) => {
-                      (rels[key] || (rels[key] = new Subject())).next(value);
-                    };
-                  },
-                },
-              ),
-            );
-          });
-        } else {
+      const value = args[0];
+      if ((value as Subject)?.subscribe) {
+        (value as Subject).subscribe((value) => {
           valueInput(
             value,
             new Proxy(
@@ -149,19 +151,28 @@ const hoc = (props: Props) => {
               },
             ),
           );
-        }
+        });
+      } else {
+        valueInput(
+          value,
+          new Proxy(
+            {},
+            {
+              get(target, key: string) {
+                return (value: unknown) => {
+                  (rels[key] || (rels[key] = new Subject())).next(value);
+                };
+              },
+            },
+          ),
+        );
       }
     }
 
-    return new Proxy(
-      {},
-      {
-        get(target, key: string) {
-          return rels[key] || (rels[key] = new Subject());
-        },
-      },
-    );
+    return exeOutputs;
   };
+
+  return exe;
 };
 
 export default hoc;

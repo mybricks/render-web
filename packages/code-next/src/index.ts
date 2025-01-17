@@ -504,7 +504,7 @@ class Code {
           nodesInvocation.add(
             notes +
               "\n" +
-              `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}(${isJsMultipleInputs ? `[${multipleInputsNodes[toComInfo.id].value.join(", ")}]` : value})`,
+              `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}${node.to.id ? `.input` : ""}(${isJsMultipleInputs ? `${multipleInputsNodes[toComInfo.id].value.join(", ")}` : value})`,
           );
         } else {
           nodesInvocation.add(
