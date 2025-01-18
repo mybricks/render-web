@@ -35,7 +35,8 @@ interface ComInfo {
   title: string;
   def: Def;
   model: {
-    data: [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    data: Record<string, any>;
     style: Style;
     outputEvents: Record<
       string,
@@ -50,6 +51,9 @@ interface ComInfo {
   };
   outputs: string[];
   inputs: string[];
+  ioProxy: {
+    id: string;
+  };
 }
 
 interface Scene {
@@ -75,6 +79,7 @@ interface DiagramCon {
     title: string;
     parent: {
       id: string;
+      type: "frame" | "com";
     };
   };
   finishPinParentKey?: string;
@@ -83,12 +88,14 @@ interface DiagramCon {
 
 interface Diagram {
   id: string;
+  title: string;
   starter: {
     comId: string;
     frameId: string;
     pinId: string;
     pinAry: {
       id: string;
+      title: string;
     }[];
     type: "com" | "frame";
   };
@@ -98,6 +105,15 @@ interface Diagram {
 interface Frame {
   id: string;
   diagrams: Diagram[];
+  frames: Frame[];
+  inputs: {
+    type: "normal" | "config";
+    pinId: string;
+  }[];
+  outputs: {
+    id: string;
+    title: string;
+  }[];
 }
 
 interface ToJSON {
@@ -124,6 +140,10 @@ const toCode = (tojson: ToJSON, config: Config) => {
     const dependencyImport: Record<string, Set<string>> = {};
 
     scene.deps.forEach((def) => {
+      if (["mybricks.core-comlib.fn"].includes(def.namespace)) {
+        // 内置组件，需要过滤
+        return;
+      }
       const npm = namespaceToNpmMap[def.namespace];
 
       if (!dependencyImport[npm]) {
@@ -146,7 +166,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
     res = `
       import React, { useRef, useEffect } from "react"
       ${dependencyImportCode}
-      import { Provider } from "@mybricks/render-react-hoc";
+      import { Provider, merge } from "@mybricks/render-react-hoc";
 
       export default function () {
         ${js}
@@ -198,6 +218,9 @@ class Code {
     this.frame.diagrams.forEach((diagram) => {
       nextCode.push(this.handleDiagram(diagram));
     });
+    this.frame.frames.forEach(({ diagrams }) => {
+      nextCode.push(this.handleDiagram(diagrams[0]));
+    });
 
     return (
       Array.from(this.refs).join("\n") +
@@ -215,9 +238,9 @@ class Code {
       diagram.starter.frameId === this.scene.id
     ) {
       // useEffect 卡片 main
-      // [TODO]: 先默认只有一个输入，下一步fx考虑多输入了
+      // 一定只有一个输入，后续有多个输入的话再看下
       const startNodes = conAry.filter(
-        (con) => con.from.id === starter.pinAry[0].id,
+        (con) => con.from.parent.id === starter.frameId,
       );
 
       // main卡片默认是_rootFrame_
@@ -247,6 +270,8 @@ class Code {
         nodesDeclaration,
         nodesInvocation,
         multipleInputsNodes,
+        notesIndex: 0,
+        frameOutputs: {},
       });
 
       if (comsAutoRun) {
@@ -271,6 +296,7 @@ class Code {
                   title: "自动执行",
                   parent: {
                     id: pre.id,
+                    type: "com",
                   },
                 },
               },
@@ -281,6 +307,8 @@ class Code {
             nodesDeclaration,
             nodesInvocation,
             multipleInputsNodes,
+            notesIndex: 0,
+            frameOutputs: {},
           });
 
           return res.nextStep;
@@ -293,7 +321,79 @@ class Code {
 
       ${Array.from(nodesInvocation).join("\n\n")}
       }, [])`;
+    } else if (diagram.starter.type === "frame") {
+      // fx
+
+      // 节点声明
+      const nodesDeclaration = new Set<string>();
+
+      // 节点调用
+      const nodesInvocation = new Set<string>();
+
+      // 记录多输入，当全部到达后，写入代码
+      const multipleInputsNodes: Record<
+        string,
+        {
+          step: number[];
+          value: string[];
+          inputsTitle: string[];
+        }
+      > = {};
+
+      // 记录卡片的输出 frameId => outputId => next
+      const frameOutputs: Record<string, Set<string>> = {};
+
+      starter.pinAry.reduce((cur, { id }, index) => {
+        const startNodes = conAry.filter(
+          (con) => con.from.id === id && con.from.parent.id === starter.frameId,
+        );
+
+        const res = this.handleDiagramNext({
+          startNodes,
+          diagram,
+          defaultValue: `value${index}`,
+          nextStep: cur,
+          nodesDeclaration,
+          nodesInvocation,
+          multipleInputsNodes,
+          notesIndex: cur,
+          frameOutputs,
+        });
+
+        return res.nextStep + startNodes.length;
+      }, 0);
+
+      const frame = this.frame.frames.find((frame) => {
+        return frame.id === starter.frameId;
+      });
+
+      return `const fx_${starter.frameId} = (${starter.pinAry.map((_, index) => `value${index}`).join(", ")}) => {
+      ${nodesDeclaration.size ? "// 节点声明" : ""}
+      ${Array.from(nodesDeclaration).join("\n")}
+
+      ${Array.from(nodesInvocation).join("\n\n")}
+
+      ${
+        frame!.outputs.length
+          ? `return [${frame!.outputs.reduce((pre, { id, title }) => {
+              const outputs = frameOutputs[id];
+
+              if (outputs.size) {
+                return (
+                  pre +
+                  `\n// ${title}
+                ${outputs.size > 1 ? `merge(${Array.from(outputs).join(", ")})` : Array.from(outputs)[0]},`
+                );
+              }
+
+              return pre;
+            }, "")}
+        ]`
+          : ""
+      }
+      }`;
     } else {
+      // 组件事件卡片，只有一个输入
       const startNodes = conAry.filter(
         (con) =>
           con.from.id === starter.pinId && con.from.parent.id === starter.comId,
@@ -326,6 +426,8 @@ class Code {
         nodesDeclaration,
         nodesInvocation,
         multipleInputsNodes,
+        notesIndex: 0,
+        frameOutputs: {},
       });
 
       // const { nodesInvocation, nodesDeclaration } = this.handleDiagramNext({
@@ -351,6 +453,8 @@ class Code {
     nodesDeclaration,
     nodesInvocation,
     multipleInputsNodes,
+    notesIndex,
+    frameOutputs,
   }: {
     startNodes: DiagramCon[];
     diagram: Diagram;
@@ -366,6 +470,8 @@ class Code {
         inputsTitle: string[];
       }
     >;
+    notesIndex: number;
+    frameOutputs: Record<string, Set<string>>;
   }) {
     const { conAry } = diagram;
 
@@ -374,12 +480,22 @@ class Code {
       { value, currentNextStep }: { value: string; currentNextStep: number },
     ) => {
       nodes.forEach((node, nodeIndex) => {
+        if (node.to.parent.type === "frame") {
+          // 这里说明是卡片的输出，不需要再往下走了
+          if (!frameOutputs[node.to.id]) {
+            frameOutputs[node.to.id] = new Set();
+          }
+          frameOutputs[node.to.id].add(value);
+          return;
+        }
+
         const toComInfo = this.scene.coms[node.to.parent.id];
         const componentName = generateComponentNameByDef(toComInfo.def);
 
         const isJsComponent = validateJsComponent(toComInfo.def.rtType);
+        const isJsFx = validateJsFxComponent(toComInfo.def.namespace);
 
-        if (isJsComponent) {
+        if (isJsComponent && !isJsFx) {
           nodesDeclaration.add(
             `const ${componentName}_${toComInfo.id} = ${componentName}({data: ${JSON.stringify(toComInfo.model.data)}, inputs: ${JSON.stringify(toComInfo.inputs)}, outputs: ${JSON.stringify(toComInfo.outputs)}})`,
           );
@@ -387,9 +503,10 @@ class Code {
 
         nextStep++;
 
-        const isJsMultipleInputs = toComInfo.inputs[0] // 没有输入默认判定为启始组件
-          ? validateJsMultipleInputs(toComInfo.inputs[0])
-          : false;
+        const isJsMultipleInputs =
+          !isJsFx && toComInfo.inputs[0] // 非fx并且有输入的才需要判断是否多输入
+            ? validateJsMultipleInputs(toComInfo.inputs[0])
+            : false;
 
         if (isJsMultipleInputs) {
           // 多输入，需要等待输入到达，且入参为数组
@@ -480,6 +597,9 @@ class Code {
           Object.entries(nextMap).forEach(([, { from, conAry }], index) => {
             notes += `\n// ${from.from.title} >> ${conAry
               .map((con) => {
+                if (con.to.parent.type === "frame") {
+                  return `(${con.to.title}) ${diagram.title}`;
+                }
                 const toComInfo = this.scene.coms[con.to.parent.id];
                 nextSteps.push(nextStep + index);
                 return `[${nextStep + index}] (${con.to.title}) ${toComInfo.title}`;
@@ -492,6 +612,9 @@ class Code {
           Object.entries(nextMap).forEach(([, { from, conAry }]) => {
             notes += `\n// ${from.from.title} >> ${conAry
               .map((con, index) => {
+                if (con.to.parent.type === "frame") {
+                  return `(${con.to.title}) ${diagram.title}`;
+                }
                 const toComInfo = this.scene.coms[con.to.parent.id];
                 nextSteps.push(nextStep + index);
                 return `[${nextStep + index}] (${con.to.title}) ${toComInfo.title}`;
@@ -501,10 +624,48 @@ class Code {
         }
 
         if (isJsComponent) {
+          let nextInput = "";
+          let nextValue = value;
+          let nextId = toComInfo.id;
+          let nextComponentName = componentName;
+          let destructuringAssignment = "";
+
+          if (isJsFx) {
+            const frame = this.frame.frames.find((frame) => {
+              return frame.id === toComInfo.ioProxy.id;
+            });
+            const configs = toComInfo.model.data.configs;
+            const params = frame!.inputs.reduce((cur, pre) => {
+              if (pre.type === "config") {
+                return cur + `, ${JSON.stringify(configs[pre.pinId])}`;
+              }
+              return cur;
+            }, value);
+            nextValue = params;
+            nextId = toComInfo.ioProxy.id;
+            nextComponentName = "fx";
+            if (nextCode.length) {
+              destructuringAssignment = `const [${nextCode.map((_, index) => `${nextComponentName}_${toComInfo.id}_${index}`).join(", ")}] = `;
+            }
+          } else if (isJsMultipleInputs) {
+            nextValue = multipleInputsNodes[toComInfo.id].value.join(", ");
+            if (nextCode.length) {
+              destructuringAssignment = `const {${nextCode.join(", ")}} = `;
+            }
+          } else {
+            if (nextCode.length) {
+              destructuringAssignment = `const {${nextCode.join(", ")}} = `;
+            }
+          }
+
+          if (!isJsFx && node.to.id) {
+            nextInput = ".input";
+          }
+
           nodesInvocation.add(
             notes +
               "\n" +
-              `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}${node.to.id ? `.input` : ""}(${isJsMultipleInputs ? `${multipleInputsNodes[toComInfo.id].value.join(", ")}` : value})`,
+              `${destructuringAssignment}${nextComponentName}_${nextId}${nextInput}(${nextValue})`,
           );
         } else {
           nodesInvocation.add(
@@ -522,10 +683,18 @@ class Code {
 
         Object.entries(nextMap).forEach(
           ([outputId, { conAry, from }], index) => {
+            let value = "";
+
+            if (isJsFx) {
+              value = `fx_${toComInfo.id}_${index}`;
+            } else if (isJsComponent) {
+              value = `${componentName}_${toComInfo.id}_${outputId}`;
+            } else {
+              value = `${componentName}_${toComInfo.id}_${outputId}_${from.startPinParentKey}`;
+            }
+
             handleNext(conAry, {
-              value: isJsComponent
-                ? `${componentName}_${toComInfo.id}_${outputId}`
-                : `${componentName}_${toComInfo.id}_${outputId}_${from.startPinParentKey}`,
+              value: value,
               // currentStep: nextStep + index,
               currentNextStep: nextSteps[index],
             });
@@ -540,7 +709,7 @@ class Code {
         const toComInfo = this.scene.coms[startNode.to.parent.id];
         // nextStep = index;
         startNotes.push(
-          `// ${startNode.from.title}开始 >> [${index}] (${startNode.to.title}) ${toComInfo.title}`,
+          `// ${startNode.from.title}开始 >> [${notesIndex + index}] (${startNode.to.title}) ${toComInfo.title}`,
         );
       });
 
@@ -636,6 +805,11 @@ class Code {
 }
 
 export { toCode };
+
+/** 判断是否fx卡片类型组件 */
+const validateJsFxComponent = (namespace: string) => {
+  return namespace === "mybricks.core-comlib.fn";
+};
 
 /** 判断是否js类型组件 */
 const validateJsComponent = (type?: string) => {

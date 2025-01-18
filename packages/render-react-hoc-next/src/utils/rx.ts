@@ -26,3 +26,15 @@ export class Subject<T = unknown> {
     this._observers.delete(observer);
   }
 }
+
+export const merge = (...subjects: Subject[]) => {
+  const mergeSubject = new Subject();
+
+  subjects.forEach((subject) => {
+    subject.subscribe((value) => {
+      mergeSubject.next(value);
+    });
+  });
+
+  return mergeSubject;
+};
