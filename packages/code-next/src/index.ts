@@ -104,6 +104,7 @@ interface Diagram {
 
 interface Frame {
   id: string;
+  title: string;
   diagrams: Diagram[];
   frames: Frame[];
   inputs: {
@@ -367,7 +368,8 @@ class Code {
         return frame.id === starter.frameId;
       });
 
-      return `const fx_${starter.frameId} = (${starter.pinAry.map((_, index) => `value${index}`).join(", ")}) => {
+      return `// ${frame!.title}
+      const fx_${starter.frameId} = (${starter.pinAry.map((_, index) => `value${index}`).join(", ")}) => {
       ${nodesDeclaration.size ? "// 节点声明" : ""}
       ${Array.from(nodesDeclaration).join("\n")}
 
@@ -436,7 +438,8 @@ class Code {
       //   defaultValue: "value",
       // });
 
-      return `const ${componentName}_${starter.comId}_${starter.pinId} = (value) => {
+      return `// ${diagram.title}
+      const ${componentName}_${starter.comId}_${starter.pinId} = (value) => {
         ${nodesDeclaration.size ? "// 节点声明" : ""}
         ${Array.from(nodesDeclaration).join("\n")}
   
