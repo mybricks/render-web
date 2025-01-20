@@ -274,8 +274,13 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   }
 
   function exeCon(pInReg: any, nextScope: any, val: any, fromCon: any) {
-    const proxyDesc = PinProxies[pInReg.comId + '-' + pInReg.pinId]
+    let proxyDesc = PinProxies[pInReg.comId + '-' + pInReg.pinId]
     let inReg = pInReg
+
+    if (pInReg.frameId !== json.id) {
+      // 其他场景
+      proxyDesc = null
+    }
 
     if (proxyDesc) {
       if (proxyDesc.type === "myFrame") {

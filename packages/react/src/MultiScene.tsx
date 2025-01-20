@@ -353,6 +353,10 @@ export default function MultiScene ({json, options}) {
           }
         } else {
           if (scenes.alreadyOpened) {
+            if (pinId !== "open" && scenes._refs) {
+              // 写死判断id不是open（约定这是打开），触发输入
+              scenes._refs.inputs[pinId](value)
+            }
             return
           }
           scenes.parentScope = parentScope
@@ -527,7 +531,12 @@ export default function MultiScene ({json, options}) {
             const todo = []
             scenes.json.inputs?.forEach?.((input) => {
               const { id, mockData, type, extValues } = input
-              let value = void 0
+
+              if (id !== "open") {
+                return;
+              }
+
+              let value = void 0;
               if (options.debug) {
                 if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
                   try {
