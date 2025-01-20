@@ -4,3 +4,4 @@ hijackReactcreateElement({});
 
 export { js, Ui, Provider } from "./component";
 export { Subject, merge } from "./utils/rx";
+export { useVar } from "./hooks";

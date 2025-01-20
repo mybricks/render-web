@@ -97,7 +97,7 @@ interface Diagram {
       id: string;
       title: string;
     }[];
-    type: "com" | "frame";
+    type: "com" | "frame" | "var";
   };
   conAry: DiagramCon[];
 }
@@ -141,7 +141,11 @@ const toCode = (tojson: ToJSON, config: Config) => {
     const dependencyImport: Record<string, Set<string>> = {};
 
     scene.deps.forEach((def) => {
-      if (["mybricks.core-comlib.fn"].includes(def.namespace)) {
+      if (
+        ["mybricks.core-comlib.fn", "mybricks.core-comlib.var"].includes(
+          def.namespace,
+        )
+      ) {
         // 内置组件，需要过滤
         return;
       }
@@ -167,7 +171,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
     res = `
       import React, { useRef, useEffect } from "react"
       ${dependencyImportCode}
-      import { Provider, merge } from "@mybricks/render-react-hoc";
+      import { Provider, merge, useVar } from "@mybricks/render-react-hoc";
 
       export default function () {
         ${js}
@@ -195,6 +199,9 @@ class Code {
 
   // ref声明
   refs: Set<string> = new Set();
+
+  // 变量声明
+  vars: Set<string> = new Set();
 
   constructor(
     private scene: Scene,
@@ -226,7 +233,8 @@ class Code {
     return (
       Array.from(this.refs).join("\n") +
       (this.refs.size > 1 ? "\n\n" : "\n") +
-      nextCode.join("\n\n")
+      Array.from(this.vars).join("\n") +
+      nextCode.filter((c) => c).join("\n\n")
     );
   }
 
@@ -395,7 +403,7 @@ class Code {
       }
       }`;
     } else {
-      // 组件事件卡片，只有一个输入
+      // 组件事件卡片或者变量，只有一个输入
       const startNodes = conAry.filter(
         (con) =>
           con.from.id === starter.pinId && con.from.parent.id === starter.comId,
@@ -437,6 +445,19 @@ class Code {
       //   diagram,
       //   defaultValue: "value",
       // });
+
+      if (starter.type === "var") {
+        this.vars.add(`// ${diagram.title}
+        const var_${toComInfo.id} = useVar(${"initValue" in toComInfo.model.data ? JSON.stringify(toComInfo.model.data.initValue) : "undefined"}, (value) => {
+        ${nodesDeclaration.size ? "// 节点声明" : ""}
+        ${Array.from(nodesDeclaration).join("\n")}
+  
+        ${Array.from(nodesInvocation).join("\n\n")}
+        });
+        `);
+
+        return "";
+      }
 
       return `// ${diagram.title}
       const ${componentName}_${starter.comId}_${starter.pinId} = (value) => {
@@ -497,8 +518,10 @@ class Code {
 
         const isJsComponent = validateJsComponent(toComInfo.def.rtType);
         const isJsFx = validateJsFxComponent(toComInfo.def.namespace);
+        const isJsVar = validateJsVarComponent(toComInfo.def.namespace);
 
-        if (isJsComponent && !isJsFx) {
+        if (isJsComponent && !isJsFx && !isJsVar) {
+          // fx 变量不需要声明节点
           nodesDeclaration.add(
             `const ${componentName}_${toComInfo.id} = ${componentName}({data: ${JSON.stringify(toComInfo.model.data)}, inputs: ${JSON.stringify(toComInfo.inputs)}, outputs: ${JSON.stringify(toComInfo.outputs)}})`,
           );
@@ -507,7 +530,7 @@ class Code {
         nextStep++;
 
         const isJsMultipleInputs =
-          !isJsFx && toComInfo.inputs[0] // 非fx并且有输入的才需要判断是否多输入
+          !isJsFx && !isJsVar && toComInfo.inputs[0] // 非fx、变量并且有输入的才需要判断是否多输入
             ? validateJsMultipleInputs(toComInfo.inputs[0])
             : false;
 
@@ -555,7 +578,7 @@ class Code {
         conAry.forEach((nextCon) => {
           if (
             nextCon.from.parent.id === toComInfo.id &&
-            (isJsComponent // 如果是ui组件，单实例，根据finishPinParentKey和startPinParentKey来进行连接
+            (isJsComponent && !isJsVar // 如果是ui、变量组件，单实例，根据finishPinParentKey和startPinParentKey来进行连接
               ? true
               : node.finishPinParentKey === nextCon.startPinParentKey)
           ) {
@@ -574,9 +597,15 @@ class Code {
 
         Object.entries(nextMap).forEach(([outputId, { from }]) => {
           if (isJsComponent) {
-            nextCode.push(
-              `${outputId}: ${componentName}_${toComInfo.id}_${outputId}`,
-            );
+            if (isJsVar) {
+              nextCode.push(
+                `${componentName}_${toComInfo.id}_${from.startPinParentKey}`,
+              );
+            } else {
+              nextCode.push(
+                `${outputId}: ${componentName}_${toComInfo.id}_${outputId}`,
+              );
+            }
           } else {
             nextCode.push(
               `${outputId}: ${componentName}_${toComInfo.id}_${outputId}_${from.startPinParentKey}`,
@@ -650,6 +679,11 @@ class Code {
             if (nextCode.length) {
               destructuringAssignment = `const [${nextCode.map((_, index) => `${nextComponentName}_${toComInfo.id}_${index}`).join(", ")}] = `;
             }
+          } else if (isJsVar) {
+            nextInput = `.${node.to.id}`;
+            if (nextCode.length) {
+              destructuringAssignment = `const ${nextCode[0]} = `;
+            }
           } else if (isJsMultipleInputs) {
             nextValue = multipleInputsNodes[toComInfo.id].value.join(", ");
             if (nextCode.length) {
@@ -661,7 +695,7 @@ class Code {
             }
           }
 
-          if (!isJsFx && node.to.id) {
+          if (!isJsFx && node.to.id && !nextInput) {
             nextInput = ".input";
           }
 
@@ -690,6 +724,8 @@ class Code {
 
             if (isJsFx) {
               value = `fx_${toComInfo.id}_${index}`;
+            } else if (isJsVar) {
+              value = `${componentName}_${toComInfo.id}_${from.startPinParentKey}`;
             } else if (isJsComponent) {
               value = `${componentName}_${toComInfo.id}_${outputId}`;
             } else {
@@ -808,6 +844,11 @@ class Code {
 }
 
 export { toCode };
+
+/** 判断是否fx卡片类型组件 */
+const validateJsVarComponent = (namespace: string) => {
+  return namespace === "mybricks.core-comlib.var";
+};
 
 /** 判断是否fx卡片类型组件 */
 const validateJsFxComponent = (namespace: string) => {
