@@ -277,7 +277,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     let proxyDesc = PinProxies[pInReg.comId + '-' + pInReg.pinId]
     let inReg = pInReg
 
-    if (pInReg.frameId !== json.id) {
+    if (pInReg.def.namespace === "mybricks.core-comlib.scenes" && pInReg.frameId !== json.id) {
       // 其他场景
       proxyDesc = null
     }
