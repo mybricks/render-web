@@ -28,6 +28,7 @@ interface Slot {
   comAry: Com[];
   layoutTemplate: Array<Dom | Com>;
   style: Style;
+  type?: "scope";
 }
 
 interface ComInfo {
@@ -115,6 +116,8 @@ interface Frame {
     id: string;
     title: string;
   }[];
+  coms: Record<string, Frame>;
+  type: "fx" | "com";
 }
 
 interface ToJSON {
@@ -194,9 +197,6 @@ const toCode = (tojson: ToJSON, config: Config) => {
 };
 
 class Code {
-  // 事件 ui处理过程中判断是否有事件
-  events: Record<string, string> = {};
-
   // ref声明
   refs: Set<string> = new Set();
 
@@ -211,17 +211,8 @@ class Code {
   handleFrame() {
     // console.log("toCode scene 🍎 => ", this.scene);
     // console.log(1, "frame 🍎 => ", this.frame);
-    // console.log("toCode events 🍌 => ", this.events);
 
     const nextCode: string[] = [];
-
-    // Object.entries(this.events).forEach(([, diagramId]) => {
-    //   const diagram = this.frame.diagrams.find(
-    //     (diagram) => diagram.id === diagramId,
-    //   )!;
-
-    //   nextCode.push(this.handleDiagram(diagram));
-    // });
 
     this.frame.diagrams.forEach((diagram) => {
       nextCode.push(this.handleDiagram(diagram));
@@ -253,7 +244,7 @@ class Code {
       );
 
       // main卡片默认是_rootFrame_
-      const comsAutoRun = this.scene.comsAutoRun["_rootFrame_"];
+      const comsAutoRun = this.scene.comsAutoRun["_rootFrame_"]; // [TODO] 不应该从这里取，从frame里取，需要引擎看一下
 
       // 节点声明
       const nodesDeclaration = new Set<string>();
@@ -324,13 +315,15 @@ class Code {
         }, res.nextStep);
       }
 
-      return `useEffect(() => {
+      return startNodes.length || comsAutoRun
+        ? `useEffect(() => {
       ${nodesDeclaration.size ? "// 节点声明" : ""}
       ${Array.from(nodesDeclaration).join("\n")}
 
       ${Array.from(nodesInvocation).join("\n\n")}
-      }, [])`;
-    } else if (diagram.starter.type === "frame") {
+      }, [])`
+        : "";
+    } else if (diagram.starter.type === "frame" && this.frame.type === "fx") {
       // fx
 
       // 节点声明
@@ -402,6 +395,56 @@ class Code {
           : ""
       }
       }`;
+    } else if (diagram.starter.type === "frame" && this.frame.type === "com") {
+      // 组件的作用域插槽
+
+      // 节点声明
+      const nodesDeclaration = new Set<string>();
+
+      // 节点调用
+      const nodesInvocation = new Set<string>();
+
+      // 记录多输入，当全部到达后，写入代码
+      const multipleInputsNodes: Record<
+        string,
+        {
+          step: number[];
+          value: string[];
+          inputsTitle: string[];
+        }
+      > = {};
+
+      // 记录卡片的输出 frameId => outputId => next
+      // const frameOutputs: Record<string, Set<string>> = {};
+
+      starter.pinAry.reduce((cur, { id }) => {
+        const startNodes = conAry.filter(
+          (con) => con.from.id === id && con.from.parent.id === starter.frameId,
+        );
+
+        const res = this.handleDiagramNext({
+          startNodes,
+          diagram,
+          defaultValue: `props.inputValues.${id}`,
+          nextStep: cur,
+          nodesDeclaration,
+          nodesInvocation,
+          multipleInputsNodes,
+          notesIndex: cur,
+          frameOutputs: {},
+        });
+
+        return res.nextStep + startNodes.length;
+      }, 0);
+
+      // [TODO] comsAutoRun 自执行组件
+
+      return `useEffect(() => {
+      ${nodesDeclaration.size ? "// 节点声明" : ""}
+      ${Array.from(nodesDeclaration).join("\n")}
+
+      ${Array.from(nodesInvocation).join("\n\n")}
+      }, [props.inputValues])`;
     } else {
       // 组件事件卡片或者变量，只有一个输入
       const startNodes = conAry.filter(
@@ -742,7 +785,7 @@ class Code {
       });
     };
 
-    if (defaultValue) {
+    if (defaultValue && startNodes.length) {
       const startNotes: string[] = [];
       startNodes.forEach((startNode, index) => {
         const toComInfo = this.scene.coms[startNode.to.parent.id];
@@ -763,8 +806,8 @@ class Code {
     return { nodesInvocation, nodesDeclaration, nextStep };
   }
 
-  toCode() {
-    const ui = this.handleSlot(this.scene.slot);
+  toCode(slot = this.scene.slot) {
+    const ui = this.handleSlot(slot);
     const js = this.handleFrame();
 
     return {
@@ -811,8 +854,6 @@ class Code {
             (diagram) => diagram.id === event.options.id,
           );
           if (diagram) {
-            // 事件存储
-            this.events[`${componentName}_${id}_${input}`] = diagram.id;
             return (eventsCode += `${eventsCode ? " " : ""}${input}={${componentName}_${id}_${input}}`);
           }
         }
@@ -827,6 +868,26 @@ class Code {
       return `<${componentName} ref={${componentName}_${id}_ref} style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}>
         {{${Object.entries(slots).reduce((cur, pre) => {
           const [id, slot] = pre;
+
+          if (slot.type === "scope") {
+            const code = new Code(
+              this.scene,
+              this.frame.coms[comInfo.id].frames.find(
+                (frame) => frame.id === id,
+              )!,
+            );
+            const { ui, js } = code.toCode(slot);
+
+            return (
+              cur +
+              `${id}(props) {
+              ${js}
+              return ${ui}
+            }` +
+              ","
+            );
+          }
+
           return (
             cur +
             `${id}() {

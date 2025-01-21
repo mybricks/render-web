@@ -532,7 +532,7 @@ export default function MultiScene ({json, options}) {
             scenes.json.inputs?.forEach?.((input) => {
               const { id, mockData, type, extValues } = input
 
-              if (id !== "open") {
+              if (type === "ext") {
                 return;
               }
 

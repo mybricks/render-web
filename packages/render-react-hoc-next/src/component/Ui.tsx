@@ -168,8 +168,15 @@ const Hoc = forwardRef((props: Props, ref) => {
           get(target, key: string) {
             return {
               render: (params: any) => {
-                const res = children?.[key]?.(params);
-                return res;
+                const Render = children?.[key];
+
+                if (Render) {
+                  const { key, ...other } = params;
+
+                  return <Render key={key} {...other} />;
+                }
+
+                return null;
               },
             };
           },
