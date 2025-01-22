@@ -139,7 +139,9 @@ const toCode = (tojson: ToJSON, config: Config) => {
   scenes.forEach((scene) => {
     // 找到对应的scene对应的frame
     const frame = frames.find((frame) => frame.id === scene.id);
-    const code = new Code(scene, frame!);
+    const code = new Code(scene, frame!, {
+      comsAutoRunKey: "_rootFrame_",
+    });
     const { ui, js } = code.toCode();
     const dependencyImport: Record<string, Set<string>> = {};
 
@@ -206,6 +208,9 @@ class Code {
   constructor(
     private scene: Scene,
     private frame: Frame,
+    private config: {
+      comsAutoRunKey: string;
+    },
   ) {}
 
   handleFrame() {
@@ -243,8 +248,8 @@ class Code {
         (con) => con.from.parent.id === starter.frameId,
       );
 
-      // main卡片默认是_rootFrame_
-      const comsAutoRun = this.scene.comsAutoRun["_rootFrame_"]; // [TODO] 不应该从这里取，从frame里取，需要引擎看一下
+      // 自执行组件
+      const comsAutoRun = this.scene.comsAutoRun[this.config.comsAutoRunKey];
 
       // 节点声明
       const nodesDeclaration = new Set<string>();
@@ -414,10 +419,7 @@ class Code {
         }
       > = {};
 
-      // 记录卡片的输出 frameId => outputId => next
-      // const frameOutputs: Record<string, Set<string>> = {};
-
-      starter.pinAry.reduce((cur, { id }) => {
+      const res = starter.pinAry.reduce((cur, { id }) => {
         const startNodes = conAry.filter(
           (con) => con.from.id === id && con.from.parent.id === starter.frameId,
         );
@@ -437,9 +439,51 @@ class Code {
         return res.nextStep + startNodes.length;
       }, 0);
 
-      // [TODO] comsAutoRun 自执行组件
+      // 自执行组件
+      const comsAutoRun = this.scene.comsAutoRun[this.config.comsAutoRunKey];
 
-      return nodesInvocation.size
+      if (comsAutoRun) {
+        comsAutoRun.reduce((cur, pre) => {
+          const startNodes = conAry.filter(
+            (con) => con.from.parent.id === pre.id,
+          );
+
+          const res = this.handleDiagramNext({
+            startNodes: [
+              {
+                from: {
+                  id: "",
+                  title: "",
+                  parent: {
+                    id: "",
+                  },
+                },
+                id: "",
+                to: {
+                  id: "",
+                  title: "自动执行",
+                  parent: {
+                    id: pre.id,
+                    type: "com",
+                  },
+                },
+              },
+            ],
+            diagram,
+            defaultValue: "",
+            nextStep: cur + startNodes.length,
+            nodesDeclaration,
+            nodesInvocation,
+            multipleInputsNodes,
+            notesIndex: 0,
+            frameOutputs: {},
+          });
+
+          return res.nextStep;
+        }, res);
+      }
+
+      return nodesInvocation.size || comsAutoRun
         ? `useEffect(() => {
       ${nodesDeclaration.size ? "// 节点声明" : ""}
       ${Array.from(nodesDeclaration).join("\n")}
@@ -880,6 +924,9 @@ class Code {
              this.frame.coms[comInfo.id].frames.find(
                (frame) => frame.id === id,
              )!,
+             {
+               comsAutoRunKey: `${com.id}-${id}`,
+             },
            );
            const { ui, js } = code.toCode(slot);
 
