@@ -438,7 +438,7 @@ const SlotProvider = (props: SlotProps) => {
   const slotProviderValue = useMemo(() => {
     let slot = props.slot;
     let hasInputValues = false;
-    if (props.params.inputValues) {
+    if (props.params?.inputValues) {
       hasInputValues = true;
 
       const inputsSubject: Record<string, Subject> = {};
@@ -491,7 +491,7 @@ const Slot = (props: SlotProps) => {
   const [jsx, setJsx] = useState(<Children slot={slot.inputs} />);
 
   useLayoutEffect(() => {
-    if (params.wrap) {
+    if (params?.wrap) {
       setJsx(params.wrap(comAry));
     }
   }, []);

@@ -38,3 +38,47 @@ export const merge = (...subjects: Subject[]) => {
 
   return mergeSubject;
 };
+
+export const inputs = <T = unknown>() => {
+  const inputs: Record<
+    string,
+    {
+      subject: Subject;
+      next: {
+        (value: T): void; // 函数调用签名
+        subscribe: (fn: (value: unknown) => void) => void;
+      };
+    }
+  > = {};
+
+  return new Proxy(
+    {} as Record<
+      string,
+      {
+        (value: T): void; // 函数调用签名
+        subscribe: (fn: (value: unknown) => void) => void;
+      }
+    >,
+    {
+      get(_, key: string) {
+        if (!inputs[key]) {
+          const subject = new Subject();
+          subject.next(undefined);
+          const next = (value: T) => {
+            subject.next(value);
+          };
+          next.subscribe = (fn: (value: unknown) => void) =>
+            subject.subscribe.call(subject, fn);
+          inputs[key] = {
+            subject,
+            next,
+          };
+
+          return next;
+        }
+
+        return inputs[key].next;
+      },
+    },
+  );
+};
