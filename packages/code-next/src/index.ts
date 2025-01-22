@@ -174,7 +174,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
     res = `
       import React, { useRef, useEffect } from "react"
       ${dependencyImportCode}
-      import { Provider, merge, useVar } from "@mybricks/render-react-hoc";
+      import { Provider, Slot, merge, useVar } from "@mybricks/render-react-hoc";
 
       export default function () {
         ${js}
@@ -215,10 +215,10 @@ class Code {
     const nextCode: string[] = [];
 
     this.frame.diagrams.forEach((diagram) => {
-      nextCode.push(this.handleDiagram(diagram));
+      nextCode.push(this.handleDiagram(diagram, {}));
     });
-    this.frame.frames.forEach(({ diagrams }) => {
-      nextCode.push(this.handleDiagram(diagrams[0]));
+    this.frame.frames.forEach(({ diagrams, type }) => {
+      nextCode.push(this.handleDiagram(diagrams[0], { type }));
     });
 
     return (
@@ -229,7 +229,7 @@ class Code {
     );
   }
 
-  handleDiagram(diagram: Diagram) {
+  handleDiagram(diagram: Diagram, { type }: { type?: string }) {
     // console.log(1, "当前 处理 diagram => ", diagram);
     const { starter, conAry } = diagram;
 
@@ -323,7 +323,7 @@ class Code {
       ${Array.from(nodesInvocation).join("\n\n")}
       }, [])`
         : "";
-    } else if (diagram.starter.type === "frame" && this.frame.type === "fx") {
+    } else if (diagram.starter.type === "frame" && type === "fx") {
       // fx
 
       // 节点声明
@@ -425,7 +425,7 @@ class Code {
         const res = this.handleDiagramNext({
           startNodes,
           diagram,
-          defaultValue: `props.inputValues.${id}`,
+          defaultValue: `slot.${id}`,
           nextStep: cur,
           nodesDeclaration,
           nodesInvocation,
@@ -439,12 +439,14 @@ class Code {
 
       // [TODO] comsAutoRun 自执行组件
 
-      return `useEffect(() => {
+      return nodesInvocation.size
+        ? `useEffect(() => {
       ${nodesDeclaration.size ? "// 节点声明" : ""}
       ${Array.from(nodesDeclaration).join("\n")}
 
       ${Array.from(nodesInvocation).join("\n\n")}
-      }, [props.inputValues])`;
+      }, [])`
+        : "";
     } else {
       // 组件事件卡片或者变量，只有一个输入
       const startNodes = conAry.filter(
@@ -789,6 +791,10 @@ class Code {
       const startNotes: string[] = [];
       startNodes.forEach((startNode, index) => {
         const toComInfo = this.scene.coms[startNode.to.parent.id];
+        if (startNode.to.parent.type === "frame") {
+          // 目前这里发现的case是直接调了fx的输出
+          return;
+        }
         // nextStep = index;
         startNotes.push(
           `// ${startNode.from.title}开始 >> [${notesIndex + index}] (${startNode.to.title}) ${toComInfo.title}`,
@@ -840,7 +846,7 @@ class Code {
   }
 
   handleCom(com: Com) {
-    const { id, slots, def } = com;
+    const { id, slots, def, name } = com;
     const componentName = generateComponentNameByDef(def);
     const comInfo = this.scene.coms[id];
     const { model } = comInfo;
@@ -865,41 +871,42 @@ class Code {
     this.refs.add(`const ${componentName}_${id}_ref = useRef()`);
 
     if (slots) {
-      return `<${componentName} ref={${componentName}_${id}_ref} style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}>
-        {{${Object.entries(slots).reduce((cur, pre) => {
-          const [id, slot] = pre;
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}>
+       ${Object.entries(slots).reduce((cur, pre) => {
+         const [id, slot] = pre;
+         if (slot.type === "scope") {
+           const code = new Code(
+             this.scene,
+             this.frame.coms[comInfo.id].frames.find(
+               (frame) => frame.id === id,
+             )!,
+           );
+           const { ui, js } = code.toCode(slot);
 
-          if (slot.type === "scope") {
-            const code = new Code(
-              this.scene,
-              this.frame.coms[comInfo.id].frames.find(
-                (frame) => frame.id === id,
-              )!,
-            );
-            const { ui, js } = code.toCode(slot);
-
-            return (
-              cur +
-              `${id}(props) {
+           return (
+             cur +
+             `<Slot id="${id}">
+              {({ slot }) => {
               ${js}
-              return ${ui}
-            }` +
-              ","
-            );
-          }
-
-          return (
-            cur +
-            `${id}() {
+              return ${ui} 
+              }}
+              </Slot>`
+           );
+         } else {
+           return (
+             cur +
+             `<Slot id="${id}">
+            {() => {
             return ${this.handleSlot(slot)}
-          }` +
-            ","
-          );
-        }, "")}}}
+            }}
+          </Slot>`
+           );
+         }
+       }, "")}
       </${componentName}>
       `;
     } else {
-      return `<${componentName} ref={${componentName}_${id}_ref} style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}/>`;
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}/>`;
     }
   }
 }
