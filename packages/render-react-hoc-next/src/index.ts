@@ -4,4 +4,4 @@ hijackReactcreateElement({});
 
 export { js, Ui, Provider, Slot } from "./component";
 export { Subject, merge, inputs } from "./utils/rx";
-export { useVar } from "./hooks";
+export { useVar, useCanvasState } from "./hooks";

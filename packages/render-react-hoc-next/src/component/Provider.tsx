@@ -2,9 +2,9 @@
 import { PropsWithChildren } from "react";
 import context from "./context";
 
-const Provider = (props: PropsWithChildren<{ env: any }>) => {
+const Provider = (props: PropsWithChildren<{ value: any }>) => {
   if (!context.config) {
-    context.config = props;
+    context.config = props.value;
   }
   return props.children;
 };

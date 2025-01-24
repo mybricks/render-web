@@ -55,15 +55,18 @@ interface ComInfo {
   ioProxy: {
     id: string;
   };
+  asRoot?: boolean;
 }
 
 interface Scene {
   id: string;
+  title: string;
   slot: Slot;
   coms: Record<string, ComInfo>;
   pinRels: Record<string, string[]>;
   deps: Def[];
   comsAutoRun: Record<string, { id: string }[]>;
+  type: "normal" | "popup";
 }
 
 interface DiagramCon {
@@ -134,22 +137,27 @@ const toCode = (tojson: ToJSON, config: Config) => {
   const { frames, scenes } = tojson;
   const { namespaceToNpmMap } = config;
 
-  let res = "";
+  let canvasDeclaration = "";
+  let canvasRender = "";
+  let canvasState = "";
 
-  scenes.forEach((scene) => {
+  const dependencyImport: Record<string, Set<string>> = {};
+
+  scenes.forEach((scene, index) => {
     // 找到对应的scene对应的frame
     const frame = frames.find((frame) => frame.id === scene.id);
     const code = new Code(scene, frame!, {
       comsAutoRunKey: "_rootFrame_",
     });
     const { ui, js } = code.toCode();
-    const dependencyImport: Record<string, Set<string>> = {};
 
     scene.deps.forEach((def) => {
       if (
-        ["mybricks.core-comlib.fn", "mybricks.core-comlib.var"].includes(
-          def.namespace,
-        )
+        [
+          "mybricks.core-comlib.fn",
+          "mybricks.core-comlib.var",
+          "mybricks.core-comlib.scenes",
+        ].includes(def.namespace)
       ) {
         // 内置组件，需要过滤
         return;
@@ -163,39 +171,74 @@ const toCode = (tojson: ToJSON, config: Config) => {
       dependencyImport[npm].add(generateComponentNameByDef(def));
     });
 
-    const dependencyImportCode = Object.entries(dependencyImport).reduce(
-      (pre, cur) => {
-        const [npm, dependency] = cur;
-        return (
-          pre + `import { ${Array.from(dependency).join(", ")} } from "${npm}";`
-        );
-      },
-      "",
-    );
+    canvasDeclaration += `// ${scene.title}
+    const Canvas_${scene.id} = ({ visible, global }) => {
+      ${js}
 
-    res = `
-      import React, { useRef, useEffect } from "react"
+      return ${ui}
+    }
+    \n`;
+
+    canvasRender += `{canvasState.${scene.id}.mounted && (
+      <Canvas_${scene.id} visible={canvasState.${scene.id}.visible} global={global}/>
+    )}`;
+
+    canvasState += `${scene.id}: {
+      mounted: ${index === 0 ? "true" : "false"},
+      visible: ${index === 0 ? "true" : "false"},
+      type: "${scene.type}",
+    },`;
+  });
+
+  const dependencyImportCode = Object.entries(dependencyImport).reduce(
+    (pre, cur) => {
+      const [npm, dependency] = cur;
+      return (
+        pre + `import { ${Array.from(dependency).join(", ")} } from "${npm}";`
+      );
+    },
+    "",
+  );
+
+  canvasState = `const [canvasState, canvasIO] = useCanvasState({
+    ${canvasState}
+  })`;
+
+  return `import React, { useRef, useMemo, useEffect } from "react"
       ${dependencyImportCode}
-      import { Provider, Slot, merge, useVar } from "@mybricks/render-react-hoc";
+      import { Provider, Slot, merge, inputs, useVar, useCanvasState } from "@mybricks/render-react-hoc";
 
       export default function () {
-        ${js}
+        ${canvasState}
+
+        const global = useMemo(() => {
+          return {
+            var: {}, // [TODO] 全局变量
+            fx: {}, // [TODO] 全局FX
+            canvas: canvasIO
+          }
+        }, [])
+
+        const value = useMemo(() => {
+          return {
+            env: {
+              runtime: true,
+              i18n: (value) => value,
+            },
+            canvasState,
+            canvasIO
+          };
+        }, []);
 
         return (
-          <Provider
-            env={{
-              runtime: true,
-              i18n: (value) => value
-            }}
-          >
-            ${ui}
+          <Provider value={value}>
+            ${canvasRender}
           </Provider>
         )
       }
-    `;
-  });
 
-  return res;
+      ${canvasDeclaration}
+      `;
 };
 
 class Code {
@@ -215,7 +258,7 @@ class Code {
 
   handleFrame() {
     // console.log("toCode scene 🍎 => ", this.scene);
-    // console.log(1, "frame 🍎 => ", this.frame);
+    // console.log(1, "frame 🍎🍎🍎 => ", this.frame);
 
     const nextCode: string[] = [];
 
@@ -235,7 +278,6 @@ class Code {
   }
 
   handleDiagram(diagram: Diagram, { type }: { type?: string }) {
-    // console.log(1, "当前 处理 diagram => ", diagram);
     const { starter, conAry } = diagram;
 
     if (
@@ -270,13 +312,14 @@ class Code {
       const res = this.handleDiagramNext({
         startNodes,
         diagram,
-        defaultValue: "undefined",
+        defaultValue: `global.canvas.${this.scene.id}.inputs.open`,
         nextStep: startNodes.length - 1,
         nodesDeclaration,
         nodesInvocation,
         multipleInputsNodes,
         notesIndex: 0,
         frameOutputs: {},
+        type,
       });
 
       if (comsAutoRun) {
@@ -314,6 +357,7 @@ class Code {
             multipleInputsNodes,
             notesIndex: 0,
             frameOutputs: {},
+            type,
           });
 
           return res.nextStep;
@@ -365,6 +409,7 @@ class Code {
           multipleInputsNodes,
           notesIndex: cur,
           frameOutputs,
+          type,
         });
 
         return res.nextStep + startNodes.length;
@@ -434,6 +479,7 @@ class Code {
           multipleInputsNodes,
           notesIndex: cur,
           frameOutputs: {},
+          type,
         });
 
         return res.nextStep + startNodes.length;
@@ -477,6 +523,7 @@ class Code {
             multipleInputsNodes,
             notesIndex: 0,
             frameOutputs: {},
+            type,
           });
 
           return res.nextStep;
@@ -521,12 +568,15 @@ class Code {
         startNodes,
         diagram,
         defaultValue: "value",
-        nextStep: startNodes.length - 1,
+        nextStep: startNodes.length - 1, // [TODO] 或者是把相同的开始节点做合并？
+        // nextStep: 0,
         nodesDeclaration,
         nodesInvocation,
         multipleInputsNodes,
         notesIndex: 0,
         frameOutputs: {},
+        type,
+        _test: true,
       });
 
       // const { nodesInvocation, nodesDeclaration } = this.handleDiagramNext({
@@ -568,6 +618,8 @@ class Code {
     multipleInputsNodes,
     notesIndex,
     frameOutputs,
+    type, // 用于判断是否fx，主要用于调用输出时的特殊处理
+    // _test,
   }: {
     startNodes: DiagramCon[];
     diagram: Diagram;
@@ -585,6 +637,8 @@ class Code {
     >;
     notesIndex: number;
     frameOutputs: Record<string, Set<string>>;
+    type?: string;
+    _test?: boolean;
   }) {
     const { conAry } = diagram;
 
@@ -594,11 +648,18 @@ class Code {
     ) => {
       nodes.forEach((node, nodeIndex) => {
         if (node.to.parent.type === "frame") {
-          // 这里说明是卡片的输出，不需要再往下走了
-          if (!frameOutputs[node.to.id]) {
-            frameOutputs[node.to.id] = new Set();
+          if (type === "fx") {
+            // 这里说明是卡片的输出，不需要再往下走了
+            if (!frameOutputs[node.to.id]) {
+              frameOutputs[node.to.id] = new Set();
+            }
+            frameOutputs[node.to.id].add(value);
+          } else {
+            nodesInvocation.add(
+              `// [${nextStep}] -> (${node.to.title}) ${this.scene.title}
+              global.canvas.${this.frame.id}.outputs.${node.to.id}(${value});`,
+            );
           }
-          frameOutputs[node.to.id].add(value);
           return;
         }
 
@@ -608,8 +669,9 @@ class Code {
         const isJsComponent = validateJsComponent(toComInfo.def.rtType);
         const isJsFx = validateJsFxComponent(toComInfo.def.namespace);
         const isJsVar = validateJsVarComponent(toComInfo.def.namespace);
+        const isJsScenes = validateJsScenesComponent(toComInfo.def.namespace);
 
-        if (isJsComponent && !isJsFx && !isJsVar) {
+        if (isJsComponent && !isJsFx && !isJsVar && !isJsScenes) {
           // fx 变量不需要声明节点
           nodesDeclaration.add(
             `const ${componentName}_${toComInfo.id} = ${componentName}({data: ${JSON.stringify(toComInfo.model.data)}, inputs: ${JSON.stringify(toComInfo.inputs)}, outputs: ${JSON.stringify(toComInfo.outputs)}})`,
@@ -690,6 +752,8 @@ class Code {
               nextCode.push(
                 `${componentName}_${toComInfo.id}_${from.startPinParentKey}`,
               );
+            } else if (isJsScenes) {
+              nextCode.push(`${outputId}: canvas_${toComInfo.id}_${outputId}`);
             } else {
               nextCode.push(
                 `${outputId}: ${componentName}_${toComInfo.id}_${outputId}`,
@@ -751,7 +815,13 @@ class Code {
           let nextComponentName = componentName;
           let destructuringAssignment = "";
 
-          if (isJsFx) {
+          if (isJsScenes) {
+            nodesInvocation.add(
+              notes +
+                "\n" +
+                `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}global.canvas.${toComInfo.model.data._sceneId}.inputs.${toComInfo.model.data._pinId}(${value});`,
+            );
+          } else if (isJsFx) {
             const frame = this.frame.frames.find((frame) => {
               return frame.id === toComInfo.ioProxy.id;
             });
@@ -788,11 +858,13 @@ class Code {
             nextInput = ".input";
           }
 
-          nodesInvocation.add(
-            notes +
-              "\n" +
-              `${destructuringAssignment}${nextComponentName}_${nextId}${nextInput}(${nextValue})`,
-          );
+          if (!isJsScenes) {
+            nodesInvocation.add(
+              notes +
+                "\n" +
+                `${destructuringAssignment}${nextComponentName}_${nextId}${nextInput}(${nextValue})`,
+            );
+          }
         } else {
           nodesInvocation.add(
             notes +
@@ -815,6 +887,8 @@ class Code {
               value = `fx_${toComInfo.id}_${index}`;
             } else if (isJsVar) {
               value = `${componentName}_${toComInfo.id}_${from.startPinParentKey}`;
+            } else if (isJsScenes) {
+              value = `canvas_${toComInfo.id}_${outputId}`;
             } else if (isJsComponent) {
               value = `${componentName}_${toComInfo.id}_${outputId}`;
             } else {
@@ -836,9 +910,20 @@ class Code {
       startNodes.forEach((startNode, index) => {
         const toComInfo = this.scene.coms[startNode.to.parent.id];
         if (startNode.to.parent.type === "frame") {
-          // 目前这里发现的case是直接调了fx的输出
+          // case0 直接调了fx的输出
+
+          if (type === "fx") {
+            // fx 作为函数return返回值，不需要这里的注释
+            return;
+          }
+
+          // case1 场景的输出
+          startNotes.push(
+            `// ${startNode.from.title}开始 >> [${notesIndex + index}] (${startNode.to.title}) ${this.frame.title}`,
+          );
           return;
         }
+
         // nextStep = index;
         startNotes.push(
           `// ${startNode.from.title}开始 >> [${notesIndex + index}] (${startNode.to.title}) ${toComInfo.title}`,
@@ -915,7 +1000,7 @@ class Code {
     this.refs.add(`const ${componentName}_${id}_ref = useRef()`);
 
     if (slots) {
-      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}>
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}>
        ${Object.entries(slots).reduce((cur, pre) => {
          const [id, slot] = pre;
          if (slot.type === "scope") {
@@ -953,12 +1038,17 @@ class Code {
       </${componentName}>
       `;
     } else {
-      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}/>`;
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}/>`;
     }
   }
 }
 
 export { toCode };
+
+/** 判断是场景类型组件 */
+const validateJsScenesComponent = (namespace: string) => {
+  return namespace === "mybricks.core-comlib.scenes";
+};
 
 /** 判断是否fx卡片类型组件 */
 const validateJsVarComponent = (namespace: string) => {

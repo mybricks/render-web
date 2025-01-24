@@ -87,7 +87,8 @@ const Hoc = forwardRef((props: Props, ref) => {
 
 const getCom = (props: Props) => {
   const { props: componentProps } = props;
-  const { id, name, data, style, children, ...other } = componentProps;
+  const { id, name, canvasId, data, style, children, ...other } =
+    componentProps;
   const observableData = observable(data);
   const registeredRef: Record<
     string,
@@ -312,6 +313,7 @@ const getCom = (props: Props) => {
   return {
     id,
     name,
+    canvasId,
     data: observableData,
     style,
     slots,
@@ -319,6 +321,13 @@ const getCom = (props: Props) => {
     outputs,
     registeredRef,
     env: context.config.env,
+    _env: {
+      currentScenes: {
+        close: () => {
+          context.config.canvasIO[canvasId].close();
+        },
+      },
+    },
     registeredInputsCallableRef,
     inputsTodoMap,
     inputsCallable,
@@ -338,6 +347,7 @@ const JSX = forwardRef((props: any, ref: any) => {
     outputs,
     registeredRef,
     env,
+    _env,
     // registeredInputsCallableRef,
     // inputsTodoMap,
     // inputsCallable,
@@ -404,6 +414,7 @@ const JSX = forwardRef((props: any, ref: any) => {
         data={data}
         style={style}
         env={env}
+        _env={_env}
         slots={slots}
         inputs={inputs}
         outputs={outputs}
