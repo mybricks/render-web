@@ -67,6 +67,13 @@ interface Scene {
   deps: Def[];
   comsAutoRun: Record<string, { id: string }[]>;
   type: "normal" | "popup";
+  pinProxies: Record<
+    string,
+    {
+      frameId: string;
+      pinId: string;
+    }
+  >;
 }
 
 interface DiagramCon {
@@ -85,6 +92,7 @@ interface DiagramCon {
       id: string;
       type: "frame" | "com";
     };
+    type?: "ext"; // 目前用于表示ui组件的作用域插槽的扩展输入项
   };
   finishPinParentKey?: string;
   startPinParentKey?: string;
@@ -870,10 +878,21 @@ class Code {
             );
           }
         } else {
+          if (node.to.type === "ext") {
+            const pinProxy =
+              this.scene.pinProxies[`${node.to.parent.id}-${node.to.id}`];
+
+            nodesInvocation.add(
+              notes +
+                "\n" +
+                `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}_ref.current.slots.${pinProxy.frameId}.${node.to.id}(${value})`,
+            );
+          }
+
           nodesInvocation.add(
             notes +
               "\n" +
-              `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}_ref.current.${node.to.id}(${value})`,
+              `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}_ref.current.inputs.${node.to.id}(${value})`,
           );
         }
 

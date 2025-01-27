@@ -48,7 +48,17 @@ const Hoc = forwardRef((props: Props, ref) => {
     }, []);
 
     useImperativeHandle(ref, () => {
-      return com.registeredRefProxy;
+      return {
+        inputs: com.registeredRefProxy,
+        slots: new Proxy(
+          {},
+          {
+            get(_, key: string) {
+              return com.slots[key].inputs;
+            },
+          },
+        ),
+      };
     });
 
     let jsx = <JSX {...com} Component={Component} />;
@@ -85,7 +95,17 @@ const Hoc = forwardRef((props: Props, ref) => {
   }, []);
 
   useImperativeHandle(ref, () => {
-    return com.registeredRefProxy;
+    return {
+      inputs: com.registeredRefProxy,
+      slots: new Proxy(
+        {},
+        {
+          get(_, key: string) {
+            return com.slots[key].inputs;
+          },
+        },
+      ),
+    };
   });
 
   const jsx = <JSX {...com} Component={Component} />;
@@ -246,7 +266,7 @@ const getCom = (props: Props) => {
     }
   > = {};
 
-  const slots = new Proxy(
+  const slots: any = new Proxy(
     {},
     {
       get(target, slotId: string) {
@@ -311,13 +331,23 @@ const getCom = (props: Props) => {
             {},
             {
               get(_, key: string) {
-                return (value: any) => {
-                  // 内部调用，一定是普通值
-                  if (slot.inputsSubject[key]) {
-                    slot.inputsSubject[key].next(value);
+                return (value: Subject) => {
+                  if (value?.subscribe) {
+                    value.subscribe((value) => {
+                      if (slot.inputsSubject[key]) {
+                        slot.inputsSubject[key].next(value);
+                      } else {
+                        slot.inputsSubject[key] = new Subject();
+                        slot.inputsSubject[key].next(value);
+                      }
+                    });
                   } else {
-                    slot.inputsSubject[key] = new Subject();
-                    slot.inputsSubject[key].next(value);
+                    if (slot.inputsSubject[key]) {
+                      slot.inputsSubject[key].next(value);
+                    } else {
+                      slot.inputsSubject[key] = new Subject();
+                      slot.inputsSubject[key].next(value);
+                    }
                   }
                 };
               },
