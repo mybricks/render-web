@@ -644,7 +644,11 @@ class Code {
 
     const handleNext = (
       nodes: DiagramCon[],
-      { value, currentNextStep }: { value: string; currentNextStep: number },
+      {
+        value,
+        currentNextStep,
+        start,
+      }: { value: string; currentNextStep: number; start: boolean },
     ) => {
       nodes.forEach((node, nodeIndex) => {
         if (node.to.parent.type === "frame") {
@@ -656,7 +660,7 @@ class Code {
             frameOutputs[node.to.id].add(value);
           } else {
             nodesInvocation.add(
-              `// [${nextStep}] -> (${node.to.title}) ${this.scene.title}
+              `// [${start ? nodeIndex : nextStep}] -> (${node.to.title}) ${this.scene.title}
               global.canvas.${this.frame.id}.outputs.${node.to.id}(${value});`,
             );
           }
@@ -792,7 +796,7 @@ class Code {
               .join(", ")}`;
           });
         } else {
-          notes = `// [${currentNextStep + nodeIndex}] -> (${node.to.title}) ${toComInfo.title}`;
+          notes = `// [${start ? nodeIndex : currentNextStep + nodeIndex}] -> (${node.to.title}) ${toComInfo.title}`;
 
           Object.entries(nextMap).forEach(([, { from, conAry }]) => {
             notes += `\n// ${from.from.title} >> ${conAry
@@ -899,6 +903,7 @@ class Code {
               value: value,
               // currentStep: nextStep + index,
               currentNextStep: nextSteps[index],
+              start: false,
             });
           },
         );
@@ -936,6 +941,7 @@ class Code {
     handleNext(startNodes, {
       value: defaultValue,
       currentNextStep: nextStep,
+      start: true,
     });
 
     return { nodesInvocation, nodesDeclaration, nextStep };
