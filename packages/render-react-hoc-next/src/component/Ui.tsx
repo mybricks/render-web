@@ -47,7 +47,11 @@ const Hoc = forwardRef((props: Props, ref) => {
       return getCom(props);
     }, []);
 
-    let jsx = <JSX ref={ref} {...com} Component={Component} />;
+    useImperativeHandle(ref, () => {
+      return com.registeredRefProxy;
+    });
+
+    let jsx = <JSX {...com} Component={Component} />;
 
     if (slotContext.params.itemWrap) {
       jsx = slotContext.params.itemWrap({
@@ -80,7 +84,11 @@ const Hoc = forwardRef((props: Props, ref) => {
     return getCom(props);
   }, []);
 
-  const jsx = <JSX ref={ref} {...com} Component={Component} />;
+  useImperativeHandle(ref, () => {
+    return com.registeredRefProxy;
+  });
+
+  const jsx = <JSX {...com} Component={Component} />;
 
   return jsx;
 });
@@ -90,33 +98,71 @@ const getCom = (props: Props) => {
   const { id, name, canvasId, data, style, children, ...other } =
     componentProps;
   const observableData = observable(data);
-  const registeredRef: Record<
+  const registeredInputs: Record<
     string,
     (value: Subject<unknown>, set?: any) => void
   > = {};
   // 用于组件内部调用，用户不感知
   const registeredInputsCallableRef: Record<string, RegisterInput> = {};
 
-  // 触发输入时，可能还没有完成输入的注册，记录
+  // 触发内部输入时，可能还没有完成输入的注册，记录
+  const inputsCallableTodoMap: Record<string, any> = {};
+
+  // 触发外部输入时，可能还没有完成输入的注册，记录
   const inputsTodoMap: Record<string, any> = {};
+
+  const registeredRefProxy = new Proxy(
+    {},
+    {
+      get(_, key: string) {
+        return (value: Subject) => {
+          const rels: Record<string, Subject<unknown>> = {};
+
+          if (!registeredInputs[key]) {
+            // 还没有注册，写入todo，和关联输出
+            if (!inputsTodoMap[key]) {
+              inputsTodoMap[key] = [];
+            }
+
+            inputsTodoMap[key].push({
+              value,
+              rels,
+            });
+
+            return new Proxy(
+              {},
+              {
+                get(target, key: string) {
+                  return rels[key] || (rels[key] = new Subject());
+                },
+              },
+            );
+          }
+
+          return registeredInputs[key](value, rels);
+        };
+      },
+    },
+  );
 
   const inputs = new Proxy(
     {},
     {
       get(_, key: string) {
         return (input: RegisterInput) => {
-          if (inputsTodoMap[key]) {
-            inputsTodoMap[key].forEach(({ value, rels }: any) => {
+          if (inputsCallableTodoMap[key]) {
+            inputsCallableTodoMap[key].forEach(({ value, rels }: any) => {
               input(value, rels);
             });
-            Reflect.deleteProperty(inputsTodoMap, key);
+            Reflect.deleteProperty(inputsCallableTodoMap, key);
           }
 
           registeredInputsCallableRef[key] = input;
 
-          registeredRef[key] = (value) => {
-            const rels: Record<string, Subject<unknown>> = {};
-
+          registeredInputs[key] = (
+            value,
+            rels: Record<string, Subject<unknown>> = {},
+          ) => {
             if (value?.subscribe) {
               value.subscribe((value) => {
                 input(
@@ -160,6 +206,13 @@ const getCom = (props: Props) => {
               },
             );
           };
+
+          if (inputsTodoMap[key]) {
+            inputsTodoMap[key].forEach(({ value, rels }: any) => {
+              registeredInputs[key](value, rels);
+            });
+            Reflect.deleteProperty(inputsTodoMap, key);
+          }
         };
       },
     },
@@ -286,11 +339,11 @@ const getCom = (props: Props) => {
               get(_, outputId: string) {
                 return (output: any) => {
                   if (!registeredInputsCallableRef[inputId]) {
-                    if (!inputsTodoMap[inputId]) {
-                      inputsTodoMap[inputId] = [];
+                    if (!inputsCallableTodoMap[inputId]) {
+                      inputsCallableTodoMap[inputId] = [];
                     }
 
-                    inputsTodoMap[inputId].push({
+                    inputsCallableTodoMap[inputId].push({
                       value,
                       rels: {
                         [outputId]: output, // 关联输出只有一个
@@ -319,7 +372,7 @@ const getCom = (props: Props) => {
     slots,
     inputs,
     outputs,
-    registeredRef,
+    registeredInputs,
     env: context.config.env,
     _env: {
       currentScenes: {
@@ -329,12 +382,13 @@ const getCom = (props: Props) => {
       },
     },
     registeredInputsCallableRef,
-    inputsTodoMap,
+    inputsCallableTodoMap,
     inputsCallable,
+    registeredRefProxy,
   };
 };
 
-const JSX = forwardRef((props: any, ref: any) => {
+const JSX = (props: any) => {
   const slotContext = useContext(SlotContext);
   const [display, setDisplay] = useState("");
   const {
@@ -345,17 +399,13 @@ const JSX = forwardRef((props: any, ref: any) => {
     slots,
     inputs,
     outputs,
-    registeredRef,
     env,
     _env,
-    // registeredInputsCallableRef,
-    // inputsTodoMap,
-    // inputsCallable,
     Component,
   } = props;
 
-  useImperativeHandle(ref, () => {
-    registeredRef.show = (value: Subject<unknown>) => {
+  useMemo(() => {
+    inputs["show"]((value: Subject) => {
       if (value?.subscribe) {
         value.subscribe(() => {
           setDisplay("");
@@ -363,8 +413,9 @@ const JSX = forwardRef((props: any, ref: any) => {
       } else {
         setDisplay("");
       }
-    };
-    registeredRef.hide = (value: Subject<unknown>) => {
+    });
+
+    inputs["hide"]((value: Subject) => {
       if (value?.subscribe) {
         value.subscribe(() => {
           setDisplay("none");
@@ -372,8 +423,9 @@ const JSX = forwardRef((props: any, ref: any) => {
       } else {
         setDisplay("none");
       }
-    };
-    registeredRef.showOrHide = (value: Subject<unknown>) => {
+    });
+
+    inputs["showOrHide"]((value: Subject<unknown>) => {
       if (value?.subscribe) {
         value.subscribe((value) => {
           setDisplay((display: any) => {
@@ -401,9 +453,7 @@ const JSX = forwardRef((props: any, ref: any) => {
           }
         });
       }
-    };
-
-    return registeredRef;
+    });
   }, []);
 
   return (
@@ -431,7 +481,7 @@ const JSX = forwardRef((props: any, ref: any) => {
       />
     </div>
   );
-});
+};
 
 export default Hoc;
 
