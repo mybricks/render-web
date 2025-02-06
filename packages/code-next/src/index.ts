@@ -991,11 +991,14 @@ class Code {
             const pinProxy =
               this.scene.pinProxies[`${node.to.parent.id}-${node.to.id}`];
 
-            nodesInvocation.add(
-              notes +
-                "\n" +
-                `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}_ref.current.slots.${pinProxy.frameId}.${node.to.id}(${value})`,
-            );
+            if (pinProxy) {
+              // 临时兼容插槽的扩展输入和内置显示隐藏，type都是ext，需要引擎做区分
+              nodesInvocation.add(
+                notes +
+                  "\n" +
+                  `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}${componentName}_${toComInfo.id}_ref.current.slots.${pinProxy.frameId}.${node.to.id}(${value})`,
+              );
+            }
           }
 
           nodesInvocation.add(
