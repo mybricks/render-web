@@ -179,8 +179,10 @@ const toCode = (tojson: ToJSON, config: Config) => {
       dependencyImport[npm].add(generateComponentNameByDef(def));
     });
 
+    const isPopup = validateScenePopup(scene);
+
     canvasDeclaration += `// ${scene.title}
-    const Canvas_${scene.id} = ({ visible, global }) => {
+    const Canvas_${scene.id} = ({${isPopup ? "" : ` visible,`} global }) => {
       ${js}
 
       return ${ui}
@@ -188,7 +190,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
     \n`;
 
     canvasRender += `{canvasState.${scene.id}.mounted && (
-      <Canvas_${scene.id} visible={canvasState.${scene.id}.visible} global={global}/>
+      <Canvas_${scene.id} ${isPopup ? "" : `visible={canvasState.${scene.id}.visible}`} global={global}/>
     )}`;
 
     canvasState += `${scene.id}: {
@@ -828,10 +830,22 @@ class Code {
           let destructuringAssignment = "";
 
           if (isJsScenes) {
+            /** 第二个参数，用于打开页面判断是新还是重定向 */
+            let secondValue = "";
+
+            if (
+              toComInfo.model.data._pinId === "open" &&
+              toComInfo.model.data._sceneShowType !== "popup" &&
+              toComInfo.model.data.openType !== "none"
+            ) {
+              // 调用场景为open且类型不是popup，且打开类型不为none，需要传入第二个参数
+              secondValue = `, "${toComInfo.model.data.openType}"`;
+            }
+
             nodesInvocation.add(
               notes +
                 "\n" +
-                `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}global.canvas.${toComInfo.model.data._sceneId}.inputs.${toComInfo.model.data._pinId}(${value});`,
+                `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}global.canvas.${toComInfo.model.data._sceneId}.inputs.${toComInfo.model.data._pinId}(${value}${secondValue});`,
             );
           } else if (isJsFx) {
             const frame = this.frame.frames.find((frame) => {
@@ -967,7 +981,9 @@ class Code {
   }
 
   toCode(slot = this.scene.slot) {
-    const ui = this.handleSlot(slot);
+    const ui = this.handleSlot(slot, {
+      useVisible: !validateScenePopup(this.scene),
+    });
     const js = this.handleFrame();
 
     return {
@@ -976,7 +992,7 @@ class Code {
     };
   }
 
-  handleSlot(slot: Slot): string {
+  handleSlot(slot: Slot, config: { useVisible: boolean }): string {
     const { comAry, style, layoutTemplate } = slot;
     let nextCode = "";
 
@@ -986,9 +1002,13 @@ class Code {
           return pre + this.handleCom(cur);
         }
 
+        const nextStyle = config.useVisible
+          ? `style={Object.assign(${JSON.stringify(cur.style)}, visible ? null : {display: "none"})}`
+          : `style={${JSON.stringify(cur.style)}}`;
+
         return (
           pre +
-          `<div style={${JSON.stringify(cur.style)}}>${this.handleSlot({ layoutTemplate: cur.elements, style: { layout: "smart" }, id: "", comAry: [] })}</div>`
+          `<div ${nextStyle}>${this.handleSlot({ layoutTemplate: cur.elements, style: { layout: "smart" }, id: "", comAry: [] }, { useVisible: false })}</div>`
         );
       }, "");
     } else {
@@ -996,7 +1016,12 @@ class Code {
         return pre + this.handleCom(cur);
       }, "");
     }
-    return `<div style={${JSON.stringify(style)}}>${nextCode}</div>`;
+
+    const nextStyle = config.useVisible
+      ? `style={Object.assign(${JSON.stringify(style)}, visible ? null : {display: "none"})}`
+      : `style={${JSON.stringify(style)}}`;
+
+    return `<div ${nextStyle}>${nextCode}</div>`;
   }
 
   handleCom(com: Com) {
@@ -1054,7 +1079,7 @@ class Code {
              cur +
              `<Slot id="${id}">
             {() => {
-            return ${this.handleSlot(slot)}
+            return ${this.handleSlot(slot, { useVisible: false })}
             }}
           </Slot>`
            );
@@ -1069,6 +1094,11 @@ class Code {
 }
 
 export { toCode };
+
+/** 判断是弹窗类场景 */
+const validateScenePopup = (scene: Scene) => {
+  return scene.type === "popup";
+};
 
 /** 判断是场景类型组件 */
 const validateJsScenesComponent = (namespace: string) => {
