@@ -56,6 +56,8 @@ interface ComInfo {
     id: string;
   };
   asRoot?: boolean;
+  /** 判断全局变量 */
+  global?: boolean;
 }
 
 interface Scene {
@@ -74,6 +76,14 @@ interface Scene {
       pinId: string;
     }
   >;
+  inputs: {
+    type: "normal" | "config";
+    pinId: string;
+  }[];
+  outputs: {
+    id: string;
+    title: string;
+  }[];
 }
 
 interface DiagramCon {
@@ -128,12 +138,17 @@ interface Frame {
     title: string;
   }[];
   coms: Record<string, Frame>;
-  type: "fx" | "com";
+  type: "fx" | "com" | "global" | "globalFx";
+}
+
+interface Global {
+  fxFrames: Scene[];
 }
 
 interface ToJSON {
   frames: Frame[];
   scenes: Scene[];
+  global: Global;
 }
 
 interface Config {
@@ -142,7 +157,7 @@ interface Config {
 }
 
 const toCode = (tojson: ToJSON, config: Config) => {
-  const { frames, scenes } = tojson;
+  const { frames, scenes, global } = tojson;
   const { namespaceToNpmMap } = config;
 
   let canvasDeclaration = "";
@@ -151,32 +166,44 @@ const toCode = (tojson: ToJSON, config: Config) => {
 
   const dependencyImport: Record<string, Set<string>> = {};
 
+  global.fxFrames.forEach((fxFrame) => {
+    collectComponentDependencies(fxFrame.deps, dependencyImport, {
+      namespaceToNpmMap,
+    });
+  });
+
+  let globalVarFrames = null as unknown as Frame;
+  const canvasFrames: Frame[] = [];
+  const globalFxFrames: Frame[] = [];
+
+  frames.forEach((frame) => {
+    if (frame.type === "global") {
+      globalVarFrames = frame;
+    } else if (frame.type === "globalFx") {
+      globalFxFrames.push(frame);
+    } else {
+      canvasFrames.push(frame);
+    }
+  });
+
   scenes.forEach((scene, index) => {
     // 找到对应的scene对应的frame
-    const frame = frames.find((frame) => frame.id === scene.id);
-    const code = new Code(scene, frame!, {
-      comsAutoRunKey: "_rootFrame_",
-    });
+    const frame = canvasFrames.find((frame) => frame.id === scene.id);
+    const code = new Code(
+      scene,
+      {
+        ...frame!,
+        frames: frame!.frames.concat(globalFxFrames),
+      },
+      global,
+      {
+        comsAutoRunKey: "_rootFrame_",
+      },
+    );
     const { ui, js } = code.toCode();
 
-    scene.deps.forEach((def) => {
-      if (
-        [
-          "mybricks.core-comlib.fn",
-          "mybricks.core-comlib.var",
-          "mybricks.core-comlib.scenes",
-        ].includes(def.namespace)
-      ) {
-        // 内置组件，需要过滤
-        return;
-      }
-      const npm = namespaceToNpmMap[def.namespace];
-
-      if (!dependencyImport[npm]) {
-        dependencyImport[npm] = new Set();
-      }
-
-      dependencyImport[npm].add(generateComponentNameByDef(def));
+    collectComponentDependencies(scene.deps, dependencyImport, {
+      namespaceToNpmMap,
     });
 
     const isPopup = validateScenePopup(scene);
@@ -214,6 +241,44 @@ const toCode = (tojson: ToJSON, config: Config) => {
     ${canvasState}
   })`;
 
+  let varDeclaration = "";
+  let varGlobal = "";
+
+  if (globalVarFrames && globalVarFrames.diagrams.length) {
+    globalVarFrames.diagrams.forEach((diagram) => {
+      varGlobal =
+        varGlobal + `${diagram.starter.comId}: var_${diagram.starter.comId},`;
+    });
+    const code = new Code(scenes[0], globalVarFrames!, global, {
+      comsAutoRunKey: "",
+      ignoreUI: true,
+    });
+    const { js } = code.toCode();
+
+    varDeclaration = js;
+  }
+
+  let fxDeclaration = "";
+  let fxGlobal = "";
+
+  if (globalFxFrames.length) {
+    globalFxFrames.forEach((frame) => {
+      fxGlobal = fxGlobal + `${frame.id}: fx_${frame.id},`;
+      const code = new Code(
+        global.fxFrames.find((fxFrame) => fxFrame.id === frame.id)!,
+        frame,
+        global,
+        {
+          comsAutoRunKey: "",
+          ignoreUI: true,
+        },
+      );
+
+      const { js } = code.toCode();
+      fxDeclaration = js;
+    });
+  }
+
   return `import React, { useRef, useMemo, useEffect } from "react"
       ${dependencyImportCode}
       import { Provider, Slot, merge, inputs, useVar, useCanvasState } from "@mybricks/render-react-hoc";
@@ -221,10 +286,14 @@ const toCode = (tojson: ToJSON, config: Config) => {
       export default function () {
         ${canvasState}
 
+        ${varDeclaration}
+
+        ${fxDeclaration}
+
         const global = useMemo(() => {
           return {
-            var: {}, // [TODO] 全局变量
-            fx: {}, // [TODO] 全局FX
+            var: {${varGlobal}},
+            fx: {${fxGlobal}},
             canvas: canvasIO
           }
         }, [])
@@ -261,23 +330,28 @@ class Code {
   constructor(
     private scene: Scene,
     private frame: Frame,
+    private global: Global,
     private config: {
       comsAutoRunKey: string;
+      ignoreUI?: boolean;
     },
   ) {}
 
   handleFrame() {
-    // console.log("toCode scene 🍎 => ", this.scene);
-    // console.log(1, "frame 🍎🍎🍎 => ", this.frame);
-
     const nextCode: string[] = [];
 
     this.frame.diagrams.forEach((diagram) => {
-      nextCode.push(this.handleDiagram(diagram, {}));
+      nextCode.push(this.handleDiagram(diagram, { type: this.frame.type }));
     });
-    this.frame.frames.forEach(({ diagrams, type }) => {
-      nextCode.push(this.handleDiagram(diagrams[0], { type }));
-    });
+
+    if (!this.config.ignoreUI) {
+      this.frame.frames.forEach(({ diagrams, type }) => {
+        if (type === "globalFx") {
+          return;
+        }
+        nextCode.push(this.handleDiagram(diagrams[0], { type }));
+      });
+    }
 
     return (
       Array.from(this.refs).join("\n") +
@@ -292,7 +366,8 @@ class Code {
 
     if (
       diagram.starter.type === "frame" &&
-      diagram.starter.frameId === this.scene.id
+      diagram.starter.frameId === this.scene.id &&
+      type !== "globalFx"
     ) {
       // useEffect 卡片 main
       // 一定只有一个输入，后续有多个输入的话再看下
@@ -382,7 +457,10 @@ class Code {
       ${Array.from(nodesInvocation).join("\n\n")}
       }, [])`
         : "";
-    } else if (diagram.starter.type === "frame" && type === "fx") {
+    } else if (
+      diagram.starter.type === "frame" &&
+      (type === "fx" || type === "globalFx")
+    ) {
       // fx
 
       // 节点声明
@@ -425,9 +503,14 @@ class Code {
         return res.nextStep + startNodes.length;
       }, 0);
 
-      const frame = this.frame.frames.find((frame) => {
-        return frame.id === starter.frameId;
-      });
+      const frame =
+        type === "globalFx"
+          ? this.global.fxFrames.find(
+              (fxFrames) => fxFrames.id === starter.frameId,
+            )
+          : this.frame.frames.find((frame) => {
+              return frame.id === starter.frameId;
+            });
 
       return `// ${frame!.title}
       const fx_${starter.frameId} = (${starter.pinAry.map((_, index) => `value${index}`).join(", ")}) => {
@@ -441,7 +524,7 @@ class Code {
           ? `return [${frame!.outputs.reduce((pre, { id, title }) => {
               const outputs = frameOutputs[id];
 
-              if (outputs.size) {
+              if (outputs?.size) {
                 return (
                   pre +
                   `\n// ${title}
@@ -662,7 +745,7 @@ class Code {
     ) => {
       nodes.forEach((node, nodeIndex) => {
         if (node.to.parent.type === "frame") {
-          if (type === "fx") {
+          if (type === "fx" || type === "globalFx") {
             // 这里说明是卡片的输出，不需要再往下走了
             if (!frameOutputs[node.to.id]) {
               frameOutputs[node.to.id] = new Set();
@@ -825,7 +908,7 @@ class Code {
         if (isJsComponent) {
           let nextInput = "";
           let nextValue = value;
-          let nextId = toComInfo.id;
+          let nextId = `_${toComInfo.id}`;
           let nextComponentName = componentName;
           let destructuringAssignment = "";
 
@@ -859,15 +942,27 @@ class Code {
               return cur;
             }, value);
             nextValue = params;
-            nextId = toComInfo.ioProxy.id;
+            nextId = `_${toComInfo.ioProxy.id}`;
             nextComponentName = "fx";
+
             if (nextCode.length) {
               destructuringAssignment = `const [${nextCode.map((_, index) => `${nextComponentName}_${toComInfo.id}_${index}`).join(", ")}] = `;
+            }
+
+            if (frame!.type === "globalFx") {
+              nextComponentName = "global.fx.";
+              nextId = toComInfo.ioProxy.id;
             }
           } else if (isJsVar) {
             nextInput = `.${node.to.id}`;
             if (nextCode.length) {
               destructuringAssignment = `const ${nextCode[0]} = `;
+            }
+
+            if (toComInfo.global) {
+              // 认为是全局变量
+              nextComponentName = "global.var.";
+              nextId = toComInfo.id;
             }
           } else if (isJsMultipleInputs) {
             nextValue = multipleInputsNodes[toComInfo.id].value.join(", ");
@@ -888,7 +983,7 @@ class Code {
             nodesInvocation.add(
               notes +
                 "\n" +
-                `${destructuringAssignment}${nextComponentName}_${nextId}${nextInput}(${nextValue})`,
+                `${destructuringAssignment}${nextComponentName}${nextId}${nextInput}(${nextValue})`,
             );
           }
         } else {
@@ -950,7 +1045,7 @@ class Code {
         if (startNode.to.parent.type === "frame") {
           // case0 直接调了fx的输出
 
-          if (type === "fx") {
+          if (type === "fx" || type === "globalFx") {
             // fx 作为函数return返回值，不需要这里的注释
             return;
           }
@@ -981,9 +1076,11 @@ class Code {
   }
 
   toCode(slot = this.scene.slot) {
-    const ui = this.handleSlot(slot, {
-      useVisible: !validateScenePopup(this.scene),
-    });
+    const ui = this.config.ignoreUI
+      ? ""
+      : this.handleSlot(slot, {
+          useVisible: !validateScenePopup(this.scene),
+        });
     const js = this.handleFrame();
 
     return {
@@ -1059,6 +1156,7 @@ class Code {
              this.frame.coms[comInfo.id].frames.find(
                (frame) => frame.id === id,
              )!,
+             this.global,
              {
                comsAutoRunKey: `${com.id}-${id}`,
              },
@@ -1157,4 +1255,32 @@ const generateComponentNameByDef = ({ namespace, rtType }: Def) => {
           : capitalizeFirstLetter(c))
       );
     }, "");
+};
+
+/** 依赖的组件 */
+const collectComponentDependencies = (
+  deps: Def[],
+  res: Record<string, Set<string>>,
+  config: { namespaceToNpmMap: Record<string, string> },
+) => {
+  const { namespaceToNpmMap } = config;
+  deps.forEach((def) => {
+    if (
+      [
+        "mybricks.core-comlib.fn",
+        "mybricks.core-comlib.var",
+        "mybricks.core-comlib.scenes",
+      ].includes(def.namespace)
+    ) {
+      // 内置组件，需要过滤
+      return;
+    }
+    const npm = namespaceToNpmMap[def.namespace];
+
+    if (!res[npm]) {
+      res[npm] = new Set();
+    }
+
+    res[npm].add(generateComponentNameByDef(def));
+  });
 };
