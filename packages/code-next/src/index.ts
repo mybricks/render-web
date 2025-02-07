@@ -76,6 +76,14 @@ interface Scene {
       pinId: string;
     }
   >;
+  pinValueProxies: Record<
+    string,
+    {
+      frameId: string;
+      pinId: string;
+      type: "frame";
+    }
+  >;
   inputs: {
     type: "normal" | "config";
     pinId: string;
@@ -285,7 +293,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
 
   return `import React, { useRef, useMemo, useEffect } from "react"
       ${dependencyImportCode}
-      import { Provider, Slot, merge, inputs, useVar, useCanvasState } from "@mybricks/render-react-hoc";
+      import { Provider, Slot, join, merge, inputs, useVar, useCanvasState } from "@mybricks/render-react-hoc";
 
       export default function () {
         ${canvasState}
@@ -350,11 +358,11 @@ class Code {
     });
 
     if (!this.config.ignoreUI) {
-      this.frame.frames.forEach(({ diagrams, type }) => {
+      this.frame.frames.forEach(({ diagrams, inputs, type }) => {
         if (type === "globalFx") {
           return;
         }
-        nextCode.push(this.handleDiagram(diagrams[0], { type }));
+        nextCode.push(this.handleDiagram(diagrams[0], { inputs, type })); // inputs, 用于frame-input组件，判断当前是fx是需要计算获取的是第几个参数
       });
     }
 
@@ -366,7 +374,19 @@ class Code {
     );
   }
 
-  handleDiagram(diagram: Diagram, { type }: { type?: string }) {
+  handleDiagram(
+    diagram: Diagram,
+    {
+      inputs,
+      type,
+    }: {
+      inputs?: {
+        type: "normal" | "config";
+        pinId: string;
+      }[];
+      type?: string;
+    },
+  ) {
     const { starter, conAry } = diagram;
 
     if (
@@ -409,6 +429,7 @@ class Code {
         multipleInputsNodes,
         notesIndex: 0,
         frameOutputs: {},
+        inputs,
         type,
       });
 
@@ -502,6 +523,7 @@ class Code {
           multipleInputsNodes,
           notesIndex: cur,
           frameOutputs,
+          inputs,
           type,
         });
 
@@ -716,6 +738,7 @@ class Code {
     multipleInputsNodes,
     notesIndex,
     frameOutputs,
+    inputs,
     type, // 用于判断是否fx，主要用于调用输出时的特殊处理
     // _test,
   }: {
@@ -735,6 +758,10 @@ class Code {
     >;
     notesIndex: number;
     frameOutputs: Record<string, Set<string>>;
+    inputs?: {
+      type: "normal" | "config";
+      pinId: string;
+    }[];
     type?: string;
     _test?: boolean;
   }) {
@@ -772,8 +799,17 @@ class Code {
         const isJsFx = validateJsFxComponent(toComInfo.def.namespace);
         const isJsVar = validateJsVarComponent(toComInfo.def.namespace);
         const isJsScenes = validateJsScenesComponent(toComInfo.def.namespace);
+        const isJsFrameInputComponent = validateJsFrameInputComponent(
+          toComInfo.def.namespace,
+        );
 
-        if (isJsComponent && !isJsFx && !isJsVar && !isJsScenes) {
+        if (
+          isJsComponent &&
+          !isJsFx &&
+          !isJsVar &&
+          !isJsScenes &&
+          !isJsFrameInputComponent
+        ) {
           // fx 变量不需要声明节点
           nodesDeclaration.add(
             `const ${componentName}_${toComInfo.id} = ${componentName}({data: ${JSON.stringify(toComInfo.model.data)}, inputs: ${JSON.stringify(toComInfo.inputs)}, outputs: ${JSON.stringify(toComInfo.outputs)}})`,
@@ -978,13 +1014,35 @@ class Code {
             if (nextCode.length) {
               destructuringAssignment = `const {${nextCode.join(", ")}} = `;
             }
+          } else if (isJsFrameInputComponent) {
+            const pinValueProxy =
+              this.scene.pinValueProxies[`${toComInfo.id}-${node.to.id}`];
+
+            nextComponentName = `const joinNext${nextId} = `;
+
+            nextId = "join";
+
+            if (pinValueProxy.frameId === this.scene.id) {
+              // 说明是场景输入
+              nextValue = `${nextValue}, global.canvas.${this.scene.id}.${pinValueProxy.pinId}`;
+            } else {
+              // 说明是作用域输入
+              if (type === "fx" || type === "globalFx") {
+                const inputIndex = inputs!.findIndex(
+                  ({ pinId }) => pinId === pinValueProxy.pinId,
+                );
+                nextValue = `${nextValue}, value${inputIndex}`;
+              } else {
+                nextValue = `${nextValue}, slot.${pinValueProxy.pinId}`;
+              }
+            }
           } else {
             if (nextCode.length) {
               destructuringAssignment = `const {${nextCode.join(", ")}} = `;
             }
           }
 
-          if (!isJsFx && node.to.id && !nextInput) {
+          if (!isJsFx && !isJsFrameInputComponent && node.to.id && !nextInput) {
             nextInput = ".input";
           }
 
@@ -1033,6 +1091,8 @@ class Code {
               value = `${componentName}_${toComInfo.id}_${from.startPinParentKey}`;
             } else if (isJsScenes) {
               value = `canvas_${toComInfo.id}_${outputId}`;
+            } else if (isJsFrameInputComponent) {
+              value = `joinNext_${toComInfo.id}`;
             } else if (isJsComponent) {
               value = `${componentName}_${toComInfo.id}_${outputId}`;
             } else {
@@ -1211,6 +1271,11 @@ const validateScenePopup = (scene: Scene) => {
   return scene.type === "popup";
 };
 
+/** 判断是输入值获取组件 */
+const validateJsFrameInputComponent = (namespace: string) => {
+  return namespace === "mybricks.core-comlib.frame-input";
+};
+
 /** 判断是场景类型组件 */
 const validateJsScenesComponent = (namespace: string) => {
   return namespace === "mybricks.core-comlib.scenes";
@@ -1283,6 +1348,7 @@ const collectComponentDependencies = (
         "mybricks.core-comlib.fn",
         "mybricks.core-comlib.var",
         "mybricks.core-comlib.scenes",
+        "mybricks.core-comlib.frame-input",
       ].includes(def.namespace)
     ) {
       // 内置组件，需要过滤

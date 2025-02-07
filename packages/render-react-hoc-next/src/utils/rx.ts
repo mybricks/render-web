@@ -82,3 +82,22 @@ export const inputs = <T = unknown>() => {
     },
   );
 };
+
+export const join = (
+  lastSubject: Subject | unknown,
+  nextSubject: Subject | unknown,
+) => {
+  const next = new Subject();
+
+  if ((lastSubject as Subject)?.subscribe) {
+    (lastSubject as Subject).subscribe(() => {
+      if ((nextSubject as Subject)?.subscribe) {
+        next.next((nextSubject as Subject).value);
+      } else {
+        next.next(nextSubject);
+      }
+    });
+  }
+
+  return next;
+};

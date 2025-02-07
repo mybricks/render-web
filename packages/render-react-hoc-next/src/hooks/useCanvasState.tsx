@@ -7,7 +7,7 @@ type State = {
     {
       mounted: boolean;
       visible: boolean;
-      type?: "popup";
+      type?: "popup" | "normal";
     }
   >;
   status: {
