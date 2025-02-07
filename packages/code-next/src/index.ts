@@ -198,6 +198,10 @@ const toCode = (tojson: ToJSON, config: Config) => {
       global,
       {
         comsAutoRunKey: "_rootFrame_",
+        sceneFrame: {
+          ...frame!,
+          frames: frame!.frames.concat(globalFxFrames),
+        },
       },
     );
     const { ui, js } = code.toCode();
@@ -334,6 +338,7 @@ class Code {
     private config: {
       comsAutoRunKey: string;
       ignoreUI?: boolean;
+      sceneFrame?: Frame;
     },
   ) {}
 
@@ -931,9 +936,13 @@ class Code {
                 `${nextCode.length ? `const {${nextCode.join(", ")}} = ` : ""}global.canvas.${toComInfo.model.data._sceneId}.inputs.${toComInfo.model.data._pinId}(${value}${secondValue});`,
             );
           } else if (isJsFx) {
-            const frame = this.frame.frames.find((frame) => {
-              return frame.id === toComInfo.ioProxy.id;
-            });
+            const frame =
+              this.frame.frames.find((frame) => {
+                return frame.id === toComInfo.ioProxy.id;
+              }) || // 作用域插槽调用页面fx
+              this.config.sceneFrame?.frames.find((frame) => {
+                return frame.id === toComInfo.ioProxy.id;
+              });
             const configs = toComInfo.model.data.configs;
             const params = frame!.inputs.reduce((cur, pre) => {
               if (pre.type === "config") {
@@ -1161,6 +1170,7 @@ class Code {
              )!,
              this.global,
              {
+               ...this.config,
                comsAutoRunKey: `${com.id}-${id}`,
              },
            );
