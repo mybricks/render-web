@@ -1,5 +1,7 @@
 import * as CSS from "csstype";
 
+import { deepObjectDiff } from "./utils";
+
 interface Style extends CSS.Properties {
   layout: "smart";
 }
@@ -160,13 +162,21 @@ interface ToJSON {
 }
 
 interface Config {
-  /** 组件namespace到npm包的映射 */
-  namespaceToNpmMap: Record<string, string>;
+  /** 组件namespace到元数据的映射 */
+  namespaceToMetaDataMap: Record<
+    string,
+    {
+      /** 对应包名 */
+      npmPackageName: string;
+      /** 组件默认数据源 */
+      defaultData: object;
+    }
+  >;
 }
 
 const toCode = (tojson: ToJSON, config: Config) => {
   const { frames, scenes, global } = tojson;
-  const { namespaceToNpmMap } = config;
+  const { namespaceToMetaDataMap } = config;
 
   let canvasDeclaration = "";
   let canvasRender = "";
@@ -176,7 +186,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
 
   global.fxFrames.forEach((fxFrame) => {
     collectComponentDependencies(fxFrame.deps, dependencyImport, {
-      namespaceToNpmMap,
+      namespaceToMetaDataMap,
     });
   });
 
@@ -210,12 +220,13 @@ const toCode = (tojson: ToJSON, config: Config) => {
           ...frame!,
           frames: frame!.frames.concat(globalFxFrames),
         },
+        namespaceToMetaDataMap,
       },
     );
     const { ui, js } = code.toCode();
 
     collectComponentDependencies(scene.deps, dependencyImport, {
-      namespaceToNpmMap,
+      namespaceToMetaDataMap,
     });
 
     const isPopup = validateScenePopup(scene);
@@ -264,6 +275,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
     const code = new Code(scenes[0], globalVarFrames!, global, {
       comsAutoRunKey: "",
       ignoreUI: true,
+      namespaceToMetaDataMap,
     });
     const { js } = code.toCode();
 
@@ -283,6 +295,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
         {
           comsAutoRunKey: "",
           ignoreUI: true,
+          namespaceToMetaDataMap,
         },
       );
 
@@ -345,6 +358,15 @@ class Code {
     private global: Global,
     private config: {
       comsAutoRunKey: string;
+      namespaceToMetaDataMap: Record<
+        string,
+        {
+          /** 对应包名 */
+          npmPackageName: string;
+          /** 组件默认数据源 */
+          defaultData: object;
+        }
+      >;
       ignoreUI?: boolean;
       sceneFrame?: Frame;
     },
@@ -1219,7 +1241,7 @@ class Code {
     this.refs.add(`const ${componentName}_${id}_ref = useRef()`);
 
     if (slots) {
-      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}>
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} data={${JSON.stringify(deepObjectDiff(this.config.namespaceToMetaDataMap[def.namespace].defaultData, model.data))}} ${eventsCode}>
        ${Object.entries(slots).reduce((cur, pre) => {
          const [id, slot] = pre;
          if (slot.type === "scope") {
@@ -1259,7 +1281,7 @@ class Code {
       </${componentName}>
       `;
     } else {
-      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} data={${JSON.stringify(model.data)}} ${eventsCode}/>`;
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} data={${JSON.stringify(deepObjectDiff(this.config.namespaceToMetaDataMap[def.namespace].defaultData, model.data))}} ${eventsCode}/>`;
     }
   }
 }
@@ -1339,9 +1361,9 @@ const generateComponentNameByDef = ({ namespace, rtType }: Def) => {
 const collectComponentDependencies = (
   deps: Def[],
   res: Record<string, Set<string>>,
-  config: { namespaceToNpmMap: Record<string, string> },
+  config: Config,
 ) => {
-  const { namespaceToNpmMap } = config;
+  const { namespaceToMetaDataMap } = config;
   deps.forEach((def) => {
     if (
       [
@@ -1354,12 +1376,12 @@ const collectComponentDependencies = (
       // 内置组件，需要过滤
       return;
     }
-    const npm = namespaceToNpmMap[def.namespace];
+    const npmPackageName = namespaceToMetaDataMap[def.namespace].npmPackageName;
 
-    if (!res[npm]) {
-      res[npm] = new Set();
+    if (!res[npmPackageName]) {
+      res[npmPackageName] = new Set();
     }
 
-    res[npm].add(generateComponentNameByDef(def));
+    res[npmPackageName].add(generateComponentNameByDef(def));
   });
 };
