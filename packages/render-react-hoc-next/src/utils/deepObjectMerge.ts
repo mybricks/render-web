@@ -1,36 +1,32 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 const isObject = (o: unknown) => o != null && typeof o === "object";
 const isArray = (o: unknown) => Array.isArray(o);
 
-const deepObjectMerge = <T extends Record<string, unknown>>(
-  lhs: T,
-  rhs: T,
-): T => {
+// [TODO] 类型补充
+const deepObjectMerge = (lhs: any, rhs: any): any => {
   if (!isObject(lhs) || !isObject(rhs)) {
     // 不是对象类型，用对比的值
-    return rhs as T;
+    return rhs;
   }
 
   if (isArray(rhs)) {
-    return rhs.map((value, index) => {
-      if (index < (lhs as unknown as Array<T>).length) {
+    return rhs.map((value: any, index: number) => {
+      if (index < (lhs as any).length) {
         // 长度未超出，尝试合并
-        return deepObjectMerge(lhs[index] as Record<string, unknown>, value);
+        return deepObjectMerge((lhs as any)[index], value);
       }
       // 长度超出，直接用合并的值
       return value;
-    }) as unknown as T;
+    });
   }
 
   return Object.keys(rhs).reduce(
     (acc, key) => {
       // 有key做对比，没有直接赋值
-      (acc as Record<string, unknown>)[key] =
+      (acc as any)[key] =
         key in lhs
-          ? deepObjectMerge(
-              lhs[key] as Record<string, unknown>,
-              rhs[key] as Record<string, unknown>,
-            )
-          : rhs[key];
+          ? deepObjectMerge((lhs as any)[key], (rhs as any)[key])
+          : (rhs as any)[key];
       return acc;
     },
     { ...lhs },

@@ -1,12 +1,11 @@
-const isEmpty = (o: object) => Object.keys(o).length === 0;
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const isEmpty = (o: unknown) => Object.keys(o as object).length === 0;
 const isObject = (o: unknown) => o != null && typeof o === "object";
 const isArray = (o: unknown) => Array.isArray(o);
 const isEmptyObject = (o: unknown) => isObject(o) && isEmpty(o);
 
-const deepObjectDiff = <T extends Record<string, unknown>>(
-  lhs: T,
-  rhs: T,
-): Partial<T> | T[keyof T] | Array<Partial<T> | T[keyof T]> => {
+// [TODO] 类型补充
+const deepObjectDiff = (lhs: any, rhs: any) => {
   if (lhs === rhs) {
     // 相等，不需要对比信息
     return {};
@@ -19,10 +18,10 @@ const deepObjectDiff = <T extends Record<string, unknown>>(
 
   if (isArray(rhs)) {
     // 类型一定相等不希要判断两者类型，判断其一即可
-    const res: Array<Partial<T> | T[keyof T]> = [];
+    const res: any[] = [];
 
-    rhs.forEach((value, index) => {
-      const next = deepObjectDiff(lhs[index], value);
+    rhs.forEach((value: any, index: number) => {
+      const next = deepObjectDiff((lhs as any[])[index], value);
       res.push(isEmptyObject(next) ? value : next);
     });
 
@@ -30,10 +29,7 @@ const deepObjectDiff = <T extends Record<string, unknown>>(
   }
 
   return Object.keys(rhs).reduce((acc, key) => {
-    const next = deepObjectDiff(
-      lhs[key] as Record<string, unknown>,
-      rhs[key] as Record<string, unknown>,
-    );
+    const next = deepObjectDiff((lhs as any)[key], (rhs as any)[key]);
 
     if (isEmptyObject(next)) {
       return acc;
@@ -42,7 +38,7 @@ const deepObjectDiff = <T extends Record<string, unknown>>(
     (acc as Record<string, unknown>)[key] = next;
 
     return acc;
-  }, {} as Partial<T>);
+  }, {});
 };
 
 export default deepObjectDiff;
