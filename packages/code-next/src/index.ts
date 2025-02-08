@@ -834,7 +834,7 @@ class Code {
         ) {
           // fx 变量不需要声明节点
           nodesDeclaration.add(
-            `const ${componentName}_${toComInfo.id} = ${componentName}({data: ${JSON.stringify(toComInfo.model.data)}, inputs: ${JSON.stringify(toComInfo.inputs)}, outputs: ${JSON.stringify(toComInfo.outputs)}})`,
+            `const ${componentName}_${toComInfo.id} = ${componentName}({data: ${JSON.stringify(deepObjectDiff(this.config.namespaceToMetaDataMap[toComInfo.def.namespace].defaultData, toComInfo.model.data))}, inputs: ${JSON.stringify(toComInfo.inputs)}, outputs: ${JSON.stringify(toComInfo.outputs)}})`,
           );
         }
 
