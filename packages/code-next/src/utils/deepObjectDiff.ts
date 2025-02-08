@@ -4,11 +4,13 @@ const isObject = (o: unknown) => o != null && typeof o === "object";
 const isArray = (o: unknown) => Array.isArray(o);
 const isEmptyObject = (o: unknown) => isObject(o) && isEmpty(o);
 
+const Empty = Symbol.for("empty");
+
 // [TODO] 类型补充
 const deepObjectDiff = (lhs: any, rhs: any) => {
   if (lhs === rhs) {
     // 相等，不需要对比信息
-    return {};
+    return Empty;
   }
 
   if (!isObject(lhs) || !isObject(rhs)) {
@@ -22,7 +24,11 @@ const deepObjectDiff = (lhs: any, rhs: any) => {
 
     rhs.forEach((value: any, index: number) => {
       const next = deepObjectDiff((lhs as any[])[index], value);
-      res.push(isEmptyObject(next) ? value : next);
+      if (next === Empty) {
+        res.push(value);
+      } else {
+        res.push(isEmptyObject(next) ? {} : next);
+      }
     });
 
     return res;
@@ -31,7 +37,7 @@ const deepObjectDiff = (lhs: any, rhs: any) => {
   return Object.keys(rhs).reduce((acc, key) => {
     const next = deepObjectDiff((lhs as any)[key], (rhs as any)[key]);
 
-    if (isEmptyObject(next)) {
+    if (next === Empty || isEmptyObject(next)) {
       return acc;
     }
 
