@@ -407,7 +407,7 @@ const getCom = (props: Props) => {
     _env: {
       currentScenes: {
         close: () => {
-          context.config.canvasIO[canvasId].close();
+          context.config.canvasIO[canvasId].close({ useDispatch: false });
         },
       },
     },
