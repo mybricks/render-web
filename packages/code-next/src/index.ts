@@ -181,6 +181,8 @@ interface Config {
       defaultData: object;
     }
   >;
+  /** 拆分场景、模块、全局变量、全局FX */
+  splitModules: boolean;
 }
 
 const toCode = (tojson: ToJSON, config: Config) => {
@@ -1499,7 +1501,9 @@ const generateComponentNameByDef = ({ namespace, rtType }: Def) => {
 const collectComponentDependencies = (
   deps: Def[],
   res: Record<string, Set<string>>,
-  config: Config,
+  config: {
+    namespaceToMetaDataMap: Config["namespaceToMetaDataMap"];
+  },
 ) => {
   const { namespaceToMetaDataMap } = config;
   deps.forEach((def) => {
@@ -1524,3 +1528,26 @@ const collectComponentDependencies = (
     res[npmPackageName].add(generateComponentNameByDef(def));
   });
 };
+
+/** 生成导入组件依赖代码 */
+// const generateComponentDependenciesCode = (
+//   res: Record<string, Set<string>>,
+// ) => {
+//   let code = "";
+//   const reactDependencies = res["react"];
+//   if (reactDependencies) {
+//     if (reactDependencies.size) {
+//       code = `import React, { ${Array.from(res["react"]).join(", ")} } from "react";`;
+//     } else {
+//       code = 'import React from "react";';
+//     }
+//     Reflect.deleteProperty(res, "react");
+//   }
+//   return Object.entries(res).reduce((pre, cur) => {
+//     const [npmPackageName, dependency] = cur;
+//     return (
+//       pre +
+//       `import { ${Array.from(dependency).join(", ")} } from "${npmPackageName}";`
+//     );
+//   }, code);
+// };
