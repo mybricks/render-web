@@ -233,7 +233,7 @@ const useCanvasState = (
     {
       mounted: boolean;
       visible: boolean;
-      type?: "popup";
+      type?: "popup" | "normal";
     }
   >,
 ) => {
@@ -269,7 +269,17 @@ const useCanvasState = (
     );
   }, []);
 
-  return [state, io];
+  return [
+    state as Record<
+      string,
+      {
+        mounted: boolean;
+        visible: boolean;
+        type?: "popup" | "normal";
+      }
+    >,
+    io,
+  ];
 };
 
 export default useCanvasState;
