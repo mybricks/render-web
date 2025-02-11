@@ -41,7 +41,11 @@ const Hoc = forwardRef((props: Props, ref) => {
   const { Component } = props;
   const slotContext = useContext(SlotContext);
 
-  if (slotContext && (slotContext.params.wrap || slotContext.params.itemWrap)) {
+  if (
+    slotContext &&
+    slotContext.params &&
+    (slotContext.params.wrap || slotContext.params.itemWrap)
+  ) {
     // 不做渲染，被上层代理
     const com = useMemo(() => {
       return getCom(props);
@@ -407,7 +411,7 @@ const getCom = (props: Props) => {
     _env: {
       currentScenes: {
         close: () => {
-          context.config.canvasIO[canvasId].close({ useDispatch: false });
+          context.config.canvasIO[canvasId].close({ useDispatch: true });
         },
       },
     },
