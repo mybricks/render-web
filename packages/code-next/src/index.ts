@@ -250,11 +250,6 @@ const toCode = (tojson: ToJSON, config: Config) => {
         },
       );
       const { ui, js } = code.toCode();
-
-      // collectComponentDependencies(scene.deps, dependencyImport, {
-      //   namespaceToMetaDataMap,
-      // });
-
       const isPopup = validateScenePopup(scene);
 
       result.push({
@@ -326,11 +321,6 @@ const toCode = (tojson: ToJSON, config: Config) => {
           },
         );
         const { ui, js } = code.toCode();
-
-        // collectComponentDependencies(scene.deps, dependencyImport, {
-        //   namespaceToMetaDataMap,
-        // });
-
         const rels = Object.entries(scene.pinRels)
           .filter(([key]) => {
             return key.startsWith("_rootFrame_");
@@ -436,10 +426,6 @@ const toCode = (tojson: ToJSON, config: Config) => {
         const scene = global.fxFrames.find(
           (fxFrame) => fxFrame.id === frame.id,
         );
-        // collectComponentDependencies(scene!.deps, mainDependencyImport, {
-        //   // [TODO] 临时，下一版移出去
-        //   namespaceToMetaDataMap,
-        // });
         const code = new Code(scene!, frame, global, {
           comsAutoRunKey: "",
           ignoreUI: true,
@@ -513,234 +499,6 @@ const toCode = (tojson: ToJSON, config: Config) => {
 
     return result;
   }
-
-  // let canvasDeclaration = "";
-  // let canvasRender = "";
-  // let canvasState = "";
-
-  // const dependencyImport: Record<string, Set<string>> = {};
-
-  // global.fxFrames.forEach((fxFrame) => {
-  //   collectComponentDependencies(fxFrame.deps, dependencyImport, {
-  //     namespaceToMetaDataMap,
-  //   });
-  // });
-
-  // let globalVarFrames = null as unknown as Frame;
-  // const canvasFrames: Frame[] = [];
-  // const globalFxFrames: Frame[] = [];
-
-  // frames.forEach((frame) => {
-  //   if (frame.type === "global") {
-  //     globalVarFrames = frame;
-  //   } else if (frame.type === "globalFx") {
-  //     globalFxFrames.push(frame);
-  //   } else {
-  //     canvasFrames.push(frame);
-  //   }
-  // });
-
-  // scenes.forEach((scene, index) => {
-  //   // 找到对应的scene对应的frame
-  //   const frame = canvasFrames.find((frame) => frame.id === scene.id);
-  //   const code = new Code(
-  //     scene,
-  //     {
-  //       ...frame!,
-  //       frames: frame!.frames.concat(globalFxFrames),
-  //     },
-  //     global,
-  //     {
-  //       comsAutoRunKey: "_rootFrame_",
-  //       sceneFrame: {
-  //         ...frame!,
-  //         frames: frame!.frames.concat(globalFxFrames),
-  //       },
-  //       namespaceToMetaDataMap,
-  //     },
-  //   );
-  //   const { ui, js } = code.toCode();
-
-  //   collectComponentDependencies(scene.deps, dependencyImport, {
-  //     namespaceToMetaDataMap,
-  //   });
-
-  //   const isPopup = validateScenePopup(scene);
-
-  //   canvasDeclaration += `// ${scene.title}
-  //   const Canvas_${scene.id} = ({${isPopup ? "" : ` visible,`} global }) => {
-  //     ${js}
-
-  //     return ${ui}
-  //   }
-  //   \n`;
-
-  //   canvasRender += `{canvasState.${scene.id}.mounted && (
-  //     <Canvas_${scene.id} ${isPopup ? "" : `visible={canvasState.${scene.id}.visible}`} global={global}/>
-  //   )}`;
-
-  //   canvasState += `${scene.id}: {
-  //     mounted: ${index === 0 ? "true" : "false"},
-  //     visible: ${index === 0 ? "true" : "false"},
-  //     type: "${scene.type}",
-  //   },`;
-  // });
-
-  // canvasState = `const [canvasState, canvasIO] = useCanvasState({
-  //   ${canvasState}
-  // })`;
-
-  // let varDeclaration = "";
-  // let varGlobal = "";
-
-  // if (globalVarFrames && globalVarFrames.diagrams.length) {
-  //   globalVarFrames.diagrams.forEach((diagram) => {
-  //     varGlobal =
-  //       varGlobal + `${diagram.starter.comId}: var_${diagram.starter.comId},`;
-  //   });
-  //   const code = new Code(scenes[0], globalVarFrames!, global, {
-  //     comsAutoRunKey: "",
-  //     ignoreUI: true,
-  //     namespaceToMetaDataMap,
-  //   });
-  //   const { js } = code.toCode();
-
-  //   varDeclaration = js;
-  // }
-
-  // let fxDeclaration = "";
-  // let fxGlobal = "";
-
-  // if (globalFxFrames.length) {
-  //   globalFxFrames.forEach((frame) => {
-  //     fxGlobal = fxGlobal + `${frame.id}: fx_${frame.id},`;
-  //     const code = new Code(
-  //       global.fxFrames.find((fxFrame) => fxFrame.id === frame.id)!,
-  //       frame,
-  //       global,
-  //       {
-  //         comsAutoRunKey: "",
-  //         ignoreUI: true,
-  //         namespaceToMetaDataMap,
-  //       },
-  //     );
-
-  //     const { js } = code.toCode();
-  //     fxDeclaration = js;
-  //   });
-  // }
-
-  // /** 模块声明 */
-  // let moduleDeclaration = "";
-
-  // if (modules) {
-  //   Object.entries(modules).forEach(([, { json: scene }]) => {
-  //     // 找到对应的scene对应的frame
-  //     const frame = canvasFrames.find((frame) => frame.id === scene.id);
-  //     const code = new Code(
-  //       scene,
-  //       {
-  //         ...frame!,
-  //         frames: frame!.frames.concat(globalFxFrames),
-  //       },
-  //       global,
-  //       {
-  //         comsAutoRunKey: "_rootFrame_",
-  //         sceneFrame: {
-  //           ...frame!,
-  //           frames: frame!.frames.concat(globalFxFrames),
-  //         },
-  //         namespaceToMetaDataMap,
-  //       },
-  //     );
-  //     const { ui, js } = code.toCode();
-
-  //     collectComponentDependencies(scene.deps, dependencyImport, {
-  //       namespaceToMetaDataMap,
-  //     });
-
-  //     const rels = Object.entries(scene.pinRels)
-  //       .filter(([key]) => {
-  //         return key.startsWith("_rootFrame_");
-  //       })
-  //       .reduce((rels, [, value]) => {
-  //         value.forEach((v) => rels.add(v));
-  //         return rels;
-  //       }, new Set());
-
-  //     const eventsCode = scene.outputs
-  //       .filter(({ id }) => {
-  //         return id !== "click" && !rels.has(id);
-  //       })
-  //       .reduce((pre, { id }) => {
-  //         return pre + id + ",";
-  //       }, "");
-
-  //     moduleDeclaration += `// ${scene.title}
-  //     const Module_${scene.id} = forwardRef(({ global, data, ${eventsCode} ...config }, ref) => {
-  //       ${js}
-
-  //       return (
-  //         <Module ref={ref} {...config}>
-  //           ${ui}
-  //         </Module>
-  //       )
-  //     })
-  //     \n`;
-  //   });
-  // }
-
-  // const dependencyImportCode = Object.entries(dependencyImport).reduce(
-  //   (pre, cur) => {
-  //     const [npm, dependency] = cur;
-  //     return (
-  //       pre + `import { ${Array.from(dependency).join(", ")} } from "${npm}";`
-  //     );
-  //   },
-  //   "",
-  // );
-
-  // return `import React, { useRef, useMemo, useEffect, forwardRef, useImperativeHandle } from "react"
-  //     ${dependencyImportCode}
-  //     import { Provider, Slot, Module, join, merge, inputs, useVar, useCanvasState } from "@mybricks/render-react-hoc";
-
-  //     export default function () {
-  //       ${canvasState}
-
-  //       ${varDeclaration}
-
-  //       ${fxDeclaration}
-
-  //       const global = useMemo(() => {
-  //         return {
-  //           var: {${varGlobal}},
-  //           fx: {${fxGlobal}},
-  //           canvas: canvasIO
-  //         }
-  //       }, [])
-
-  //       const value = useMemo(() => {
-  //         return {
-  //           env: {
-  //             runtime: true,
-  //             i18n: (value) => value,
-  //           },
-  //           canvasState,
-  //           canvasIO
-  //         };
-  //       }, []);
-
-  //       return (
-  //         <Provider value={value}>
-  //           ${canvasRender}
-  //         </Provider>
-  //       )
-  //     }
-
-  //     ${canvasDeclaration}
-
-  //     ${moduleDeclaration}
-  //     `;
 };
 
 class Code {
@@ -815,12 +573,6 @@ class Code {
       diagram.starter.frameId === this.scene.id &&
       type !== "globalFx"
     ) {
-      // useEffect 卡片 main
-      // 一定只有一个输入，后续有多个输入的话再看下
-      // const startNodes = conAry.filter(
-      //   (con) => con.from.parent.id === starter.frameId,
-      // );
-
       // 自执行组件
       const comsAutoRun = this.scene.comsAutoRun[this.config.comsAutoRunKey];
 
@@ -866,20 +618,6 @@ class Code {
         return res.nextStep + startNodes.length;
       }, 0);
 
-      // const res = this.handleDiagramNext({
-      //   startNodes,
-      //   diagram,
-      //   defaultValue: `global.canvas.${this.scene.id}.inputs.open`,
-      //   nextStep: startNodes.length - 1,
-      //   nodesDeclaration,
-      //   nodesInvocation,
-      //   multipleInputsNodes,
-      //   notesIndex: 0,
-      //   frameOutputs: {},
-      //   inputs,
-      //   type,
-      // });
-
       if (comsAutoRun) {
         comsAutoRun.reduce((cur, pre) => {
           const startNodes = conAry.filter(
@@ -923,8 +661,6 @@ class Code {
       }
 
       if (res || comsAutoRun) {
-        // this.config.dependencyImport["react"].add("useEffect");
-
         collectImportDependencies(this.config.dependencyImport, {
           packageName: "react",
           dependencyName: "useEffect",
@@ -1037,38 +773,6 @@ class Code {
           const fx_${starter.frameId} = ${fxBody}
         `;
       }
-
-      // return `// ${frame!.title}
-      // const fx_${starter.frameId} = (${starter.pinAry.map((_, index) => `value${index}`).join(", ")}) => {
-      // ${nodesDeclaration.size ? "// 节点声明" : ""}
-      // ${Array.from(nodesDeclaration).join("\n")}
-
-      // ${Array.from(nodesInvocation).join("\n\n")}
-
-      // ${
-      //   frame!.outputs.length
-      //     ? `return [${frame!.outputs.reduce((pre, { id, title }) => {
-      //         const outputs = frameOutputs[id];
-
-      //         if (outputs?.size) {
-      //           if (outputs.size > 1) {
-      //             this.config.dependencyImport[
-      //               "@mybricks/render-react-hoc"
-      //             ].add("merge");
-      //           }
-      //           return (
-      //             pre +
-      //             `\n// ${title}
-      //           ${outputs.size > 1 ? `merge(${Array.from(outputs).join(", ")})` : Array.from(outputs)[0]},`
-      //           );
-      //         }
-
-      //         return pre;
-      //       }, "")}
-      //   ]`
-      //     : ""
-      // }
-      // }`;
     } else if (diagram.starter.type === "frame" && this.frame.type === "com") {
       // 组件的作用域插槽
 
@@ -1188,9 +892,6 @@ class Code {
         : generateComponentNameByDef(toComInfo.def);
 
       if (validateUiModule(toComInfo.def.namespace)) {
-        // this.config.dependencyImport["../module"].add(
-        //   `Module_${toComInfo.model.data.definedId}`,
-        // );
         collectImportDependencies(this.config.dependencyImport, {
           packageName: "../module",
           dependencyName: `Module_${toComInfo.model.data.definedId}`,
@@ -1228,17 +929,7 @@ class Code {
         _test: true,
       });
 
-      // const { nodesInvocation, nodesDeclaration } = this.handleDiagramNext({
-      //   startNodes,
-      //   diagram,
-      //   defaultValue: "value",
-      // });
-
       if (starter.type === "var") {
-        // this.config.dependencyImport["@mybricks/render-react-hoc"].add(
-        //   "createVar",
-        // );
-
         if (this.frame.type === "global") {
           // 全局变量，区别于作用域变量
           collectImportDependencies(this.config.dependencyImport, {
@@ -1256,9 +947,6 @@ class Code {
             }
             `);
         } else {
-          // this.config.dependencyImport["@mybricks/render-react-hoc"].add(
-          //   "useVar",
-          // );
           collectImportDependencies(this.config.dependencyImport, {
             packageName: "@mybricks/render-react-hoc",
             dependencyName: "useVar",
@@ -1274,20 +962,6 @@ class Code {
         }
 
         return "";
-
-        // this.config.dependencyImport["@mybricks/render-react-hoc"].add(
-        //   "useVar",
-        // );
-        // this.vars.add(`// ${diagram.title}
-        // const var_${toComInfo.id} = useVar(${"initValue" in toComInfo.model.data ? JSON.stringify(toComInfo.model.data.initValue) : "undefined"}, (value) => {
-        // ${nodesDeclaration.size ? "// 节点声明" : ""}
-        // ${Array.from(nodesDeclaration).join("\n")}
-
-        // ${Array.from(nodesInvocation).join("\n\n")}
-        // });
-        // `);
-
-        // return "";
       }
 
       return `// ${diagram.title}
@@ -1820,7 +1494,6 @@ class Code {
       : generateComponentNameByDef(def);
 
     if (validateUiModule(def.namespace)) {
-      // this.config.dependencyImport["../module"].add(`Module_${data.definedId}`);
       collectImportDependencies(this.config.dependencyImport, {
         packageName: "../module",
         dependencyName: `Module_${data.definedId}`,
