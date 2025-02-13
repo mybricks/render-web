@@ -186,6 +186,18 @@ interface Config {
   splitModules: boolean;
 }
 
+/** 添加依赖 */
+const createDependencyImportCollector = (
+  dependencyImport: Record<string, Set<string>>,
+) => {
+  return (packageName: string, dependencyName: string) => {
+    return collectImportDependencies(dependencyImport, {
+      packageName,
+      dependencyName,
+    });
+  };
+};
+
 const toCode = (tojson: ToJSON, config: Config) => {
   const { frames, scenes, global, modules } = tojson;
   const { namespaceToMetaDataMap, splitModules } = config;
@@ -195,14 +207,13 @@ const toCode = (tojson: ToJSON, config: Config) => {
     const result: { path: string; content: string }[] = [];
     /** 记录主入口导入的依赖 */
     const mainDependencyImport: Record<string, Set<string>> = {};
-    // [TODO] 马上做这个功能
-    mainDependencyImport["react"] = new Set();
-    mainDependencyImport["react"].add("useMemo");
-    mainDependencyImport["@mybricks/render-react-hoc"] = new Set();
+    const addMainDependencyImport =
+      createDependencyImportCollector(mainDependencyImport);
+
+    addMainDependencyImport("react", "useMemo");
     ["Provider", "useCanvasState"].forEach((v) =>
-      mainDependencyImport["@mybricks/render-react-hoc"].add(v),
+      addMainDependencyImport("@mybricks/render-react-hoc", v),
     );
-    mainDependencyImport["./canvas"] = new Set();
 
     // -- 区分不同类型的Frame --
     /** 全局变量的Frame */
@@ -224,12 +235,30 @@ const toCode = (tojson: ToJSON, config: Config) => {
     let canvasRender = "";
     let canvasState = "";
     let canvasIndex = "";
+    /** 记录场景的导入 */
+    const canvasImport = new Map<
+      string,
+      {
+        from: Scene;
+        to: Scene;
+      }
+    >();
+
     scenes.forEach((scene, index) => {
       /** 记录导入的依赖 */
       const dependencyImport: Record<string, Set<string>> = {};
       dependencyImport["react"] = new Set();
-      dependencyImport["@mybricks/render-react-hoc"] = new Set();
-      dependencyImport["../module"] = new Set();
+      const addDependencyImport =
+        createDependencyImportCollector(dependencyImport);
+
+      if (!index) {
+        // 第一个为默认主场景，默认导入
+        canvasImport.set(scene.id, {
+          from: scene,
+          to: scene,
+        });
+      }
+
       // 找到对应的scene对应的frame
       const frame = canvasFrames.find((frame) => frame.id === scene.id);
       const code = new Code(
@@ -245,18 +274,26 @@ const toCode = (tojson: ToJSON, config: Config) => {
             ...frame!,
             frames: frame!.frames.concat(globalFxFrames),
           },
-          dependencyImport,
+          addDependencyImport,
+          addCanvasImport: (canvasId) => {
+            if (!canvasImport.has(canvasId)) {
+              // 避免重复导入
+              canvasImport.set(canvasId, {
+                from: scene,
+                to: scenes.find((scene) => scene.id === canvasId)!,
+              });
+            }
+          },
           namespaceToMetaDataMap,
         },
       );
       const { ui, js } = code.toCode();
-      const isPopup = validateScenePopup(scene);
 
       result.push({
         path: `canvas/Canvas_${scene.id}.tsx`,
         content: `${generateImportDependenciesCode(dependencyImport)}
         // ${scene.title}
-        const Canvas_${scene.id} = ({${isPopup ? "" : ` visible,`} global }) => {
+        const Canvas_${scene.id} = ({${validateScenePopup(scene) ? "" : ` visible,`} global }) => {
           ${js}
     
           return ${ui}
@@ -266,18 +303,22 @@ const toCode = (tojson: ToJSON, config: Config) => {
       });
 
       canvasIndex += `export { default as Canvas_${scene.id} } from "./Canvas_${scene.id}";`;
+    });
 
-      mainDependencyImport["./canvas"].add(`Canvas_${scene.id}`);
+    Array.from(canvasImport.values()).forEach(({ from, to }, index) => {
+      if (canvasImport.has(from.id)) {
+        addMainDependencyImport("./canvas", `Canvas_${to.id}`);
 
-      canvasRender += `{canvasState.${scene.id}.mounted && (
-        <Canvas_${scene.id} ${isPopup ? "" : `visible={canvasState.${scene.id}.visible}`} global={global}/>
-      )}`;
+        canvasRender += `{canvasState.${to.id}.mounted && (
+          <Canvas_${to.id} ${validateScenePopup(to) ? "" : `visible={canvasState.${to.id}.visible}`} global={global}/>
+        )}`;
 
-      canvasState += `${scene.id}: {
-        mounted: ${index === 0 ? "true" : "false"},
-        visible: ${index === 0 ? "true" : "false"},
-        type: "${scene.type}",
-      },`;
+        canvasState += `${to.id}: {
+          mounted: ${index === 0 ? "true" : "false"},
+          visible: ${index === 0 ? "true" : "false"},
+          type: "${to.type}",
+        },`;
+      }
     });
 
     canvasState = `const [canvasState, canvasIO] = useCanvasState({
@@ -296,11 +337,10 @@ const toCode = (tojson: ToJSON, config: Config) => {
       Object.entries(modules).forEach(([, { json: scene }]) => {
         /** 记录导入的依赖 */
         const dependencyImport: Record<string, Set<string>> = {};
-        dependencyImport["react"] = new Set();
-        dependencyImport["react"].add("forwardRef");
-        dependencyImport["@mybricks/render-react-hoc"] = new Set();
-        dependencyImport["@mybricks/render-react-hoc"].add("Module");
-        dependencyImport["../module"] = new Set();
+        const addDependencyImport =
+          createDependencyImportCollector(dependencyImport);
+        addDependencyImport("react", "forwardRef");
+        addDependencyImport("@mybricks/render-react-hoc", "Module");
         // 找到对应的scene对应的frame
         const frame = canvasFrames.find((frame) => frame.id === scene.id);
         const code = new Code(
@@ -317,7 +357,8 @@ const toCode = (tojson: ToJSON, config: Config) => {
               frames: frame!.frames.concat(globalFxFrames),
             },
             namespaceToMetaDataMap,
-            dependencyImport,
+            addDependencyImport,
+            addCanvasImport() {},
           },
         );
         const { ui, js } = code.toCode();
@@ -371,12 +412,12 @@ const toCode = (tojson: ToJSON, config: Config) => {
     let varGlobal = "";
 
     if (globalVarFrames && globalVarFrames.diagrams.length) {
-      mainDependencyImport["./var"] = new Set();
       globalVarFrames.diagrams.forEach((diagram) => {
         /** 记录导入的依赖 */
         const dependencyImport: Record<string, Set<string>> = {};
-        dependencyImport["@mybricks/render-react-hoc"] = new Set();
-        dependencyImport["@mybricks/render-react-hoc"].add("createVar");
+        const addDependencyImport =
+          createDependencyImportCollector(dependencyImport);
+        addDependencyImport("@mybricks/render-react-hoc", "createVar");
         const code = new Code(
           scenes[0],
           { ...globalVarFrames, diagrams: [diagram] }!,
@@ -385,7 +426,8 @@ const toCode = (tojson: ToJSON, config: Config) => {
             comsAutoRunKey: "",
             ignoreUI: true,
             namespaceToMetaDataMap,
-            dependencyImport: dependencyImport, // [TODO] 临时，下一版移出去
+            addDependencyImport,
+            addCanvasImport() {},
           },
         );
         const { js } = code.toCode();
@@ -405,7 +447,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
 
         varGlobal += `${diagram.starter.comId}: var_${diagram.starter.comId}(global, ${"initValue" in comInfo.model.data ? JSON.stringify(comInfo.model.data.initValue) : "undefined"}),`;
 
-        mainDependencyImport["./var"].add(`var_${diagram.starter.comId}`);
+        addMainDependencyImport("./var", `var_${diagram.starter.comId}`);
       });
 
       result.push({
@@ -419,10 +461,11 @@ const toCode = (tojson: ToJSON, config: Config) => {
     let fxGlobal = "";
 
     if (globalFxFrames.length) {
-      mainDependencyImport["./fx"] = new Set();
       globalFxFrames.forEach((frame) => {
         /** 记录导入的依赖 */
         const dependencyImport: Record<string, Set<string>> = {};
+        const addDependencyImport =
+          createDependencyImportCollector(dependencyImport);
         const scene = global.fxFrames.find(
           (fxFrame) => fxFrame.id === frame.id,
         );
@@ -430,7 +473,8 @@ const toCode = (tojson: ToJSON, config: Config) => {
           comsAutoRunKey: "",
           ignoreUI: true,
           namespaceToMetaDataMap,
-          dependencyImport,
+          addDependencyImport,
+          addCanvasImport() {},
         });
 
         const { js } = code.toCode();
@@ -449,7 +493,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
         fxIndex =
           fxIndex += `export { default as fx_${frame.id} } from "./fx_${frame.id}";`;
 
-        mainDependencyImport["./fx"].add(`fx_${frame.id}`);
+        addMainDependencyImport("./fx", `fx_${frame.id}`);
       });
 
       result.push({
@@ -523,7 +567,12 @@ class Code {
           defaultData: object;
         }
       >;
-      dependencyImport: Record<string, Set<string>>;
+      // 当前场景依赖的内容
+      addDependencyImport: (
+        packageName: string,
+        dependencyName: string,
+      ) => void;
+      addCanvasImport: (canvasId: string) => void;
       ignoreUI?: boolean;
       sceneFrame?: Frame;
     },
@@ -661,10 +710,7 @@ class Code {
       }
 
       if (res || comsAutoRun) {
-        collectImportDependencies(this.config.dependencyImport, {
-          packageName: "react",
-          dependencyName: "useEffect",
-        });
+        this.config.addDependencyImport("react", "useEffect");
       }
 
       return res || comsAutoRun
@@ -744,9 +790,10 @@ class Code {
 
                 if (outputs?.size) {
                   if (outputs.size > 1) {
-                    this.config.dependencyImport[
-                      "@mybricks/render-react-hoc"
-                    ].add("merge");
+                    this.config.addDependencyImport(
+                      "@mybricks/render-react-hoc",
+                      "merge",
+                    );
                   }
                   return (
                     pre +
@@ -859,10 +906,7 @@ class Code {
       }
 
       if (nodesInvocation.size || comsAutoRun) {
-        collectImportDependencies(this.config.dependencyImport, {
-          packageName: "react",
-          dependencyName: "useEffect",
-        });
+        this.config.addDependencyImport("react", "useEffect");
       }
 
       return nodesInvocation.size || comsAutoRun
@@ -892,10 +936,10 @@ class Code {
         : generateComponentNameByDef(toComInfo.def);
 
       if (validateUiModule(toComInfo.def.namespace)) {
-        collectImportDependencies(this.config.dependencyImport, {
-          packageName: "../module",
-          dependencyName: `Module_${toComInfo.model.data.definedId}`,
-        });
+        this.config.addDependencyImport(
+          "../module",
+          `Module_${toComInfo.model.data.definedId}`,
+        );
       }
 
       // 节点声明
@@ -932,10 +976,10 @@ class Code {
       if (starter.type === "var") {
         if (this.frame.type === "global") {
           // 全局变量，区别于作用域变量
-          collectImportDependencies(this.config.dependencyImport, {
-            packageName: "@mybricks/render-react-hoc",
-            dependencyName: "createVar",
-          });
+          this.config.addDependencyImport(
+            "@mybricks/render-react-hoc",
+            "createVar",
+          );
           this.vars.add(`// ${diagram.title}
             const var_${toComInfo.id} = (global, defaultValue) => {
               return createVar(defaultValue, (value) => {
@@ -947,10 +991,10 @@ class Code {
             }
             `);
         } else {
-          collectImportDependencies(this.config.dependencyImport, {
-            packageName: "@mybricks/render-react-hoc",
-            dependencyName: "useVar",
-          });
+          this.config.addDependencyImport(
+            "@mybricks/render-react-hoc",
+            "useVar",
+          );
           this.vars.add(`// ${diagram.title}
             const var_${toComInfo.id} = useVar(${"initValue" in toComInfo.model.data ? JSON.stringify(toComInfo.model.data.initValue) : "undefined"}, (value) => {
             ${nodesDeclaration.size ? "// 节点声明" : ""}
@@ -1068,7 +1112,8 @@ class Code {
           : generateComponentNameByDef(toComInfo.def);
 
         if (validateUiModule(toComInfo.def.namespace)) {
-          this.config.dependencyImport["../module"].add(
+          this.config.addDependencyImport(
+            "../module",
             `Module_${toComInfo.model.data.definedId}`,
           );
         }
@@ -1094,12 +1139,11 @@ class Code {
           );
 
           // 声明节点的一定来自组件库
-          collectImportDependencies(this.config.dependencyImport, {
-            packageName:
-              this.config.namespaceToMetaDataMap[toComInfo.def.namespace]
-                .npmPackageName,
-            dependencyName: generateComponentNameByDef(toComInfo.def),
-          });
+          this.config.addDependencyImport(
+            this.config.namespaceToMetaDataMap[toComInfo.def.namespace]
+              .npmPackageName,
+            generateComponentNameByDef(toComInfo.def),
+          );
         }
 
         nextStep++;
@@ -1252,6 +1296,11 @@ class Code {
               // 调用场景为open且类型不是popup，且打开类型不为none，需要传入第二个参数
               secondValue = `, "${toComInfo.model.data.openType}"`;
             }
+            if (toComInfo.model.data._sceneShowType !== "popup") {
+              this.config.addCanvasImport(toComInfo.model.data._sceneId);
+            } else {
+              this.config.addCanvasImport(toComInfo.model.data._sceneId);
+            }
 
             nodesInvocation.add(
               notes +
@@ -1302,7 +1351,8 @@ class Code {
               destructuringAssignment = `const {${nextCode.join(", ")}} = `;
             }
           } else if (isJsFrameInputComponent) {
-            this.config.dependencyImport["@mybricks/render-react-hoc"].add(
+            this.config.addDependencyImport(
+              "@mybricks/render-react-hoc",
               "join",
             );
             const pinValueProxy =
@@ -1494,16 +1544,12 @@ class Code {
       : generateComponentNameByDef(def);
 
     if (validateUiModule(def.namespace)) {
-      collectImportDependencies(this.config.dependencyImport, {
-        packageName: "../module",
-        dependencyName: `Module_${data.definedId}`,
-      });
+      this.config.addDependencyImport("../module", `Module_${data.definedId}`);
     } else {
-      collectImportDependencies(this.config.dependencyImport, {
-        packageName:
-          this.config.namespaceToMetaDataMap[def.namespace].npmPackageName,
-        dependencyName: componentName,
-      });
+      this.config.addDependencyImport(
+        this.config.namespaceToMetaDataMap[def.namespace].npmPackageName,
+        componentName,
+      );
     }
 
     const eventsCode = Object.entries(outputEvents).reduce(
@@ -1522,7 +1568,7 @@ class Code {
       "",
     );
 
-    this.config.dependencyImport["react"].add("useRef");
+    this.config.addDependencyImport("react", "useRef");
 
     this.refs.add(`const ${componentName}_${id}_ref = useRef()`);
 
@@ -1531,7 +1577,8 @@ class Code {
       : `data={${JSON.stringify(deepObjectDiff(this.config.namespaceToMetaDataMap[def.namespace]?.defaultData || {}, model.data))}}`;
 
     if (slots) {
-      this.config.dependencyImport["@mybricks/render-react-hoc"].add("Slot");
+      this.config.addDependencyImport("@mybricks/render-react-hoc", "Slot");
+
       return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} ${nextData} ${eventsCode}>
        ${Object.entries(slots).reduce((cur, pre) => {
          const [id, slot] = pre;
