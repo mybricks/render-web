@@ -22,6 +22,11 @@ export function hijackReactcreateElement(props: any) {
     React.createElement = function(...args: any) {
       let [fn, props] = args;
       if (props) {
+        if (!Object.entries(props).find(([_, value]) => {
+          return value?._ob
+        })) {
+          return createElement(...args)
+        }
         const style = props.style
         if (configPxToRem && style) {
           Object.keys(style).forEach((key) => {
