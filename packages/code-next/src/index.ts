@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as CSS from "csstype";
 
 import { deepObjectDiff } from "./utils";
@@ -38,7 +39,6 @@ interface ComInfo {
   title: string;
   def: Def;
   model: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: Record<string, any>;
     style: Style;
     outputEvents: Record<
@@ -190,11 +190,20 @@ interface Config {
 const createDependencyImportCollector = (
   dependencyImport: Record<string, Set<string>>,
 ) => {
-  return (packageName: string, dependencyName: string) => {
-    return collectImportDependencies(dependencyImport, {
-      packageName,
-      dependencyName,
-    });
+  return (packageName: string, dependencyName: string | string[]) => {
+    if (typeof dependencyName === "string") {
+      collectImportDependencies(dependencyImport, {
+        packageName,
+        dependencyName,
+      });
+    } else {
+      dependencyName.forEach((dependencyName) => {
+        collectImportDependencies(dependencyImport, {
+          packageName,
+          dependencyName,
+        });
+      });
+    }
   };
 };
 
@@ -211,9 +220,10 @@ const toCode = (tojson: ToJSON, config: Config) => {
       createDependencyImportCollector(mainDependencyImport);
 
     addMainDependencyImport("react", "useMemo");
-    ["Provider", "useCanvasState"].forEach((v) =>
-      addMainDependencyImport("@mybricks/render-react-hoc", v),
-    );
+    addMainDependencyImport("@mybricks/render-react-hoc", [
+      "Provider",
+      "useCanvasState",
+    ]);
 
     // -- 区分不同类型的Frame --
     /** 全局变量的Frame */
@@ -284,6 +294,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
               });
             }
           },
+          disableSceneVisible: false,
           namespaceToMetaDataMap,
         },
       );
@@ -359,6 +370,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
             namespaceToMetaDataMap,
             addDependencyImport,
             addCanvasImport() {},
+            disableSceneVisible: false,
           },
         );
         const { ui, js } = code.toCode();
@@ -428,6 +440,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
             namespaceToMetaDataMap,
             addDependencyImport,
             addCanvasImport() {},
+            disableSceneVisible: false,
           },
         );
         const { js } = code.toCode();
@@ -456,7 +469,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
       });
     }
 
-    // -- 处理全局FX -- [TODO] 拆文件
+    // -- 处理全局FX --
     let fxIndex = "";
     let fxGlobal = "";
 
@@ -475,6 +488,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
           namespaceToMetaDataMap,
           addDependencyImport,
           addCanvasImport() {},
+          disableSceneVisible: false,
         });
 
         const { js } = code.toCode();
@@ -545,6 +559,512 @@ const toCode = (tojson: ToJSON, config: Config) => {
   }
 };
 
+const toMpaCode = (tojson: ToJSON, config: Config) => {
+  const { frames, scenes, global, modules } = tojson;
+  const { namespaceToMetaDataMap } = config;
+  /** 返回结果 */
+  const result: { path: string; content: string }[] = [];
+  /** 记录主入口导入的依赖 */
+  const mainDependencyImport: Record<string, Set<string>> = {};
+  const addMainDependencyImport =
+    createDependencyImportCollector(mainDependencyImport);
+  // addMainDependencyImport("react", "useMemo");
+  // addMainDependencyImport("react-router-dom", [
+  //   "Route",
+  //   "Routes",
+  //   "Navigate",
+  //   "useNavigate",
+  //   "BrowserRouter",
+  // ]);
+  // addMainDependencyImport("@mybricks/render-react-hoc", [
+  //   "Provider",
+  //   "useCanvasState",
+  // ]);
+
+  // -- 区分不同类型的Frame --
+  /** 全局变量的Frame */
+  let globalVarFrames = null as unknown as Frame;
+  const canvasFrames: Frame[] = [];
+  const globalFxFrames: Frame[] = [];
+
+  frames.forEach((frame) => {
+    if (frame.type === "global") {
+      globalVarFrames = frame;
+    } else if (frame.type === "globalFx") {
+      globalFxFrames.push(frame);
+    } else {
+      canvasFrames.push(frame);
+    }
+  });
+
+  // -- 处理场景 --
+  let popupRender = "";
+  let popupState = "";
+  // 菜单导航页
+  let menuRender = "";
+  // 页面
+  let pageRender = "";
+  // 菜单首页
+  let menuHome = "";
+  // 页面首页
+  let pageHome = "";
+  // 菜单栏items
+  let menuItems: any = null;
+  // mpa模式的画布列表，画布内包含场景（frame）
+  canvasFrames.forEach(({ title, frames }, canvasIndex) => {
+    // const canvasRender = "";
+    // const canvasState = "";
+    let canvasIndexCode = "";
+    /** 记录场景的导入 */
+    const canvasImport = new Map<
+      string,
+      {
+        from: Scene;
+        to: Scene;
+      }
+    >();
+    // 一个frame对应一个场景
+    frames.forEach((frame, index) => {
+      // 只关心画布的生成
+      // 主入口要导入所有的画布
+      addMainDependencyImport(`./canvas${canvasIndex}`, `Canvas_${frame.id}`);
+
+      /** 记录导入的依赖 */
+      const dependencyImport: Record<string, Set<string>> = {};
+      dependencyImport["react"] = new Set();
+      const addDependencyImport =
+        createDependencyImportCollector(dependencyImport);
+
+      // 找到frame对应的scene
+      const scene = scenes.find((scene) => scene.id === frame.id)!;
+
+      if (!scene.type) {
+        // 页面
+        const rootComponent = scene.slot.comAry[0];
+        if (
+          !rootComponent ||
+          rootComponent.def.namespace !== "mybricks.pc-websit.layout"
+        ) {
+          // 没有根组件，或者根组件不是mybricks.pc-websit.layout，认为是page
+
+          // [TODO] 这里逻辑应该放到应用或插件里，不应该是这个包要做的，path应该是配置的，数据在应用里，tojson拿不到
+          pageRender += `<Route
+            path="${scene.id}"
+            element={<Canvas_${scene.id} global={global} />}
+          />`;
+
+          if (!pageHome) {
+            pageHome = scene.id; // [TODO] 数据来自整站应用的appConfig.pages
+          }
+        } else {
+          // 菜单导航页
+          const comInfo = scene.coms[rootComponent.id];
+          const {
+            // canvasIdToMenuKeyMap,
+            menuKeyToCanvasIdMap,
+            topBarMenuItemKeyToSiderBarMenuItemsMap,
+            topBarSelectedKey,
+          } = comInfo.model.data;
+
+          menuRender += `<Route
+            path="${scene.id}"
+            element={<Canvas_${scene.id} global={global} />}
+          />`;
+
+          if (!menuItems) {
+            const transform = (items: any) => {
+              const res: any = [];
+              items.forEach((item: any) => {
+                const newItem: any = {
+                  // key: `/${item.path || item.key}`,
+                  key: `/${menuKeyToCanvasIdMap[item.key]}`,
+                  label: item.label,
+                  icon: item.icon,
+                };
+                if (item.type === "subMenu") {
+                  newItem.children = transform(item.children);
+                }
+                res.push(newItem);
+              });
+
+              return res;
+            };
+            menuItems = transform(
+              topBarMenuItemKeyToSiderBarMenuItemsMap[topBarSelectedKey],
+            );
+
+            menuHome =
+              topBarMenuItemKeyToSiderBarMenuItemsMap?.[topBarSelectedKey]?.[0]
+                ?.path ||
+              topBarMenuItemKeyToSiderBarMenuItemsMap?.[topBarSelectedKey]?.[0]
+                ?.key;
+          }
+        }
+      }
+
+      if (!index) {
+        // 第一个为默认主场景，默认导入
+        canvasImport.set(scene.id, {
+          from: scene,
+          to: scene,
+        });
+      }
+
+      let otherJS = "";
+
+      const code = new Code(
+        scene,
+        {
+          ...frame!,
+          frames: frame!.frames.concat(globalFxFrames),
+        },
+        global,
+        {
+          comsAutoRunKey: "_rootFrame_",
+          sceneFrame: {
+            ...frame!,
+            frames: frame!.frames.concat(globalFxFrames),
+          },
+          addDependencyImport,
+          addCanvasImport: () => {},
+          customPageSceneInputs(sceneId) {
+            addDependencyImport("react-router-dom", "useNavigate");
+            otherJS = "const navigate = useNavigate();";
+            return `navigate("/${sceneId}");`;
+          },
+          namespaceToMetaDataMap,
+          disableSceneVisible: true,
+        },
+      );
+      const { ui, js } = code.toCode();
+
+      result.push({
+        path: `canvas${canvasIndex}/Canvas_${scene.id}.tsx`,
+        content: `${generateImportDependenciesCode(dependencyImport)}
+        // ${scene.title}
+        const Canvas_${scene.id} = ({ global }) => {
+          ${js}
+          ${otherJS}
+    
+          return ${ui}
+        }
+        
+        export default Canvas_${scene.id};`,
+      });
+
+      canvasIndexCode += `export { default as Canvas_${scene.id} } from "./Canvas_${scene.id}";`;
+
+      if (validateScenePopup(scene)) {
+        popupRender += `{canvasState.${scene.id}.mounted && (
+          <Canvas_${scene.id} global={global}/>
+        )}`;
+
+        popupState += `${scene.id}: {
+          mounted: false,
+          visible: false,
+          type: "popup",
+        },`;
+      }
+    });
+
+    result.push({
+      path: `canvas${canvasIndex}/index.ts`,
+      content: `// ${title}
+      ${canvasIndexCode}`,
+    });
+  });
+
+  popupState = `const [canvasState, canvasIO] = useCanvasState({
+    ${popupState}
+  })`;
+
+  // -- 处理模块 --
+  let moduleIndex = "";
+
+  if (modules) {
+    Object.entries(modules).forEach(([, { json: scene }]) => {
+      /** 记录导入的依赖 */
+      const dependencyImport: Record<string, Set<string>> = {};
+      const addDependencyImport =
+        createDependencyImportCollector(dependencyImport);
+      addDependencyImport("react", "forwardRef");
+      addDependencyImport("@mybricks/render-react-hoc", "Module");
+      // 找到对应的scene对应的frame
+      const frame = canvasFrames.find((frame) => frame.id === scene.id);
+      const code = new Code(
+        scene,
+        {
+          ...frame!,
+          frames: frame!.frames.concat(globalFxFrames),
+        },
+        global,
+        {
+          comsAutoRunKey: "_rootFrame_",
+          sceneFrame: {
+            ...frame!,
+            frames: frame!.frames.concat(globalFxFrames),
+          },
+          namespaceToMetaDataMap,
+          addDependencyImport,
+          addCanvasImport() {},
+          disableSceneVisible: false,
+        },
+      );
+      const { ui, js } = code.toCode();
+      const rels = Object.entries(scene.pinRels)
+        .filter(([key]) => {
+          return key.startsWith("_rootFrame_");
+        })
+        .reduce((rels, [, value]) => {
+          value.forEach((v) => rels.add(v));
+          return rels;
+        }, new Set());
+
+      const eventsCode = scene.outputs
+        .filter(({ id }) => {
+          return id !== "click" && !rels.has(id);
+        })
+        .reduce((pre, { id }) => {
+          return pre + id + ",";
+        }, "");
+
+      result.push({
+        path: `module/Module_${scene.id}.tsx`,
+        content: `${generateImportDependenciesCode(dependencyImport)}
+          // ${scene.title}
+          const Module_${scene.id} = forwardRef(({ global, data, ${eventsCode} ...config }, ref) => {
+            ${js}
+
+            return (
+              <Module ref={ref} {...config}>
+                ${ui}
+              </Module>
+            )
+          })
+            
+          export default Module_${scene.id};`,
+      });
+
+      moduleIndex += `export { default as Module_${scene.id} } from "./Module_${scene.id}";`;
+    });
+
+    if (moduleIndex) {
+      result.push({
+        path: "module/index.ts",
+        content: moduleIndex,
+      });
+    }
+  }
+
+  // -- 处理全局变量 --
+  let varIndex = "";
+  let varGlobal = "";
+
+  if (globalVarFrames && globalVarFrames.diagrams.length) {
+    globalVarFrames.diagrams.forEach((diagram) => {
+      /** 记录导入的依赖 */
+      const dependencyImport: Record<string, Set<string>> = {};
+      const addDependencyImport =
+        createDependencyImportCollector(dependencyImport);
+      addDependencyImport("@mybricks/render-react-hoc", "createVar");
+      const code = new Code(
+        scenes[0],
+        { ...globalVarFrames, diagrams: [diagram] }!,
+        global,
+        {
+          comsAutoRunKey: "",
+          ignoreUI: true,
+          namespaceToMetaDataMap,
+          addDependencyImport,
+          addCanvasImport() {},
+          disableSceneVisible: false,
+        },
+      );
+      const { js } = code.toCode();
+
+      result.push({
+        path: `var/var_${diagram.starter.comId}.ts`,
+        content: `${generateImportDependenciesCode(dependencyImport)}
+          ${js}
+          
+          export default var_${diagram.starter.comId};`,
+      });
+
+      varIndex =
+        varIndex += `export { default as var_${diagram.starter.comId} } from "./var_${diagram.starter.comId}";`;
+
+      const comInfo = global.comsReg[diagram.starter.comId];
+
+      varGlobal += `${diagram.starter.comId}: var_${diagram.starter.comId}(global, ${"initValue" in comInfo.model.data ? JSON.stringify(comInfo.model.data.initValue) : "undefined"}),`;
+
+      addMainDependencyImport("./var", `var_${diagram.starter.comId}`);
+    });
+
+    result.push({
+      path: "var/index.ts",
+      content: varIndex,
+    });
+  }
+
+  // -- 处理全局FX --
+  let fxIndex = "";
+  let fxGlobal = "";
+
+  if (globalFxFrames.length) {
+    globalFxFrames.forEach((frame) => {
+      /** 记录导入的依赖 */
+      const dependencyImport: Record<string, Set<string>> = {};
+      const addDependencyImport =
+        createDependencyImportCollector(dependencyImport);
+      const scene = global.fxFrames.find((fxFrame) => fxFrame.id === frame.id);
+      const code = new Code(scene!, frame, global, {
+        comsAutoRunKey: "",
+        ignoreUI: true,
+        namespaceToMetaDataMap,
+        addDependencyImport,
+        addCanvasImport() {},
+        disableSceneVisible: false,
+      });
+
+      const { js } = code.toCode();
+
+      result.push({
+        path: `fx/fx_${frame.id}.ts`,
+        content: `${generateImportDependenciesCode(dependencyImport)}
+          ${js}
+
+          export default fx_${frame.id};
+        `,
+      });
+
+      fxGlobal = fxGlobal + `${frame.id}: fx_${frame.id}(global),`;
+
+      fxIndex =
+        fxIndex += `export { default as fx_${frame.id} } from "./fx_${frame.id}";`;
+
+      addMainDependencyImport("./fx", `fx_${frame.id}`);
+    });
+
+    result.push({
+      path: "fx/index.ts",
+      content: fxIndex,
+    });
+  }
+
+  // -- 处理主入口 --
+  result.push({
+    path: "App.tsx",
+    content: `import React, { useMemo } from 'react';
+    import {
+      Route,
+      Routes,
+      Navigate,
+      useNavigate,
+      useLocation,
+      BrowserRouter,
+    } from 'react-router-dom';
+    import { Layout, Menu } from 'antd';
+    import { Provider, useCanvasState } from "@mybricks/render-react-hoc";
+    ${generateImportDependenciesCode(mainDependencyImport)}
+
+    import 'antd/dist/reset.css';
+
+    const { Header, Content, Sider } = Layout;
+
+    const homePath = "${menuHome || pageHome}";
+    const menuItems = ${JSON.stringify(menuItems)};
+
+    const Container = ({ global }) => {
+      const location = useLocation();
+      const navigate = useNavigate();
+
+      return (
+        <Layout style={{ minHeight: '100vh' }}>
+          <Sider width={256}>
+            <div style={{
+              height: 32,
+              margin: 16,
+              background: "rgba(255, 255, 255, .2)",
+              borderRadius: 6,
+            }}/>
+            <Menu
+              theme="dark"
+              selectedKeys={[location.pathname]}
+              mode="inline"
+              items={menuItems}
+              onClick={(item) => {
+                navigate(item.key)
+              }}
+            />
+          </Sider>
+          <Layout>
+            <Header style={{ padding: 0, backgroundColor: "#ffffff" }} />
+            <Content style={{ margin: 16, backgroundColor: "#f5f5f5" }}>
+              <Routes>
+               ${menuRender}
+               <Route
+                path=""
+                element={<Navigate to={homePath} replace />}
+              />
+              <Route
+                path="*"
+                element={<div>抱歉，您访问的页面不存在。</div>}
+              />
+              </Routes>
+            </Content>
+          </Layout>
+        </Layout>
+      )
+    }
+
+    const App = () => {
+      ${popupState}
+
+      const global = useMemo(() => {
+        const global = {
+          fx: {},
+          var: {},
+          canvas: canvasIO,
+        };
+        global.fx = {${fxGlobal}};
+        global.var = {${varGlobal}};
+        return global;
+      }, [])
+
+      const value = useMemo(() => {
+        return {
+          env: {
+            runtime: true,
+            i18n: (value) => value,
+          },
+          canvasState,
+          canvasIO
+        };
+      }, []);
+
+      return (
+        <Provider value={value}>
+          <BrowserRouter>
+            <Routes>
+              ${pageRender}
+              <Route
+                path="*"
+                element={<Container global={global} />}
+              />
+            </Routes>
+          </BrowserRouter>
+          ${popupRender}
+        </Provider>
+      )
+    }
+
+    export default App;
+    `,
+  });
+
+  return result;
+};
+
 class Code {
   // ref声明
   refs: Set<string> = new Set();
@@ -573,6 +1093,10 @@ class Code {
         dependencyName: string,
       ) => void;
       addCanvasImport: (canvasId: string) => void;
+      /** 自定义页面场景输入代码逻辑 */
+      customPageSceneInputs?: (sceneId: string) => string;
+      // 关闭场景的visible入参功能
+      disableSceneVisible: boolean;
       ignoreUI?: boolean;
       sceneFrame?: Frame;
     },
@@ -1298,6 +1822,17 @@ class Code {
             }
             if (toComInfo.model.data._sceneShowType !== "popup") {
               this.config.addCanvasImport(toComInfo.model.data._sceneId);
+              if (this.config.customPageSceneInputs) {
+                // [TODO] 页面场景的输入不会有输出，后续再观察下
+                nodesInvocation.add(
+                  notes +
+                    "\n" +
+                    this.config.customPageSceneInputs(
+                      toComInfo.model.data._sceneId,
+                    ),
+                );
+                return;
+              }
             } else {
               this.config.addCanvasImport(toComInfo.model.data._sceneId);
             }
@@ -1492,7 +2027,9 @@ class Code {
     const ui = this.config.ignoreUI
       ? ""
       : this.handleSlot(slot, {
-          useVisible: !validateScenePopup(this.scene),
+          useVisible: this.config.disableSceneVisible
+            ? false
+            : !validateScenePopup(this.scene),
         });
     const js = this.handleFrame();
 
@@ -1624,7 +2161,7 @@ class Code {
   }
 }
 
-export { toCode };
+export { toCode, toMpaCode, Code };
 
 /** 判断是模块ui组件 */
 const validateUiModule = (namespace: string) => {
