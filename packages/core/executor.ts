@@ -1447,6 +1447,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             _exedJSCom[myId] = true
 
             comDef.runtime({//exe once
+              id: comId,
               env: Env,
               _env,
               data: props.data,

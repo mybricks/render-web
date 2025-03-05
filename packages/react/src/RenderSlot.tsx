@@ -353,7 +353,6 @@ function RenderCom({
               parent: paramsScope
             }
           }
-          if (slot) {
             return <SlotRender 
                                key={params?.key}
                                props={props}
@@ -366,13 +365,6 @@ function RenderCom({
                                createPortal={createPortal}
                                parentComId={id}
                                logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context} options={options}/>
-          } else {
-            return (
-              <div className={css.error}>
-                {`组件(namespace=${def.namespace}）的插槽(id=${slotId})`} 未找到.
-              </div>
-            )
-          }
         },
         get size() {
           return !!slots[slotId]?.comAry?.length
