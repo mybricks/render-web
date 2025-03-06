@@ -610,7 +610,7 @@ class Stylization {
   private _cssMap: Record<string, Record<string, Record<string, any>>> = {}
   
   /** 设置样式 */
-  setStyle(id: string, style: any, notOverwrite: boolean = false) {
+  setStyle(id: string, style: any, notOverwrite: boolean = false, isDefault: boolean = false) {
     let styleAry = [] as {css: string, selector: string, global?: boolean }[];
 
     // TODO: 处理global
@@ -650,7 +650,8 @@ class Stylization {
           selector = '> *:first-child'
         }
         (Array.isArray(selector) ? selector : [selector]).forEach((selector) => {
-          const cssSelector = `${prefix}${global ? '' : `#${comId}[data-nested-id="${id}"] `}${selector.replace(/\{id\}/g, `${comId}`)}`
+          // isDefault 默认的风格化配置，不需要拼接作用域ID
+          const cssSelector = isDefault ? `${prefix}${global ? '' : `#${comId} `}${selector.replace(/\{id\}/g, `${comId}`)}` : `${prefix}${global ? '' : `#${comId}[data-nested-id="${id}"] `}${selector.replace(/\{id\}/g, `${comId}`)}`
           const style: Record<string, any> = {};
           Object.entries(css).forEach(([key, value]) => {
             if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {

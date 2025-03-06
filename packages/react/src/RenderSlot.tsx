@@ -259,7 +259,9 @@ function RenderCom({
     const { handlePxToVw, debug, disableStyleInjection, rootId, stylization } = options
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
     // const styleId = rootId ? `${rootId}-${id}` : id;
-    const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${id}` : `${rootId}-${id}`) : (scopeId ? `${scopeId}-${id}` : id)
+    // const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${id}` : `${rootId}-${id}`) : (scopeId ? `${scopeId}-${id}` : id)
+    const styleId = rootId ? `${rootId}-${id}` : id; // 风格化配置不需要区分作用域，全局设置一次即可
+
     if (!disableStyleInjection && !stylization.hasDefaultStyle(styleId)) {
       stylization.setDefaultStyle(styleId);
       // 非引擎环境 并且 没有插入过style
@@ -270,7 +272,7 @@ function RenderCom({
 
       if (Array.isArray(styleAry)) {
         // stylization.setStyle(id, styleAry);
-        stylization.setStyle(styleId, styleAry, true);
+        stylization.setStyle(styleId, styleAry, true, true);
         // const root = getStylesheetMountNode();
         // const styleTag = document.createElement('style')
         // let innerText = ''
