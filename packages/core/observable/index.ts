@@ -22,7 +22,7 @@ export function hijackReactcreateElement(props: any) {
     React.createElement = function(...args: any) {
       let [fn, props] = args;
       if (props) {
-        if (!Object.entries(props).find(([_, value]) => {
+        if (!props._mybricks_ob && !Object.entries(props).find(([_, value]) => {
           return value?._ob
         })) {
           return createElement(...args)

@@ -172,7 +172,7 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
       const comKey = id + (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
       return {
         id,
-        jsx: <RenderCom key={comKey} com={com} comInfo={comInfo} index={index}
+        jsx: <RenderCom key={comKey} com={com} comInfo={comInfo} index={index} _mybricks_ob
                         getComDef={getComDef}
                         context={context}
                         scope={scope}
