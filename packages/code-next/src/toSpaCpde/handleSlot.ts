@@ -1,0 +1,442 @@
+// import {
+//   createDependencyImportCollector,
+//   generateImportDependenciesCode,
+// } from "./utils";
+// import handleCom from "./handleCom";
+// import handleDom from "./handleDom";
+
+// import type { UI, BaseConfig } from "./index";
+
+// interface HandleSlotConfig extends BaseConfig {
+//   checkIsRoot: () => boolean;
+// }
+
+// const handleSlot = (ui: UI, config: HandleSlotConfig) => {
+//   const [parentDependencyImport, addParentDependencyImport] =
+//     createDependencyImportCollector();
+//   addParentDependencyImport({
+//     packageName: "react",
+//     dependencyName: "React",
+//     importType: "default",
+//   });
+//   const { props, children } = ui;
+//   const propsCode = Object.entries(props).reduce((pre, [key, value]) => {
+//     return pre + `${key}={${JSON.stringify(value)}} `;
+//   }, "");
+//   const childrenCode = children.reduce((pre, props) => {
+//     if (props.type === "com") {
+//       const { code } = handleCom(props, {
+//         ...config,
+//         addParentDependencyImport,
+//       });
+//       return pre + code;
+//     }
+
+//     const { code } = handleDom(props, {
+//       ...config,
+//       addParentDependencyImport,
+//     });
+
+//     return pre + code;
+//   }, "");
+
+//   config.add({
+//     path: `${config.getPath()}/index.tsx`,
+//     content: `${generateImportDependenciesCode(parentDependencyImport)}
+
+//     export default function () {
+//       return <div ${propsCode}>${childrenCode}</div>
+//     }
+//     `,
+//   });
+// };
+
+// export default handleSlot;
+
+import {
+  createDependencyImportCollector,
+  generateImportDependenciesCode,
+} from "./utils";
+import handleCom, { handleProcess } from "./handleCom";
+import handleDom from "./handleDom";
+
+import type { UI, BaseConfig } from "./index";
+
+interface HandleSlotConfig extends BaseConfig {
+  addParentDependencyImport?: ReturnType<
+    typeof createDependencyImportCollector
+  >[1];
+  addRefName?: (refName: string) => void;
+  addSlotContext?: (slotContext: string) => void;
+  checkIsRoot: () => boolean;
+  getSlotRelativePathMap: () => Record<string, string>;
+}
+
+const handleSlot = (ui: UI, config: HandleSlotConfig) => {
+  const [parentDependencyImport, addParentDependencyImport] =
+    createDependencyImportCollector();
+  addParentDependencyImport({
+    packageName: "react",
+    dependencyName: "React",
+    importType: "default",
+  });
+  const { props, children } = ui;
+  const propsCode = Object.entries(props).reduce((pre, [key, value]) => {
+    return pre + `${key}={${JSON.stringify(value)}} `;
+  }, "");
+
+  let uiCode = "";
+  let jsCode = "";
+
+  if (ui.meta.scope) {
+    const componentName = config.getComponentNameByNamespace(
+      ui.meta.namespace!,
+    );
+
+    config.addParentDependencyImport!({
+      packageName: `./${componentName}_${ui.meta.comId}/Slot_${ui.meta.slotId}`,
+      dependencyName: `${componentName}_${ui.meta.comId}_${ui.meta.slotId}`,
+      importType: "default",
+    });
+
+    // 生命的组件ref
+    const refNames = new Set<string>();
+    // 需要导入使用的slotContext，调用上层组件的ref
+    const slotContexts = new Set<string>();
+
+    const slotRelativePathMap = config.getSlotRelativePathMap();
+
+    const nextConfig = {
+      ...config,
+      addRefName: (refName: string) => {
+        refNames.add(refName);
+      },
+      addParentDependencyImport,
+      addSlotContext: (slotContext: string) => {
+        slotContexts.add(slotContext);
+      },
+    };
+
+    children.forEach((child) => {
+      if (child.type === "com") {
+        const { ui, js } = handleCom(child, nextConfig);
+        uiCode += ui;
+        jsCode += js;
+      } else {
+        const { ui } = handleDom(child, nextConfig);
+        uiCode += ui;
+      }
+    });
+
+    addParentDependencyImport({
+      packageName: "react",
+      dependencyName: "useMemo",
+      importType: "named",
+    });
+    addParentDependencyImport({
+      packageName: "react",
+      dependencyName: "useEffect",
+      importType: "named",
+    });
+    addParentDependencyImport({
+      packageName: "react",
+      dependencyName: "createContext",
+      importType: "named",
+    });
+    addParentDependencyImport({
+      packageName: "react",
+      dependencyName: "useContext",
+      importType: "named",
+    });
+
+    let importSlotContextCode = "";
+    let useSlotContextCode = "";
+
+    Array.from(slotContexts).forEach((slotContext) => {
+      const slotRelativePath = slotRelativePathMap[slotContext];
+      const [comId, slotId] = slotContext.split("-");
+      const importSlotContextName = slotId
+        ? `SlotContext_${comId}_${slotId}`
+        : "SlotContext";
+      const useSlotContextName = slotId
+        ? `slotContext_${comId}_${slotId}`
+        : "slotContext";
+
+      importSlotContextCode += `import { ${importSlotContextName} } from "${slotRelativePath}"`;
+      useSlotContextCode += `const ${useSlotContextName} = useContext(${importSlotContextName});`;
+    });
+
+    // 主场景和作用域插槽会有生命周期事件
+    const effectEventCode = handleEffectEvent(ui, {
+      ...config,
+      getParams: (paramIds) => {
+        return paramIds.reduce(
+          (pre: Record<string, string>, eventId: string) => {
+            pre[eventId] = `slot.${eventId}`;
+            return pre;
+          },
+          {},
+        );
+      },
+      addParentDependencyImport,
+      addSlotContext: (slotContext: string) => {
+        slotContexts.add(slotContext);
+      },
+    });
+
+    config.add({
+      path: `${config.getPath()}/${componentName}_${ui.meta.comId}/Slot_${ui.meta.slotId}/index.tsx`,
+      content: `${generateImportDependenciesCode(parentDependencyImport)}
+      ${importSlotContextCode}
+
+      export const SlotContext_${ui.meta.comId}_${ui.meta.slotId} = createContext({});
+
+      export default function ({ slot }) {
+        ${useSlotContextCode}
+        ${Array.from(refNames)
+          .map((refName) => `const ${refName}_ref = useRef();`)
+          .join("\n")}
+        ${jsCode}
+
+        const slotContextValue = useMemo(() => {
+          return {
+            comRef: {
+              ${Array.from(refNames)
+                .map((refName) => `${refName}_ref,`)
+                .join("\n")}
+            },
+            fx: {},
+            var: {},
+          };
+        }, []);
+
+        ${effectEventCode}
+
+        return (
+          <SlotContext_${ui.meta.comId}_${ui.meta.slotId}.Provider value={slotContextValue}>
+            <div ${propsCode}>${uiCode}</div>
+          </SlotContext_${ui.meta.comId}_${ui.meta.slotId}.Provider>
+        )
+      }
+      `,
+    });
+
+    return {
+      js: "",
+      ui: `<${componentName}_${ui.meta.comId}_${ui.meta.slotId} id="${ui.meta.slotId}"/>`,
+    };
+  } else {
+    // 生命的组件ref
+    const refNames = new Set<string>();
+    // 需要导入使用的slotContext，调用上层组件的ref
+    const slotContexts = new Set<string>();
+    const addDependencyImport =
+      config.addParentDependencyImport || addParentDependencyImport;
+    const nextConfig = {
+      ...config,
+      addRefName:
+        config.addRefName ||
+        ((refName: string) => {
+          refNames.add(refName);
+        }),
+      addParentDependencyImport: addDependencyImport,
+      addSlotContext: (slotContext: string) => {
+        slotContexts.add(slotContext);
+      },
+    };
+
+    children.forEach((child) => {
+      if (child.type === "com") {
+        const { ui, js } = handleCom(child, nextConfig);
+        uiCode += ui;
+        jsCode += js;
+      } else {
+        const { ui } = handleDom(child, nextConfig);
+        uiCode += ui;
+      }
+    });
+
+    if (config.checkIsRoot()) {
+      // root 或 scope 需要添加文件
+      addDependencyImport({
+        packageName: "react",
+        dependencyName: "useMemo",
+        importType: "named",
+      });
+      addDependencyImport({
+        packageName: "react",
+        dependencyName: "useEffect",
+        importType: "named",
+      });
+      addDependencyImport({
+        packageName: "react",
+        dependencyName: "createContext",
+        importType: "named",
+      });
+      addDependencyImport({
+        packageName: "@mybricks/render-react-hoc",
+        dependencyName: "useVar",
+        importType: "named",
+      });
+      addDependencyImport({
+        packageName: "@mybricks/render-react-hoc",
+        dependencyName: "merge",
+        importType: "named",
+      });
+
+      // 主场景和作用域插槽会有生命周期事件
+      const effectEventCode = handleEffectEvent(ui, {
+        ...config,
+        getParams: (paramIds) => {
+          return paramIds.reduce(
+            (pre: Record<string, string>, eventId: string) => {
+              pre[eventId] =
+                `global.canvas.${ui.meta.slotId}.inputs.${eventId}`;
+              return pre;
+            },
+            {},
+          );
+        },
+        addParentDependencyImport: addDependencyImport,
+        addSlotContext: (slotContext: string) => {
+          slotContexts.add(slotContext);
+        },
+      });
+
+      const varEvents = config.getVarEvents();
+      let varDeclarationCode = "";
+      let varAssignmentCode = "";
+      varEvents.forEach((varEvent) => {
+        const code = handleProcess(varEvent, {
+          ...config,
+          getParams: () => {
+            return {
+              [varEvent.paramId]: "value",
+            };
+          },
+          addParentDependencyImport: addDependencyImport,
+          addSlotContext: (slotContext: string) => {
+            slotContexts.add(slotContext);
+          },
+        });
+        const varName = `var_${varEvent.meta.id}`;
+
+        varDeclarationCode += `const ${varName} = useVar(${JSON.stringify(varEvent.initValue)}, (value) => {
+          ${code}
+        });`;
+
+        varAssignmentCode += `${varName},`;
+      });
+
+      const fxEvents = config.getFxEvents();
+      let fxDeclarationCode = "";
+      let fxAssignmentCode = "";
+      fxEvents.forEach((fxEvent) => {
+        const params = fxEvent.paramIds.reduce(
+          (pre: Record<string, string>, id: string, index: number) => {
+            pre[id] = `value${index}`;
+            return pre;
+          },
+          {},
+        );
+        const code = handleProcess(fxEvent, {
+          ...config,
+          getParams: () => {
+            return params;
+          },
+          addParentDependencyImport: addDependencyImport,
+          addSlotContext: (slotContext: string) => {
+            slotContexts.add(slotContext);
+          },
+        });
+        const fxName = `fx_${fxEvent.frameId}`;
+
+        fxDeclarationCode += `const ${fxName} = (${fxEvent.paramIds
+          .map((id: string, index: number) => {
+            if (id in fxEvent.initValues) {
+              return `value${index} = ${JSON.stringify(fxEvent.initValues[id])}`;
+            }
+
+            return `value${index}`;
+          })
+          .join(",")}) => {
+          ${code}
+        };\n`;
+
+        fxAssignmentCode += `${fxName},`;
+      });
+
+      config.add({
+        path: `${config.getPath()}/index.tsx`,
+        content: `${generateImportDependenciesCode(parentDependencyImport)}
+    
+        export const SlotContext = createContext({});
+
+        export default function ({ visible, global }) {
+          ${Array.from(refNames)
+            .map((refName) => `const ${refName}_ref = useRef();`)
+            .join("\n")}
+          ${varDeclarationCode}
+          ${fxDeclarationCode}
+          ${jsCode}
+
+          const slotContextValue = useMemo(() => {
+            return {
+              comRef: {
+                ${Array.from(refNames)
+                  .map((refName) => `${refName}_ref,`)
+                  .join("\n")}
+              },
+              fx: {${fxAssignmentCode}},
+              var: {${varAssignmentCode}},
+            };
+          }, []);
+
+          ${effectEventCode}
+
+          return (
+            <SlotContext.Provider value={slotContextValue}>
+              <div ${propsCode}>${uiCode}</div>
+            </SlotContext.Provider>
+          )
+        }
+        `,
+      });
+    }
+    return {
+      js: jsCode,
+      ui: `<div ${propsCode}>${uiCode}</div>`,
+    };
+  }
+};
+
+export default handleSlot;
+
+interface HandleEffectEventConfig extends HandleSlotConfig {
+  addParentDependencyImport: ReturnType<
+    typeof createDependencyImportCollector
+  >[1];
+  getParams: (paramIds: string[]) => Record<string, string>;
+  addSlotContext: (slotContext: string) => void;
+}
+
+const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
+  const isScope = ui.meta.scope;
+  const effectEvent = config.getEffectEvent(
+    isScope
+      ? {
+          comId: ui.meta.comId!,
+          slotId: ui.meta.slotId,
+        }
+      : undefined,
+  );
+
+  return `useEffect(() => {
+    ${handleProcess(effectEvent, {
+      ...config,
+      getParams: () => {
+        return config.getParams(effectEvent.paramIds);
+      },
+    })}
+  }, [])`;
+};
