@@ -183,6 +183,12 @@ export const handleProcess = (
         nextInput = `.${props.id}`;
         if (!isSameScope) {
           // 非当前作用域
+          config.addSlotContext(
+            props.meta.parentComId
+              ? `${props.meta.parentComId}-${props.meta.frameId}`
+              : "", // 空字符串，认为是主场景
+          );
+
           componentNameWithId = getDifferentScopeComponentNameWithId({
             componentNameWithId,
             props,
@@ -193,6 +199,12 @@ export const handleProcess = (
         nextInput = "";
         if (!isSameScope) {
           // 非当前作用域
+          config.addSlotContext(
+            props.meta.parentComId
+              ? `${props.meta.parentComId}-${props.meta.frameId}`
+              : "", // 空字符串，认为是主场景
+          );
+
           componentNameWithId = getDifferentScopeComponentNameWithId({
             componentNameWithId,
             props,

@@ -1,58 +1,3 @@
-// import {
-//   createDependencyImportCollector,
-//   generateImportDependenciesCode,
-// } from "./utils";
-// import handleCom from "./handleCom";
-// import handleDom from "./handleDom";
-
-// import type { UI, BaseConfig } from "./index";
-
-// interface HandleSlotConfig extends BaseConfig {
-//   checkIsRoot: () => boolean;
-// }
-
-// const handleSlot = (ui: UI, config: HandleSlotConfig) => {
-//   const [parentDependencyImport, addParentDependencyImport] =
-//     createDependencyImportCollector();
-//   addParentDependencyImport({
-//     packageName: "react",
-//     dependencyName: "React",
-//     importType: "default",
-//   });
-//   const { props, children } = ui;
-//   const propsCode = Object.entries(props).reduce((pre, [key, value]) => {
-//     return pre + `${key}={${JSON.stringify(value)}} `;
-//   }, "");
-//   const childrenCode = children.reduce((pre, props) => {
-//     if (props.type === "com") {
-//       const { code } = handleCom(props, {
-//         ...config,
-//         addParentDependencyImport,
-//       });
-//       return pre + code;
-//     }
-
-//     const { code } = handleDom(props, {
-//       ...config,
-//       addParentDependencyImport,
-//     });
-
-//     return pre + code;
-//   }, "");
-
-//   config.add({
-//     path: `${config.getPath()}/index.tsx`,
-//     content: `${generateImportDependenciesCode(parentDependencyImport)}
-
-//     export default function () {
-//       return <div ${propsCode}>${childrenCode}</div>
-//     }
-//     `,
-//   });
-// };
-
-// export default handleSlot;
-
 import {
   createDependencyImportCollector,
   generateImportDependenciesCode,
@@ -149,23 +94,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       importType: "named",
     });
 
-    let importSlotContextCode = "";
-    let useSlotContextCode = "";
-
-    Array.from(slotContexts).forEach((slotContext) => {
-      const slotRelativePath = slotRelativePathMap[slotContext];
-      const [comId, slotId] = slotContext.split("-");
-      const importSlotContextName = slotId
-        ? `SlotContext_${comId}_${slotId}`
-        : "SlotContext";
-      const useSlotContextName = slotId
-        ? `slotContext_${comId}_${slotId}`
-        : "slotContext";
-
-      importSlotContextCode += `import { ${importSlotContextName} } from "${slotRelativePath}"`;
-      useSlotContextCode += `const ${useSlotContextName} = useContext(${importSlotContextName});`;
-    });
-
     // 主场景和作用域插槽会有生命周期事件
     const effectEventCode = handleEffectEvent(ui, {
       ...config,
@@ -182,6 +110,23 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       addSlotContext: (slotContext: string) => {
         slotContexts.add(slotContext);
       },
+    });
+
+    let importSlotContextCode = "";
+    let useSlotContextCode = "";
+
+    Array.from(slotContexts).forEach((slotContext) => {
+      const slotRelativePath = slotRelativePathMap[slotContext];
+      const [comId, slotId] = slotContext.split("-");
+      const importSlotContextName = slotId
+        ? `SlotContext_${comId}_${slotId}`
+        : "SlotContext";
+      const useSlotContextName = slotId
+        ? `slotContext_${comId}_${slotId}`
+        : "slotContext";
+
+      importSlotContextCode += `import { ${importSlotContextName} } from "${slotRelativePath}"`;
+      useSlotContextCode += `const ${useSlotContextName} = useContext(${importSlotContextName});`;
     });
 
     config.add({
