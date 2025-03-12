@@ -345,7 +345,7 @@ class Context {
     Notification.init(env.showErrorNotification);
 
     // 这里看看怎么做成插件的形式
-    this.logger = {
+    this.logger = this.options.comLogger || {
       info: console.info,
       trace: console.trace,
       warn: console.warn,
