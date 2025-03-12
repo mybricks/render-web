@@ -67,6 +67,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         const { ui, js } = handleCom(child, nextConfig);
         uiCode += ui;
         jsCode += js;
+      } else if (child.type === "module") {
+        uiCode += "[TODO] 模块 33";
       } else {
         const { ui } = handleDom(child, nextConfig);
         uiCode += ui;
@@ -195,6 +197,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         const { ui, js } = handleCom(child, nextConfig);
         uiCode += ui;
         jsCode += js;
+      } else if (child.type === "module") {
+        uiCode += "[TODO] 模块 22";
       } else {
         const { ui } = handleDom(child, nextConfig);
         uiCode += ui;
@@ -317,7 +321,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     
         export const SlotContext = createContext({});
 
-        export default function ({ visible, global }) {
+        export default function ({ visible }) {
           ${Array.from(refNames)
             .map((refName) => `const ${refName}_ref = useRef();`)
             .join("\n")}

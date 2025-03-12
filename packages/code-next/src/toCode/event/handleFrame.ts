@@ -7,7 +7,6 @@ export interface HandleFrameConfig extends EventBaseConfig {
 }
 
 const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
-  console.log("处理frame => ", frame);
   const result = frame.diagrams
     .map((diagram) => {
       return handleDiagram(diagram, {

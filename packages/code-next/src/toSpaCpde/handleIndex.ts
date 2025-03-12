@@ -2,7 +2,7 @@ import toCode from "../toCode";
 import { validateScenePopup } from "../toCode/event/utils";
 
 /** 处理单页主入口 */
-const handleIndex = (code: ReturnType<typeof toCode>) => {
+const handleIndex = (code: ReturnType<typeof toCode>["scenes"]) => {
   return `// 当前出码未支持能力：模块，插件能力，风格化，AI组件
         // 组件库依赖：react@18 react-dom@18 antd@4 moment@2 @ant-design/icons@4
         // 请先执行以下命令以安装组件库npm包
@@ -55,7 +55,7 @@ const handleIndex = (code: ReturnType<typeof toCode>) => {
               ${code
                 .map(({ scene }) => {
                   return `{canvasState.${scene.id}.mounted && (
-                  <Scene_${scene.id} ${validateScenePopup(scene) ? "" : `visible={canvasState.${scene.id}.visible}`} global={global} />
+                  <Scene_${scene.id} ${validateScenePopup(scene) ? "" : `visible={canvasState.${scene.id}.visible}`} />
                 )}`;
                 })
                 .join("\n")}

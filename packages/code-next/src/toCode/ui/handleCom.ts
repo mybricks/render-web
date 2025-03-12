@@ -1,9 +1,9 @@
 import type { Com, ComInfo, Style } from "../types";
 import type { UiBaseConfig } from "../index";
 import handleSlot from "./handleSlot";
+import { validateUiModule } from "../event/utils";
 
-type HandleComResult = {
-  type: "com";
+interface Result {
   meta: ComInfo;
   props: {
     id: string;
@@ -19,13 +19,22 @@ type HandleComResult = {
       diagramId: string;
     }
   >;
-};
+}
+
+interface ResultCom extends Result {
+  type: "com";
+}
+
+interface ResultModule extends Result {
+  type: "module";
+  moduleId: string;
+}
+
+type HandleComResult = ResultCom | ResultModule;
 
 const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
   const comInfo = config.getComInfo(com.id)!;
-
-  return {
-    type: "com",
+  const result = {
     meta: comInfo,
     props: {
       id: com.id,
@@ -60,6 +69,20 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
 
       return pre;
     }, {}),
+  };
+
+  if (validateUiModule(comInfo.def.namespace)) {
+    // 模块类型
+    return {
+      type: "module",
+      moduleId: comInfo.model.data.definedId,
+      ...result,
+    };
+  }
+
+  return {
+    type: "com",
+    ...result,
   };
 };
 

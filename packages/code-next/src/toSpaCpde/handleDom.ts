@@ -35,6 +35,8 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
         js,
       });
       return pre;
+    } else if (child.type === "module") {
+      return "[TODO] 模块";
     }
     const { ui } = handleDom(child, config);
     return pre + ui;
