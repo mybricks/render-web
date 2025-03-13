@@ -292,6 +292,12 @@ const checkIsSameScope = (event: any, props: any) => {
   ) {
     // 当前作用域
     return true;
+  } else if (
+    event.type === "fx" &&
+    event.parentComId === props.meta.parentComId &&
+    event.parentSlotId === props.meta.frameId
+  ) {
+    return true;
   }
 
   return false;

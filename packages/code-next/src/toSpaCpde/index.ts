@@ -45,7 +45,7 @@ const toSpaCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       getVarEvents: (params) => {
         if (!params) {
           return event.filter((event) => {
-            return event.type === "var" && !event.parentComId;
+            return event.type === "var" && !event.meta.parentComId;
           });
         }
         return event.filter((event) => {
@@ -65,8 +65,8 @@ const toSpaCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         return event.filter((event) => {
           return (
             event.type === "fx" &&
-            params.comId === event.meta.parentComId &&
-            params.slotId === event.meta.frameId
+            params.comId === event.parentComId &&
+            params.slotId === event.parentSlotId
           );
         });
       },
@@ -88,7 +88,8 @@ const toSpaCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       },
       getSlotRelativePathMap: () => {
         return {
-          "": "",
+          "": "", // 空代表当前
+          GlobalContext: "../", // 代表全局，场景输入、全局fx、全局变量
         };
       },
     });
@@ -192,13 +193,13 @@ export interface BaseConfig extends ToSpaCodeConfig {
   }) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
   /** 获取事件 - 变量 */
   getVarEvents: (params?: {
-    comId: string;
-    slotId: string;
+    comId?: string;
+    slotId?: string;
   }) => ReturnType<typeof toCode>["scenes"][0]["event"];
   /** 获取事件 - fx */
   getFxEvents: (params?: {
-    comId: string;
-    slotId: string;
+    comId?: string;
+    slotId?: string;
   }) => ReturnType<typeof toCode>["scenes"][0]["event"];
   /** 获取事件 - 生命周期 */
   getEffectEvent: (params?: {

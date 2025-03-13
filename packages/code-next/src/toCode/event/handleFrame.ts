@@ -4,6 +4,7 @@ import handleDiagram from "./handleDiagram";
 
 export interface HandleFrameConfig extends EventBaseConfig {
   getComsAutoRun: () => Scene["comsAutoRun"][string];
+  getFrameId: () => string | undefined;
 }
 
 const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
@@ -28,6 +29,9 @@ const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
       result.push(
         ...handleFrame(frame, {
           ...config,
+          getFrameId: () => {
+            return frame.id;
+          },
           getComInfo: (comId) => {
             return config.getComInfo(comId || id);
           },

@@ -53,11 +53,14 @@ const handleDiagram = (
         initValues[pinId] = extValues.config.defaultValue;
       }
     });
+    const comInfo = config.getComInfo("");
 
     return {
       type: "fx", // 插槽类型
       diagramId: id,
       frameId: frame.id,
+      parentSlotId: config.getFrameId(),
+      parentComId: comInfo?.id,
       paramIds,
       title: diagram.title,
       process: {

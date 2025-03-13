@@ -32,10 +32,12 @@ const toCode = (
     return handleScene({ scene, frame });
   });
 
-  const modules = Object.entries(tojson.modules).map(([, { json: scene }]) => {
-    const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
-    return handleScene({ scene, frame });
-  });
+  const modules = Object.entries(tojson.modules || []).map(
+    ([, { json: scene }]) => {
+      const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
+      return handleScene({ scene, frame });
+    },
+  );
 
   return {
     scenes,
@@ -56,6 +58,9 @@ const handleScene = (params: { scene: Scene; frame: Frame }) => {
     },
   });
   const event = handleFrame(frame, {
+    // getFrame: () => {
+    //   return frame;
+    // },
     getSceneId: () => {
       return scene.id;
     },
@@ -68,6 +73,7 @@ const handleScene = (params: { scene: Scene; frame: Frame }) => {
     getComInfo: (comId) => {
       return scene.coms[comId];
     },
+    getFrameId: () => undefined,
   });
 
   return {

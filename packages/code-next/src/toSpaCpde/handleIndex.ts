@@ -7,13 +7,15 @@ const handleIndex = (code: ReturnType<typeof toCode>["scenes"]) => {
         // 组件库依赖：react@18 react-dom@18 antd@4 moment@2 @ant-design/icons@4
         // 请先执行以下命令以安装组件库npm包
         // npm i @mybricks/comlib-basic@0.0.7-next.5 @mybricks/comlib-pc-normal@0.0.22-next.7 @mybricks/render-react-hoc@0.0.1-next.11
-        import React, { useMemo } from 'react';
+        import React, { useMemo, createContext } from 'react';
         import { Provider, useCanvasState } from '@mybricks/render-react-hoc';
         ${code
           .map(({ scene }) => {
             return `import Scene_${scene.id} from './Scene_${scene.id}';`;
           })
           .join("\n")}
+
+        export const GlobalContext = createContext({});
   
         export default function () {
           const [canvasState, canvasIO] = useCanvasState({
@@ -52,13 +54,15 @@ const handleIndex = (code: ReturnType<typeof toCode>["scenes"]) => {
   
           return (
             <Provider value={value}>
-              ${code
-                .map(({ scene }) => {
-                  return `{canvasState.${scene.id}.mounted && (
-                  <Scene_${scene.id} ${validateScenePopup(scene) ? "" : `visible={canvasState.${scene.id}.visible}`} />
-                )}`;
-                })
-                .join("\n")}
+              <GlobalContext.Provider value={global}>
+                ${code
+                  .map(({ scene }) => {
+                    return `{canvasState.${scene.id}.mounted && (
+                    <Scene_${scene.id} ${validateScenePopup(scene) ? "" : `visible={canvasState.${scene.id}.visible}`} />
+                  )}`;
+                  })
+                  .join("\n")}
+              </GlobalContext.Provider>
             </Provider>
           );
         }
