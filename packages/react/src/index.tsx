@@ -120,7 +120,7 @@ class Context {
         }
       }
     }
-    if (!env.mybricksSdk) {
+    if (!env.mybricksSdk || env.runtime) {
       env.mybricksSdk = {
         comRef: (fn) => fn,
         comDef: (fn) => fn,
