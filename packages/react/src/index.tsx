@@ -41,6 +41,15 @@ interface RenderOptions {
   [key: string]: any;
 }
 
+const mybricksSdk = {
+  comRef: (fn) => fn,
+  comDef: (fn) => fn,
+  renderCom: (Fn, props = {}) => {
+    const { props: nextProps = {} } = props;
+    return <Fn {...nextProps}/>
+  }
+}
+
 class Context {
   // TODO: 性能面板，作为插件注入，加一个开关（例如localStorage
   private performance: any = {
@@ -120,15 +129,8 @@ class Context {
         }
       }
     }
-    if (!env.mybricksSdk || env.runtime) {
-      env.mybricksSdk = {
-        comRef: (fn) => fn,
-        comDef: (fn) => fn,
-        renderCom: (Fn, props = {}) => {
-          const { props: nextProps = {} } = props;
-          return <Fn {...nextProps}/>
-        }
-      }
+    if ((!env.mybricksSdk || env.runtime) && env.mybricksSdk !== mybricksSdk) {
+      env.mybricksSdk = mybricksSdk
     }
     // 样式加载dom节点
     const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
