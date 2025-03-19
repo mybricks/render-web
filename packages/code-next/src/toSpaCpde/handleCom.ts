@@ -225,7 +225,7 @@ export const handleProcess = (
         componentNameWithId = getDifferentScopeComponentNameWithId({
           componentNameWithId,
           props,
-          category,
+          category: "comRef", // ui组件，挂在slotContext.comRef下
         });
       }
     }

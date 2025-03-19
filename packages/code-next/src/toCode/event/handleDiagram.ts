@@ -7,7 +7,10 @@ import { getComponentTypeAndCategoryByDef } from "./utils";
 
 export interface HandleDiagramConfig extends HandleFrameConfig {
   getFrame: () => Frame;
-  getFrameById: (id: string) => Frame;
+  getFrameById: (id: string) => {
+    frame: Frame;
+    meta: ComInfo | undefined;
+  };
 }
 
 type HandleDiagramResult = any;
@@ -496,8 +499,14 @@ const handleProcess = (
         });
       } else if (category === "fx") {
         // fx
+        const frame = config.getFrameById(comInfo.ioProxy.id);
         nodesInvocation.push({
           ...invocation,
+          meta: {
+            ...invocation.meta,
+            // 每次调用fx都是一个新的组件，需要获取赋予实际作用域
+            parentComId: frame.meta?.id,
+          },
           paramSource: [config.getParamSource()],
         });
       }

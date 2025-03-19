@@ -74,6 +74,9 @@ const handleScene = (params: { scene: Scene; frame: Frame }) => {
       return scene.coms[comId];
     },
     getFrameId: () => undefined,
+    getFrameMap: () => {
+      return {};
+    },
   });
 
   return {

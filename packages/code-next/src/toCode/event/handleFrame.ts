@@ -1,13 +1,33 @@
-import type { Frame, Scene } from "../types";
+import type { Frame, Scene, ComInfo } from "../types";
 import type { EventBaseConfig } from "../index";
 import handleDiagram from "./handleDiagram";
 
 export interface HandleFrameConfig extends EventBaseConfig {
   getComsAutoRun: () => Scene["comsAutoRun"][string];
   getFrameId: () => string | undefined;
+  getFrameMap: () => Record<string, Frame>;
 }
 
 const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
+  const frameMap = Object.assign(
+    config.getFrameMap(),
+    frame.frames.reduce<
+      Record<
+        string,
+        {
+          frame: Frame;
+          meta: ComInfo | undefined;
+        }
+      >
+    >((pre, cur) => {
+      pre[cur.id] = {
+        frame: cur,
+        meta: config.getComInfo(""),
+      };
+
+      return pre;
+    }, {}),
+  );
   const result = frame.diagrams
     .map((diagram) => {
       return handleDiagram(diagram, {
@@ -16,7 +36,7 @@ const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
           return frame;
         },
         getFrameById: (id) => {
-          return frame.frames.find((frame) => frame.id === id)!;
+          return frameMap[id];
         },
       });
     })
@@ -34,6 +54,9 @@ const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
           },
           getComInfo: (comId) => {
             return config.getComInfo(comId || id);
+          },
+          getFrameMap: () => {
+            return frameMap;
           },
         }),
       );
