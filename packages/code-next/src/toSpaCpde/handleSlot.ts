@@ -48,9 +48,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     const refNames = new Set<string>();
     // 需要导入使用的slotContext，调用上层组件的ref
     const slotContexts = new Set<string>();
-
-    const slotRelativePathMap = config.getSlotRelativePathMap();
-
     const nextConfig = {
       ...config,
       addRefName: (refName: string) => {
@@ -124,103 +121,29 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       },
     });
 
-    const varEvents = config.getVarEvents({
-      comId: ui.meta.comId,
-      slotId: ui.meta.slotId,
+    const { varDeclarationCode, varAssignmentCode } = handleVarsEvent(ui, {
+      ...config,
+      addParentDependencyImport,
+      addSlotContext: (slotContext: string) => {
+        slotContexts.add(slotContext);
+      },
     });
-    let varDeclarationCode = "";
-    let varAssignmentCode = "";
-    varEvents.forEach((varEvent) => {
-      const code = handleProcess(varEvent, {
+
+    const { fxDeclarationCode, fxAssignmentCode } = handleFxsEvent(ui, {
+      ...config,
+      addParentDependencyImport,
+      addSlotContext: (slotContext: string) => {
+        slotContexts.add(slotContext);
+      },
+    });
+
+    const { importSlotContextCode, useSlotContextCode } = handleSlotContext(
+      ui,
+      {
         ...config,
-        getParams: () => {
-          return {
-            [varEvent.paramId]: "value",
-          };
-        },
-        addParentDependencyImport,
-        addSlotContext: (slotContext: string) => {
-          slotContexts.add(slotContext);
-        },
-      });
-      const varName = `var_${varEvent.meta.id}`;
-
-      varDeclarationCode += `const ${varName} = useVar(${JSON.stringify(varEvent.initValue)}, (value) => {
-          ${code}
-        });`;
-
-      varAssignmentCode += `${varName},`;
-    });
-
-    const fxEvents = config.getFxEvents({
-      comId: ui.meta.comId,
-      slotId: ui.meta.slotId,
-    });
-    let fxDeclarationCode = "";
-    let fxAssignmentCode = "";
-    fxEvents.forEach((fxEvent) => {
-      const params = fxEvent.paramIds.reduce(
-        (pre: Record<string, string>, id: string, index: number) => {
-          pre[id] = `value${index}`;
-          return pre;
-        },
-        {},
-      );
-      const code = handleProcess(fxEvent, {
-        ...config,
-        getParams: () => {
-          return params;
-        },
-        addParentDependencyImport,
-        addSlotContext: (slotContext: string) => {
-          slotContexts.add(slotContext);
-        },
-      });
-      const fxName = `fx_${fxEvent.frameId}`;
-
-      fxDeclarationCode += `const ${fxName} = (${fxEvent.paramIds
-        .map((id: string, index: number) => {
-          if (id in fxEvent.initValues) {
-            return `value${index} = ${JSON.stringify(fxEvent.initValues[id])}`;
-          }
-
-          return `value${index}`;
-        })
-        .join(",")}) => {
-          ${code}
-        };\n`;
-
-      fxAssignmentCode += `${fxName},`;
-    });
-
-    let importSlotContextCode = "";
-    let useSlotContextCode = "";
-
-    Array.from(slotContexts).forEach((slotContext) => {
-      const slotRelativePath = slotRelativePathMap[slotContext];
-
-      if (slotContext === "GlobalContext") {
-        importSlotContextCode += `import { GlobalContext } from "${slotRelativePath}"`;
-        useSlotContextCode += `const globalContext = useContext(GlobalContext);`;
-        return;
-      }
-
-      const [comId, slotId] = slotContext.split("-");
-
-      if (comId === ui.meta.comId && slotId === ui.meta.slotId) {
-        return;
-      }
-
-      const importSlotContextName = slotId
-        ? `SlotContext_${comId}_${slotId}`
-        : "SlotContext";
-      const useSlotContextName = slotId
-        ? `slotContext_${comId}_${slotId}`
-        : "slotContext";
-
-      importSlotContextCode += `import { ${importSlotContextName} } from "${slotRelativePath}"`;
-      useSlotContextCode += `const ${useSlotContextName} = useContext(${importSlotContextName});`;
-    });
+        slotContexts,
+      },
+    );
 
     config.add({
       path: `${config.getPath()}/${componentName}_${ui.meta.comId}/Slot_${ui.meta.slotId}/index.tsx`,
@@ -272,7 +195,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     const slotContexts = new Set<string>();
     const addDependencyImport =
       config.addParentDependencyImport || addParentDependencyImport;
-    const slotRelativePathMap = config.getSlotRelativePathMap();
     const nextConfig = {
       ...config,
       addRefName:
@@ -352,97 +274,29 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         },
       });
 
-      const varEvents = config.getVarEvents();
-      let varDeclarationCode = "";
-      let varAssignmentCode = "";
-      varEvents.forEach((varEvent) => {
-        const code = handleProcess(varEvent, {
+      const { varDeclarationCode, varAssignmentCode } = handleVarsEvent(ui, {
+        ...config,
+        addParentDependencyImport: addDependencyImport,
+        addSlotContext: (slotContext: string) => {
+          slotContexts.add(slotContext);
+        },
+      });
+
+      const { fxDeclarationCode, fxAssignmentCode } = handleFxsEvent(ui, {
+        ...config,
+        addParentDependencyImport: addDependencyImport,
+        addSlotContext: (slotContext: string) => {
+          slotContexts.add(slotContext);
+        },
+      });
+
+      const { importSlotContextCode, useSlotContextCode } = handleSlotContext(
+        ui,
+        {
           ...config,
-          getParams: () => {
-            return {
-              [varEvent.paramId]: "value",
-            };
-          },
-          addParentDependencyImport: addDependencyImport,
-          addSlotContext: (slotContext: string) => {
-            slotContexts.add(slotContext);
-          },
-        });
-        const varName = `var_${varEvent.meta.id}`;
-
-        varDeclarationCode += `const ${varName} = useVar(${JSON.stringify(varEvent.initValue)}, (value) => {
-          ${code}
-        });`;
-
-        varAssignmentCode += `${varName},`;
-      });
-
-      const fxEvents = config.getFxEvents();
-      let fxDeclarationCode = "";
-      let fxAssignmentCode = "";
-      fxEvents.forEach((fxEvent) => {
-        const params = fxEvent.paramIds.reduce(
-          (pre: Record<string, string>, id: string, index: number) => {
-            pre[id] = `value${index}`;
-            return pre;
-          },
-          {},
-        );
-        const code = handleProcess(fxEvent, {
-          ...config,
-          getParams: () => {
-            return params;
-          },
-          addParentDependencyImport: addDependencyImport,
-          addSlotContext: (slotContext: string) => {
-            slotContexts.add(slotContext);
-          },
-        });
-        const fxName = `fx_${fxEvent.frameId}`;
-
-        fxDeclarationCode += `const ${fxName} = (${fxEvent.paramIds
-          .map((id: string, index: number) => {
-            if (id in fxEvent.initValues) {
-              return `value${index} = ${JSON.stringify(fxEvent.initValues[id])}`;
-            }
-
-            return `value${index}`;
-          })
-          .join(",")}) => {
-          ${code}
-        };\n`;
-
-        fxAssignmentCode += `${fxName},`;
-      });
-
-      let importSlotContextCode = "";
-      let useSlotContextCode = "";
-
-      Array.from(slotContexts).forEach((slotContext) => {
-        const slotRelativePath = slotRelativePathMap[slotContext];
-
-        if (slotContext === "GlobalContext") {
-          importSlotContextCode += `import { GlobalContext } from "${slotRelativePath}"`;
-          useSlotContextCode += `const globalContext = useContext(GlobalContext);`;
-          return;
-        }
-
-        const [comId, slotId] = slotContext.split("-");
-
-        if (comId === ui.meta.comId && slotId === ui.meta.slotId) {
-          return;
-        }
-
-        const importSlotContextName = slotId
-          ? `SlotContext_${comId}_${slotId}`
-          : "SlotContext";
-        const useSlotContextName = slotId
-          ? `slotContext_${comId}_${slotId}`
-          : "slotContext";
-
-        importSlotContextCode += `import { ${importSlotContextName} } from "${slotRelativePath}"`;
-        useSlotContextCode += `const ${useSlotContextName} = useContext(${importSlotContextName});`;
-      });
+          slotContexts,
+        },
+      );
 
       config.add({
         path: `${config.getPath()}/index.tsx`,
@@ -519,4 +373,145 @@ const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
       },
     })}
   }, [])`;
+};
+
+interface HandleVarsEventConfig extends HandleSlotConfig {
+  addParentDependencyImport: ReturnType<
+    typeof createDependencyImportCollector
+  >[1];
+  addSlotContext: (slotContext: string) => void;
+}
+
+const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
+  const isScope = ui.meta.scope;
+  const varEvents = config.getVarEvents(
+    isScope
+      ? {
+          comId: ui.meta.comId!,
+          slotId: ui.meta.slotId,
+        }
+      : undefined,
+  );
+  let varDeclarationCode = "";
+  let varAssignmentCode = "";
+  varEvents.forEach((varEvent) => {
+    const code = handleProcess(varEvent, {
+      ...config,
+      getParams: () => {
+        return {
+          [varEvent.paramId]: "value",
+        };
+      },
+    });
+    const varName = `var_${varEvent.meta.id}`;
+
+    varDeclarationCode += `const ${varName} = useVar(${JSON.stringify(varEvent.initValue)}, (value) => {
+        ${code}
+      });`;
+
+    varAssignmentCode += `${varName},`;
+  });
+
+  return {
+    varDeclarationCode,
+    varAssignmentCode,
+  };
+};
+
+interface HandleFxsEventConfig extends HandleSlotConfig {
+  addParentDependencyImport: ReturnType<
+    typeof createDependencyImportCollector
+  >[1];
+  addSlotContext: (slotContext: string) => void;
+}
+
+const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
+  const isScope = ui.meta.scope;
+  const fxEvents = config.getFxEvents(
+    isScope
+      ? {
+          comId: ui.meta.comId!,
+          slotId: ui.meta.slotId,
+        }
+      : undefined,
+  );
+  let fxDeclarationCode = "";
+  let fxAssignmentCode = "";
+  fxEvents.forEach((fxEvent) => {
+    const params = fxEvent.paramIds.reduce(
+      (pre: Record<string, string>, id: string, index: number) => {
+        pre[id] = `value${index}`;
+        return pre;
+      },
+      {},
+    );
+    const code = handleProcess(fxEvent, {
+      ...config,
+      getParams: () => {
+        return params;
+      },
+    });
+    const fxName = `fx_${fxEvent.frameId}`;
+
+    fxDeclarationCode += `const ${fxName} = (${fxEvent.paramIds
+      .map((id: string, index: number) => {
+        if (id in fxEvent.initValues) {
+          return `value${index} = ${JSON.stringify(fxEvent.initValues[id])}`;
+        }
+
+        return `value${index}`;
+      })
+      .join(",")}) => {
+        ${code}
+      };\n`;
+
+    fxAssignmentCode += `${fxName},`;
+  });
+
+  return {
+    fxDeclarationCode,
+    fxAssignmentCode,
+  };
+};
+
+interface HandleSlotContextConfig extends HandleSlotConfig {
+  slotContexts: Set<string>;
+}
+
+const handleSlotContext = (ui: UI, config: HandleSlotContextConfig) => {
+  const slotRelativePathMap = config.getSlotRelativePathMap();
+  const { slotContexts } = config;
+  let importSlotContextCode = "";
+  let useSlotContextCode = "";
+
+  Array.from(slotContexts).forEach((slotContext) => {
+    const slotRelativePath = slotRelativePathMap[slotContext];
+
+    if (slotContext === "GlobalContext") {
+      importSlotContextCode += `import { GlobalContext } from "${slotRelativePath}"`;
+      useSlotContextCode += `const globalContext = useContext(GlobalContext);`;
+      return;
+    }
+
+    const [comId, slotId] = slotContext.split("-");
+
+    if (comId === ui.meta.comId && slotId === ui.meta.slotId) {
+      return;
+    }
+
+    const importSlotContextName = slotId
+      ? `SlotContext_${comId}_${slotId}`
+      : "SlotContext";
+    const useSlotContextName = slotId
+      ? `slotContext_${comId}_${slotId}`
+      : "slotContext";
+
+    importSlotContextCode += `import { ${importSlotContextName} } from "${slotRelativePath}"`;
+    useSlotContextCode += `const ${useSlotContextName} = useContext(${importSlotContextName});`;
+  });
+
+  return {
+    importSlotContextCode,
+    useSlotContextCode,
+  };
 };
