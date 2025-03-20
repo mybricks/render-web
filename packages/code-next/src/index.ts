@@ -232,9 +232,9 @@ const toCode = (tojson: ToJSON, config: Config) => {
     const globalFxFrames: Frame[] = [];
 
     frames.forEach((frame) => {
-      if (frame.type === "global") {
+      if (frame?.type === "global") {
         globalVarFrames = frame;
-      } else if (frame.type === "globalFx") {
+      } else if (frame?.type === "globalFx") {
         globalFxFrames.push(frame);
       } else {
         canvasFrames.push(frame);
@@ -327,7 +327,7 @@ const toCode = (tojson: ToJSON, config: Config) => {
         canvasState += `${to.id}: {
           mounted: ${index === 0 ? "true" : "false"},
           visible: ${index === 0 ? "true" : "false"},
-          type: "${to.type}",
+          type: "${to?.type}",
         },`;
       }
     });
@@ -588,9 +588,9 @@ const toMpaCode = (tojson: ToJSON, config: Config) => {
   const globalFxFrames: Frame[] = [];
 
   frames.forEach((frame) => {
-    if (frame.type === "global") {
+    if (frame?.type === "global") {
       globalVarFrames = frame;
-    } else if (frame.type === "globalFx") {
+    } else if (frame?.type === "globalFx") {
       globalFxFrames.push(frame);
     } else {
       canvasFrames.push(frame);
@@ -638,7 +638,7 @@ const toMpaCode = (tojson: ToJSON, config: Config) => {
       // 找到frame对应的scene
       const scene = scenes.find((scene) => scene.id === frame.id)!;
 
-      if (!scene.type) {
+      if (!scene?.type) {
         // 页面
         const rootComponent = scene.slot.comAry[0];
         if (
@@ -681,7 +681,7 @@ const toMpaCode = (tojson: ToJSON, config: Config) => {
                   label: item.label,
                   icon: item.icon,
                 };
-                if (item.type === "subMenu") {
+                if (item?.type === "subMenu") {
                   newItem.children = transform(item.children);
                 }
                 res.push(newItem);
@@ -1115,7 +1115,7 @@ class Code {
     }
 
     this.frame.diagrams.forEach((diagram) => {
-      nextCode.push(this.handleDiagram(diagram, { type: this.frame.type }));
+      nextCode.push(this.handleDiagram(diagram, { type: this.frame?.type }));
     });
 
     return (
@@ -1142,7 +1142,7 @@ class Code {
     const { starter, conAry } = diagram;
 
     if (
-      diagram.starter.type === "frame" &&
+      diagram.starter?.type === "frame" &&
       diagram.starter.frameId === this.scene.id &&
       type !== "globalFx"
     ) {
@@ -1174,7 +1174,7 @@ class Code {
           startNodes,
           diagram,
           defaultValue:
-            this.scene.type === "module" // 区分模块和场景
+            this.scene?.type === "module" // 区分模块和场景
               ? type === "config"
                 ? `data.${id}`
                 : `ref.current.inputs.${id}`
@@ -1246,7 +1246,7 @@ class Code {
       }, [])`
         : "";
     } else if (
-      diagram.starter.type === "frame" &&
+      diagram.starter?.type === "frame" &&
       (type === "fx" || type === "globalFx")
     ) {
       // fx
@@ -1344,7 +1344,10 @@ class Code {
           const fx_${starter.frameId} = ${fxBody}
         `;
       }
-    } else if (diagram.starter.type === "frame" && this.frame.type === "com") {
+    } else if (
+      diagram.starter?.type === "frame" &&
+      this.frame?.type === "com"
+    ) {
       // 组件的作用域插槽
 
       // 节点声明
@@ -1497,8 +1500,8 @@ class Code {
         _test: true,
       });
 
-      if (starter.type === "var") {
-        if (this.frame.type === "global") {
+      if (starter?.type === "var") {
+        if (this.frame?.type === "global") {
           // 全局变量，区别于作用域变量
           this.config.addDependencyImport(
             "@mybricks/render-react-hoc",
@@ -1590,14 +1593,14 @@ class Code {
       }: { value: string; currentNextStep: number; start: boolean },
     ) => {
       nodes.forEach((node, nodeIndex) => {
-        if (node.to.parent.type === "frame") {
+        if (node.to.parent?.type === "frame") {
           if (type === "fx" || type === "globalFx") {
             // 这里说明是卡片的输出，不需要再往下走了
             if (!frameOutputs[node.to.id]) {
               frameOutputs[node.to.id] = new Set();
             }
             frameOutputs[node.to.id].add(value);
-          } else if (this.scene.type === "module") {
+          } else if (this.scene?.type === "module") {
             // 模块，区分canvas的输出
             const rels = Object.entries(this.scene.pinRels)
               .filter(([key]) => {
@@ -1774,7 +1777,7 @@ class Code {
           Object.entries(nextMap).forEach(([, { from, conAry }], index) => {
             notes += `\n// ${from.from.title} >> ${conAry
               .map((con) => {
-                if (con.to.parent.type === "frame") {
+                if (con.to.parent?.type === "frame") {
                   return `(${con.to.title}) ${diagram.title}`;
                 }
                 const toComInfo = this.scene.coms[con.to.parent.id];
@@ -1790,7 +1793,7 @@ class Code {
             notes += `\n// ${from.from.title} >> ${conAry
               .map((con) => {
                 // [TODO] nextIndex 替换 conAry 的 index，顺序待观察
-                if (con.to.parent.type === "frame") {
+                if (con.to.parent?.type === "frame") {
                   return `(${con.to.title}) ${diagram.title}`;
                 }
                 const toComInfo = this.scene.coms[con.to.parent.id];
@@ -1852,7 +1855,7 @@ class Code {
               });
             const configs = toComInfo.model.data.configs;
             const params = frame!.inputs.reduce((cur, pre) => {
-              if (pre.type === "config") {
+              if (pre?.type === "config") {
                 return cur + `, ${JSON.stringify(configs[pre.pinId])}`;
               }
               return cur;
@@ -1865,7 +1868,7 @@ class Code {
               destructuringAssignment = `const [${nextCode.map((_, index) => `${nextComponentName}_${toComInfo.id}_${index}`).join(", ")}] = `;
             }
 
-            if (frame!.type === "globalFx") {
+            if (frame?.type === "globalFx") {
               nextComponentName = "global.fx.";
               nextId = toComInfo.ioProxy.id;
             }
@@ -1929,7 +1932,7 @@ class Code {
             );
           }
         } else {
-          if (node.to.type === "ext") {
+          if (node.to?.type === "ext") {
             const pinProxy =
               this.scene.pinProxies[`${node.to.parent.id}-${node.to.id}`];
 
@@ -1989,7 +1992,7 @@ class Code {
       const startNotes: string[] = [];
       startNodes.forEach((startNode, index) => {
         const toComInfo = this.scene.coms[startNode.to.parent.id];
-        if (startNode.to.parent.type === "frame") {
+        if (startNode.to.parent?.type === "frame") {
           // case0 直接调了fx的输出
 
           if (type === "fx" || type === "globalFx") {
@@ -2092,7 +2095,7 @@ class Code {
     const eventsCode = Object.entries(outputEvents).reduce(
       (eventsCode, [input, events]) => {
         const event = events.find((event) => event.active);
-        if (event && event.type === "defined") {
+        if (event && event?.type === "defined") {
           const diagram = this.frame.diagrams.find(
             (diagram) => diagram.id === event.options.id,
           );
@@ -2116,10 +2119,10 @@ class Code {
     if (slots) {
       this.config.addDependencyImport("@mybricks/render-react-hoc", "Slot");
 
-      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} ${nextData} ${eventsCode}>
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${this.scene?.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} ${nextData} ${eventsCode}>
        ${Object.entries(slots).reduce((cur, pre) => {
          const [id, slot] = pre;
-         if (slot.type === "scope") {
+         if (slot?.type === "scope") {
            const code = new Code(
              this.scene,
              this.frame.coms[comInfo.id].frames.find(
@@ -2156,7 +2159,7 @@ class Code {
       </${componentName}>
       `;
     } else {
-      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${validateUiModule(def.namespace) ? "global={global}" : ""} ${this.scene.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} ${nextData} ${eventsCode}/>`;
+      return `<${componentName} ref={${componentName}_${id}_ref} id="${id}" name="${name}" ${validateUiModule(def.namespace) ? "global={global}" : ""} ${this.scene?.type === "popup" && comInfo.asRoot ? `canvasId="${this.scene.id}"` : ""} style={${JSON.stringify(model.style)}} ${nextData} ${eventsCode}/>`;
     }
   }
 }
@@ -2170,7 +2173,7 @@ const validateUiModule = (namespace: string) => {
 
 /** 判断是弹窗类场景 */
 const validateScenePopup = (scene: Scene) => {
-  return scene.type === "popup" || scene.type === "module";
+  return scene?.type === "popup" || scene?.type === "module";
 };
 
 /** 判断是输入值获取组件 */
