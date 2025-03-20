@@ -77,6 +77,10 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
       type: "module",
       moduleId: comInfo.model.data.definedId,
       ...result,
+      props: {
+        ...result.props,
+        data: comInfo.model.data.configs || {},
+      },
     };
   }
 

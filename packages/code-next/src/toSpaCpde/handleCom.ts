@@ -99,6 +99,12 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             [`${slot.meta.comId}-${slot.meta.slotId}`]: "",
           },
         );
+        const moduleRelativePathMap = Object.entries(
+          config.getModuleRelativePathMap(),
+        ).reduce<Record<string, string>>((pre, [key, value]) => {
+          pre[key] = `${value}../../`;
+          return pre;
+        }, {});
 
         const { js, ui } = handleSlot(slot, {
           ...config,
@@ -107,6 +113,9 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           },
           getSlotRelativePathMap: () => {
             return slotRelativePathMap;
+          },
+          getModuleRelativePathMap: () => {
+            return moduleRelativePathMap;
           },
         });
 
@@ -167,7 +176,8 @@ export const handleProcess = (
   });
 
   process.nodesInvocation.forEach((props: any) => {
-    const { componentType, runType, category } = props;
+    const { type, componentType, runType, category } = props;
+
     let componentNameWithId = getComponentNameWithId(props, config);
     // 节点执行后的返回值（输出）
     const nextCode = getNextCode(props, config);
@@ -214,6 +224,9 @@ export const handleProcess = (
       }
     } else {
       nextInput = `_ref.current.inputs.${props.id}`;
+      if (type === "frameOutput" || type === "frameRelOutput") {
+        nextInput = "";
+      }
       if (!isSameScope) {
         // 非当前作用域
         config.addSlotContext(
@@ -304,12 +317,21 @@ const checkIsSameScope = (event: any, props: any) => {
 };
 
 const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
-  const { componentType, category, meta } = props;
+  const { componentType, category, meta, moduleId, type } = props;
   if (componentType === "js") {
     if (category === "var") {
       return `var_${meta.id}`;
     } else if (category === "fx") {
       return `fx_${meta.ioProxy.id}`;
+    }
+  } else if (componentType === "ui") {
+    if (category === "module") {
+      if (type === "frameOutput") {
+        return `props.${props.id}`;
+      } else if (type === "frameRelOutput") {
+        return `ref.current.outputs.${props.id}`;
+      }
+      return `Module_${moduleId}_${meta.id}`;
     }
   }
   return `${config.getComponentNameByNamespace(meta.def.namespace)}_${meta.id}`;

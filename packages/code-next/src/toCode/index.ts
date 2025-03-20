@@ -14,6 +14,7 @@ export interface UiBaseConfig {
 }
 
 export interface EventBaseConfig {
+  getScene: () => Scene;
   getSceneId: () => string;
   getSceneType: () => Scene["type"];
   getComInfo: (comId: string) => ComInfo;
@@ -61,6 +62,9 @@ const handleScene = (params: { scene: Scene; frame: Frame }) => {
     // getFrame: () => {
     //   return frame;
     // },
+    getScene: () => {
+      return scene;
+    },
     getSceneId: () => {
       return scene.id;
     },

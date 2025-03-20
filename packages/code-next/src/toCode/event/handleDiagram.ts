@@ -28,13 +28,13 @@ const handleDiagram = (
     diagram.starter.frameId === config.getSceneId() &&
     frameType !== "globalFx"
   ) {
-    const { paramIds, nodesDeclaration, nodesInvocation } =
+    const { paramPins, nodesDeclaration, nodesInvocation } =
       handleDiagramWidthMultipleInputs(diagram, config);
     return {
       type: "slot", // 插槽类型
       category: "effect", // 插槽的声明周期
       diagramId: id,
-      paramIds,
+      paramPins,
       title: diagram.title,
       process: {
         nodesDeclaration,
@@ -46,7 +46,7 @@ const handleDiagram = (
     (frameType === "fx" || frameType === "globalFx")
   ) {
     console.log("fx卡片 => ");
-    const { paramIds, nodesDeclaration, nodesInvocation, frameOutputs } =
+    const { paramPins, nodesDeclaration, nodesInvocation, frameOutputs } =
       handleDiagramWidthMultipleInputs(diagram, config);
     const initValues: Record<string, any> = {};
 
@@ -64,7 +64,7 @@ const handleDiagram = (
       frameId: frame.id,
       parentSlotId: config.getFrameId(),
       parentComId: comInfo?.id,
-      paramIds,
+      paramPins,
       title: diagram.title,
       process: {
         nodesDeclaration,
@@ -80,7 +80,7 @@ const handleDiagram = (
     };
   } else if (diagram.starter.type === "frame" && frameType === "com") {
     console.log("组件的作用域插槽 => ");
-    const { paramIds, nodesDeclaration, nodesInvocation } =
+    const { paramPins, nodesDeclaration, nodesInvocation } =
       handleDiagramWidthMultipleInputs(diagram, config);
     const comInfo = config.getComInfo("");
 
@@ -90,7 +90,7 @@ const handleDiagram = (
       diagramId: id,
       comId: comInfo.id,
       slotId: starter.frameId,
-      paramIds,
+      paramPins,
       title: diagram.title,
       process: {
         nodesDeclaration,
@@ -146,7 +146,6 @@ const handleDiagramWidthMultipleInputs = (
   config: HandleDiagramConfig,
 ) => {
   const { starter, conAry } = diagram;
-  const paramIds: string[] = [];
 
   const result: HandleProcessResult = {
     nodesDeclaration: [],
@@ -157,7 +156,6 @@ const handleDiagramWidthMultipleInputs = (
   };
 
   starter.pinAry.forEach(({ id }) => {
-    paramIds.push(id);
     const startNodes = conAry.filter(
       (con) => con.from.id === id && con.from.parent.id === starter.frameId,
     );
@@ -222,98 +220,9 @@ const handleDiagramWidthMultipleInputs = (
 
   return {
     ...result,
-    paramIds,
+    paramPins: starter.pinAry,
   };
 };
-
-// const handleDiagramWidthMultipleInputs = (
-//   diagram: Diagram,
-//   config: HandleDiagramConfig,
-// ) => {
-//   const { starter, conAry } = diagram;
-//   const nodesDeclaration: any[] = [];
-//   const nodesInvocation: any[] = [];
-//   const paramIds: string[] = [];
-
-//   const result: HandleProcessResult = {
-//     nodesDeclaration: [],
-//     nodesDeclarationSet: new Set(),
-//     nodesInvocation: [],
-//     multipleInputsNodes: {},
-//   };
-
-//   starter.pinAry.forEach(({ id }) => {
-//     paramIds.push(id);
-//     const startNodes = conAry.filter(
-//       (con) => con.from.id === id && con.from.parent.id === starter.frameId,
-//     );
-//     const process = handleProcess(startNodes, {
-//       ...config,
-//       getParamSource: () => {
-//         return {
-//           type: "params", // 来自入参
-//           id, // 对应事件id
-//         };
-//       },
-//       getRunType: () => "input",
-//       getConAry: () => conAry,
-//     });
-//     console.log("startNodes => ", startNodes);
-//     console.log("process => ", process);
-
-//     nodesDeclaration.push(...process.nodesDeclaration);
-//     nodesInvocation.push(...process.nodesInvocation);
-//   });
-
-//   // 自执行组件
-//   const comsAutoRun = config.getComsAutoRun();
-
-//   if (comsAutoRun) {
-//     comsAutoRun.forEach(({ id }) => {
-//       const process = handleProcess(
-//         [
-//           {
-//             from: {
-//               id: "",
-//               title: "",
-//               parent: {
-//                 id: "",
-//               },
-//             },
-//             id: "",
-//             to: {
-//               id: "",
-//               title: "自动执行",
-//               parent: {
-//                 id: id,
-//                 type: "com",
-//               },
-//             },
-//           },
-//         ],
-//         {
-//           ...config,
-//           getParamSource: () => {
-//             return {
-//               type: "params", // 来自入参
-//               id, // 对应事件id
-//             };
-//           },
-//           getRunType: () => "auto",
-//           getConAry: () => conAry,
-//         },
-//       );
-//       nodesDeclaration.push(...process.nodesDeclaration);
-//       nodesInvocation.push(...process.nodesInvocation);
-//     });
-//   }
-
-//   return {
-//     nodesDeclaration,
-//     nodesInvocation,
-//     paramIds,
-//   };
-// };
 
 // 分割
 
@@ -391,6 +300,44 @@ const handleProcess = (
           frameOutputs[con.to.id] = [];
         }
         frameOutputs[con.to.id].push(config.getParamSource());
+      } else {
+        // 非fx，目前认为一定是module
+        // 调用信息
+        const invocation = {
+          id: con.to.id,
+          meta: {
+            parentComId: undefined,
+            frameId: undefined,
+            id: undefined,
+          },
+          componentType: "ui",
+          category: "module",
+          runType: "input",
+          nextParam: [],
+          paramSource: [config.getParamSource()],
+        };
+        const scene = config.getScene();
+        const rels = Object.entries(scene.pinRels)
+          .filter(([key]) => {
+            return key.startsWith("_rootFrame_");
+          })
+          .reduce((rels, [, value]) => {
+            value.forEach((v) => rels.add(v));
+            return rels;
+          }, new Set());
+
+        if (rels.has(con.to.id)) {
+          // 关联输出
+          nodesInvocation.push({
+            ...invocation,
+            type: "frameRelOutput",
+          });
+        } else {
+          nodesInvocation.push({
+            ...invocation,
+            type: "frameOutput",
+          });
+        }
       }
       return;
     }
@@ -517,6 +464,12 @@ const handleProcess = (
           ...invocation,
           paramSource: [config.getParamSource()],
         });
+      } else if (category === "module") {
+        nodesInvocation.push({
+          ...invocation,
+          moduleId: comInfo.model.data.definedId,
+          paramSource: [config.getParamSource()],
+        });
       }
     }
 
@@ -527,7 +480,7 @@ const handleProcess = (
           ...config,
           getRunType: () => "input",
           getParamSource: () => {
-            return {
+            const paramSource = {
               type: "node", // 来自节点返回
               id: paramId, // 返回的id
               meta: comInfo,
@@ -535,6 +488,13 @@ const handleProcess = (
               componentType,
               category,
             };
+            if (componentType === "ui" && category === "module") {
+              return {
+                ...paramSource,
+                moduleId: comInfo.model.data.definedId,
+              };
+            }
+            return paramSource;
           },
         },
         result,

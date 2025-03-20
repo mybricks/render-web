@@ -4,8 +4,10 @@ import {
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
+import handleModule from "./handleModule";
 
 import type { UI, BaseConfig } from "./index";
+import type { PinAry } from "../toCode/types";
 
 interface HandleSlotConfig extends BaseConfig {
   addParentDependencyImport?: ReturnType<
@@ -106,14 +108,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     // 主场景和作用域插槽会有生命周期事件
     const effectEventCode = handleEffectEvent(ui, {
       ...config,
-      getParams: (paramIds) => {
-        return paramIds.reduce(
-          (pre: Record<string, string>, eventId: string) => {
-            pre[eventId] = `slot.${eventId}`;
-            return pre;
-          },
-          {},
-        );
+      getParams: (paramPins) => {
+        return paramPins.reduce((pre: Record<string, string>, { id }) => {
+          pre[id] = `slot.${id}`;
+          return pre;
+        }, {});
       },
       addParentDependencyImport,
       addSlotContext: (slotContext: string) => {
@@ -214,7 +213,9 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         uiCode += ui;
         jsCode += js;
       } else if (child.type === "module") {
-        uiCode += "[TODO] 模块 22";
+        const { ui, js } = handleModule(child, nextConfig);
+        uiCode += ui;
+        jsCode += js;
       } else {
         const { ui } = handleDom(child, nextConfig);
         uiCode += ui;
@@ -257,16 +258,12 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       // 主场景和作用域插槽会有生命周期事件
       const effectEventCode = handleEffectEvent(ui, {
         ...config,
-        getParams: (paramIds) => {
+        getParams: (paramPins) => {
           slotContexts.add("GlobalContext");
-          return paramIds.reduce(
-            (pre: Record<string, string>, eventId: string) => {
-              pre[eventId] =
-                `globalContext.canvas.${ui.meta.slotId}.inputs.${eventId}`;
-              return pre;
-            },
-            {},
-          );
+          return paramPins.reduce((pre: Record<string, string>, { id }) => {
+            pre[id] = `globalContext.canvas.${ui.meta.slotId}.inputs.${id}`;
+            return pre;
+          }, {});
         },
         addParentDependencyImport: addDependencyImport,
         addSlotContext: (slotContext: string) => {
@@ -350,11 +347,11 @@ interface HandleEffectEventConfig extends HandleSlotConfig {
   addParentDependencyImport: ReturnType<
     typeof createDependencyImportCollector
   >[1];
-  getParams: (paramIds: string[]) => Record<string, string>;
+  getParams: (paramPins: PinAry) => Record<string, string>;
   addSlotContext: (slotContext: string) => void;
 }
 
-const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
+export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
   const isScope = ui.meta.scope;
   const effectEvent = config.getEffectEvent(
     isScope
@@ -369,7 +366,7 @@ const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
     ${handleProcess(effectEvent, {
       ...config,
       getParams: () => {
-        return config.getParams(effectEvent.paramIds);
+        return config.getParams(effectEvent.paramPins);
       },
     })}
   }, [])`;
@@ -382,7 +379,7 @@ interface HandleVarsEventConfig extends HandleSlotConfig {
   addSlotContext: (slotContext: string) => void;
 }
 
-const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
+export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   const isScope = ui.meta.scope;
   const varEvents = config.getVarEvents(
     isScope
@@ -425,7 +422,7 @@ interface HandleFxsEventConfig extends HandleSlotConfig {
   addSlotContext: (slotContext: string) => void;
 }
 
-const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
+export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
   const isScope = ui.meta.scope;
   const fxEvents = config.getFxEvents(
     isScope
@@ -478,7 +475,7 @@ interface HandleSlotContextConfig extends HandleSlotConfig {
   slotContexts: Set<string>;
 }
 
-const handleSlotContext = (ui: UI, config: HandleSlotContextConfig) => {
+export const handleSlotContext = (ui: UI, config: HandleSlotContextConfig) => {
   const slotRelativePathMap = config.getSlotRelativePathMap();
   const { slotContexts } = config;
   let importSlotContextCode = "";

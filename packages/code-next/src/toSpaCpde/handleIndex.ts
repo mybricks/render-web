@@ -11,7 +11,7 @@ const handleIndex = (code: ReturnType<typeof toCode>["scenes"]) => {
         import { Provider, useCanvasState } from '@mybricks/render-react-hoc';
         ${code
           .map(({ scene }) => {
-            return `import Scene_${scene.id} from './Scene_${scene.id}';`;
+            return `import Scene_${scene.id} from './scenes/Scene_${scene.id}';`;
           })
           .join("\n")}
 

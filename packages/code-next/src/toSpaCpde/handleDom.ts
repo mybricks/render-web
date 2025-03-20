@@ -36,6 +36,8 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
       });
       return pre;
     } else if (child.type === "module") {
+      // eslint-disable-next-line no-debugger
+      debugger;
       return "[TODO] 模块 11";
     }
     const { ui } = handleDom(child, config);

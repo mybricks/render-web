@@ -117,6 +117,12 @@ export interface DiagramCon {
   startPinParentKey?: string;
 }
 
+export type PinAry = {
+  id: string;
+  title: string;
+  type: "normal" | "ext" | "config"; // 输入 | 扩展输入 ｜ 配置项
+}[];
+
 export interface Diagram {
   id: string;
   title: string;
@@ -124,11 +130,7 @@ export interface Diagram {
     comId: string;
     frameId: string;
     pinId: string;
-    pinAry: {
-      id: string;
-      title: string;
-      type: "normal" | "ext" | "config"; // 输入 | 扩展输入 ｜ 配置项
-    }[];
+    pinAry: PinAry;
     type: "com" | "frame" | "var";
   };
   conAry: DiagramCon[];
