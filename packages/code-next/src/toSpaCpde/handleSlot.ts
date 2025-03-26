@@ -435,7 +435,7 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
   let fxDeclarationCode = "";
   let fxAssignmentCode = "";
   fxEvents.forEach((fxEvent) => {
-    const params = fxEvent.paramIds.reduce(
+    const params = fxEvent.paramPins.reduce(
       (pre: Record<string, string>, id: string, index: number) => {
         pre[id] = `value${index}`;
         return pre;
@@ -450,7 +450,7 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
     });
     const fxName = `fx_${fxEvent.frameId}`;
 
-    fxDeclarationCode += `const ${fxName} = (${fxEvent.paramIds
+    fxDeclarationCode += `const ${fxName} = (${fxEvent.paramPins
       .map((id: string, index: number) => {
         if (id in fxEvent.initValues) {
           return `value${index} = ${JSON.stringify(fxEvent.initValues[id])}`;
