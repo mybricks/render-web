@@ -207,6 +207,9 @@ function handleChildren(element) {
       const { style } = element;
       style.top = style.top - pStyle.top
       style.left = style.left - pStyle.left
+      if (style.xCenter) {
+        hasWidthFull = true
+      }
       if (style.widthFull) {
         hasWidthFull = true
       }
@@ -228,10 +231,10 @@ function handleChildren(element) {
         ...child,
         style: {
           ...child.style,
-          // top: child.style.top - pStyle.top - (hasHeightFull ? 0 : top),
-          // left: child.style.left - pStyle.left - (hasWidthFull ? 0 : left),
-          top: child.style.top - top,
-          left: child.style.left - left,
+          top: child.style.top - pStyle.top - (hasHeightFull ? 0 : top),
+          left: child.style.left - pStyle.left - (hasWidthFull ? 0 : left),
+          // top: child.style.top - top,
+          // left: child.style.left - left,
           // TODO: right
           right: isNumber(child.style.right) ? (pStyle.left + pStyle.width) - (child.style.left + child.style.width) : null,
           // bottom: 1
