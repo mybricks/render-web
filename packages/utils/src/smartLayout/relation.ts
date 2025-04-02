@@ -231,8 +231,10 @@ function handleChildren(element) {
         ...child,
         style: {
           ...child.style,
-          top: child.style.top - pStyle.top - (hasHeightFull ? 0 : top),
-          left: child.style.left - pStyle.left - (hasWidthFull ? 0 : left),
+          // top: child.style.top - pStyle.top - (hasHeightFull ? 0 : top),
+          // left: child.style.left - pStyle.left - (hasWidthFull ? 0 : left),
+          top: child.style.top - (hasHeightFull ? 0 : top),
+          left: child.style.left - (hasWidthFull ? 0 : left),
           // top: child.style.top - top,
           // left: child.style.left - left,
           // TODO: right
