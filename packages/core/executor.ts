@@ -405,7 +405,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                 },
                 _getSlotValue(slotValueKey) {
                   // return getSlotValue(slotValueKey, nextScope)
-                  return _getSlotValue ? _getSlotValue(slotValueKey, nextScope) : getSlotValue(slotValueKey, nextScope)
+                  return _getSlotValue ? _getSlotValue(slotValueKey, inReg.parentComId ? nextScope : null) : getSlotValue(slotValueKey, inReg.parentComId ? nextScope : null)
                 },
                 _getSlotPropsMap(id) {
                   return _getSlotPropsMap ? _getSlotPropsMap(id) : _Props[id]
