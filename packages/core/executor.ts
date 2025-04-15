@@ -404,8 +404,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                   // return getComProps(comId, nextScope)
                 },
                 _getSlotValue(slotValueKey) {
-                  // return getSlotValue(slotValueKey, nextScope)
-                  return _getSlotValue ? _getSlotValue(slotValueKey, inReg.parentComId ? nextScope : null) : getSlotValue(slotValueKey, inReg.parentComId ? nextScope : null)
+                  return getSlotValue(slotValueKey, nextScope)
+                  // return _getSlotValue ? _getSlotValue(slotValueKey, inReg.parentComId ? nextScope : null) : getSlotValue(slotValueKey, inReg.parentComId ? nextScope : null)
                 },
                 _getSlotPropsMap(id) {
                   return _getSlotPropsMap ? _getSlotPropsMap(id) : _Props[id]
@@ -1313,6 +1313,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     let val = _slotValue[`${key}${scope ? `-${scope.id}-${scope.frameId}` : ''}`]
     if ((typeof val === 'undefined') && scope?.parent) {
       val = getSlotValue(key, scope.parent)
+    }
+    if ((typeof val === 'undefined') && !scope?.parent && _getSlotValue) {
+      val = _getSlotValue(key, scope)
     }
 
     return easyDeepCopy(val)
