@@ -658,7 +658,7 @@ export default function MultiScene ({json, options}) {
         const { id } = json
 
         let className = ''
-        let style = {position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 1000}
+        let style = {position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 999}
 
         if (scene.main) {
           // 主场景
