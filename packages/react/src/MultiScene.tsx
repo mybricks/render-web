@@ -676,7 +676,7 @@ export default function MultiScene ({json, options}) {
             key={json.id}
             json={{...json, scenesMap}}
             options={getOptions(id)}
-            style={{position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 1000}}
+            style={{position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 999}}
           />
         )
       })
