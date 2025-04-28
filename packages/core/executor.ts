@@ -1452,6 +1452,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
             comDef.runtime({//exe once
               id: comId,
+              _id: _isNestCom ? null : comId,
               env: Env,
               _env,
               data: props.data,
