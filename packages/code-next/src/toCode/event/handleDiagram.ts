@@ -456,6 +456,11 @@ const handleProcess = (
           },
           paramSource: [config.getParamSource()],
         });
+      } else if (category === "scene") {
+        nodesInvocation.push({
+          ...invocation,
+          paramSource: [config.getParamSource()],
+        });
       }
     } else {
       // ui组件

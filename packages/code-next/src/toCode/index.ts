@@ -26,7 +26,7 @@ const toCode = (
   scenes: Result;
   modules: Result;
 } => {
-  console.log("tojson => ", tojson);
+  tojson = transformToJSON(tojson);
 
   const scenes = tojson.scenes.map((scene) => {
     const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
@@ -87,5 +87,22 @@ const handleScene = (params: { scene: Scene; frame: Frame }) => {
     scene,
     ui,
     event,
+  };
+};
+
+const transformToJSON = (tojson: ToJSON) => {
+  const { type } = tojson;
+
+  if (type === "spa") {
+    return tojson;
+  }
+
+  // mpa
+
+  return {
+    ...tojson,
+    frames: tojson.frames.flatMap((frame) =>
+      frame.type === "root" ? frame.frames : [frame],
+    ),
   };
 };

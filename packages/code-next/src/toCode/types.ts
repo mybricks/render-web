@@ -2,7 +2,7 @@ import * as CSS from "csstype";
 
 // -- TOJSON 相关定义
 export interface Style extends CSS.Properties {
-  layout: "smart";
+  layout: "smart" | "flex-column";
 }
 
 export interface Def {
@@ -162,7 +162,7 @@ export interface Frame {
     title: string;
   }[];
   coms: Record<string, Frame>;
-  type: "fx" | "com" | "global" | "globalFx";
+  type: "fx" | "com" | "global" | "globalFx" | "root"; // mpa最外层才会有root
 }
 
 interface Global {
@@ -182,4 +182,5 @@ export interface ToJSON {
       title: string;
     }
   >;
+  type: "spa" | "mpa";
 }
