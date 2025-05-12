@@ -49,6 +49,9 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   let eventCode = "";
 
   Object.entries(events).forEach(([eventId, { diagramId }]) => {
+    if (!diagramId) {
+      return;
+    }
     propsCode += `${eventId}={${componentNameWithId}_${eventId}}`;
     const event = config.getEventByDiagramId(diagramId)!;
     const defaultValue = "value";

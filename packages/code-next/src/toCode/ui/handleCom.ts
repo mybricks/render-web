@@ -59,7 +59,13 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
     >((pre, [eventId, events]) => {
       const event = events.find((event) => event.active)!;
 
-      if (event.type === "defined" && event.options.id) {
+      // if (event.type === "defined" && event.options.id) {
+      //   pre[eventId] = {
+      //     type: "comEvent",
+      //     diagramId: event.options.id,
+      //   };
+      // }
+      if (event.type === "defined") {
         pre[eventId] = {
           type: "comEvent",
           diagramId: event.options.id,
