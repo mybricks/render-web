@@ -92,6 +92,8 @@ const HM_STYLE_MAP: Record<string, Record<string, string>> = {
     "flex-start": "FlexAlign.Start",
     center: "FlexAlign.Center",
     "flex-end": "FlexAlign.End",
+    "space-around": "FlexAlign.SpaceAround",
+    "space-between": "FlexAlign.SpaceBetween",
     default: "FlexAlign.Start",
   },
   alignItems: {
