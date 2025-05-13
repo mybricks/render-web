@@ -33,6 +33,8 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     // console.log("🚀 场景 ui => ", ui);
     // console.log("🚀 场景 event => ", event);
 
+    const providerMetaMap = {};
+
     handleSlot(ui, {
       ...config,
       add: (value) => {
@@ -99,6 +101,15 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       },
       getModuleRelativePathMap: () => {
         return scenesModuleRelativePathMap;
+      },
+      getCurrentProvider: () => {
+        return {
+          name: "slot_Index",
+          class: "Slot_Index",
+        };
+      },
+      getProviderMetaMap: () => {
+        return providerMetaMap;
       },
     });
   });
@@ -187,6 +198,20 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   //   content: handleIndex(scenes),
   // });
 
+  result.push({
+    path: "pages/lib.d.ts",
+    content: `declare namespace MyBricks {
+  type EventValue = any
+
+  type SlotParamsInputValues = any;
+
+  interface SlotParams {
+    id: string
+    inputValues?: SlotParamsInputValues;
+  }
+}`,
+  });
+
   return result;
 };
 
@@ -221,6 +246,8 @@ export interface BaseConfig extends ToSpaCodeConfig {
   }) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
   getSlotRelativePathMap: () => Record<string, string>;
   getModuleRelativePathMap: () => Record<string, string>;
+  getCurrentProvider: () => { name: string; class: string };
+  getProviderMetaMap: () => Record<string, { name: string; class: string }>;
 }
 
 export default toHarmonyCode;

@@ -9,7 +9,7 @@ interface HandleDomConfig extends BaseConfig {
     typeof createDependencyImportCollector
   >[1];
   addController: (controller: string) => void;
-  addSlotContext: (slotContext: string) => void;
+  addConsumer: (provider: { name: string; class: string }) => void;
 }
 
 type HandleDomResult = {

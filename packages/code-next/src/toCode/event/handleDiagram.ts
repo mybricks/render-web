@@ -79,7 +79,6 @@ const handleDiagram = (
       }),
     };
   } else if (diagram.starter.type === "frame" && frameType === "com") {
-    console.log("组件的作用域插槽 => ");
     const { paramPins, nodesDeclaration, nodesInvocation } =
       handleDiagramWidthMultipleInputs(diagram, config);
     const comInfo = config.getComInfo("");

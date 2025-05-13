@@ -11,6 +11,7 @@ type HandleComResult = {
   ui: string;
   js: string;
   slots: string[];
+  scopeSlots: string[];
 };
 
 export interface HandleComConfig extends BaseConfig {
@@ -18,7 +19,7 @@ export interface HandleComConfig extends BaseConfig {
     typeof createDependencyImportCollector
   >[1];
   addController: (controller: string) => void;
-  addSlotContext: (slotContext: string) => void;
+  addConsumer: (provider: { name: string; class: string }) => void;
 }
 
 const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
@@ -35,7 +36,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   config.addParentDependencyImport(dependencyImport);
   // const componentNameWithId = `${componentName}_${meta.id}`;
   config.addController(
-    `${componentName}Controller_${meta.id} = new ${componentName}Controller()`,
+    `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
   );
 
   // let propsCode = Object.entries(props).reduce((pre, [key, value]) => {
@@ -56,14 +57,17 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     }
     // propsCode += `${eventId}={${componentNameWithId}_${eventId}}`;
     const event = config.getEventByDiagramId(diagramId)!;
+
+    if (!event) {
+      // 在引擎内新建了事件后删除，存在脏数据
+      comEventCode += `${eventId}: () => {},`;
+      return;
+    }
+
     const defaultValue = "value";
 
-    // u_xxx11_click = (value: string) => {
-    //   this.u_xxx11_Controller.setText(`${value} - ${Math.random()}`)
-    // }
-
     // [TODO] 类型分析
-    eventCode += `${componentName}_${meta.id}_${eventId} = (${defaultValue}: string) => {
+    eventCode += `${componentName}_${meta.id}_${eventId} = (${defaultValue}: MyBricks.EventValue) => {
       ${handleProcess(event, {
         ...config,
         addParentDependencyImport: config.addParentDependencyImport,
@@ -79,15 +83,23 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     // click: this.MyBricksButton_u_b9EoS_onClick
   });
 
+  const currentProvider = config.getCurrentProvider();
+  const providerMetaMap = config.getProviderMetaMap();
+  if (!providerMetaMap[meta.id]) {
+    providerMetaMap[meta.id] = currentProvider;
+  }
+
   if (slots) {
     // 当前组件的插槽
     let currentSlotsCode = "";
     // 同级插槽，非作用域下层
     const level0Slots: string[] = [];
+    // 作用域插槽需声明为Component
+    const level1Slots: string[] = [];
 
     Object.entries(slots).forEach(([slotId, slot], index) => {
       if (!slot.meta.scope) {
-        const { js, ui, slots } = handleSlot(slot, {
+        const { js, ui, slots, scopeSlots } = handleSlot(slot, {
           ...config,
           checkIsRoot: () => {
             return false;
@@ -95,22 +107,77 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         });
 
         level0Slots.push(...slots);
+        level1Slots.push(...scopeSlots);
 
         eventCode += js; // 非 scope 没有js
 
         if (!index) {
           // 第一个 if
-          currentSlotsCode = `if (type === "${slotId}") {
+          currentSlotsCode = `if (params.id === "${slotId}") {
             ${ui}
           }`;
         } else {
           // 其它的 else if
-          currentSlotsCode += `else if (type === "${slotId}") {
+          currentSlotsCode += `else if (params.id === "${slotId}") {
             ${ui}
           }`;
         }
       } else {
         // [TODO] 作用域插槽
+        const { js, ui, slots, scopeSlots, controllers, consumers } =
+          handleSlot(slot, {
+            ...config,
+            checkIsRoot: () => {
+              return false;
+            },
+          });
+
+        config.addController(
+          `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
+        );
+
+        level0Slots.push(...slots);
+        level1Slots.push(...scopeSlots);
+
+        const scopeSlotComponentName = `${componentName}_${meta.id}_slot_${slotId}`;
+
+        level1Slots.push(`class Slot_${scopeSlotComponentName} {
+  ${Array.from(controllers).join("\n")}
+}
+@ComponentV2
+struct ${scopeSlotComponentName} {
+  @Param @Require inputValues: MyBricks.SlotParamsInputValues;
+
+  @Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()
+
+  ${Array.from(consumers)
+    .map((provider) => {
+      return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
+    })
+    .join("\n")}
+
+  ${js}
+
+  build() {
+    ${ui}
+  }
+}`);
+
+        if (!index) {
+          // 第一个 if
+          currentSlotsCode = `if (params.id === "${slotId}") {
+            ${scopeSlotComponentName}({
+              inputValues: params.inputValues,
+            })
+          }`;
+        } else {
+          // 其它的 else if
+          currentSlotsCode += `else if (params.id === "${slotId}") {
+            ${scopeSlotComponentName}({
+              inputValues: params.inputValues,
+            })
+          }`;
+        }
       }
     });
 
@@ -142,16 +209,17 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     return {
       slots: [
         `@Builder
-      ${componentName}_${meta.id}_slots(type: string) {
+      ${componentName}_${meta.id}_slots(params: MyBricks.SlotParams) {
         ${currentSlotsCode}
       }`,
         ...level0Slots,
       ],
+      scopeSlots: level1Slots,
       ui: `${componentName}({
-        controller: this.${componentName}Controller_${meta.id},
+        controller: this.${currentProvider.name}.${componentName}Controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},
-        slots: (type: string): void => this.${componentName}_${meta.id}_slots(type),${
+        slots: (params: MyBricks.SlotParams): void => this.${componentName}_${meta.id}_slots(params),${
           comEventCode
             ? `
         events: {
@@ -183,7 +251,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
     return {
       ui: `${componentName}({
-        controller: this.${componentName}Controller_${meta.id},
+        controller: this.${currentProvider.name}.${componentName}Controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},${
           comEventCode
@@ -196,6 +264,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       })`,
       js: eventCode,
       slots: [],
+      scopeSlots: [],
     };
   }
 };
@@ -207,7 +276,7 @@ interface HandleProcessConfig extends BaseConfig {
     typeof createDependencyImportCollector
   >[1];
   getParams: () => Record<string, string>;
-  addSlotContext: (slotContext: string) => void;
+  addConsumer: (provider: { name: string; class: string }) => void;
 }
 
 export const handleProcess = (
@@ -231,19 +300,22 @@ export const handleProcess = (
         return pre + `${key}: ${JSON.stringify(value)},`;
       }
       return pre + `${key}: ${JSON.stringify(value)},`;
-    }, "")}});\n`;
+    }, "")}})\n`;
   });
 
   process.nodesInvocation.forEach((props: any) => {
-    const { componentType, category } = props;
-
-    // let componentNameWithId = getComponentNameWithId(props, config);
+    const { componentType, category, runType } = props;
     // 节点执行后的返回值（输出）
     // const nextCode = getNextCode(props, config);
     // let nextInput = "";
     // 参数
     const nextValue = getNextValue(props, config);
-    // const isSameScope = checkIsSameScope(event, props);
+    const isSameScope = checkIsSameScope(event, props);
+
+    if (code) {
+      // 换行
+      code += "\n";
+    }
 
     if (componentType === "js") {
       // 如何执行 js要区分自执行还是调用输入
@@ -256,6 +328,11 @@ export const handleProcess = (
           importType: "named",
         });
         code += `router.pushUrl({ url: 'pages/Page_${props.meta.model.data._sceneId}'})`;
+      } else if (category === "normal") {
+        const componentNameWithId = getComponentNameWithId(props, config);
+        code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+      } else {
+        console.log("[出码] 其它类型js节点");
       }
     } else {
       // ui
@@ -263,7 +340,16 @@ export const handleProcess = (
       const { componentName } = config.getComponentMetaByNamespace(
         props.meta.def.namespace,
       );
-      code += `this.${componentName}Controller_${props.meta.id}.${props.id}(${nextValue})`;
+      let currentProvider = config.getCurrentProvider();
+
+      if (!isSameScope) {
+        const providerMetaMap = config.getProviderMetaMap();
+        currentProvider = providerMetaMap[props.meta.id];
+        // 非当前作用域，借助@Consumer调用上层组件
+        config.addConsumer(currentProvider);
+      }
+
+      code += `this.${currentProvider.name}.${componentName}Controller_${props.meta.id}.${props.id}(${nextValue})`;
     }
   });
   if (event.type === "fx") {
@@ -311,31 +397,31 @@ export const handleProcess = (
 // };
 
 /** 判断是否当前作用域 */
-// const checkIsSameScope = (event: any, props: any) => {
-//   if (
-//     event.type === "com" &&
-//     event.meta.parentComId === props.meta.parentComId &&
-//     event.meta.frameId === props.meta.frameId
-//   ) {
-//     // 当前作用域
-//     return true;
-//   } else if (
-//     event.type === "slot" &&
-//     event.comId === props.meta.parentComId &&
-//     event.slotId === props.meta.frameId
-//   ) {
-//     // 当前作用域
-//     return true;
-//   } else if (
-//     event.type === "fx" &&
-//     event.parentComId === props.meta.parentComId &&
-//     event.parentSlotId === props.meta.frameId
-//   ) {
-//     return true;
-//   }
+const checkIsSameScope = (event: any, props: any) => {
+  if (
+    event.type === "com" &&
+    event.meta.parentComId === props.meta.parentComId &&
+    event.meta.frameId === props.meta.frameId
+  ) {
+    // 当前作用域
+    return true;
+  } else if (
+    event.type === "slot" &&
+    event.comId === props.meta.parentComId &&
+    event.slotId === props.meta.frameId
+  ) {
+    // 当前作用域
+    return true;
+  } else if (
+    event.type === "fx" &&
+    event.parentComId === props.meta.parentComId &&
+    event.parentSlotId === props.meta.frameId
+  ) {
+    return true;
+  }
 
-//   return false;
-// };
+  return false;
+};
 
 const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
   const { componentType, category, meta, moduleId, type } = props;
@@ -407,7 +493,7 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
       }
       return `${componentNameWithId}_${id}_${connectId}`;
     }
-    return `${componentNameWithId}_${id}`;
+    return `${componentNameWithId}_result.${id}`;
   });
 
   return nextValue;

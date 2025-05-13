@@ -1,6 +1,7 @@
 import {
   createDependencyImportCollector,
   generateImportDependenciesCode,
+  convertHMFlexStyle,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 // import handleDom from "./handleDom";
@@ -15,7 +16,7 @@ interface HandleSlotConfig extends BaseConfig {
   >[1];
   // addRefName?: (refName: string) => void;
   addController?: (controller: string) => void;
-  addSlotContext?: (slotContext: string) => void;
+  // addConsumer: (provider: { name: string; class: string }) => void;
   checkIsRoot: () => boolean;
   getSlotRelativePathMap: () => Record<string, string>;
 }
@@ -28,18 +29,101 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
   let uiCode = "";
   let jsCode = "";
 
+  const providerMetaMap = config.getProviderMetaMap();
+  const currentProvider = config.getCurrentProvider();
+
   if (ui.meta.scope) {
+    const { componentName } = config.getComponentMetaByNamespace(
+      ui.meta.namespace!,
+    );
+    const currentProvider = {
+      name: `slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
+      class: `Slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
+    };
+
+    // 声明组件Controller
+    const controllers = new Set<string>();
+    // 调用上层组件
+    const consumers = new Set<{ name: string; class: string }>();
+
+    const addDependencyImport =
+      config.addParentDependencyImport || addParentDependencyImport;
+    const nextConfig = {
+      ...config,
+      addController: (controller: string) => {
+        controllers.add(controller);
+      },
+      addParentDependencyImport: addDependencyImport,
+      addConsumer: (provider: { name: string; class: string }) => {
+        consumers.add(provider);
+      },
+      getCurrentProvider: () => currentProvider,
+    };
+
+    const level0Slots: string[] = [];
+    const level1Slots: string[] = [];
+
+    children.forEach((child) => {
+      if (child.type === "com") {
+        if (!providerMetaMap[child.meta.id]) {
+          providerMetaMap[child.meta.id] = currentProvider;
+        }
+        const { ui, js, slots, scopeSlots } = handleCom(child, nextConfig);
+        uiCode += uiCode ? "\n" + ui : ui;
+        jsCode += js;
+        level0Slots.push(...slots);
+        level1Slots.push(...scopeSlots);
+      } else if (child.type === "module") {
+        console.log("❌❌❌ slot Module");
+        // const { ui, js } = handleModule(child, nextConfig);
+        // uiCode += ui;
+        // jsCode += js;
+      } else {
+        console.log("❌❌❌ slot Dom");
+        // const { ui } = handleDom(child, nextConfig);
+        // uiCode += ui;
+      }
+    });
+
+    // 主场景和作用域插槽会有生命周期事件
+    const effectEventCode = handleEffectEvent(ui, {
+      ...nextConfig,
+      getParams: (paramPins) => {
+        return paramPins.reduce((pre: Record<string, string>, { id }) => {
+          pre[id] = `this.inputValues.${id}`;
+          return pre;
+        }, {});
+      },
+      addParentDependencyImport,
+      addConsumer: (provider: { name: string; class: string }) => {
+        consumers.add(provider);
+      },
+    });
+
+    const hmStyle = convertHMFlexStyle(props.style);
+
     return {
-      ui: "",
-      js: "",
-      slots: [],
+      js: effectEventCode + "\n\n" + jsCode,
+      ui: `Flex({
+        direction: ${hmStyle.direction},
+        justifyContent: ${hmStyle.justifyContent},
+        alignItems: ${hmStyle.alignItems},
+      }) {
+        ${uiCode}
+      }
+      .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
+      .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
+      slots: level0Slots,
+      scopeSlots: level1Slots,
+      controllers,
+      consumers,
     };
   } else {
     // 声明组件Controller
     const controllers = new Set<string>();
+    // 调用上层组件
+    const consumers = new Set<{ name: string; class: string }>();
 
-    // 需要导入使用的slotContext，调用上层组件的ref
-    const slotContexts = new Set<string>();
     const addDependencyImport =
       config.addParentDependencyImport || addParentDependencyImport;
     const nextConfig = {
@@ -50,19 +134,24 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           controllers.add(controller);
         }),
       addParentDependencyImport: addDependencyImport,
-      addSlotContext: (slotContext: string) => {
-        slotContexts.add(slotContext);
+      addConsumer: (provider: { name: string; class: string }) => {
+        consumers.add(provider);
       },
     };
 
     const level0Slots: string[] = [];
+    const level1Slots: string[] = [];
 
     children.forEach((child) => {
       if (child.type === "com") {
-        const { ui, js, slots } = handleCom(child, nextConfig);
+        if (!providerMetaMap[child.meta.id]) {
+          providerMetaMap[child.meta.id] = currentProvider;
+        }
+        const { ui, js, slots, scopeSlots } = handleCom(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
         jsCode += js;
         level0Slots.push(...slots);
+        level1Slots.push(...scopeSlots);
       } else if (child.type === "module") {
         console.log("❌❌❌ slot Module");
         // const { ui, js } = handleModule(child, nextConfig);
@@ -76,14 +165,36 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     });
 
     if (config.checkIsRoot()) {
+      // 主场景和作用域插槽会有生命周期事件
+      const effectEventCode = handleEffectEvent(ui, {
+        ...nextConfig,
+        getParams: (paramPins) => {
+          return paramPins.reduce((pre: Record<string, string>, { id }) => {
+            // pre[id] = `slot.${id}`;
+            pre[id] = "undefined";
+            return pre;
+          }, {});
+        },
+        addParentDependencyImport,
+        addConsumer: (provider: { name: string; class: string }) => {
+          consumers.add(provider);
+        },
+      });
+
       config.add({
         path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套解构，待讨论
         content: `${generateImportDependenciesCode(parentDependencyImport)}
 
-        @Entry
-        @Component
-        struct Index {
+        class ${currentProvider.class} {
           ${Array.from(controllers).join("\n")}
+        }
+
+        @Entry
+        @ComponentV2
+        struct Index {
+          @Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()
+
+          ${effectEventCode}
 
           ${jsCode}
 
@@ -97,45 +208,29 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
             .height("100%")
           }
         }
+
+        ${level1Slots.join("\n")}
         `,
       });
     }
 
-    // 插槽，写样式，对齐hm，写入hm utils
-    const { style } = props;
-    const flexProps = {
-      direction: "FlexDirection.Row",
-      justifyContent: "FlexAlign.Start",
-      alignItems: "ItemAlign.Start",
-    };
-    if (style.layout === "flex-column") {
-      flexProps.direction = "FlexDirection.Column";
-    }
-    if (style.justifyContent === "flex-start") {
-      flexProps.justifyContent = "FlexAlign.Start";
-    }
-    if (style.justifyContent === "center") {
-      flexProps.justifyContent = "FlexAlign.Center";
-    }
-    if (style.alignItems === "flex-start") {
-      flexProps.alignItems = "ItemAlign.Start";
-    }
-    if (style.alignItems === "center") {
-      flexProps.alignItems = "ItemAlign.Center";
-    }
+    const hmStyle = convertHMFlexStyle(props.style);
 
     return {
       js: jsCode,
       ui: `Flex({
-        direction: ${flexProps.direction},
-        justifyContent: ${flexProps.justifyContent},
-        alignItems: ${flexProps.alignItems},
+        direction: ${hmStyle.direction},
+        justifyContent: ${hmStyle.justifyContent},
+        alignItems: ${hmStyle.alignItems},
       }) {
         ${uiCode}
       }
-      .width("100%")
-      .height("100%")`,
+      .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
+      .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
       slots: level0Slots,
+      scopeSlots: level1Slots,
+      controllers,
+      consumers,
     };
   }
 };
@@ -147,7 +242,7 @@ interface HandleEffectEventConfig extends HandleSlotConfig {
     typeof createDependencyImportCollector
   >[1];
   getParams: (paramPins: PinAry) => Record<string, string>;
-  addSlotContext: (slotContext: string) => void;
+  addConsumer: (provider: { name: string; class: string }) => void;
 }
 
 export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
@@ -161,21 +256,21 @@ export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
       : undefined,
   );
 
-  return `useEffect(() => {
+  return `aboutToAppear(): void {
     ${handleProcess(effectEvent, {
       ...config,
       getParams: () => {
         return config.getParams(effectEvent.paramPins);
       },
     })}
-  }, [])`;
+  }`;
 };
 
 interface HandleVarsEventConfig extends HandleSlotConfig {
   addParentDependencyImport: ReturnType<
     typeof createDependencyImportCollector
   >[1];
-  addSlotContext: (slotContext: string) => void;
+  addConsumer: (provider: { name: string; class: string }) => void;
 }
 
 export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
@@ -218,7 +313,7 @@ interface HandleFxsEventConfig extends HandleSlotConfig {
   addParentDependencyImport: ReturnType<
     typeof createDependencyImportCollector
   >[1];
-  addSlotContext: (slotContext: string) => void;
+  addConsumer: (provider: { name: string; class: string }) => void;
 }
 
 export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
