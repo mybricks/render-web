@@ -104,8 +104,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     const hmStyle = convertHMFlexStyle(props.style);
 
-    console.log("✅ ", props.style, uiCode);
-
     return {
       js: effectEventCode + "\n\n" + jsCode,
       ui: !props.style.layout
