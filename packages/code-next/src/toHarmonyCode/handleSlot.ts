@@ -1,7 +1,7 @@
 import {
   createDependencyImportCollector,
-  generateImportDependenciesCode,
   convertHMFlexStyle,
+  ImportManager,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 // import handleDom from "./handleDom";
@@ -22,8 +22,9 @@ interface HandleSlotConfig extends BaseConfig {
 }
 
 const handleSlot = (ui: UI, config: HandleSlotConfig) => {
-  const [parentDependencyImport, addParentDependencyImport] =
-    createDependencyImportCollector();
+  // const [parentDependencyImport, addParentDependencyImport] =
+  //   createDependencyImportCollector();
+  const importManager = new ImportManager();
   const { props, children } = ui;
 
   let uiCode = "";
@@ -47,7 +48,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     const consumers = new Set<{ name: string; class: string }>();
 
     const addDependencyImport =
-      config.addParentDependencyImport || addParentDependencyImport;
+      config.addParentDependencyImport ||
+      importManager.addImport.bind(importManager);
     const nextConfig = {
       ...config,
       addController: (controller: string) => {
@@ -94,7 +96,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           return pre;
         }, {});
       },
-      addParentDependencyImport,
+      addParentDependencyImport: importManager.addImport.bind(importManager),
       addConsumer: (provider: { name: string; class: string }) => {
         consumers.add(provider);
       },
@@ -125,7 +127,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     const consumers = new Set<{ name: string; class: string }>();
 
     const addDependencyImport =
-      config.addParentDependencyImport || addParentDependencyImport;
+      config.addParentDependencyImport ||
+      importManager.addImport.bind(importManager);
     const nextConfig = {
       ...config,
       addController:
@@ -166,30 +169,42 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     if (config.checkIsRoot()) {
       // 主场景和作用域插槽会有生命周期事件
-      const effectEventCode = handleEffectEvent(ui, {
+      let effectEventCode = handleEffectEvent(ui, {
         ...nextConfig,
         getParams: (paramPins) => {
           return paramPins.reduce((pre: Record<string, string>, { id }) => {
-            // pre[id] = `slot.${id}`;
-            pre[id] = "undefined";
+            // 调用函数，说明使用了打开输入
+            pre[id] = "routerParams";
             return pre;
           }, {});
         },
-        addParentDependencyImport,
+        addParentDependencyImport: importManager.addImport.bind(importManager),
         addConsumer: (provider: { name: string; class: string }) => {
           consumers.add(provider);
         },
       });
 
+      if (effectEventCode.match("routerParams")) {
+        importManager.addImport({
+          packageName: "../utils",
+          dependencyNames: ["appRouter"],
+          importType: "named",
+        });
+        effectEventCode = effectEventCode.replace(
+          "aboutToAppear(): void {",
+          `aboutToAppear(): void {
+          const routerParams = appRouter.getParams("${ui.meta.slotId}")`,
+        );
+      }
+
       config.add({
         path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套解构，待讨论
-        content: `${generateImportDependenciesCode(parentDependencyImport)}
-
-        class ${currentProvider.class} {
+        // import: importManager.toCode(),
+        importManager,
+        content: `class ${currentProvider.class} {
           ${Array.from(controllers).join("\n")}
         }
 
-        @Entry
         @ComponentV2
         struct Index {
           @Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()

@@ -16,6 +16,69 @@ export const firstCharToLowerCase = (str: string) => {
   return str.charAt(0).toLowerCase() + str.slice(1);
 };
 
+/** 导入依赖收集、解析 */
+export class ImportManager {
+  private _imports: DependencyImport = {};
+
+  constructor() {}
+
+  /** 添加依赖 */
+  addImport({
+    packageName,
+    dependencyNames,
+    importType,
+  }: {
+    packageName: string;
+    dependencyNames: string[];
+    importType: ImportType;
+  }) {
+    const { _imports } = this;
+    if (!_imports[packageName]) {
+      _imports[packageName] = {};
+    }
+
+    dependencyNames.forEach((dependencyName) => {
+      _imports[packageName][dependencyName] = {
+        importType,
+      };
+    });
+  }
+
+  /** 依赖解析为code */
+  toCode() {
+    return Object.entries(this._imports).reduce(
+      (pre, [packageName, dependencies]) => {
+        let defaultDependency = "";
+        let namedDependencies = "";
+
+        Object.entries(dependencies).forEach(
+          ([dependencyName, { importType }]) => {
+            if (importType === "default") {
+              defaultDependency = dependencyName;
+            } else {
+              namedDependencies += `${dependencyName},`;
+            }
+          },
+        );
+
+        if (namedDependencies) {
+          namedDependencies = `{${namedDependencies}}`;
+
+          if (defaultDependency) {
+            defaultDependency += ",";
+          }
+        }
+
+        return (
+          pre +
+          `import ${defaultDependency} ${namedDependencies} from '${packageName}';`
+        );
+      },
+      "",
+    );
+  }
+}
+
 /** 收集依赖 */
 export const createDependencyImportCollector = () => {
   const dependencyImport: DependencyImport = {};
@@ -145,4 +208,49 @@ export const convertHMStyle = (style: Style) => {
   });
 
   return hmStyle;
+};
+
+const IGNORE_COMPONENT_STYLE_KEYS = new Set(["_new", "themesId", "visibility"]);
+
+const IGNORE_COMPONENT_ROOT_STYLE_KEYS = new Set([
+  "rightAsFixed",
+  "bottomAsFixed",
+  "topAsFixed",
+  "leftAsFixed",
+]);
+
+const INCLUDE_ROOT_STYLE_TYPES = new Set(["string", "number"]);
+
+/** 组件样式转换(风格化、root根节点) */
+export const convertComponentStyle = (style: Style) => {
+  const resultStyle: Record<string, string | Record<string, string | number>> =
+    {};
+  const rootStyle: Record<string, string | number> = {};
+  Object.entries(style).forEach(([key, value]) => {
+    if (IGNORE_COMPONENT_STYLE_KEYS.has(key)) {
+      return;
+    } else if (key === "styleAry") {
+      value.forEach(
+        ({
+          css,
+          selector,
+        }: {
+          css: Record<string, string | number>;
+          selector: string;
+        }) => {
+          resultStyle[selector] = css;
+        },
+      );
+    } else {
+      if (IGNORE_COMPONENT_ROOT_STYLE_KEYS.has(key)) {
+        return;
+      }
+      if (INCLUDE_ROOT_STYLE_TYPES.has(typeof value)) {
+        rootStyle[key] = value;
+      }
+    }
+  });
+  resultStyle["root"] = rootStyle;
+
+  return resultStyle;
 };

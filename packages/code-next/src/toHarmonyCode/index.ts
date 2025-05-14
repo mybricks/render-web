@@ -1,17 +1,30 @@
 import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
+import { ImportManager } from "./utils";
 // import handleIndex from "./handleIndex";
 // import handleForwardRefModule from "./handleForwardRefModule";
 // import { createDependencyImportCollector } from "./utils";
 
 interface ToSpaCodeConfig {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  getComponentMetaByNamespace: (namespace: string) => any;
+  getComponentMetaByNamespace: (namespace: string) => {
+    dependencyImport: {
+      packageName: string;
+      dependencyNames: string[];
+      importType: "default" | "named";
+    };
+    componentName: string;
+  };
 }
 
 /** 返回结果 */
-type Result = Array<{ path: string; content: string }>;
+type Result = Array<{
+  path: string;
+  content: string;
+  importManager: ImportManager;
+  type: "normal" | "popup" | "module" | "ignore";
+  pageId: string;
+}>;
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
@@ -38,7 +51,11 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     handleSlot(ui, {
       ...config,
       add: (value) => {
-        result.push(value);
+        result.push({
+          ...value,
+          type: scene.type ? scene.type : "normal",
+          pageId: scene.id, // [TODO] meta?所有信息都给出去
+        });
       },
       getRootPath: () => {
         return "../";
@@ -200,6 +217,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
   result.push({
     path: "pages/lib.d.ts",
+    importManager: new ImportManager(),
     content: `declare namespace MyBricks {
   type EventValue = any
 
@@ -209,7 +227,25 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     id: string
     inputValues?: SlotParamsInputValues;
   }
-}`,
+
+  interface JSParams {
+    inputs: string[]
+    outputs: string[]
+  }
+
+  type JSReturn = (...values: MyBricks.EventValue[]) => Record<string, MyBricks.EventValue>
+
+  interface CodeParams extends JSParams {
+    data: {
+      runImmediate: boolean
+    }
+  }
+
+  type Codes = Record<string, (params: CodeParams) => (...values: MyBricks.EventValue[]) => Record<string, MyBricks.EventValue>>
+}
+`,
+    type: "ignore",
+    pageId: "",
   });
 
   return result;
@@ -220,7 +256,11 @@ export type UI = ToCodeResult["scenes"][0]["ui"];
 
 export interface BaseConfig extends ToSpaCodeConfig {
   /** 添加最终的文件列表 */
-  add: (value: { path: string; content: string }) => void;
+  add: (value: {
+    path: string;
+    content: string;
+    importManager: ImportManager;
+  }) => void;
   /** 获取相对路径 */
   getRootPath: () => string;
   /** 获取当前路径 */

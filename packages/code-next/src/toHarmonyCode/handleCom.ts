@@ -1,5 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { createDependencyImportCollector } from "./utils";
+import {
+  createDependencyImportCollector,
+  convertComponentStyle,
+} from "./utils";
 import handleSlot from "./handleSlot";
 
 import type { UI, BaseConfig } from "./index";
@@ -181,23 +184,7 @@ struct ${scopeSlotComponentName} {
       }
     });
 
-    // [TODO]
-    const resultStyle: any = {};
-    const rootStyle: any = {};
-    Object.entries(props.style).forEach(([key, value]) => {
-      if (key === "_new" || key === "themesId" || key === "visibility") {
-        return;
-      } else if (key === "styleAry") {
-        value.forEach(({ css, selector }: any) => {
-          resultStyle[selector] = css;
-        });
-      } else {
-        if (typeof value === "string" || typeof value === "number") {
-          rootStyle[key] = value;
-        }
-      }
-    });
-    resultStyle["root"] = rootStyle;
+    const resultStyle = convertComponentStyle(props.style);
 
     // HACK
     if (meta.def.namespace === "mybricks.taro.systemPage") {
@@ -231,23 +218,7 @@ struct ${scopeSlotComponentName} {
       js: eventCode,
     };
   } else {
-    // [TODO]
-    const resultStyle: any = {};
-    const rootStyle: any = {};
-    Object.entries(props.style).forEach(([key, value]) => {
-      if (key === "_new" || key === "themesId" || key === "visibility") {
-        return;
-      } else if (key === "styleAry") {
-        value.forEach(({ css, selector }: any) => {
-          resultStyle[selector] = css;
-        });
-      } else {
-        if (typeof value === "string" || typeof value === "number") {
-          rootStyle[key] = value;
-        }
-      }
-    });
-    resultStyle["root"] = rootStyle;
+    const resultStyle = convertComponentStyle(props.style);
 
     return {
       ui: `${componentName}({
@@ -290,6 +261,18 @@ export const handleProcess = (
     const { dependencyImport, componentName } =
       config.getComponentMetaByNamespace(meta.def.namespace);
     config.addParentDependencyImport(dependencyImport);
+    if (meta.def.namespace === "mybricks.taro._muilt-inputJs") {
+      // JS计算特殊逻辑，运行时是内置实现的
+      const componentNameWithId = `jsCode_${meta.id}`;
+
+      code += `const ${componentNameWithId} = codes.${meta.id}({
+        data: ${JSON.stringify({ runImmediate: !!props.data.runImmediate })},
+        inputs: ${JSON.stringify(props.inputs)},
+        outputs: ${JSON.stringify(props.outputs)},
+      })`;
+
+      return;
+    }
 
     const componentNameWithId = `${componentName}_${meta.id}`;
 
@@ -323,11 +306,12 @@ export const handleProcess = (
       if (category === "scene") {
         // 导入页面路由模块
         config.addParentDependencyImport({
-          packageName: "@kit.ArkUI",
-          dependencyNames: ["router"],
+          packageName: "../utils",
+          dependencyNames: ["appRouter"],
           importType: "named",
         });
-        code += `router.pushUrl({ url: 'pages/Page_${props.meta.model.data._sceneId}'})`;
+        code += `appRouter.push("${props.meta.model.data._sceneId}", ${nextValue})`;
+        // code += `router.pushUrl({ url: 'pages/Page_${props.meta.model.data._sceneId}'})`;
       } else if (category === "normal") {
         const componentNameWithId = getComponentNameWithId(props, config);
         code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
@@ -426,7 +410,10 @@ const checkIsSameScope = (event: any, props: any) => {
 const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
   const { componentType, category, meta, moduleId, type } = props;
   if (componentType === "js") {
-    if (category === "var") {
+    if (props.meta.def.namespace === "mybricks.taro._muilt-inputJs") {
+      // JS计算特殊逻辑，运行时是内置实现的
+      return `jsCode_${meta.id}`;
+    } else if (category === "var") {
       return `var_${meta.id}`;
     } else if (category === "fx") {
       return `fx_${meta.ioProxy.id}`;
