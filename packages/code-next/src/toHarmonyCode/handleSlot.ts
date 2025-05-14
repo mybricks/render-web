@@ -104,9 +104,15 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     const hmStyle = convertHMFlexStyle(props.style);
 
+    console.log("✅ ", props.style, uiCode);
+
     return {
       js: effectEventCode + "\n\n" + jsCode,
-      ui: `Flex({
+      ui: !props.style.layout
+        ? `Column() {
+        ${uiCode}
+      }`
+        : `Flex({
         direction: ${hmStyle.direction},
         justifyContent: ${hmStyle.justifyContent},
         alignItems: ${hmStyle.alignItems},
@@ -233,7 +239,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     return {
       js: jsCode,
-      ui: `Flex({
+      ui: !props.style.layout
+        ? `Column() {
+          ${uiCode}
+        }`
+        : `Flex({
         direction: ${hmStyle.direction},
         justifyContent: ${hmStyle.justifyContent},
         alignItems: ${hmStyle.alignItems},
