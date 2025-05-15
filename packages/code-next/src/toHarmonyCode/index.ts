@@ -216,7 +216,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   // });
 
   result.push({
-    path: "pages/lib.d.ts",
+    path: "lib.d.ts",
     importManager: new ImportManager(),
     content: `declare namespace MyBricks {
   type EventValue = any
