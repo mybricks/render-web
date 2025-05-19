@@ -86,6 +86,23 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     const level1Slots: string[] = [];
 
     Object.entries(slots).forEach(([slotId, slot], index) => {
+      /**
+       * 目前摸索到的规律
+       * 1. 组件宽高是fit-content，Flex的宽高设置auto
+       * 2. 组件定宽或者填充，Flex的宽高设置100%
+       */
+      if (com.props.style.width === "fit-content") {
+        slot.props.style.width = "auto";
+      } else {
+        slot.props.style.width = "100%";
+      }
+
+      if (com.props.style.height === "fit-content") {
+        slot.props.style.height = "auto";
+      } else {
+        slot.props.style.height = "100%";
+      }
+
       if (!slot.meta.scope) {
         const { js, ui, slots, scopeSlots } = handleSlot(slot, {
           ...config,
