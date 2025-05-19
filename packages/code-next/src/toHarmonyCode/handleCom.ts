@@ -41,7 +41,9 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   // config.addController(
   //   `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
   // );
-  config.addController(`${componentName}Controller_${meta.id} = Controller()`);
+  config.addController(
+    `/** ${meta.title} */\ncontroller_${meta.id} = Controller()`,
+  );
 
   // let propsCode = Object.entries(props).reduce((pre, [key, value]) => {
   //   if (key === "data") {
@@ -71,19 +73,32 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     const defaultValue = "value";
 
     // [TODO] 类型分析
-    eventCode += `${componentName}_${meta.id}_${eventId} = (${defaultValue}: MyBricks.EventValue) => {
-      ${handleProcess(event, {
-        ...config,
-        addParentDependencyImport: config.addParentDependencyImport,
-        getParams: () => {
-          return {
-            [eventId]: defaultValue,
-          };
-        },
-      })}
-    }\n`;
+    eventCode += `/** ${event.title} */
+    ${eventId}_${meta.id} = (${defaultValue}: MyBricks.EventValue) => {
+    ${handleProcess(event, {
+      ...config,
+      addParentDependencyImport: config.addParentDependencyImport,
+      getParams: () => {
+        return {
+          [eventId]: defaultValue,
+        };
+      },
+    })}
+  }\n`;
+    // eventCode += `${componentName}_${meta.id}_${eventId} = (${defaultValue}: MyBricks.EventValue) => {
+    //   ${handleProcess(event, {
+    //     ...config,
+    //     addParentDependencyImport: config.addParentDependencyImport,
+    //     getParams: () => {
+    //       return {
+    //         [eventId]: defaultValue,
+    //       };
+    //     },
+    //   })}
+    // }\n`;
 
-    comEventCode += `${eventId}: this.${componentName}_${meta.id}_${eventId},`;
+    // comEventCode += `${eventId}: this.${componentName}_${meta.id}_${eventId},`;
+    comEventCode += `${eventId}: this.${eventId}_${meta.id},`;
     // click: this.MyBricksButton_u_b9EoS_onClick
   });
 
@@ -140,17 +155,22 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         //   `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
         // );
         config.addController(
-          `${componentName}Controller_${meta.id} = Controller()`,
+          `/** ${meta.title} */\ncontroller_${meta.id} = Controller()`,
         );
 
         // level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
 
-        const scopeSlotComponentName = `${componentName}_${meta.id}_slot_${slotId}`;
+        // const scopeSlotComponentName = `${componentName}_${meta.id}_slot_${slotId}`;
 
-        level1Slots.push(`class Slot_${scopeSlotComponentName} {
+        const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${meta.id}`;
+
+        level1Slots.push(`/** ${meta.title}（${slot.meta.title}）组件控制器 */
+          class Slot_${scopeSlotComponentName} {
           ${Array.from(controllers).join("\n")}
         }
+
+        /** ${meta.title}（${slot.meta.title}） */
         @ComponentV2
         struct ${scopeSlotComponentName} {
           @Param @Require inputValues: MyBricks.SlotParamsInputValues;
@@ -201,18 +221,24 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
     return {
       slots: [
-        `@Builder
-      ${componentName}_${meta.id}_slots(params: MyBricks.SlotParams) {
+        //   `@Builder
+        // ${componentName}_${meta.id}_slots(params: MyBricks.SlotParams) {
+        //   ${currentSlotsCode}
+        // }`,
+        `/** ${meta.title}插槽 */
+      @Builder
+      slots_${meta.id}(params: MyBricks.SlotParams) {
         ${currentSlotsCode}
       }`,
         ...level0Slots,
       ],
       scopeSlots: level1Slots,
-      ui: `${componentName}({
-        controller: this.${currentProvider.name}.${componentName}Controller_${meta.id},
+      ui: `/** ${meta.title} */
+      ${componentName}({
+        controller: this.${currentProvider.name}.controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},
-        slots: (params: MyBricks.SlotParams): void => this.${componentName}_${meta.id}_slots(params),${
+        slots: this.slots_${meta.id}.bind(this),${
           comEventCode
             ? `
         events: {
@@ -227,8 +253,9 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     const resultStyle = convertComponentStyle(props.style);
 
     return {
-      ui: `${componentName}({
-        controller: this.${currentProvider.name}.${componentName}Controller_${meta.id},
+      ui: `/** ${meta.title} */
+      ${componentName}({
+        controller: this.${currentProvider.name}.controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},${
           comEventCode
@@ -329,12 +356,12 @@ export const handleProcess = (
     } else {
       // ui
       // [TODO] 作用域判断
-      const { componentName } = config.getComponentMetaByNamespace(
-        props.meta.def.namespace,
-        {
-          type: "ui",
-        },
-      );
+      // const { componentName } = config.getComponentMetaByNamespace(
+      //   props.meta.def.namespace,
+      //   {
+      //     type: "ui",
+      //   },
+      // );
       let currentProvider = config.getCurrentProvider();
 
       if (!isSameScope) {
@@ -344,7 +371,7 @@ export const handleProcess = (
         config.addConsumer(currentProvider);
       }
 
-      code += `this.${currentProvider.name}.${componentName}Controller_${props.meta.id}.${props.id}(${nextValue})`;
+      code += `this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
     }
   });
   if (event.type === "fx") {

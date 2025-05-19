@@ -30,6 +30,7 @@ export interface Slot {
   layoutTemplate: Array<Dom | Com>;
   style: Style;
   type?: "scope";
+  title: string;
 }
 
 export interface ComInfo {

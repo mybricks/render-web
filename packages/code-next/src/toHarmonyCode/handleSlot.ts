@@ -34,15 +34,20 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
   const currentProvider = config.getCurrentProvider();
 
   if (ui.meta.scope) {
-    const { componentName } = config.getComponentMetaByNamespace(
-      ui.meta.namespace!,
-      {
-        type: "ui",
-      },
-    );
+    // const { componentName } = config.getComponentMetaByNamespace(
+    //   ui.meta.namespace!,
+    //   {
+    //     type: "ui",
+    //   },
+    // );
+
+    // const currentProvider = {
+    //   name: `slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
+    //   class: `Slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
+    // };
     const currentProvider = {
-      name: `slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
-      class: `Slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
+      name: `slot_${ui.meta.slotId[0].toUpperCase() + ui.meta.slotId.slice(1)}_${ui.meta.comId}`,
+      class: `Slot_${ui.meta.slotId[0].toUpperCase() + ui.meta.slotId.slice(1)}_${ui.meta.comId}`,
     };
 
     // 声明组件Controller
@@ -221,10 +226,12 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套解构，待讨论
         // import: importManager.toCode(),
         importManager,
-        content: `class ${currentProvider.class} {
+        content: `/** 根组件控制器 */
+        class ${currentProvider.class} {
           ${Array.from(controllers).join("\n")}
         }
 
+        /** ${config.getCurrentScene().title} */
         @ComponentV2
         struct Index {
           @Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()

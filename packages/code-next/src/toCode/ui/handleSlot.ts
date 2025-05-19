@@ -10,6 +10,7 @@ type HandleSlotResult = {
     slotId: string;
     comId?: string;
     namespace?: string;
+    title: string;
   };
   props: {
     style: Style;
@@ -24,6 +25,7 @@ const handleSlot = (slot: Slot, config: UiBaseConfig): HandleSlotResult => {
     slotId: slot.id,
     comId: comInfo?.id,
     namespace: comInfo?.def.namespace,
+    title: slot.title,
   };
 
   if (slot.style.layout === "smart") {

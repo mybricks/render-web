@@ -55,6 +55,9 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
     handleSlot(ui, {
       ...config,
+      getCurrentScene: () => {
+        return scene;
+      },
       add: (value) => {
         result.push({
           ...value,
@@ -284,6 +287,8 @@ type ToCodeResult = ReturnType<typeof toCode>;
 export type UI = ToCodeResult["scenes"][0]["ui"];
 
 export interface BaseConfig extends ToSpaCodeConfig {
+  /** 获取当前场景信息 */
+  getCurrentScene: () => ReturnType<typeof toCode>["scenes"][0]["scene"];
   /** 添加最终的文件列表 */
   add: (value: {
     path: string;
