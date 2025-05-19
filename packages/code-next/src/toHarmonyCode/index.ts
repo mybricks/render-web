@@ -2,9 +2,6 @@ import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
 import { ImportManager } from "./utils";
-// import handleIndex from "./handleIndex";
-// import handleForwardRefModule from "./handleForwardRefModule";
-// import { createDependencyImportCollector } from "./utils";
 
 interface ToSpaCodeConfig {
   getComponentMetaByNamespace: (
@@ -35,10 +32,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
   const { scenes, modules } = toCode(tojson);
 
-  /** 主入口依赖 */
-  // const [indexDependencyImport, addIndexDependencyImport] =
-  //   createDependencyImportCollector();
-
   const scenesModuleRelativePathMap = modules.reduce<Record<string, string>>(
     (pre, cur) => {
       pre[cur.scene.id] = "../../";
@@ -47,10 +40,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     {},
   );
   scenes.forEach(({ scene, ui, event }) => {
-    // return;
-    // console.log("🚀 场景 ui => ", ui);
-    // console.log("🚀 场景 event => ", event);
-
     const providerMetaMap = {};
 
     handleSlot(ui, {
@@ -138,90 +127,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       },
     });
   });
-
-  // const moduleRelativePathMap = modules.reduce<Record<string, string>>(
-  //   (pre, cur) => {
-  //     pre[cur.scene.id] = "../";
-  //     return pre;
-  //   },
-  //   {},
-  // );
-  // modules.forEach(({ scene, ui, event }) => {
-  //   // return;
-  //   console.log("🚀 模块 ui => ", ui);
-  //   console.log("🚀 模块 event => ", event);
-
-  //   handleForwardRefModule(ui, {
-  //     ...config,
-  //     add: (value) => {
-  //       result.push(value);
-  //     },
-  //     getPath: () => {
-  //       return `modules/Module_${scene.id}`;
-  //     },
-  //     getEventByDiagramId: (diagramId) => {
-  //       return event.find((event) => event.diagramId === diagramId);
-  //     },
-  //     getVarEvents: (params) => {
-  //       if (!params) {
-  //         return event.filter((event) => {
-  //           return event.type === "var" && !event.meta.parentComId;
-  //         });
-  //       }
-  //       return event.filter((event) => {
-  //         return (
-  //           event.type === "var" &&
-  //           params.comId === event.meta.parentComId &&
-  //           params.slotId === event.meta.frameId
-  //         );
-  //       });
-  //     },
-  //     getFxEvents: (params) => {
-  //       if (!params) {
-  //         return event.filter((event) => {
-  //           return event.type === "fx" && !event.parentComId;
-  //         });
-  //       }
-  //       return event.filter((event) => {
-  //         return (
-  //           event.type === "fx" &&
-  //           params.comId === event.parentComId &&
-  //           params.slotId === event.parentSlotId
-  //         );
-  //       });
-  //     },
-  //     checkIsRoot: () => true,
-  //     getEffectEvent: (params) => {
-  //       // 默认只有一个生命周期事件
-  //       if (!params) {
-  //         // 主场景
-  //         return event.find((event) => {
-  //           return !event.slotId; // 没有slotId，认为是主场景
-  //         });
-  //       } else {
-  //         // 作用域插槽
-  //         const { comId, slotId } = params;
-  //         return event.find((event) => {
-  //           return event.slotId === slotId && event.comId === comId;
-  //         });
-  //       }
-  //     },
-  //     getSlotRelativePathMap: () => {
-  //       return {
-  //         "": "", // 空代表当前
-  //         GlobalContext: "../../", // 代表全局，场景输入、全局fx、全局变量
-  //       };
-  //     },
-  //     getModuleRelativePathMap: () => {
-  //       return moduleRelativePathMap;
-  //     },
-  //   });
-  // });
-
-  // result.push({
-  //   path: "index.tsx",
-  //   content: handleIndex(scenes),
-  // });
 
   result.push({
     path: "lib.d.ts",

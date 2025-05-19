@@ -1,8 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Frame, ComInfo, Diagram, DiagramCon } from "../types";
 import type { HandleFrameConfig } from "./handleFrame";
-// import type { HandleProcessResult } from "./handleProcess";
-// import handleProcess from "./handleProcess";
 import { getComponentTypeAndCategoryByDef } from "./utils";
 
 export interface HandleDiagramConfig extends HandleFrameConfig {

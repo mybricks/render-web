@@ -4,8 +4,6 @@ import {
   ImportManager,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
-// import handleDom from "./handleDom";
-// import handleModule from "./handleModule";
 
 import type { UI, BaseConfig } from "./index";
 import type { PinAry } from "../toCode/types";
@@ -14,16 +12,12 @@ interface HandleSlotConfig extends BaseConfig {
   addParentDependencyImport?: ReturnType<
     typeof createDependencyImportCollector
   >[1];
-  // addRefName?: (refName: string) => void;
   addController?: (controller: string) => void;
-  // addConsumer: (provider: { name: string; class: string }) => void;
   checkIsRoot: () => boolean;
   getSlotRelativePathMap: () => Record<string, string>;
 }
 
 const handleSlot = (ui: UI, config: HandleSlotConfig) => {
-  // const [parentDependencyImport, addParentDependencyImport] =
-  //   createDependencyImportCollector();
   const importManager = new ImportManager();
   const { props, children } = ui;
 
@@ -34,17 +28,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
   const currentProvider = config.getCurrentProvider();
 
   if (ui.meta.scope) {
-    // const { componentName } = config.getComponentMetaByNamespace(
-    //   ui.meta.namespace!,
-    //   {
-    //     type: "ui",
-    //   },
-    // );
-
-    // const currentProvider = {
-    //   name: `slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
-    //   class: `Slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
-    // };
     const currentProvider = {
       name: `slot_${ui.meta.slotId[0].toUpperCase() + ui.meta.slotId.slice(1)}_${ui.meta.comId}`,
       class: `Slot_${ui.meta.slotId[0].toUpperCase() + ui.meta.slotId.slice(1)}_${ui.meta.comId}`,
@@ -84,14 +67,9 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
       } else if (child.type === "module") {
-        console.log("❌❌❌ slot Module");
-        // const { ui, js } = handleModule(child, nextConfig);
-        // uiCode += ui;
-        // jsCode += js;
+        console.log("[TODO] slot Module");
       } else {
-        console.log("❌❌❌ slot Dom");
-        // const { ui } = handleDom(child, nextConfig);
-        // uiCode += ui;
+        console.log("[TODO] slot Dom");
       }
     });
 
@@ -181,14 +159,9 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
       } else if (child.type === "module") {
-        console.log("❌❌❌ slot Module");
-        // const { ui, js } = handleModule(child, nextConfig);
-        // uiCode += ui;
-        // jsCode += js;
+        console.log("[TODO] slot Module");
       } else {
-        console.log("❌❌❌ slot Dom");
-        // const { ui } = handleDom(child, nextConfig);
-        // uiCode += ui;
+        console.log("[TODO] slot Dom");
       }
     });
 
@@ -223,8 +196,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
 
       config.add({
-        path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套解构，待讨论
-        // import: importManager.toCode(),
+        path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套结构，待讨论
         importManager,
         content: `/** 根组件控制器 */
         class ${currentProvider.class} {

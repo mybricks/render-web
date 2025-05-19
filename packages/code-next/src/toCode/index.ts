@@ -59,9 +59,6 @@ const handleScene = (params: { scene: Scene; frame: Frame }) => {
     },
   });
   const event = handleFrame(frame, {
-    // getFrame: () => {
-    //   return frame;
-    // },
     getScene: () => {
       return scene;
     },

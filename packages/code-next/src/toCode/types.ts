@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import * as CSS from "csstype";
 
 // -- TOJSON 相关定义
@@ -38,7 +39,6 @@ export interface ComInfo {
   title: string;
   def: Def;
   model: {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: Record<string, any>;
     style: Style;
     outputEvents: Record<
@@ -152,7 +152,6 @@ export interface Frame {
         pinId: string;
         extValues: {
           config: {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             defaultValue: any;
           };
         };
