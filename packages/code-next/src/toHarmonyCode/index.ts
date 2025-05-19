@@ -30,15 +30,8 @@ type Result = Array<{
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
-  const { scenes, modules } = toCode(tojson);
+  const { scenes } = toCode(tojson);
 
-  const scenesModuleRelativePathMap = modules.reduce<Record<string, string>>(
-    (pre, cur) => {
-      pre[cur.scene.id] = "../../";
-      return pre;
-    },
-    {},
-  );
   scenes.forEach(({ scene, ui, event }) => {
     const providerMetaMap = {};
 
@@ -114,7 +107,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         };
       },
       getModuleRelativePathMap: () => {
-        return scenesModuleRelativePathMap;
+        return {};
       },
       getCurrentProvider: () => {
         return {
