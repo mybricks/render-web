@@ -264,6 +264,13 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   }
 
   type Codes = Record<string, (params: CodeParams) => (...values: MyBricks.EventValue[]) => Record<string, MyBricks.EventValue>>
+    
+  /** _env */
+  type _Env = {
+    currentScenes: {
+      close: () => void
+    }
+  }
 }
 `,
     type: "ignore",
