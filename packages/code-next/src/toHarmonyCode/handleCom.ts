@@ -34,13 +34,14 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   // });
 
   const { dependencyImport, componentName } =
-    config.getComponentMetaByNamespace(meta.def.namespace);
+    config.getComponentMetaByNamespace(meta.def.namespace, { type: "ui" });
 
   config.addParentDependencyImport(dependencyImport);
   // const componentNameWithId = `${componentName}_${meta.id}`;
-  config.addController(
-    `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
-  );
+  // config.addController(
+  //   `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
+  // );
+  config.addController(`${componentName}Controller_${meta.id} = Controller()`);
 
   // let propsCode = Object.entries(props).reduce((pre, [key, value]) => {
   //   if (key === "data") {
@@ -135,36 +136,41 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             },
           });
 
+        // config.addController(
+        //   `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
+        // );
         config.addController(
-          `${componentName}Controller_${meta.id} = ${componentName}Controller()`,
+          `${componentName}Controller_${meta.id} = Controller()`,
         );
 
-        level0Slots.push(...slots);
+        // level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
 
         const scopeSlotComponentName = `${componentName}_${meta.id}_slot_${slotId}`;
 
         level1Slots.push(`class Slot_${scopeSlotComponentName} {
-  ${Array.from(controllers).join("\n")}
-}
-@ComponentV2
-struct ${scopeSlotComponentName} {
-  @Param @Require inputValues: MyBricks.SlotParamsInputValues;
+          ${Array.from(controllers).join("\n")}
+        }
+        @ComponentV2
+        struct ${scopeSlotComponentName} {
+          @Param @Require inputValues: MyBricks.SlotParamsInputValues;
 
-  @Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()
+          @Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()
 
-  ${Array.from(consumers)
-    .map((provider) => {
-      return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
-    })
-    .join("\n")}
+          ${Array.from(consumers)
+            .map((provider) => {
+              return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
+            })
+            .join("\n")}
 
-  ${js}
+          ${js}
 
-  build() {
-    ${ui}
-  }
-}`);
+          ${slots.join("\n")}
+
+          build() {
+            ${ui}
+          }
+        }`);
 
         if (!index) {
           // 第一个 if
@@ -187,7 +193,7 @@ struct ${scopeSlotComponentName} {
     const resultStyle = convertComponentStyle(props.style);
 
     // HACK
-    if (meta.def.namespace === "mybricks.taro.systemPage") {
+    if (meta.def.namespace === "mybricks.harmony.systemPage") {
       props.data = {
         background: props.data.background,
       };
@@ -259,9 +265,11 @@ export const handleProcess = (
 
   process.nodesDeclaration.forEach(({ meta, props }: any) => {
     const { dependencyImport, componentName } =
-      config.getComponentMetaByNamespace(meta.def.namespace);
+      config.getComponentMetaByNamespace(meta.def.namespace, {
+        type: "js",
+      });
     config.addParentDependencyImport(dependencyImport);
-    if (meta.def.namespace === "mybricks.taro._muilt-inputJs") {
+    if (meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
       // JS计算特殊逻辑，运行时是内置实现的
       const componentNameWithId = `jsCode_${meta.id}`;
 
@@ -323,6 +331,9 @@ export const handleProcess = (
       // [TODO] 作用域判断
       const { componentName } = config.getComponentMetaByNamespace(
         props.meta.def.namespace,
+        {
+          type: "ui",
+        },
       );
       let currentProvider = config.getCurrentProvider();
 
@@ -410,7 +421,7 @@ const checkIsSameScope = (event: any, props: any) => {
 const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
   const { componentType, category, meta, moduleId, type } = props;
   if (componentType === "js") {
-    if (props.meta.def.namespace === "mybricks.taro._muilt-inputJs") {
+    if (props.meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
       // JS计算特殊逻辑，运行时是内置实现的
       return `jsCode_${meta.id}`;
     } else if (category === "var") {
@@ -430,6 +441,9 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
   }
   const { componentName } = config.getComponentMetaByNamespace(
     props.meta.def.namespace,
+    {
+      type: componentType,
+    },
   );
   return `${componentName}_${meta.id}`;
 };

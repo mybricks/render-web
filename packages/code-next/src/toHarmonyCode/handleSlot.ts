@@ -36,6 +36,9 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
   if (ui.meta.scope) {
     const { componentName } = config.getComponentMetaByNamespace(
       ui.meta.namespace!,
+      {
+        type: "ui",
+      },
     );
     const currentProvider = {
       name: `slot_${componentName}_${ui.meta.comId!}_slot_${ui.meta.slotId}`,
@@ -104,6 +107,14 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     const hmStyle = convertHMFlexStyle(props.style);
 
+    if (props.style.layout) {
+      importManager.addImport({
+        dependencyNames: ["LengthMetrics"],
+        packageName: "@kit.ArkUI",
+        importType: "named",
+      });
+    }
+
     return {
       js: effectEventCode + "\n\n" + jsCode,
       ui: !props.style.layout
@@ -114,6 +125,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         direction: ${hmStyle.direction},
         justifyContent: ${hmStyle.justifyContent},
         alignItems: ${hmStyle.alignItems},
+        wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
+        space: {
+          main: LengthMetrics.vp(params.style?.rowGap || 0),
+          cross: LengthMetrics.vp(params.style?.columnGap || 0)
+        }
       }) {
         ${uiCode}
       }
@@ -235,6 +251,14 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     const hmStyle = convertHMFlexStyle(props.style);
 
+    if (props.style.layout) {
+      addDependencyImport({
+        dependencyNames: ["LengthMetrics"],
+        packageName: "@kit.ArkUI",
+        importType: "named",
+      });
+    }
+
     return {
       js: jsCode,
       ui: !props.style.layout
@@ -245,6 +269,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         direction: ${hmStyle.direction},
         justifyContent: ${hmStyle.justifyContent},
         alignItems: ${hmStyle.alignItems},
+        wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
+        space: {
+          main: LengthMetrics.vp(params.style?.rowGap || 0),
+          cross: LengthMetrics.vp(params.style?.columnGap || 0)
+        }
       }) {
         ${uiCode}
       }

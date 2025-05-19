@@ -7,7 +7,12 @@ import { ImportManager } from "./utils";
 // import { createDependencyImportCollector } from "./utils";
 
 interface ToSpaCodeConfig {
-  getComponentMetaByNamespace: (namespace: string) => {
+  getComponentMetaByNamespace: (
+    namespace: string,
+    config: {
+      type: "js" | "ui";
+    },
+  ) => {
     dependencyImport: {
       packageName: string;
       dependencyNames: string[];
@@ -219,16 +224,33 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     path: "lib.d.ts",
     importManager: new ImportManager(),
     content: `declare namespace MyBricks {
-  type EventValue = any
+  type Any = any
 
-  type SlotParamsInputValues = any;
+  /** 组件数据源 */
+  type Data = Record<string, Any>
 
+  /** 事件参数 */
+  type EventValue = Any
+
+  /** 事件 */
+  type Events = Any
+
+  /** 组件控制器 */
+  type Controller = Record<string, Any>
+
+  /** 调用插槽传参 */
   interface SlotParams {
     id: string
-    inputValues?: SlotParamsInputValues;
+    inputValues?: Any
+    style?: Any
   }
 
+  /** 插槽传参 */
+  type SlotParamsInputValues = Record<string, Any>
+
+  /** 内置JS计算组件相关定义 */
   interface JSParams {
+    data: Data
     inputs: string[]
     outputs: string[]
   }
