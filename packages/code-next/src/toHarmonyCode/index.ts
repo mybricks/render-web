@@ -25,7 +25,7 @@ type Result = Array<{
   content: string;
   importManager: ImportManager;
   type: "normal" | "popup" | "module" | "ignore";
-  pageId: string;
+  meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
 }>;
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
@@ -34,9 +34,13 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
   scenes.forEach(({ scene, ui, event }) => {
     const providerMetaMap = {};
+    const usedControllers = new Set<string>();
 
     handleSlot(ui, {
       ...config,
+      getUsedControllers: () => {
+        return usedControllers;
+      },
       getCurrentScene: () => {
         return scene;
       },
@@ -44,7 +48,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         result.push({
           ...value,
           type: scene.type ? scene.type : "normal",
-          pageId: scene.id, // [TODO] meta?所有信息都给出去
+          meta: scene,
         });
       },
       getRootPath: () => {
@@ -175,7 +179,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 }
 `,
     type: "ignore",
-    pageId: "",
   });
 
   return result;
@@ -187,6 +190,8 @@ export type UI = ToCodeResult["scenes"][0]["ui"];
 export interface BaseConfig extends ToSpaCodeConfig {
   /** 获取当前场景信息 */
   getCurrentScene: () => ReturnType<typeof toCode>["scenes"][0]["scene"];
+  /** 获取使用的组件控制器 */
+  getUsedControllers: () => Set<string>;
   /** 添加最终的文件列表 */
   add: (value: {
     path: string;

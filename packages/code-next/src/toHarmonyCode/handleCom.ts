@@ -30,9 +30,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     config.getComponentMetaByNamespace(meta.def.namespace, { type: "ui" });
 
   config.addParentDependencyImport(dependencyImport);
-  config.addController(
-    `/** ${meta.title} */\ncontroller_${meta.id} = Controller()`,
-  );
+  config.addController(meta.id);
 
   let eventCode = "";
   let comEventCode = "";
@@ -40,7 +38,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   Object.entries(events).forEach(([eventId, { diagramId }]) => {
     if (!diagramId) {
       // 没有添加事件
-      comEventCode += `${eventId}: () => {},`;
+      // comEventCode += `${eventId}: () => {},`;
       return;
     }
 
@@ -48,7 +46,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
     if (!event) {
       // 在引擎内新建了事件后删除，存在脏数据
-      comEventCode += `${eventId}: () => {},`;
+      // comEventCode += `${eventId}: () => {},`;
       return;
     }
 
@@ -136,27 +134,54 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
               return false;
             },
           });
+        let uiCode = ui;
 
-        config.addController(
-          `/** ${meta.title} */\ncontroller_${meta.id} = Controller()`,
-        );
+        config.addController(meta.id);
 
         level1Slots.push(...scopeSlots);
 
         const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${meta.id}`;
+        const scene = config.getCurrentScene();
+        const usedControllers = config.getUsedControllers();
+        let slotsCode = slots.join("\n");
+        const filterControllers = Array.from(controllers).filter(
+          (controller) => {
+            if (!usedControllers.has(controller)) {
+              uiCode = uiCode.replace(
+                `controller: this.${currentProvider.name}.controller_${controller},\n`,
+                "",
+              );
+              slotsCode = slotsCode.replace(
+                `controller: this.${currentProvider.name}.controller_${controller},\n`,
+                "",
+              );
+              return false;
+            }
+            return true;
+          },
+        );
 
-        level1Slots.push(`/** ${meta.title}（${slot.meta.title}）组件控制器 */
+        const classCode = filterControllers.length
+          ? `/** ${meta.title}（${slot.meta.title}）组件控制器 */
           class Slot_${scopeSlotComponentName} {
-          ${Array.from(controllers).join("\n")}
-        }
+          ${filterControllers
+            .map((controller) => {
+              const com = scene.coms[controller];
+              return `/** ${com.title} */\ncontroller_${com.id} = Controller()`;
+            })
+            .join("\n")}
+        }\n`
+          : "";
 
-        /** ${meta.title}（${slot.meta.title}） */
+        const providerCode = filterControllers.length
+          ? `@Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()\n`
+          : "";
+
+        level1Slots.push(`${classCode}/** ${meta.title}（${slot.meta.title}） */
         @ComponentV2
         struct ${scopeSlotComponentName} {
           @Param @Require inputValues: MyBricks.SlotParamsInputValues;
-
-          @Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()
-
+          ${providerCode}
           ${Array.from(consumers)
             .map((provider) => {
               return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
@@ -165,10 +190,10 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
           ${js}
 
-          ${slots.join("\n")}
+          ${slotsCode}
 
           build() {
-            ${ui}
+            ${uiCode}
           }
         }`);
 
@@ -348,6 +373,9 @@ export const handleProcess = (
         // 非当前作用域，借助@Consumer调用上层组件
         config.addConsumer(currentProvider);
       }
+
+      const usedControllers = config.getUsedControllers();
+      usedControllers.add(props.meta.id);
 
       code += `this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
     }

@@ -99,7 +99,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     }
 
     return {
-      js: effectEventCode + "\n\n" + jsCode,
+      js: (effectEventCode ? effectEventCode + "\n\n" : "") + jsCode,
       ui: !props.style.layout
         ? `Column() {
         ${uiCode}
@@ -182,7 +182,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         },
       });
 
-      if (effectEventCode.match("pageParams")) {
+      if (effectEventCode && effectEventCode.match("pageParams")) {
         importManager.addImport({
           packageName: "../components",
           dependencyNames: ["page"],
@@ -195,24 +195,48 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         );
       }
 
+      const scene = config.getCurrentScene();
+      const usedControllers = config.getUsedControllers();
+      let level0SlotsCode = level0Slots.join("\n");
+      const filterControllers = Array.from(controllers).filter((controller) => {
+        if (!usedControllers.has(controller)) {
+          uiCode = uiCode.replace(
+            `controller: this.${currentProvider.name}.controller_${controller},\n`,
+            "",
+          );
+          level0SlotsCode = level0SlotsCode.replace(
+            `controller: this.${currentProvider.name}.controller_${controller},\n`,
+            "",
+          );
+          return false;
+        }
+        return true;
+      });
+
+      const classCode = filterControllers.length
+        ? `/** 根组件控制器 */
+        class ${currentProvider.class} {
+          ${filterControllers
+            .map((controller) => {
+              const com = scene.coms[controller];
+              return `/** ${com.title} */\ncontroller_${com.id} = Controller()`;
+            })
+            .join("\n")}
+        }\n`
+        : "";
+      const providerCode = filterControllers.length
+        ? `@Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()\n`
+        : "";
+
       config.add({
         path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套结构，待讨论
         importManager,
-        content: `/** 根组件控制器 */
-        class ${currentProvider.class} {
-          ${Array.from(controllers).join("\n")}
-        }
-
-        /** ${config.getCurrentScene().title} */
+        content: `${classCode}/** ${scene.title} */
         @ComponentV2
         struct Index {
-          @Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()
-
-          ${effectEventCode}
-
-          ${jsCode}
-
-          ${level0Slots.join("\n")}
+          ${providerCode}
+          ${(effectEventCode ? effectEventCode + "\n\n" : "") + jsCode}
+          ${level0SlotsCode}
 
           build() {
             Column() {
@@ -287,13 +311,19 @@ export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
       : undefined,
   );
 
+  const code = handleProcess(effectEvent, {
+    ...config,
+    getParams: () => {
+      return config.getParams(effectEvent.paramPins);
+    },
+  });
+
+  if (!code) {
+    return null;
+  }
+
   return `aboutToAppear(): void {
-    ${handleProcess(effectEvent, {
-      ...config,
-      getParams: () => {
-        return config.getParams(effectEvent.paramPins);
-      },
-    })}
+    ${code}
   }`;
 };
 
