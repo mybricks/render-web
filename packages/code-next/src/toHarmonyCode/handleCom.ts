@@ -314,11 +314,12 @@ export const handleProcess = (
       if (category === "scene") {
         // 导入页面路由模块
         config.addParentDependencyImport({
-          packageName: "../utils",
-          dependencyNames: ["appRouter"],
+          packageName: "../components", // [TODO] 这些应该都是约定的
+          dependencyNames: ["page"],
           importType: "named",
         });
-        code += `appRouter.push("${props.meta.model.data._sceneId}", ${nextValue})`;
+        const componentNameWithId = getComponentNameWithId(props, config);
+        code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
       } else if (category === "normal") {
         const componentNameWithId = getComponentNameWithId(props, config);
         code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
@@ -326,6 +327,18 @@ export const handleProcess = (
         console.log("[出码] 其它类型js节点");
       }
     } else {
+      if (category === "popup") {
+        // popup类型的输出
+        // [TODO] 后续观察是否需要判断props.type === frameOutput
+        config.addParentDependencyImport({
+          packageName: "../components", // [TODO] 这些应该都是约定的
+          dependencyNames: ["page"],
+          importType: "named",
+        });
+        code += `page.${props.id}("${props.meta.id}", ${nextValue})`;
+        return;
+      }
+
       // ui
       let currentProvider = config.getCurrentProvider();
 
@@ -401,6 +414,9 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
     if (props.meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
       // JS计算特殊逻辑，运行时是内置实现的
       return `jsCode_${meta.id}`;
+    } else if (props.meta.def.namespace === "mybricks.core-comlib.scenes") {
+      // 场景打开特殊处理，运行时内置实现
+      return `page_${meta.id}`;
     } else if (category === "var") {
       return `var_${meta.id}`;
     } else if (category === "fx") {

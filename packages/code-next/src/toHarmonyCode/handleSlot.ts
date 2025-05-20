@@ -172,7 +172,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         getParams: (paramPins) => {
           return paramPins.reduce((pre: Record<string, string>, { id }) => {
             // 调用函数，说明使用了打开输入
-            pre[id] = "routerParams";
+            pre[id] = "pageParams";
             return pre;
           }, {});
         },
@@ -182,16 +182,16 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         },
       });
 
-      if (effectEventCode.match("routerParams")) {
+      if (effectEventCode.match("pageParams")) {
         importManager.addImport({
-          packageName: "../utils",
-          dependencyNames: ["appRouter"],
+          packageName: "../components",
+          dependencyNames: ["page"],
           importType: "named",
         });
         effectEventCode = effectEventCode.replace(
           "aboutToAppear(): void {",
           `aboutToAppear(): void {
-          const routerParams = appRouter.getParams("${ui.meta.slotId}")`,
+          const pageParams = page.getParams("${ui.meta.slotId}")`,
         );
       }
 

@@ -299,16 +299,19 @@ const handleProcess = (
         frameOutputs[con.to.id].push(config.getParamSource());
       } else {
         // 非fx，目前认为一定是module
+        // [TODO] 观察模块
         // 调用信息
         const invocation = {
           id: con.to.id,
           meta: {
             parentComId: undefined,
             frameId: undefined,
-            id: undefined,
+            // id: undefined,
+            id: config.getSceneId(), // 一定是弹窗、页面、模块的ID
           },
           componentType: "ui",
-          category: "module",
+          // category: "module",
+          category: config.getSceneType(), // 区分弹窗、页面、模块
           runType: "input",
           nextParam: [],
           paramSource: [config.getParamSource()],
