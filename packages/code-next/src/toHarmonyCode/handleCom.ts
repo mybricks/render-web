@@ -127,6 +127,10 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         }
       } else {
         // [TODO] 作用域插槽
+        const currentProvider = {
+          name: `slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
+          class: `Slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
+        };
         const { js, ui, slots, scopeSlots, controllers, consumers } =
           handleSlot(slot, {
             ...config,
