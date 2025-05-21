@@ -309,7 +309,7 @@ export const handleProcess = (
         data: ${JSON.stringify({ runImmediate: !!props.data.runImmediate })},
         inputs: ${JSON.stringify(props.inputs)},
         outputs: ${JSON.stringify(props.outputs)},
-      })`;
+      })\n`;
 
       return;
     }
