@@ -17,6 +17,7 @@ interface ToSpaCodeConfig {
     };
     componentName: string;
   };
+  getComponentPackageName: () => string;
 }
 
 /** 返回结果 */

@@ -184,7 +184,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
       if (effectEventCode && effectEventCode.match("pageParams")) {
         importManager.addImport({
-          packageName: "../_proxy",
+          packageName: config.getComponentPackageName(),
           dependencyNames: ["page"],
           importType: "named",
         });

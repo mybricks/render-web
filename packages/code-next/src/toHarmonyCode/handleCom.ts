@@ -344,7 +344,7 @@ export const handleProcess = (
       if (category === "scene") {
         // 导入页面路由模块
         config.addParentDependencyImport({
-          packageName: "../_proxy", // [TODO] 这些应该都是约定的
+          packageName: config.getComponentPackageName(),
           dependencyNames: ["page"],
           importType: "named",
         });
@@ -363,7 +363,7 @@ export const handleProcess = (
         // popup类型的输出
         // [TODO] 后续观察是否需要判断props.type === frameOutput
         config.addParentDependencyImport({
-          packageName: "../_proxy", // [TODO] 这些应该都是约定的
+          packageName: config.getComponentPackageName(),
           dependencyNames: ["page"],
           importType: "named",
         });
