@@ -548,7 +548,7 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
         return `${componentNameWithId}_${connectId}`;
       }
       // ui
-      return `${param.meta.id}_${param.id}_${param.connectId}`;
+      return `${param.meta.id}_${param.id}_${param.connectId}.${param.id}`;
       // return `${componentNameWithId}_${id}_${connectId}`;
     }
     return `${componentNameWithId}_result.${id}`;
