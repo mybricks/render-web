@@ -328,10 +328,11 @@ export const handleProcess = (
 
   process.nodesInvocation.forEach((props: any) => {
     const { componentType, category, runType } = props;
-    // 节点执行后的返回值（输出）
     // 参数
     const nextValue = getNextValue(props, config);
     const isSameScope = checkIsSameScope(event, props);
+    // 节点执行后的返回值（输出）
+    const nextCode = getNextCode(props, config, isSameScope);
 
     if (code) {
       // 换行
@@ -347,11 +348,13 @@ export const handleProcess = (
           dependencyNames: ["page"],
           importType: "named",
         });
-        const componentNameWithId = getComponentNameWithId(props, config);
-        code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
+        // const componentNameWithId = getComponentNameWithId(props, config);
+        code += `${nextCode}page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
+        // code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
       } else if (category === "normal") {
         const componentNameWithId = getComponentNameWithId(props, config);
-        code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+        code += `${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+        // code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -381,7 +384,7 @@ export const handleProcess = (
       const usedControllers = config.getUsedControllers();
       usedControllers.add(props.meta.id);
 
-      code += `this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
+      code += `${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
     }
   });
   if (event.type === "fx") {
@@ -473,6 +476,63 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
   return `${componentName}_${meta.id}`;
 };
 
+const getNextCode = (
+  props: any,
+  config: HandleProcessConfig,
+  isSameScope: boolean,
+) => {
+  // 节点执行后的返回值（输出）
+  const { nextParam, componentType } = props;
+  if (!nextParam.length) {
+    return "";
+  }
+  const componentNameWithId = getComponentNameWithId(props, config);
+
+  if (componentType === "js") {
+    return `const ${componentNameWithId}_result = `;
+    // if (category === "var") {
+    //   return nextParam.length
+    //     ? `const ${componentNameWithId}_${nextParam[0].connectId} = `
+    //     : "";
+    // } else if (category === "fx") {
+    //   return nextParam.length
+    //     ? `const [${nextParam.map(({ id }: any) => {
+    //         return `${componentNameWithId}_${id}`;
+    //       })}] = `
+    //     : "";
+    // }
+  }
+
+  // ui
+  let currentProvider = config.getCurrentProvider();
+
+  if (!isSameScope) {
+    const providerMetaMap = config.getProviderMetaMap();
+    currentProvider = providerMetaMap[props.meta.id];
+    // 非当前作用域，借助@Consumer调用上层组件
+    config.addConsumer(currentProvider);
+  }
+
+  if (!nextParam.length) {
+    return "";
+  }
+
+  return `const ${props.meta.id}_${nextParam[0].id}_${nextParam[0].connectId} = `;
+
+  // return `this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`
+
+  // return nextParam.length
+  //   ? `const {${nextParam
+  //       .map(({ id, connectId }: any) => {
+  //         if (connectId) {
+  //           return `${id}: ${componentNameWithId}_${id}_${connectId}`;
+  //         }
+  //         return `${id}: ${componentNameWithId}_${id}`;
+  //       })
+  //       .join(",")}} = `
+  //   : "";
+};
+
 const getNextValue = (props: any, config: HandleProcessConfig) => {
   const { paramSource } = props;
   const nextValue = paramSource.map((param: any) => {
@@ -487,7 +547,9 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
       if (componentType === "js" && category === "var") {
         return `${componentNameWithId}_${connectId}`;
       }
-      return `${componentNameWithId}_${id}_${connectId}`;
+      // ui
+      return `${param.meta.id}_${param.id}_${param.connectId}`;
+      // return `${componentNameWithId}_${id}_${connectId}`;
     }
     return `${componentNameWithId}_result.${id}`;
   });
