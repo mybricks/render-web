@@ -189,19 +189,19 @@ export const convertHMFlexStyle = (style: Style) => {
 
   if (style.width === "100%") {
     // 如果是填充状态，将padding转margin，hm和web行为不一致
-    if ("marginTop" in style) {
+    if ("marginTop" in style && (style.marginTop as number) > 0) {
       style.paddingTop = style.marginTop;
       Reflect.deleteProperty(style, "marginTop");
     }
-    if ("marginRight" in style) {
+    if ("marginRight" in style && (style.marginRight as number) > 0) {
       style.paddingRight = style.marginRight;
       Reflect.deleteProperty(style, "marginRight");
     }
-    if ("marginBottom" in style) {
+    if ("marginBottom" in style && (style.marginBottom as number) > 0) {
       style.paddingBottom = style.marginBottom;
       Reflect.deleteProperty(style, "marginBottom");
     }
-    if ("marginLeft" in style) {
+    if ("marginLeft" in style && (style.marginLeft as number) > 0) {
       style.paddingLeft = style.marginLeft;
       Reflect.deleteProperty(style, "marginLeft");
     }
