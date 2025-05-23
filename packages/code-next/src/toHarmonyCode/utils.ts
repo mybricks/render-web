@@ -147,9 +147,15 @@ export const generateImportDependenciesCode = (
 
 const HM_STYLE_MAP: Record<string, Record<string, string>> = {
   layout: {
+    smart: "FlexDirection.Column", // 智能布局，默认是纵向排版
     "flex-column": "FlexDirection.Column",
     "flex-row": "FlexDirection.Row",
-    default: "FlexDirection.Column",
+    default: "FlexDirection.Row",
+  },
+  flexDirection: {
+    column: "FlexDirection.Column",
+    row: "FlexDirection.Row",
+    default: "FlexDirection.Row",
   },
   justifyContent: {
     "flex-start": "FlexAlign.Start",
@@ -167,15 +173,48 @@ const HM_STYLE_MAP: Record<string, Record<string, string>> = {
   },
 };
 
+// [TODO] 样式的表现上hm与web有很多不同的地方，智能布局算法需要重构优化
 export const convertHMFlexStyle = (style: Style) => {
+  if (style.height === "fit-content") {
+    // hm使用auto才能实现适应内容
+    style.height = "auto";
+  }
+  if (style.width === "fit-content") {
+    style.width = "auto";
+  }
+  if (style.justifyContent === "space-between") {
+    // 两端对齐，宽度设置100%
+    style.width = "100%";
+  }
+
+  if (style.width === "100%") {
+    // 如果是填充状态，将padding转margin，hm和web行为不一致
+    if ("marginTop" in style) {
+      style.paddingTop = style.marginTop;
+      Reflect.deleteProperty(style, "marginTop");
+    }
+    if ("marginRight" in style) {
+      style.paddingRight = style.marginRight;
+      Reflect.deleteProperty(style, "marginRight");
+    }
+    if ("marginBottom" in style) {
+      style.paddingBottom = style.marginBottom;
+      Reflect.deleteProperty(style, "marginBottom");
+    }
+    if ("marginLeft" in style) {
+      style.paddingLeft = style.marginLeft;
+      Reflect.deleteProperty(style, "marginLeft");
+    }
+  }
+
   return convertHMStyle(
     Object.assign(
       {
-        layout: "flex-column",
+        layout: "flex-row",
         justifyContent: "flex-start",
         alignItems: "flex-start",
-        width: "100%",
-        height: "fit-content",
+        // width: "auto",
+        // height: "auto",
       },
       style,
     ),
@@ -200,6 +239,14 @@ export const convertHMStyle = (style: Style) => {
       case "alignItems":
         hmStyle.alignItems =
           HM_STYLE_MAP.alignItems[value] || HM_STYLE_MAP.alignItems.default;
+        break;
+      case "flexDirection":
+        hmStyle.direction =
+          HM_STYLE_MAP.flexDirection[value] ||
+          HM_STYLE_MAP.flexDirection.default;
+        break;
+      case "display":
+        // 这个属性hm内不需要关心，使用Flex组件
         break;
       default:
         hmStyle[key] = value;
@@ -251,6 +298,122 @@ export const convertComponentStyle = (style: Style) => {
     }
   });
   resultStyle["root"] = rootStyle;
+  if (
+    ("flex" in rootStyle && !("width" in rootStyle)) ||
+    rootStyle["width"] === "auto"
+  ) {
+    // 有flex，设置宽度100%
+    rootStyle["width"] = "100%";
+  }
+  if ("flex" in rootStyle) {
+    // 如果是填充状态，将padding转margin，hm和web行为不一致
+    if ("paddingTop" in rootStyle) {
+      rootStyle.marginTop = rootStyle.paddingTop;
+      Reflect.deleteProperty(rootStyle, "paddingTop");
+    }
+    if ("paddingRight" in rootStyle) {
+      rootStyle.marginRight = rootStyle.paddingRight;
+      Reflect.deleteProperty(rootStyle, "paddingRight");
+    }
+    if ("paddingBottom" in rootStyle) {
+      rootStyle.marginBottom = rootStyle.paddingBottom;
+      Reflect.deleteProperty(rootStyle, "paddingBottom");
+    }
+    if ("paddingLeft" in rootStyle) {
+      rootStyle.marginLeft = rootStyle.paddingLeft;
+      Reflect.deleteProperty(rootStyle, "paddingLeft");
+    }
+  }
 
   return resultStyle;
+};
+
+/** 转hm Flex代码 */
+export const convertHarmonyFlex = (style: Style, config: { child: string }) => {
+  const hmStyle = convertHMFlexStyle(style);
+  const { direction, justifyContent, alignItems } = hmStyle;
+
+  const flex =
+    `Flex({
+    direction: ${direction},
+    justifyContent: ${justifyContent},
+    alignItems: ${alignItems},
+  }) {
+    ${config.child}
+  }` +
+    convertHarmonyWidth(hmStyle) +
+    convertHarmonyHeight(hmStyle) +
+    convertHarmonyMargin(hmStyle) +
+    convertHarmonyPadding(hmStyle);
+
+  return flex;
+};
+
+type HmStyle = Record<string, number | string>;
+
+/** 转hm margin代码 */
+const convertHarmonyMargin = (style: HmStyle) => {
+  const { marginTop, marginRight, marginBottom, marginLeft } = style;
+  let code = "";
+  if (marginTop) {
+    code += `top: ${marginTop},`;
+  }
+  if (marginRight) {
+    code += `right: ${marginRight},`;
+  }
+  if (marginBottom) {
+    code += `bottom: ${marginBottom},`;
+  }
+  if (marginLeft) {
+    code += `left: ${marginLeft},`;
+  }
+
+  if (code) {
+    return `.margin({${code}})`;
+  }
+
+  return "";
+};
+
+/** 转hm padding代码 */
+const convertHarmonyPadding = (style: HmStyle) => {
+  const { paddingTop, paddingRight, paddingBottom, paddingLeft } = style;
+  let code = "";
+  if (paddingTop) {
+    code += `top: ${paddingTop},`;
+  }
+  if (paddingRight) {
+    code += `right: ${paddingRight},`;
+  }
+  if (paddingBottom) {
+    code += `bottom: ${paddingBottom},`;
+  }
+  if (paddingLeft) {
+    code += `left: ${paddingLeft},`;
+  }
+
+  if (code) {
+    return `.padding({${code}})`;
+  }
+
+  return "";
+};
+
+/** 转hm width代码 */
+const convertHarmonyWidth = (style: HmStyle) => {
+  let code = "";
+  if ("width" in style) {
+    code = `.width("${style.width}")`;
+  }
+
+  return code;
+};
+
+const convertHarmonyHeight = (style: HmStyle) => {
+  let code = "";
+  if ("height" in style) {
+    code = `.height("${style.height}")`;
+  }
+
+  return code;
 };

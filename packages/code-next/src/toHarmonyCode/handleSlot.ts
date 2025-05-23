@@ -4,6 +4,7 @@ import {
   ImportManager,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
+import handleDom from "./handleDom";
 
 import type { UI, BaseConfig } from "./index";
 import type { PinAry } from "../toCode/types";
@@ -69,7 +70,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       } else if (child.type === "module") {
         console.log("[TODO] slot Module");
       } else {
-        console.log("[TODO] slot Dom");
+        const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
+        uiCode += uiCode ? "\n" + ui : ui;
+        jsCode += js;
+        level0Slots.push(...slots);
+        level1Slots.push(...scopeSlots);
       }
     });
 
@@ -161,7 +166,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       } else if (child.type === "module") {
         console.log("[TODO] slot Module");
       } else {
-        console.log("[TODO] slot Dom");
+        const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
+        uiCode += uiCode ? "\n" + ui : ui;
+        jsCode += js;
+        level0Slots.push(...slots);
+        level1Slots.push(...scopeSlots);
       }
     });
 
