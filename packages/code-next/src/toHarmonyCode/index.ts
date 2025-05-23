@@ -48,6 +48,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         return "./_proxy/Index";
       },
       addParentDependencyImport: addDependencyImport,
+      getComponentMetaByNamespace: config.getComponentMetaByNamespace,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
