@@ -45,10 +45,11 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         };
       },
       getComponentPackageName: () => {
-        return "./_proxy/Index"
+        return "./_proxy/Index";
       },
       addParentDependencyImport: addDependencyImport,
-    });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
 
     result.push({
       path: "",
