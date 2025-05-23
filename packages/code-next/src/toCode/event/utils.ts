@@ -15,6 +15,11 @@ export const validateJsFrameInputComponent = (namespace: string) => {
   return namespace === "mybricks.core-comlib.frame-input";
 };
 
+/** 判断是作用域输出 */
+export const validateJsFrameOutputComponent = (namespace: string) => {
+  return namespace === "mybricks.core-comlib.frame-output";
+};
+
 /** 判断是场景类型组件 */
 export const validateJsScenesComponent = (namespace: string) => {
   return namespace === "mybricks.core-comlib.scenes";
@@ -47,7 +52,13 @@ export const validateJsMultipleInputs = (input: string) => {
 export type ComponentTypeAndCategory =
   | {
       componentType: "js";
-      category: "normal" | "frameInput" | "fx" | "scene" | "var";
+      category:
+        | "normal"
+        | "frameInput"
+        | "frameOutput"
+        | "fx"
+        | "scene"
+        | "var";
     }
   | {
       componentType: "ui";
@@ -65,6 +76,8 @@ export const getComponentTypeAndCategoryByDef = (
     componentType = "js";
     if (validateJsFrameInputComponent(namespace)) {
       category = "frameInput";
+    } else if (validateJsFrameOutputComponent(namespace)) {
+      category = "frameOutput";
     } else if (validateJsFxComponent(namespace)) {
       category = "fx";
     } else if (validateJsScenesComponent(namespace)) {

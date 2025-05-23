@@ -25,8 +25,48 @@ const toCode = (
 ): {
   scenes: Result;
   modules: Result;
+  extensionEvents: Result[0]["event"][];
 } => {
   tojson = transformToJSON(tojson);
+
+  const extensionEvents = tojson.frames
+    .filter((frame) => {
+      return frame.type === "extension";
+    })
+    .reduce(
+      (pre, frame) => {
+        const scene = tojson.global.fxFrames.find((fxFrame) => {
+          return fxFrame.id === frame.id;
+        })!;
+
+        pre.push(
+          ...handleFrame(frame, {
+            getScene: () => {
+              return scene;
+            },
+            getSceneId: () => {
+              return scene.id;
+            },
+            getComsAutoRun: () => {
+              return scene.comsAutoRun["_rootFrame_"];
+            },
+            getSceneType: () => {
+              return scene.type;
+            },
+            getComInfo: (comId) => {
+              return scene.coms[comId];
+            },
+            getFrameId: () => undefined,
+            getFrameMap: () => {
+              return {};
+            },
+          }),
+        );
+
+        return pre;
+      },
+      [] as Result[0]["event"][],
+    );
 
   const scenes = tojson.scenes.map((scene) => {
     const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
@@ -43,6 +83,7 @@ const toCode = (
   return {
     scenes,
     modules,
+    extensionEvents,
   };
 };
 

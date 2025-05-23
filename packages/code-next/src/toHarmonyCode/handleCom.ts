@@ -328,8 +328,13 @@ export const handleProcess = (
       config.getComponentMetaByNamespace(meta.def.namespace, {
         type: "js",
       });
-    config.addParentDependencyImport(dependencyImport);
+
     if (meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
+      config.addParentDependencyImport({
+        packageName: config.getComponentPackageName(),
+        dependencyNames: ["codes"],
+        importType: "named",
+      });
       // JS计算特殊逻辑，运行时是内置实现的
       const componentNameWithId = `jsCode_${meta.id}`;
 
@@ -340,6 +345,8 @@ export const handleProcess = (
       })\n`;
 
       return;
+    } else {
+      config.addParentDependencyImport(dependencyImport);
     }
 
     const componentNameWithId = `${componentName}_${meta.id}`;
@@ -383,6 +390,16 @@ export const handleProcess = (
         const componentNameWithId = getComponentNameWithId(props, config);
         code += `${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
         // code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+      } else if (category === "frameOutput") {
+        // [TODO] 判断是弹窗输出还是业务模块输出
+        config.addParentDependencyImport({
+          packageName: "../api",
+          dependencyNames: ["api"],
+          importType: "default",
+        });
+        const scene = config.getCurrentScene();
+        const pinProxy = scene.pinProxies[`${props.meta.id}-${props.id}`];
+        code += `${nextCode}api.emit("${pinProxy.pinId}", ${nextValue})`;
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -480,6 +497,11 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
     } else if (props.meta.def.namespace === "mybricks.core-comlib.scenes") {
       // 场景打开特殊处理，运行时内置实现
       return `page_${meta.id}`;
+    } else if (
+      props.meta.def.namespace === "mybricks.core-comlib.frame-output"
+    ) {
+      // frame输出特殊处理，运行时内置实现
+      return `api_${meta.id}`;
     } else if (category === "var") {
       return `var_${meta.id}`;
     } else if (category === "fx") {
@@ -578,6 +600,9 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
       // ui
       return `${param.meta.id}_${param.id}_${param.connectId}.${param.id}`;
       // return `${componentNameWithId}_${id}_${connectId}`;
+    }
+    if (param.category === "frameOutput") {
+      return `${componentNameWithId}_result`;
     }
     return `${componentNameWithId}_result.${id}`;
   });

@@ -2,6 +2,7 @@ import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
 import { ImportManager } from "./utils";
+import { handleProcess } from "./handleCom";
 
 interface ToSpaCodeConfig {
   getComponentMetaByNamespace: (
@@ -25,13 +26,37 @@ type Result = Array<{
   path: string;
   content: string;
   importManager: ImportManager;
-  type: "normal" | "popup" | "module" | "ignore";
+  type: "normal" | "popup" | "module" | "ignore" | "extensionEvent";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
 }>;
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
-  const { scenes } = toCode(tojson);
+  const { scenes, extensionEvents } = toCode(tojson);
+
+  const importManager = new ImportManager();
+  const addDependencyImport = importManager.addImport.bind(importManager);
+
+  extensionEvents.forEach((event) => {
+    const res = handleProcess(event, {
+      getParams: () => {
+        return {
+          open: "value",
+        };
+      },
+      getComponentPackageName: () => {
+        return "./_proxy/Index"
+      },
+      addParentDependencyImport: addDependencyImport,
+    });
+
+    result.push({
+      path: "",
+      content: res,
+      importManager,
+      type: "extensionEvent",
+    });
+  });
 
   scenes.forEach(({ scene, ui, event }) => {
     const providerMetaMap = {};

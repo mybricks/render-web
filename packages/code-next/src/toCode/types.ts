@@ -162,7 +162,11 @@ export interface Frame {
     title: string;
   }[];
   coms: Record<string, Frame>;
-  type: "fx" | "com" | "global" | "globalFx" | "root"; // mpa最外层才会有root
+  /**
+   * mpa最外层才会有 root
+   * 扩展的模块 extension
+   */
+  type: "fx" | "com" | "global" | "globalFx" | "root" | "extension";
 }
 
 interface Global {

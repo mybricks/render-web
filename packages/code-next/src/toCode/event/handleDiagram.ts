@@ -461,6 +461,11 @@ const handleProcess = (
           ...invocation,
           paramSource: [config.getParamSource()],
         });
+      } else if (category === "frameOutput") {
+        nodesInvocation.push({
+          ...invocation,
+          paramSource: [config.getParamSource()],
+        });
       }
     } else {
       // ui组件
