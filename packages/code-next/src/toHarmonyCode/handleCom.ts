@@ -400,6 +400,17 @@ export const handleProcess = (
         const scene = config.getCurrentScene();
         const pinProxy = scene.pinProxies[`${props.meta.id}-${props.id}`];
         code += `${nextCode}api.emit("${pinProxy.pinId}", ${nextValue})`;
+      } else if (category === "var") {
+        if (props.meta.global) {
+          config.addParentDependencyImport({
+            packageName: config.getComponentPackageName(),
+            dependencyNames: ["globalVars"],
+            importType: "named",
+          });
+          code += `${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
+        } else {
+          console.log("[出码] 非全局变量");
+        }
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -503,6 +514,11 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
       // frame输出特殊处理，运行时内置实现
       return `api_${meta.id}`;
     } else if (category === "var") {
+      if (meta.global) {
+        // globalVars_token_id_result
+        return `globalVars_${meta.title}`;
+      }
+      console.log("非全局变量");
       return `var_${meta.id}`;
     } else if (category === "fx") {
       return `fx_${meta.ioProxy.id}`;
@@ -532,13 +548,16 @@ const getNextCode = (
   isSameScope: boolean,
 ) => {
   // 节点执行后的返回值（输出）
-  const { nextParam, componentType } = props;
+  const { nextParam, componentType, category } = props;
   if (!nextParam.length) {
     return "";
   }
   const componentNameWithId = getComponentNameWithId(props, config);
 
   if (componentType === "js") {
+    if (category === "var") {
+      return `const ${componentNameWithId}_${nextParam[0].connectId} = `;
+    }
     return `const ${componentNameWithId}_result = `;
     // if (category === "var") {
     //   return nextParam.length

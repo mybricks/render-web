@@ -26,7 +26,13 @@ type Result = Array<{
   path: string;
   content: string;
   importManager: ImportManager;
-  type: "normal" | "popup" | "module" | "ignore" | "extensionEvent";
+  type:
+    | "normal"
+    | "popup"
+    | "module"
+    | "ignore"
+    | "extensionEvent"
+    | "globalVars";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
 }>;
 
@@ -58,6 +64,36 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       importManager,
       type: "extensionEvent",
     });
+  });
+
+  let globalVarsInitCode = "";
+  let globalVarsResetCode = "";
+
+  Object.entries(tojson.global.comsReg).forEach(([, com]) => {
+    let initValue = com.model.data.initValue;
+    const type = typeof initValue;
+    if (["number", "boolean", "object", "undefined"].includes(type)) {
+      initValue = JSON.stringify(initValue);
+    } else {
+      initValue = `"${initValue}"`;
+    }
+    globalVarsInitCode += `${com.title} = createVariable(${initValue})\n`;
+    globalVarsResetCode += `this.${com.title} = createVariable(${initValue})\n`;
+  });
+
+  result.push({
+    type: "globalVars",
+    content: `class GlobalVars {
+  ${globalVarsInitCode}
+
+  reset() {
+    ${globalVarsResetCode}
+  }
+}
+
+export const globalVars = new GlobalVars()`,
+    path: "",
+    importManager: new ImportManager(),
   });
 
   scenes.forEach(({ scene, ui, event }) => {
