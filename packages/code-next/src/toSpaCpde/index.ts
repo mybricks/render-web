@@ -45,7 +45,7 @@ const toSpaCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         return `scenes/Scene_${scene.id}`;
       },
       getEventByDiagramId: (diagramId) => {
-        return event.find((event) => event.diagramId === diagramId);
+        return event.find((event) => event.diagramId === diagramId)!;
       },
       getVarEvents: (params) => {
         if (!params) {
@@ -82,13 +82,13 @@ const toSpaCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
           // 主场景
           return event.find((event) => {
             return !event.slotId; // 没有slotId，认为是主场景
-          });
+          })!;
         } else {
           // 作用域插槽
           const { comId, slotId } = params;
           return event.find((event) => {
             return event.slotId === slotId && event.comId === comId;
-          });
+          })!;
         }
       },
       getSlotRelativePathMap: () => {
@@ -124,7 +124,7 @@ const toSpaCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         return `modules/Module_${scene.id}`;
       },
       getEventByDiagramId: (diagramId) => {
-        return event.find((event) => event.diagramId === diagramId);
+        return event.find((event) => event.diagramId === diagramId)!;
       },
       getVarEvents: (params) => {
         if (!params) {
@@ -161,13 +161,13 @@ const toSpaCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
           // 主场景
           return event.find((event) => {
             return !event.slotId; // 没有slotId，认为是主场景
-          });
+          })!;
         } else {
           // 作用域插槽
           const { comId, slotId } = params;
           return event.find((event) => {
             return event.slotId === slotId && event.comId === comId;
-          });
+          })!;
         }
       },
       getSlotRelativePathMap: () => {
