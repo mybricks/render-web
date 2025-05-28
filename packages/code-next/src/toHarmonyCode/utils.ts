@@ -16,6 +16,11 @@ export const firstCharToLowerCase = (str: string) => {
   return str.charAt(0).toLowerCase() + str.slice(1);
 };
 
+/** 将第一个字符转大写 */
+export const firstCharToUpperCase = (str: string) => {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
 /** 导入依赖收集、解析 */
 export class ImportManager {
   private _imports: DependencyImport = {};
@@ -32,6 +37,9 @@ export class ImportManager {
     dependencyNames: string[];
     importType: ImportType;
   }) {
+    if (!packageName) {
+      return;
+    }
     const { _imports } = this;
     if (!_imports[packageName]) {
       _imports[packageName] = {};
@@ -92,6 +100,9 @@ export const createDependencyImportCollector = () => {
     dependencyNames: string[];
     importType: ImportType;
   }) => {
+    if (!packageName) {
+      return;
+    }
     if (!dependencyImport[packageName]) {
       dependencyImport[packageName] = {};
     }

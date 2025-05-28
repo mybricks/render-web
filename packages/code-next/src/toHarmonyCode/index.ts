@@ -4,8 +4,8 @@ import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
 import { ImportManager } from "./utils";
 import { handleProcess } from "./handleCom";
-
-interface ToSpaCodeConfig {
+import handleGlobal from "./handleGlobal";
+export interface ToSpaCodeConfig {
   getComponentMetaByNamespace: (
     namespace: string,
     config: {
@@ -19,22 +19,15 @@ interface ToSpaCodeConfig {
     };
     componentName: string;
   };
-  getComponentPackageName: () => string;
+  getComponentPackageName: (props?: any) => string;
 }
 
 /** 返回结果 */
-type Result = Array<{
+export type Result = Array<{
   path: string;
   content: string;
   importManager: ImportManager;
-  type:
-    | "normal"
-    | "popup"
-    | "module"
-    | "ignore"
-    | "extensionEvent"
-    | "globalVars"
-    | "globalFxs";
+  type: "normal" | "popup" | "module" | "extensionEvent" | "global";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
 }>;
 
@@ -67,132 +60,15 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     });
   });
 
-  let globalVarsInitCode = "";
-  let globalVarsResetCode = "";
-
-  Object.entries(tojson.global.comsReg).forEach(([, com]) => {
-    let initValue = com.model.data.initValue;
-    const type = typeof initValue;
-    if (["number", "boolean", "object", "undefined"].includes(type)) {
-      initValue = JSON.stringify(initValue);
-    } else {
-      initValue = `"${initValue}"`;
-    }
-    globalVarsInitCode += `${com.title} = createVariable(${initValue})\n`;
-    globalVarsResetCode += `this.${com.title} = createVariable(${initValue})\n`;
-  });
-
-  result.push({
-    type: "globalVars",
-    content: `class GlobalVars {
-  ${globalVarsInitCode}
-
-  reset() {
-    ${globalVarsResetCode}
-  }
-}
-
-export const globalVars = new GlobalVars()`,
-    path: "",
-    importManager: new ImportManager(),
-  });
-
-  const importManagerGlobalFxs = new ImportManager();
-  const addDependencyImportGlobalFxs = importManagerGlobalFxs.addImport.bind(
-    importManagerGlobalFxs,
+  result.push(
+    handleGlobal(
+      {
+        tojson,
+        globalFxs,
+      },
+      config,
+    ),
   );
-  let globalFxsInitCode = "";
-  globalFxs.forEach((event) => {
-    const res = handleProcess(event, {
-      getParams: () => {
-        return event.paramPins.reduce(
-          (pre, cur, index) => {
-            // 由于是数组，可以转成简单的value加参数位置下标
-            pre[cur.id] = `value${index}`;
-
-            return pre;
-          },
-          {} as Record<string, string>,
-        );
-      },
-      getComponentPackageName: () => {
-        return "./Index";
-      },
-      addParentDependencyImport: addDependencyImportGlobalFxs,
-      getComponentMetaByNamespace: config.getComponentMetaByNamespace,
-    } as any);
-
-    /** 入参 */
-    const values = event.paramPins
-      .map((paramPin, index) => {
-        if (paramPin.type === "config") {
-          // 配置的默认值
-          let value = event.initValues[paramPin.id];
-          const type = typeof value;
-          if (["number", "boolean", "object", "undefined"].includes(type)) {
-            value = JSON.stringify(value);
-          } else {
-            value = `"${value}"`;
-          }
-          return `value${index}: MyBricks.EventValue = ${value}`;
-        }
-
-        return `value${index}: MyBricks.EventValue`;
-      })
-      .join(", ");
-
-    /** 结果interface定义 */
-    const returnInterface = `interface Return {
-    ${event.frameOutputs
-      .map((frameOutput: any) => {
-        return `/** ${frameOutput.title} */
-      ${frameOutput.id}: MyBricks.EventValue`;
-      })
-      .join("\n")}}`;
-
-    globalFxsInitCode += `/** ${event.title} */
-    ${event.frameId} = createFx((${values}) => {
-      ${returnInterface}
-      ${res} as Return
-    })
-    `;
-  });
-
-  if (globalFxsInitCode) {
-    result.push({
-      type: "globalFxs",
-      content: `/**
-      * 全局Fx
-      */
-
-      import { MyBricks } from '../utils/types'
-      import { createFx } from '../utils/mybricks'
-      ${importManagerGlobalFxs.toCode()}
-
-      class GlobalFxs {
-        ${globalFxsInitCode}
-      }
-
-      export default new GlobalFxs()
-    `,
-      path: "",
-      importManager: importManagerGlobalFxs,
-    });
-  } else {
-    result.push({
-      type: "globalFxs",
-      content: `/**
-      * 全局Fx
-      */
-
-      class GlobalFxs {}
-
-      export default new GlobalFxs()
-    `,
-      path: "",
-      importManager: importManagerGlobalFxs,
-    });
-  }
 
   scenes.forEach(({ scene, ui, event }) => {
     const providerMetaMap = {};
