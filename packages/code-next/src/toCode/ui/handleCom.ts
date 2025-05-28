@@ -2,6 +2,7 @@ import type { Com, ComInfo, Style } from "../types";
 import type { UiBaseConfig } from "../index";
 import handleSlot from "./handleSlot";
 import { validateUiModule } from "../event/utils";
+import handleDom from "./handleDom";
 
 interface Result {
   meta: ComInfo;
@@ -69,6 +70,8 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
 
       return pre;
     }, {}),
+    // [TODO] 智能布局包含关系的实现
+    child: com.child ? handleDom(com.child, config) : null,
   };
 
   if (validateUiModule(comInfo.def.namespace)) {

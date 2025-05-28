@@ -43,7 +43,6 @@ const handleDiagram = (
     diagram.starter.type === "frame" &&
     (frameType === "fx" || frameType === "globalFx")
   ) {
-    console.log("fx卡片 => ");
     const { paramPins, nodesDeclaration, nodesInvocation, frameOutputs } =
       handleDiagramWidthMultipleInputs(diagram, config);
     const initValues: Record<string, any> = {};
@@ -69,9 +68,10 @@ const handleDiagram = (
         nodesInvocation,
       },
       initValues,
-      frameOutputs: frame.outputs.map(({ id }) => {
+      frameOutputs: frame.outputs.map(({ id, title }) => {
         return {
           id,
+          title,
           outputs: frameOutputs[id],
         };
       }),
@@ -291,7 +291,8 @@ const handleProcess = (
     if (con.to.parent.type === "frame") {
       const frame = config.getFrame();
       const frameType = frame.type;
-      if (frameType === "fx") {
+
+      if (["fx", "globalFx"].includes(frameType)) {
         // 这里说明是卡片的输出，不需要再往下走了
         if (!frameOutputs[con.to.id]) {
           frameOutputs[con.to.id] = [];
@@ -368,7 +369,6 @@ const handleProcess = (
 
     // 执行类型
     const runType = config.getRunType();
-
     // 调用信息
     const invocation = {
       type: "exe", // 调用类型
@@ -446,15 +446,34 @@ const handleProcess = (
         });
       } else if (category === "fx") {
         // fx
-        const frame = config.getFrameById(comInfo.ioProxy.id);
+        const { frame, meta } = config.getFrameById(comInfo.ioProxy.id);
+        const paramSource = [config.getParamSource()];
+        const configs = comInfo.model.data.configs || {};
+
+        frame.inputs.forEach((input) => {
+          if (input.type === "config") {
+            // fx配置项不来自输入，需要单独处理
+            paramSource.push({
+              // 常量，配置的值 -> 默认值
+              type: "constant",
+              value:
+                configs[input.pinId] ||
+                input.extValues.config.defaultValue ||
+                undefined,
+            });
+          }
+        });
+
         nodesInvocation.push({
           ...invocation,
           meta: {
             ...invocation.meta,
             // 每次调用fx都是一个新的组件，需要获取赋予实际作用域
-            parentComId: frame.meta?.id,
+            parentComId: meta?.id,
+            // 判断是否全局fx
+            global: frame.type === "globalFx" ? true : false,
           },
-          paramSource: [config.getParamSource()],
+          paramSource,
         });
       } else if (category === "scene") {
         nodesInvocation.push({
@@ -503,7 +522,21 @@ const handleProcess = (
                 ...paramSource,
                 moduleId: comInfo.model.data.definedId,
               };
+            } else if (componentType === "js" && category === "fx") {
+              const { frame } = config.getFrameById(comInfo.ioProxy.id);
+
+              if (frame.type === "globalFx") {
+                // 判断是否全局fx
+                return {
+                  ...paramSource,
+                  meta: {
+                    ...paramSource.meta,
+                    global: true,
+                  },
+                };
+              }
             }
+
             return paramSource;
           },
         },

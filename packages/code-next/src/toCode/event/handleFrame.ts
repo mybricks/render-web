@@ -1,11 +1,23 @@
-import type { Frame, Scene, ComInfo } from "../types";
+import type { Frame, Scene, ComInfo, PinAry } from "../types";
 import type { EventBaseConfig } from "../index";
 import handleDiagram from "./handleDiagram";
 
 export interface HandleFrameConfig extends EventBaseConfig {
   getComsAutoRun: () => Scene["comsAutoRun"][string];
   getFrameId: () => string | undefined;
-  getFrameMap: () => Record<string, Frame>;
+  getFrameMap: () => Record<
+    string,
+    {
+      frame: Frame;
+      meta: ComInfo | undefined;
+    }
+  >;
+}
+
+interface Result {
+  paramPins: PinAry;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  [key: string]: any;
 }
 
 const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
@@ -28,7 +40,7 @@ const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
       return pre;
     }, {}),
   );
-  const result = frame.diagrams
+  const result: Result[] = frame.diagrams
     .map((diagram) => {
       return handleDiagram(diagram, {
         ...config,

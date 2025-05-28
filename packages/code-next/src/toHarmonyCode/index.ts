@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
@@ -32,13 +33,14 @@ type Result = Array<{
     | "module"
     | "ignore"
     | "extensionEvent"
-    | "globalVars";
+    | "globalVars"
+    | "globalFxs";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
 }>;
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
-  const { scenes, extensionEvents } = toCode(tojson);
+  const { scenes, extensionEvents, globalFxs } = toCode(tojson);
 
   const importManager = new ImportManager();
   const addDependencyImport = importManager.addImport.bind(importManager);
@@ -55,7 +57,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       },
       addParentDependencyImport: addDependencyImport,
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     result.push({
@@ -96,6 +97,103 @@ export const globalVars = new GlobalVars()`,
     importManager: new ImportManager(),
   });
 
+  const importManagerGlobalFxs = new ImportManager();
+  const addDependencyImportGlobalFxs = importManagerGlobalFxs.addImport.bind(
+    importManagerGlobalFxs,
+  );
+  let globalFxsInitCode = "";
+  globalFxs.forEach((event) => {
+    const res = handleProcess(event, {
+      getParams: () => {
+        return event.paramPins.reduce(
+          (pre, cur, index) => {
+            // 由于是数组，可以转成简单的value加参数位置下标
+            pre[cur.id] = `value${index}`;
+
+            return pre;
+          },
+          {} as Record<string, string>,
+        );
+      },
+      getComponentPackageName: () => {
+        return "./Index";
+      },
+      addParentDependencyImport: addDependencyImportGlobalFxs,
+      getComponentMetaByNamespace: config.getComponentMetaByNamespace,
+    } as any);
+
+    /** 入参 */
+    const values = event.paramPins
+      .map((paramPin, index) => {
+        if (paramPin.type === "config") {
+          // 配置的默认值
+          let value = event.initValues[paramPin.id];
+          const type = typeof value;
+          if (["number", "boolean", "object", "undefined"].includes(type)) {
+            value = JSON.stringify(value);
+          } else {
+            value = `"${value}"`;
+          }
+          return `value${index}: MyBricks.EventValue = ${value}`;
+        }
+
+        return `value${index}: MyBricks.EventValue`;
+      })
+      .join(", ");
+
+    /** 结果interface定义 */
+    const returnInterface = `interface Return {
+    ${event.frameOutputs
+      .map((frameOutput: any) => {
+        return `/** ${frameOutput.title} */
+      ${frameOutput.id}: MyBricks.EventValue`;
+      })
+      .join("\n")}}`;
+
+    globalFxsInitCode += `/** ${event.title} */
+    ${event.frameId} = createFx((${values}) => {
+      ${returnInterface}
+      ${res} as Return
+    })
+    `;
+  });
+
+  if (globalFxsInitCode) {
+    result.push({
+      type: "globalFxs",
+      content: `/**
+      * 全局Fx
+      */
+
+      import { MyBricks } from '../utils/types'
+      import { createFx } from '../utils/mybricks'
+      ${importManagerGlobalFxs.toCode()}
+
+      class GlobalFxs {
+        ${globalFxsInitCode}
+      }
+
+      export default new GlobalFxs()
+    `,
+      path: "",
+      importManager: importManagerGlobalFxs,
+    });
+  } else {
+    result.push({
+      type: "globalFxs",
+      content: `/**
+      * 全局Fx
+      */
+
+      class GlobalFxs {}
+
+      export default new GlobalFxs()
+    `,
+      path: "",
+      importManager: importManagerGlobalFxs,
+    });
+  }
+
   scenes.forEach(({ scene, ui, event }) => {
     const providerMetaMap = {};
     const usedControllers = new Set<string>();
@@ -122,7 +220,7 @@ export const globalVars = new GlobalVars()`,
         return `pages/Page_${scene.id}`;
       },
       getEventByDiagramId: (diagramId) => {
-        return event.find((event) => event.diagramId === diagramId);
+        return event.find((event) => event.diagramId === diagramId)!;
       },
       getVarEvents: (params) => {
         if (!params) {
@@ -159,13 +257,13 @@ export const globalVars = new GlobalVars()`,
           // 主场景
           return event.find((event) => {
             return !event.slotId; // 没有slotId，认为是主场景
-          });
+          })!;
         } else {
           // 作用域插槽
           const { comId, slotId } = params;
           return event.find((event) => {
             return event.slotId === slotId && event.comId === comId;
-          });
+          })!;
         }
       },
       getSlotRelativePathMap: () => {
@@ -188,62 +286,6 @@ export const globalVars = new GlobalVars()`,
       },
     });
   });
-
-  //   result.push({
-  //     path: "lib.d.ts",
-  //     importManager: new ImportManager(),
-  //     content: `declare namespace MyBricks {
-  //   type Any = any
-
-  //   /** 组件数据源 */
-  //   type Data = Record<string, Any>
-
-  //   /** 事件参数 */
-  //   type EventValue = Any
-
-  //   /** 事件 */
-  //   type Events = Any
-
-  //   /** 组件控制器 */
-  //   type Controller = Record<string, Any>
-
-  //   /** 调用插槽传参 */
-  //   interface SlotParams {
-  //     id: string
-  //     inputValues?: Any
-  //     style?: Any
-  //   }
-
-  //   /** 插槽传参 */
-  //   type SlotParamsInputValues = Record<string, Any>
-
-  //   /** 内置JS计算组件相关定义 */
-  //   interface JSParams {
-  //     data: Data
-  //     inputs: string[]
-  //     outputs: string[]
-  //   }
-
-  //   type JSReturn = (...values: MyBricks.EventValue[]) => Record<string, MyBricks.EventValue>
-
-  //   interface CodeParams extends JSParams {
-  //     data: {
-  //       runImmediate: boolean
-  //     }
-  //   }
-
-  //   type Codes = Record<string, (params: CodeParams) => (...values: MyBricks.EventValue[]) => Record<string, MyBricks.EventValue>>
-
-  //   /** _env */
-  //   type _Env = {
-  //     currentScenes: {
-  //       close: () => void
-  //     }
-  //   }
-  // }
-  // `,
-  //     type: "ignore",
-  //   });
 
   return result;
 };

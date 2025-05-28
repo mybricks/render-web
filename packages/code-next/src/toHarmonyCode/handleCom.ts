@@ -411,6 +411,17 @@ export const handleProcess = (
         } else {
           console.log("[出码] 非全局变量");
         }
+      } else if (category === "fx") {
+        if (props.meta.global) {
+          config.addParentDependencyImport({
+            packageName: config.getComponentPackageName(),
+            dependencyNames: ["globalFxs"],
+            importType: "named",
+          });
+          code += `${nextCode}globalFxs.${props.meta.ioProxy.id}(${nextValue})`;
+        } else {
+          console.log("[出码] 非全局fx");
+        }
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -445,9 +456,9 @@ export const handleProcess = (
   });
   if (event.type === "fx") {
     const returnCode = Object.entries(event.frameOutputs)
-      .map(([, { outputs }]: any) => {
+      .map(([, { id, outputs }]: any) => {
         if (!outputs) {
-          return "null";
+          return `${id}: undefined`;
         } else {
           const next = `${outputs
             .map((output: any) => {
@@ -456,16 +467,16 @@ export const handleProcess = (
             .join(",")}`;
 
           if (outputs.length > 1) {
-            return `[merge(${next})]`;
+            return `${id}: mergeSubjects(${next})`;
           }
 
-          return next;
+          return `${id}: ${next}`;
         }
       })
       .join(",");
 
     if (returnCode) {
-      code += `return [${returnCode}]`;
+      code += `\nreturn {${returnCode}}`;
     }
   }
 
@@ -521,6 +532,10 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
       console.log("非全局变量");
       return `var_${meta.id}`;
     } else if (category === "fx") {
+      if (meta.global) {
+        return `globalFxs_${meta.ioProxy.id}_${meta.id}`;
+      }
+      console.log("非全局fx");
       return `fx_${meta.ioProxy.id}`;
     }
   } else if (componentType === "ui") {
@@ -608,6 +623,16 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
     if (param.type === "params") {
       const params = config.getParams();
       return params[param.id];
+    } else if (param.type === "constant") {
+      // 常量
+      let value = param.value;
+      const type = typeof value;
+      if (["number", "boolean", "object", "undefined"].includes(type)) {
+        value = JSON.stringify(value);
+      } else {
+        value = `"${value}"`;
+      }
+      return value;
     }
     // [TODO] 这里要判断类型的
     const { id, connectId, category, componentType } = param;
@@ -643,5 +668,5 @@ const getNextValueWithParam = (param: any, config: HandleProcessConfig) => {
     }
     return `${componentNameWithId}_${id}_${connectId}`;
   }
-  return `${componentNameWithId}_${id}`;
+  return `${componentNameWithId}_result.${id}`;
 };

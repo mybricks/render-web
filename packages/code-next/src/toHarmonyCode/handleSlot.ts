@@ -379,62 +379,6 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   };
 };
 
-interface HandleFxsEventConfig extends HandleSlotConfig {
-  addParentDependencyImport: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
-  addConsumer: (provider: { name: string; class: string }) => void;
-}
-
-export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
-  const isScope = ui.meta.scope;
-  const fxEvents = config.getFxEvents(
-    isScope
-      ? {
-          comId: ui.meta.comId!,
-          slotId: ui.meta.slotId,
-        }
-      : undefined,
-  );
-  let fxDeclarationCode = "";
-  let fxAssignmentCode = "";
-  fxEvents.forEach((fxEvent) => {
-    const params = fxEvent.paramPins.reduce(
-      (pre: Record<string, string>, id: string, index: number) => {
-        pre[id] = `value${index}`;
-        return pre;
-      },
-      {},
-    );
-    const code = handleProcess(fxEvent, {
-      ...config,
-      getParams: () => {
-        return params;
-      },
-    });
-    const fxName = `fx_${fxEvent.frameId}`;
-
-    fxDeclarationCode += `const ${fxName} = (${fxEvent.paramPins
-      .map((id: string, index: number) => {
-        if (id in fxEvent.initValues) {
-          return `value${index} = ${JSON.stringify(fxEvent.initValues[id])}`;
-        }
-
-        return `value${index}`;
-      })
-      .join(",")}) => {
-        ${code}
-      };\n`;
-
-    fxAssignmentCode += `${fxName},`;
-  });
-
-  return {
-    fxDeclarationCode,
-    fxAssignmentCode,
-  };
-};
-
 interface HandleSlotContextConfig extends HandleSlotConfig {
   slotContexts: Set<string>;
 }

@@ -17,6 +17,11 @@ export interface Com {
   name: string;
   def: Def;
   slots?: Record<string, Slot>;
+  child?: {
+    id: string;
+    style: Style;
+    elements: Array<Dom | Com>;
+  };
 }
 
 export interface Dom {
