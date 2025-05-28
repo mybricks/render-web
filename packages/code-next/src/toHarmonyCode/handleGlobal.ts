@@ -49,7 +49,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     // [TODO] 等引擎修复后，生成变量的change事件
     globalVarsParamsCode += `const ${constantName} = [${initValue}, (value: MyBricks.EventValue) => {
 
-    }]`;
+    }]\n`;
 
     globalVarsInitCode += `${com.title} = createVariable(...${constantName})\n`;
     globalVarsResetCode += `this.${com.title} = createVariable(...${constantName})\n`;
