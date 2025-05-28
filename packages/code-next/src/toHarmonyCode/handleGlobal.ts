@@ -109,18 +109,20 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       .join(", ");
 
     /** 结果interface定义 */
-    const returnInterface = `interface Return {
+    const returnInterface = event.frameOutputs.length
+      ? `interface Return {
     ${event.frameOutputs
       .map((frameOutput: any) => {
         return `/** ${frameOutput.title} */
       ${frameOutput.id}: MyBricks.EventValue`;
       })
-      .join("\n")}}`;
+      .join("\n")}}`
+      : "";
 
     globalFxsInitCode += `/** ${event.title} */
     ${event.frameId} = createFx((${values}) => {
       ${returnInterface}
-      ${res} as Return
+      ${res} ${returnInterface ? "as Return" : ""}
     })
     `;
   });
