@@ -33,7 +33,7 @@ export type Result = Array<{
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
-  const { scenes, extensionEvents, globalFxs } = toCode(tojson);
+  const { scenes, extensionEvents, globalFxs, globalVars } = toCode(tojson);
 
   const importManager = new ImportManager();
   const addDependencyImport = importManager.addImport.bind(importManager);
@@ -65,6 +65,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       {
         tojson,
         globalFxs,
+        globalVars,
       },
       config,
     ),

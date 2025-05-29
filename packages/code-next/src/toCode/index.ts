@@ -27,6 +27,7 @@ const toCode = (
   modules: Result;
   extensionEvents: Result[0]["event"];
   globalFxs: Result[0]["event"];
+  globalVars: Result[0]["event"];
 } => {
   tojson = transformToJSON(tojson);
 
@@ -130,6 +131,39 @@ const toCode = (
       [] as Result[0]["event"],
     );
 
+  const globalScene = {
+    ...tojson.scenes[0],
+    coms: tojson.global.comsReg,
+  };
+
+  const globalVarFrames = {
+    ...tojson.frames.find((frame) => frame.type === "global"),
+    frames: [],
+    coms: {},
+  } as Frame;
+
+  const globalVars = handleFrame(globalVarFrames, {
+    getScene: () => {
+      return globalScene;
+    },
+    getSceneId: () => {
+      return globalScene.id;
+    },
+    getComsAutoRun: () => {
+      return globalScene.comsAutoRun["_rootFrame_"];
+    },
+    getSceneType: () => {
+      return globalScene.type;
+    },
+    getComInfo: (comId) => {
+      return globalScene.coms[comId];
+    },
+    getFrameId: () => undefined,
+    getFrameMap: () => {
+      return frameMap;
+    },
+  });
+
   const scenes = tojson.scenes.map((scene) => {
     const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
     return handleScene({ scene, frame, frameMap });
@@ -147,6 +181,7 @@ const toCode = (
     modules,
     extensionEvents,
     globalFxs,
+    globalVars,
   };
 };
 

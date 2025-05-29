@@ -12,10 +12,11 @@ import type { ToSpaCodeConfig, Result } from "./index";
 interface HandleGlobalParams {
   tojson: ToJSON;
   globalFxs: ReturnType<typeof toCode>["globalFxs"];
+  globalVars: ReturnType<typeof toCode>["globalFxs"];
 }
 
 const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
-  const { tojson, globalFxs } = params;
+  const { tojson, globalFxs, globalVars } = params;
   const globalImportManager = new ImportManager();
   const globalAddDependencyImport =
     globalImportManager.addImport.bind(globalImportManager);
@@ -25,6 +26,31 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
   let globalVarsParamsCode = "";
 
   Object.entries(tojson.global.comsReg).forEach(([, com]) => {
+    if (com.def.namespace !== "mybricks.core-comlib.var") {
+      // 非变量，不需要初始化
+      return;
+    }
+
+    const event = globalVars.find((globalVar) => {
+      return globalVar.meta.id === com.id;
+    })!;
+
+    const res = handleProcess(event, {
+      getParams: () => {
+        return {
+          [event.paramId]: "value",
+        };
+      },
+      getComponentPackageName: (props: any) => {
+        if (props?.meta.global) {
+          return "";
+        }
+        return "./Index";
+      },
+      addParentDependencyImport: globalAddDependencyImport,
+      getComponentMetaByNamespace: config.getComponentMetaByNamespace,
+    } as any);
+
     let initValue = com.model.data.initValue;
     const type = typeof initValue;
     if (["number", "boolean", "object", "undefined"].includes(type)) {
@@ -48,7 +74,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
     // [TODO] 等引擎修复后，生成变量的change事件
     globalVarsParamsCode += `const ${constantName} = [${initValue}, (value: MyBricks.EventValue) => {
-
+      ${res}
     }]\n`;
 
     globalVarsInitCode += `${com.title} = createVariable(...${constantName})\n`;
