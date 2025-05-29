@@ -159,7 +159,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           name: `slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
           class: `Slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
         };
-        const { js, ui, slots, scopeSlots, controllers, consumers, vars } =
+        const { js, ui, slots, scopeSlots, controllers, consumers, vars, fxs } =
           handleSlot(slot, {
             ...config,
             checkIsRoot: () => {
@@ -197,6 +197,10 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           ? `/** ${meta.title}（${slot.meta.title}）组件变量 */
       ${vars.varsDeclarationCode}\n`
           : "";
+        const fxsDeclarationCode = fxs
+          ? `/** ${meta.title}（${slot.meta.title}）组件Fx */
+      ${fxs.fxsDeclarationCode}\n`
+          : "";
         const classCode = filterControllers.length
           ? `/** ${meta.title}（${slot.meta.title}）组件控制器 */
           class Slot_${scopeSlotComponentName} {
@@ -215,8 +219,11 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         if (vars) {
           providerCode += vars.varsImplementCode;
         }
+        if (fxs) {
+          providerCode += fxs.fxsImplementCode;
+        }
 
-        level1Slots.push(`${varsDeclarationCode}${classCode}/** ${meta.title}（${slot.meta.title}） */
+        level1Slots.push(`${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${meta.title}（${slot.meta.title}） */
         @ComponentV2
         struct ${scopeSlotComponentName} {
           @Param @Require inputValues: MyBricks.SlotParamsInputValues;
@@ -432,7 +439,12 @@ export const handleProcess = (
           });
           code += `${nextCode}globalFxs.${props.meta.ioProxy.id}(${nextValue})`;
         } else {
-          console.log("[出码] 非全局fx");
+          const currentProvider = getCurrentProvider(
+            { isSameScope, props },
+            config,
+          );
+
+          code += `${nextCode}this.${currentProvider.name}_Fxs.${props.meta.ioProxy.id}(${nextValue})`;
         }
       } else {
         console.log("[出码] 其它类型js节点");
@@ -549,8 +561,7 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
       if (meta.global) {
         return `globalFxs_${meta.ioProxy.id}_${meta.id}`;
       }
-      console.log("非全局fx");
-      return `fx_${meta.ioProxy.id}`;
+      return `fxs_${meta.ioProxy.id}_${meta.id}`;
     }
   } else if (componentType === "ui") {
     if (category === "module") {
@@ -684,6 +695,12 @@ const getCurrentProvider = (
       config.addConsumer({
         class: currentProvider.class + "_Vars",
         name: currentProvider.name + "_Vars",
+      });
+    } else if (props.category === "fx") {
+      // Fx
+      config.addConsumer({
+        class: currentProvider.class + "_Fxs",
+        name: currentProvider.name + "_Fxs",
       });
     } else {
       config.addConsumer(currentProvider);

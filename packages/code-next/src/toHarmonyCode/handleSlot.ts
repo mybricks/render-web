@@ -61,6 +61,13 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         consumers.add(provider);
       },
     });
+    const fxs = handleFxsEvent(ui, {
+      ...nextConfig,
+      addParentDependencyImport: addDependencyImport,
+      addConsumer: (provider: { name: string; class: string }) => {
+        consumers.add(provider);
+      },
+    });
 
     const level0Slots: string[] = [];
     const level1Slots: string[] = [];
@@ -135,7 +142,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       scopeSlots: level1Slots,
       controllers,
       consumers,
-      vars, // [TODO] vars consumers应该在这一层处理完成，作为js返回
+      vars, // [TODO] vars fxs consumers应该在这一层处理完成，作为js返回
+      fxs,
     };
   } else {
     // 声明组件Controller
@@ -160,10 +168,18 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     };
 
     let vars = null;
+    let fxs = null;
 
     if (config.checkIsRoot()) {
       // 之类要提前，把变量id与provider进行绑定
       vars = handleVarsEvent(ui, {
+        ...nextConfig,
+        addParentDependencyImport: addDependencyImport,
+        addConsumer: (provider: { name: string; class: string }) => {
+          consumers.add(provider);
+        },
+      });
+      fxs = handleFxsEvent(ui, {
         ...nextConfig,
         addParentDependencyImport: addDependencyImport,
         addConsumer: (provider: { name: string; class: string }) => {
@@ -248,6 +264,10 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ? `/** 根组件变量 */
       ${vars.varsDeclarationCode}\n`
         : "";
+      const fxsDeclarationCode = fxs
+        ? `/** 根组件Fx */
+      ${fxs.fxsDeclarationCode}\n`
+        : "";
       const classCode = filterControllers.length
         ? `/** 根组件控制器 */
         class ${currentProvider.class} {
@@ -265,11 +285,14 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       if (vars) {
         providerCode += vars.varsImplementCode;
       }
+      if (fxs) {
+        providerCode += fxs.fxsImplementCode;
+      }
 
       config.add({
         path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套结构，待讨论
         importManager,
-        content: `${varsDeclarationCode}${classCode}/** ${scene.title} */
+        content: `${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${scene.title} */
         @ComponentV2
         struct Index {
           ${providerCode}
@@ -434,44 +457,104 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   };
 };
 
-interface HandleSlotContextConfig extends HandleSlotConfig {
-  slotContexts: Set<string>;
+interface HandleFxsEventConfig extends HandleSlotConfig {
+  addParentDependencyImport: ReturnType<
+    typeof createDependencyImportCollector
+  >[1];
+  addConsumer: (provider: { name: string; class: string }) => void;
 }
 
-export const handleSlotContext = (ui: UI, config: HandleSlotContextConfig) => {
-  const slotRelativePathMap = config.getSlotRelativePathMap();
-  const { slotContexts } = config;
-  let importSlotContextCode = "";
-  let useSlotContextCode = "";
+export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
+  const isScope = ui.meta.scope;
+  const currentProvider = config.getCurrentProvider();
+  const providerMetaMap = config.getProviderMetaMap();
+  const fxEvents = config.getFxEvents(
+    isScope
+      ? {
+          comId: ui.meta.comId!,
+          slotId: ui.meta.slotId,
+        }
+      : undefined,
+  );
+  let fxsDeclarationCode = "";
+  let fxsImplementCode = "";
 
-  Array.from(slotContexts).forEach((slotContext) => {
-    const slotRelativePath = slotRelativePathMap[slotContext];
-
-    if (slotContext === "GlobalContext") {
-      importSlotContextCode += `import { GlobalContext } from "${slotRelativePath}"`;
-      useSlotContextCode += `const globalContext = useContext(GlobalContext);`;
-      return;
+  fxEvents.forEach((fxEvent) => {
+    if (!providerMetaMap[fxEvent.frameId]) {
+      providerMetaMap[fxEvent.frameId] = currentProvider;
     }
 
-    const [comId, slotId] = slotContext.split("-");
+    config.addParentDependencyImport({
+      packageName: config.getComponentPackageName(),
+      dependencyNames: ["createFx"],
+      importType: "named",
+    });
 
-    if (comId === ui.meta.comId && slotId === ui.meta.slotId) {
-      return;
-    }
+    const params = fxEvent.paramPins.reduce(
+      (pre: Record<string, string>, paramPin, index: number) => {
+        pre[paramPin.id] = `value${index}`;
+        return pre;
+      },
+      {},
+    );
+    const code = handleProcess(fxEvent, {
+      ...config,
+      getParams: () => {
+        return params;
+      },
+    });
 
-    const importSlotContextName = slotId
-      ? `SlotContext_${comId}_${slotId}`
-      : "SlotContext";
-    const useSlotContextName = slotId
-      ? `slotContext_${comId}_${slotId}`
-      : "slotContext";
+    /** 入参 */
+    const values = fxEvent.paramPins
+      .map((paramPin, index) => {
+        if (paramPin.type === "config") {
+          // 配置的默认值
+          let value = fxEvent.initValues[paramPin.id];
+          const type = typeof value;
+          if (["number", "boolean", "object", "undefined"].includes(type)) {
+            value = JSON.stringify(value);
+          } else {
+            value = `"${value}"`;
+          }
+          return `value${index}: MyBricks.EventValue = ${value}`;
+        }
 
-    importSlotContextCode += `import { ${importSlotContextName} } from "${slotRelativePath}"`;
-    useSlotContextCode += `const ${useSlotContextName} = useContext(${importSlotContextName});`;
+        return `value${index}: MyBricks.EventValue`;
+      })
+      .join(", ");
+
+    /** 结果interface定义 */
+    const returnInterface = fxEvent.frameOutputs.length
+      ? `interface Return {
+      ${fxEvent.frameOutputs
+        .map((frameOutput: { title: string; id: string }) => {
+          return `/** ${frameOutput.title} */
+        ${frameOutput.id}: MyBricks.EventValue`;
+        })
+        .join("\n")}}`
+      : "";
+
+    fxsDeclarationCode += `/** ${fxEvent.title} */
+    ${fxEvent.frameId} = createFx()
+    `;
+    fxsImplementCode += `/** ${fxEvent.title} */
+      ${fxEvent.frameId}: createFx((${values}) => {
+        ${returnInterface}
+        ${code} ${returnInterface ? "as Return" : ""}
+      })
+      `;
   });
 
+  if (!fxsDeclarationCode) {
+    return null;
+  }
+
   return {
-    importSlotContextCode,
-    useSlotContextCode,
+    fxsDeclarationCode: `class ${currentProvider.class}_Fxs {
+      ${fxsDeclarationCode}
+    }`,
+    fxsImplementCode: `@Provider() ${currentProvider.name}_Fxs: ${currentProvider.class}_Fxs = {
+      ${fxsImplementCode}
+    }`,
   };
 };
