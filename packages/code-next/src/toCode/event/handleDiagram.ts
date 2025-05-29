@@ -50,7 +50,7 @@ const handleDiagram = (
     frame.inputs.forEach((input) => {
       if (input.type === "config") {
         const { pinId, extValues } = input;
-        initValues[pinId] = extValues.config.defaultValue;
+        initValues[pinId] = extValues?.config.defaultValue;
       }
     });
     const comInfo = config.getComInfo("");
@@ -458,7 +458,7 @@ const handleProcess = (
               type: "constant",
               value:
                 configs[input.pinId] ||
-                input.extValues.config.defaultValue ||
+                input.extValues?.config.defaultValue ||
                 undefined,
             });
           }

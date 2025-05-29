@@ -630,14 +630,7 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
       return params[param.id];
     } else if (param.type === "constant") {
       // 常量
-      let value = param.value;
-      const type = typeof value;
-      if (["number", "boolean", "object", "undefined"].includes(type)) {
-        value = JSON.stringify(value);
-      } else {
-        value = `"${value}"`;
-      }
-      return value;
+      return JSON.stringify(param.value);
     }
     // [TODO] 这里要判断类型的
     const { id, connectId, category, componentType } = param;

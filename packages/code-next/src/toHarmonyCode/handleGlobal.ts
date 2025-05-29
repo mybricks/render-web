@@ -51,14 +51,6 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,
     } as any);
 
-    let initValue = com.model.data.initValue;
-    const type = typeof initValue;
-    if (["number", "boolean", "object", "undefined"].includes(type)) {
-      initValue = JSON.stringify(initValue);
-    } else {
-      initValue = `"${initValue}"`;
-    }
-
     globalImportManager.addImport({
       packageName: "../utils/types",
       dependencyNames: ["MyBricks"],
@@ -73,7 +65,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     const constantName = `globalVar${firstCharToUpperCase(com.title)}Params`;
 
     // [TODO] 等引擎修复后，生成变量的change事件
-    globalVarsParamsCode += `const ${constantName} = [${initValue}, (value: MyBricks.EventValue) => {
+    globalVarsParamsCode += `const ${constantName} = [${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {
       ${res}
     }]\n`;
 
@@ -120,14 +112,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       .map((paramPin, index) => {
         if (paramPin.type === "config") {
           // 配置的默认值
-          let value = event.initValues[paramPin.id];
-          const type = typeof value;
-          if (["number", "boolean", "object", "undefined"].includes(type)) {
-            value = JSON.stringify(value);
-          } else {
-            value = `"${value}"`;
-          }
-          return `value${index}: MyBricks.EventValue = ${value}`;
+          return `value${index}: MyBricks.EventValue = ${JSON.stringify(event.initValues[paramPin.id])}`;
         }
 
         return `value${index}: MyBricks.EventValue`;

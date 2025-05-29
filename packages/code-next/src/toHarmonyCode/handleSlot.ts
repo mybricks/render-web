@@ -428,17 +428,10 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
         };
       },
     });
-    let initValue = varEvent.value;
-    const type = typeof initValue;
-    if (["number", "boolean", "object", "undefined"].includes(type)) {
-      initValue = JSON.stringify(initValue);
-    } else {
-      initValue = `"${initValue}"`;
-    }
 
     varsDeclarationCode += `${varEvent.title} = createVariable()`;
 
-    varsImplementCode += `${varEvent.title}: createVariable(${initValue}, (value: MyBricks.EventValue) => {
+    varsImplementCode += `${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {
       ${code}
     })`;
   });
@@ -509,14 +502,7 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
       .map((paramPin, index) => {
         if (paramPin.type === "config") {
           // 配置的默认值
-          let value = fxEvent.initValues[paramPin.id];
-          const type = typeof value;
-          if (["number", "boolean", "object", "undefined"].includes(type)) {
-            value = JSON.stringify(value);
-          } else {
-            value = `"${value}"`;
-          }
-          return `value${index}: MyBricks.EventValue = ${value}`;
+          return `value${index}: MyBricks.EventValue = ${JSON.stringify(fxEvent.initValues[paramPin.id])}`;
         }
 
         return `value${index}: MyBricks.EventValue`;
