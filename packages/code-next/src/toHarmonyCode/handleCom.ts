@@ -217,10 +217,10 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           ? `@Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()\n`
           : "";
         if (vars) {
-          providerCode += vars.varsImplementCode;
+          providerCode += vars.varsImplementCode + "\n";
         }
         if (fxs) {
-          providerCode += fxs.fxsImplementCode;
+          providerCode += fxs.fxsImplementCode + "\n";
         }
 
         level1Slots.push(`${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${meta.title}（${slot.meta.title}） */
