@@ -159,7 +159,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           name: `slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
           class: `Slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
         };
-        const { js, ui, slots, scopeSlots, controllers, consumers } =
+        const { js, ui, slots, scopeSlots, controllers, consumers, vars } =
           handleSlot(slot, {
             ...config,
             checkIsRoot: () => {
@@ -193,6 +193,10 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           },
         );
 
+        const varsDeclarationCode = vars
+          ? `/** ${meta.title}（${slot.meta.title}）组件变量 */
+      ${vars.varsDeclarationCode}\n`
+          : "";
         const classCode = filterControllers.length
           ? `/** ${meta.title}（${slot.meta.title}）组件控制器 */
           class Slot_${scopeSlotComponentName} {
@@ -205,20 +209,23 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         }\n`
           : "";
 
-        const providerCode = filterControllers.length
+        let providerCode = filterControllers.length
           ? `@Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()\n`
           : "";
+        if (vars) {
+          providerCode += vars.varsImplementCode;
+        }
 
-        level1Slots.push(`${classCode}/** ${meta.title}（${slot.meta.title}） */
+        level1Slots.push(`${varsDeclarationCode}${classCode}/** ${meta.title}（${slot.meta.title}） */
         @ComponentV2
         struct ${scopeSlotComponentName} {
           @Param @Require inputValues: MyBricks.SlotParamsInputValues;
-          ${providerCode}
           ${Array.from(consumers)
             .map((provider) => {
               return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
             })
             .join("\n")}
+          ${providerCode}
 
           ${js}
 
@@ -409,7 +416,12 @@ export const handleProcess = (
           });
           code += `${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
         } else {
-          console.log("[出码] 非全局变量");
+          const currentProvider = getCurrentProvider(
+            { isSameScope, props },
+            config,
+          );
+
+          code += `${nextCode}this.${currentProvider.name}_Vars.${props.meta.title}.${props.id}(${nextValue})`;
         }
       } else if (category === "fx") {
         if (props.meta.global) {
@@ -439,14 +451,10 @@ export const handleProcess = (
       }
 
       // ui
-      let currentProvider = config.getCurrentProvider();
-
-      if (!isSameScope) {
-        const providerMetaMap = config.getProviderMetaMap();
-        currentProvider = providerMetaMap[props.meta.id];
-        // 非当前作用域，借助@Consumer调用上层组件
-        config.addConsumer(currentProvider);
-      }
+      const currentProvider = getCurrentProvider(
+        { isSameScope, props },
+        config,
+      );
 
       const usedControllers = config.getUsedControllers();
       usedControllers.add(props.meta.id);
@@ -505,6 +513,12 @@ const checkIsSameScope = (event: any, props: any) => {
     event.parentSlotId === props.meta.frameId
   ) {
     return true;
+  } else if (
+    event.type === "var" &&
+    event.meta.parentComId === props.meta.parentComId &&
+    event.meta.frameId === props.meta.frameId
+  ) {
+    return true;
   }
 
   return false;
@@ -529,8 +543,8 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
         // globalVars_token_id_result
         return `globalVars_${meta.title}`;
       }
-      console.log("非全局变量");
-      return `var_${meta.id}`;
+
+      return `vars_${meta.title}`;
     } else if (category === "fx") {
       if (meta.global) {
         return `globalFxs_${meta.ioProxy.id}_${meta.id}`;
@@ -588,33 +602,13 @@ const getNextCode = (
   }
 
   // ui
-  let currentProvider = config.getCurrentProvider();
-
-  if (!isSameScope) {
-    const providerMetaMap = config.getProviderMetaMap();
-    currentProvider = providerMetaMap[props.meta.id];
-    // 非当前作用域，借助@Consumer调用上层组件
-    config.addConsumer(currentProvider);
-  }
+  getCurrentProvider({ isSameScope, props }, config);
 
   if (!nextParam.length) {
     return "";
   }
 
   return `const ${props.meta.id}_${nextParam[0].id}_${nextParam[0].connectId} = `;
-
-  // return `this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`
-
-  // return nextParam.length
-  //   ? `const {${nextParam
-  //       .map(({ id, connectId }: any) => {
-  //         if (connectId) {
-  //           return `${id}: ${componentNameWithId}_${id}_${connectId}`;
-  //         }
-  //         return `${id}: ${componentNameWithId}_${id}`;
-  //       })
-  //       .join(",")}} = `
-  //   : "";
 };
 
 const getNextValue = (props: any, config: HandleProcessConfig) => {
@@ -669,4 +663,32 @@ const getNextValueWithParam = (param: any, config: HandleProcessConfig) => {
     return `${componentNameWithId}_${id}_${connectId}`;
   }
   return `${componentNameWithId}_result.${id}`;
+};
+
+const getCurrentProvider = (
+  params: {
+    isSameScope: boolean;
+    props: any;
+  },
+  config: HandleProcessConfig,
+) => {
+  const { isSameScope, props } = params;
+  let currentProvider = config.getCurrentProvider();
+
+  if (!isSameScope) {
+    const providerMetaMap = config.getProviderMetaMap();
+    currentProvider = providerMetaMap[props.meta.id];
+    // 非当前作用域，借助@Consumer调用上层组件
+    if (props.category === "var") {
+      // 变量
+      config.addConsumer({
+        class: currentProvider.class + "_Vars",
+        name: currentProvider.name + "_Vars",
+      });
+    } else {
+      config.addConsumer(currentProvider);
+    }
+  }
+
+  return currentProvider;
 };

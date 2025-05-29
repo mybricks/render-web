@@ -54,6 +54,14 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       getCurrentProvider: () => currentProvider,
     };
 
+    const vars = handleVarsEvent(ui, {
+      ...nextConfig,
+      addParentDependencyImport: addDependencyImport,
+      addConsumer: (provider: { name: string; class: string }) => {
+        consumers.add(provider);
+      },
+    });
+
     const level0Slots: string[] = [];
     const level1Slots: string[] = [];
 
@@ -127,6 +135,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       scopeSlots: level1Slots,
       controllers,
       consumers,
+      vars, // [TODO] vars consumers应该在这一层处理完成，作为js返回
     };
   } else {
     // 声明组件Controller
@@ -149,6 +158,19 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         consumers.add(provider);
       },
     };
+
+    let vars = null;
+
+    if (config.checkIsRoot()) {
+      // 之类要提前，把变量id与provider进行绑定
+      vars = handleVarsEvent(ui, {
+        ...nextConfig,
+        addParentDependencyImport: addDependencyImport,
+        addConsumer: (provider: { name: string; class: string }) => {
+          consumers.add(provider);
+        },
+      });
+    }
 
     const level0Slots: string[] = [];
     const level1Slots: string[] = [];
@@ -222,6 +244,10 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         return true;
       });
 
+      const varsDeclarationCode = vars
+        ? `/** 根组件变量 */
+      ${vars.varsDeclarationCode}\n`
+        : "";
       const classCode = filterControllers.length
         ? `/** 根组件控制器 */
         class ${currentProvider.class} {
@@ -233,14 +259,17 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
             .join("\n")}
         }\n`
         : "";
-      const providerCode = filterControllers.length
+      let providerCode = filterControllers.length
         ? `@Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()\n`
         : "";
+      if (vars) {
+        providerCode += vars.varsImplementCode;
+      }
 
       config.add({
         path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套结构，待讨论
         importManager,
-        content: `${classCode}/** ${scene.title} */
+        content: `${varsDeclarationCode}${classCode}/** ${scene.title} */
         @ComponentV2
         struct Index {
           ${providerCode}
@@ -345,6 +374,8 @@ interface HandleVarsEventConfig extends HandleSlotConfig {
 
 export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   const isScope = ui.meta.scope;
+  const currentProvider = config.getCurrentProvider();
+  const providerMetaMap = config.getProviderMetaMap();
   const varEvents = config.getVarEvents(
     isScope
       ? {
@@ -353,9 +384,19 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
         }
       : undefined,
   );
-  let varDeclarationCode = "";
-  let varAssignmentCode = "";
+  let varsDeclarationCode = "";
+  let varsImplementCode = "";
+
   varEvents.forEach((varEvent) => {
+    if (!providerMetaMap[varEvent.meta.id]) {
+      providerMetaMap[varEvent.meta.id] = currentProvider;
+    }
+
+    config.addParentDependencyImport({
+      packageName: config.getComponentPackageName(),
+      dependencyNames: ["createVariable"],
+      importType: "named",
+    });
     const code = handleProcess(varEvent, {
       ...config,
       getParams: () => {
@@ -364,18 +405,32 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
         };
       },
     });
-    const varName = `var_${varEvent.meta.id}`;
+    let initValue = varEvent.value;
+    const type = typeof initValue;
+    if (["number", "boolean", "object", "undefined"].includes(type)) {
+      initValue = JSON.stringify(initValue);
+    } else {
+      initValue = `"${initValue}"`;
+    }
 
-    varDeclarationCode += `const ${varName} = useVar(${JSON.stringify(varEvent.initValue)}, (value) => {
-        ${code}
-      });`;
+    varsDeclarationCode += `${varEvent.title} = createVariable()`;
 
-    varAssignmentCode += `${varName},`;
+    varsImplementCode += `${varEvent.title}: createVariable(${initValue}, (value: MyBricks.EventValue) => {
+      ${code}
+    })`;
   });
 
+  if (!varsDeclarationCode) {
+    return null;
+  }
+
   return {
-    varDeclarationCode,
-    varAssignmentCode,
+    varsDeclarationCode: `class ${currentProvider.class}_Vars {
+      ${varsDeclarationCode}
+    }`,
+    varsImplementCode: `@Provider() ${currentProvider.name}_Vars: ${currentProvider.class}_Vars = {
+      ${varsImplementCode}
+    }`,
   };
 };
 
