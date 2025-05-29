@@ -283,10 +283,10 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ? `@Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()\n`
         : "";
       if (vars) {
-        providerCode += vars.varsImplementCode;
+        providerCode += vars.varsImplementCode + "\n";
       }
       if (fxs) {
-        providerCode += fxs.fxsImplementCode;
+        providerCode += fxs.fxsImplementCode + "\n";
       }
 
       config.add({
