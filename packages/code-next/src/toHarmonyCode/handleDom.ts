@@ -1,13 +1,11 @@
 import type { UI, BaseConfig } from "./index";
-import { createDependencyImportCollector, convertHarmonyFlex } from "./utils";
+import { convertHarmonyFlex, ImportManager } from "./utils";
 import handleCom from "./handleCom";
 
 type Dom = Extract<UI["children"][0], { type: "dom" }>;
 
 interface HandleDomConfig extends BaseConfig {
-  addParentDependencyImport: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
+  addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   addController: (controller: string) => void;
   addConsumer: (provider: { name: string; class: string }) => void;
 }

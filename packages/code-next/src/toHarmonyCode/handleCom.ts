@@ -1,8 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import {
-  createDependencyImportCollector,
-  convertComponentStyle,
-} from "./utils";
+import { convertComponentStyle, ImportManager } from "./utils";
 import handleSlot from "./handleSlot";
 
 import type { UI, BaseConfig } from "./index";
@@ -17,9 +14,7 @@ type HandleComResult = {
 };
 
 export interface HandleComConfig extends BaseConfig {
-  addParentDependencyImport: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
+  addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   addController: (controller: string) => void;
   addConsumer: (provider: { name: string; class: string }) => void;
 }
@@ -289,9 +284,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 export default handleCom;
 
 interface HandleProcessConfig extends BaseConfig {
-  addParentDependencyImport: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
+  addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   getParams: () => Record<string, string>;
   addConsumer: (provider: { name: string; class: string }) => void;
 }

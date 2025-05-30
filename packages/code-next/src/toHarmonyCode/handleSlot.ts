@@ -1,8 +1,4 @@
-import {
-  createDependencyImportCollector,
-  convertHMFlexStyle,
-  ImportManager,
-} from "./utils";
+import { convertHMFlexStyle, ImportManager } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
 
@@ -10,9 +6,7 @@ import type { UI, BaseConfig } from "./index";
 import type { PinAry } from "../toCode/types";
 
 interface HandleSlotConfig extends BaseConfig {
-  addParentDependencyImport?: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
+  addParentDependencyImport?: (typeof ImportManager)["prototype"]["addImport"];
   addController?: (controller: string) => void;
   checkIsRoot: () => boolean;
 }
@@ -352,9 +346,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 export default handleSlot;
 
 interface HandleEffectEventConfig extends HandleSlotConfig {
-  addParentDependencyImport: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
+  addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   getParams: (paramPins: PinAry) => Record<string, string>;
   addConsumer: (provider: { name: string; class: string }) => void;
 }
@@ -387,9 +379,7 @@ export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
 };
 
 interface HandleVarsEventConfig extends HandleSlotConfig {
-  addParentDependencyImport: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
+  addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   addConsumer: (provider: { name: string; class: string }) => void;
 }
 
@@ -449,9 +439,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
 };
 
 interface HandleFxsEventConfig extends HandleSlotConfig {
-  addParentDependencyImport: ReturnType<
-    typeof createDependencyImportCollector
-  >[1];
+  addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   addConsumer: (provider: { name: string; class: string }) => void;
 }
 
