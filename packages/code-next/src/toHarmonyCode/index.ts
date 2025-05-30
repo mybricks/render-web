@@ -24,7 +24,6 @@ export interface ToSpaCodeConfig {
 
 /** 返回结果 */
 export type Result = Array<{
-  path: string;
   content: string;
   importManager: ImportManager;
   type: "normal" | "popup" | "module" | "extensionEvent" | "global";
@@ -53,7 +52,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     } as any);
 
     result.push({
-      path: "",
       content: res,
       importManager,
       type: "extensionEvent",
@@ -89,12 +87,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
           type: scene.type ? scene.type : "normal",
           meta: scene,
         });
-      },
-      getRootPath: () => {
-        return "../";
-      },
-      getPath: () => {
-        return `pages/Page_${scene.id}`;
       },
       getEventByDiagramId: (diagramId) => {
         return event.find((event) => event.diagramId === diagramId)!;
@@ -143,15 +135,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
           })!;
         }
       },
-      getSlotRelativePathMap: () => {
-        return {
-          "": "", // 空代表当前
-          GlobalContext: "../", // 代表全局，场景输入、全局fx、全局变量
-        };
-      },
-      getModuleRelativePathMap: () => {
-        return {};
-      },
       getCurrentProvider: () => {
         return {
           name: "slot_Index",
@@ -176,15 +159,7 @@ export interface BaseConfig extends ToSpaCodeConfig {
   /** 获取使用的组件控制器 */
   getUsedControllers: () => Set<string>;
   /** 添加最终的文件列表 */
-  add: (value: {
-    path: string;
-    content: string;
-    importManager: ImportManager;
-  }) => void;
-  /** 获取相对路径 */
-  getRootPath: () => string;
-  /** 获取当前路径 */
-  getPath: () => string;
+  add: (value: { content: string; importManager: ImportManager }) => void;
   /** 获取事件 */
   getEventByDiagramId: (
     diagramId: string,
@@ -204,8 +179,6 @@ export interface BaseConfig extends ToSpaCodeConfig {
     comId: string;
     slotId: string;
   }) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
-  getSlotRelativePathMap: () => Record<string, string>;
-  getModuleRelativePathMap: () => Record<string, string>;
   getCurrentProvider: () => { name: string; class: string };
   getProviderMetaMap: () => Record<string, { name: string; class: string }>;
 }

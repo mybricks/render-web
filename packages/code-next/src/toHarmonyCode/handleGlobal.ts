@@ -64,7 +64,6 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
     const constantName = `globalVar${firstCharToUpperCase(com.title)}Params`;
 
-    // [TODO] 等引擎修复后，生成变量的change事件
     globalVarsParamsCode += `const ${constantName} = [${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {
       ${res}
     }]\n`;
@@ -166,7 +165,6 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
       export const globalFxs = new GlobalFxs()
     `,
-    path: "",
     importManager: globalImportManager,
   } as Result[0];
 };

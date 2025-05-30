@@ -63,40 +63,6 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     },`;
   });
 
-  // Object.entries(events).forEach(([eventId, { diagramId }]) => {
-  //   if (!diagramId) {
-  //     // 没有添加事件
-  //     // comEventCode += `${eventId}: () => {},`;
-  //     return;
-  //   }
-
-  //   const event = config.getEventByDiagramId(diagramId)!;
-
-  //   if (!event) {
-  //     // 在引擎内新建了事件后删除，存在脏数据
-  //     // comEventCode += `${eventId}: () => {},`;
-  //     return;
-  //   }
-
-  //   const defaultValue = "value";
-
-  //   // [TODO] 类型分析
-  //   eventCode += `/** ${event.title} */
-  //   ${eventId}_${meta.id} = (${defaultValue}: MyBricks.EventValue) => {
-  //   ${handleProcess(event, {
-  //     ...config,
-  //     addParentDependencyImport: config.addParentDependencyImport,
-  //     getParams: () => {
-  //       return {
-  //         [eventId]: defaultValue,
-  //       };
-  //     },
-  //   })}
-  // }\n`;
-
-  //   comEventCode += `${eventId}: this.${eventId}_${meta.id},`;
-  // });
-
   const currentProvider = config.getCurrentProvider();
   const providerMetaMap = config.getProviderMetaMap();
   if (!providerMetaMap[meta.id]) {

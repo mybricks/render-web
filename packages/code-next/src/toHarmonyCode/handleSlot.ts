@@ -15,7 +15,6 @@ interface HandleSlotConfig extends BaseConfig {
   >[1];
   addController?: (controller: string) => void;
   checkIsRoot: () => boolean;
-  getSlotRelativePathMap: () => Record<string, string>;
 }
 
 const handleSlot = (ui: UI, config: HandleSlotConfig) => {
@@ -290,7 +289,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
 
       config.add({
-        path: `${config.getPath()}.ets`, // [TODO] 之后可能有嵌套结构，待讨论
         importManager,
         content: `${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${scene.title} */
         @ComponentV2
