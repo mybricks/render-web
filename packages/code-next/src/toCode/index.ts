@@ -164,17 +164,17 @@ const toCode = (
     },
   });
 
-  const scenes = tojson.scenes.map((scene) => {
-    const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
-    return handleScene({ scene, frame, frameMap });
-  });
+  const scenes: ReturnType<typeof handleScene>[] = [];
+  const modules: ReturnType<typeof handleScene>[] = [];
 
-  const modules = Object.entries(tojson.modules || []).map(
-    ([, { json: scene }]) => {
-      const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
-      return handleScene({ scene, frame, frameMap });
-    },
-  );
+  tojson.scenes.forEach((scene) => {
+    const frame = tojson.frames.find((frame) => frame.id === scene.id)!;
+    if (scene.type === "module") {
+      modules.push(handleScene({ scene, frame, frameMap }));
+    } else {
+      scenes.push(handleScene({ scene, frame, frameMap }));
+    }
+  });
 
   return {
     scenes,
@@ -248,7 +248,7 @@ const transformToJSON = (tojson: ToJSON) => {
   return {
     ...tojson,
     frames: tojson.frames.flatMap((frame) =>
-      frame.type === "root" ? frame.frames : [frame],
+      frame.type === "root" && frame.frames.length ? frame.frames : [frame],
     ),
   };
 };
