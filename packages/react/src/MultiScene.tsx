@@ -141,12 +141,13 @@ export default function MultiScene ({json, options}) {
       lastSceneId: firstScene.type === 'popup' ? null : firstScene.id,
     };
 
-    env.canvas.open = async (sceneId, params, openType, historyType, configs) => {
+    env.canvas.open = async (pageId, params, openType, historyType, configs) => {
+      const sceneId = configs?.moduleId ?`${configs.moduleId}-${pageId}` : pageId
       // console.log(`打开场景 -> ${sceneId}`)
       let scenes = scenesMap[sceneId]
 
       if (!scenes) {
-        if (typeof options.scenesLoader !== 'function') {
+        if (typeof options?.module?.loadPage !== 'function') {
           if (env.history) {
             env.history.go(sceneId, params, openType);
           } else {
@@ -154,7 +155,8 @@ export default function MultiScene ({json, options}) {
           }
           return
         }
-        const json = await options.scenesLoader({id: sceneId})
+        const json = await options.module.loadPage({moduleId: configs?.moduleId, pageId})
+        json.moduleId = configs?.moduleId
 
         scenes = {
           disableAutoRun: false,
@@ -615,8 +617,9 @@ export default function MultiScene ({json, options}) {
       return null
     }
     return pageScenes.map((json) => {
-      const { id } = json
-      const scene = scenesMap[id]
+      const { id, moduleId } = json
+      const sceneId = moduleId ? `${moduleId}-${id}` : id
+      const scene = scenesMap[sceneId]
 
       if (scene.show) {
         let className = scene.useEntryAnimation ? css.main : ''
@@ -639,7 +642,7 @@ export default function MultiScene ({json, options}) {
           <Scene
             key={id}
             json={{...json, scenesMap}}
-            options={getOptions(id)}
+            options={getOptions(sceneId)}
             className={className}
             style={style}
           />
