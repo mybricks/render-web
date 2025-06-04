@@ -187,7 +187,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         level1Slots.push(`${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${meta.title}（${slot.meta.title}） */
         @ComponentV2
         struct ${scopeSlotComponentName} {
-          @Param @Require inputValues: MyBricks.SlotParamsInputValues;
+          @Param @Require params: MyBricks.SlotParams
           ${Array.from(consumers)
             .map((provider) => {
               return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
@@ -207,16 +207,12 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         if (!index) {
           // 第一个 if
           currentSlotsCode = `if (params.id === "${slotId}") {
-            ${scopeSlotComponentName}({
-              inputValues: params.inputValues,
-            })
+            ${scopeSlotComponentName}({ params })
           }`;
         } else {
           // 其它的 else if
           currentSlotsCode += `else if (params.id === "${slotId}") {
-            ${scopeSlotComponentName}({
-              inputValues: params.inputValues,
-            })
+            ${scopeSlotComponentName}({ params })
           }`;
         }
       }
@@ -243,6 +239,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       scopeSlots: level1Slots,
       ui: `/** ${meta.title} */
       ${componentName}({
+        uid: "${meta.id}",
         controller: this.${currentProvider.name}.controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},
@@ -251,9 +248,9 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             ? `
         events: {
           ${comEventCode}
-        }`
+        },`
             : ""
-        }
+        }${com.meta.frameId ? "parentSlot: this.params" : ""}
       })`,
       js: eventCode,
     };
@@ -263,6 +260,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     return {
       ui: `/** ${meta.title} */
       ${componentName}({
+        uid: "${meta.id}",
         controller: this.${currentProvider.name}.controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},${
@@ -270,9 +268,9 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             ? `
         events: {
           ${comEventCode}
-        }`
+        },`
             : ""
-        }
+        }${com.meta.frameId ? "parentSlot: this.params" : ""}
       })`,
       js: eventCode,
       slots: [],
@@ -297,11 +295,6 @@ export const handleProcess = (
   const { process } = event;
 
   process.nodesDeclaration.forEach(({ meta, props }: any) => {
-    const { dependencyImport, componentName } =
-      config.getComponentMetaByNamespace(meta.def.namespace, {
-        type: "js",
-      });
-
     if (meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
       config.addParentDependencyImport({
         packageName: config.getComponentPackageName(),
@@ -318,9 +311,14 @@ export const handleProcess = (
       })\n`;
 
       return;
-    } else {
-      config.addParentDependencyImport(dependencyImport);
     }
+
+    const { dependencyImport, componentName } =
+      config.getComponentMetaByNamespace(meta.def.namespace, {
+        type: "js",
+      });
+
+    config.addParentDependencyImport(dependencyImport);
 
     const componentNameWithId = `${componentName}_${meta.id}`;
 

@@ -91,7 +91,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       ...nextConfig,
       getParams: (paramPins) => {
         return paramPins.reduce((pre: Record<string, string>, { id }) => {
-          pre[id] = `this.inputValues.${id}`;
+          pre[id] = `this.params.inputValues.${id}`;
           return pre;
         }, {});
       },

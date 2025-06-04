@@ -57,6 +57,8 @@ export interface ComInfo {
       }[]
     >;
   };
+  /** 有值时，组件在作用域插槽内 */
+  frameId?: string;
   outputs: string[];
   inputs: string[];
   ioProxy: {
