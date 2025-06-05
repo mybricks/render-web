@@ -531,6 +531,11 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         // }
         _frameOutput[inReg.pinId]?.(val)
       }
+    } else if (inReg.type === "extension") {
+      scenesOperate?.callExtension({
+        ...proxyDesc,
+        value: val,
+      })
     } else {
       throw new Error(`尚未实现`)
     }

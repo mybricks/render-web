@@ -155,7 +155,7 @@ export default function MultiScene ({json, options}) {
           }
           return
         }
-        const json = await options.module.loadPage({moduleId: configs?.moduleId, pageId})
+        const json = await options.module.loadPage({pageId, ...configs})
         json.moduleId = configs?.moduleId
 
         scenes = {
@@ -425,7 +425,29 @@ export default function MultiScene ({json, options}) {
         //     }
         // })
       },
-      var: new Var()
+      var: new Var(),
+      callExtension({pinId, value, moduleId}) {
+        const fxFrame = global.fxFrames.find((fx) => fx.name === moduleId);
+        executor({
+          json: fxFrame,
+          getComDef: (def) => _context.getComDef(def),
+          events: options.events,
+          env,
+          ref(refs) {
+            const { inputs } = refs;
+            inputs[pinId](value, void 0, false);
+            refs.run();
+          },
+          onError: _context.onError,
+          debug: options.debug,
+          debugLogger: options.debugLogger,
+          logger: _context.logger,
+          scenesOperate,
+          _context
+        }, {
+          observable: _context.observable
+        })
+      }
     }
 
     env.scenesOperate = scenesOperate
