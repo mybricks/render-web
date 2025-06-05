@@ -81,13 +81,23 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       if (com.props.style.width === "fit-content") {
         slot.props.style.width = "auto";
       } else {
-        slot.props.style.width = "100%";
+        // slot.props.style.width = "100%";
+        if (slot.props.style.layout !== "smart") {
+          slot.props.style.width = "100%";
+        } else {
+          slot.props.style.width = "auto";
+        }
       }
 
       if (com.props.style.height === "fit-content") {
         slot.props.style.height = "auto";
       } else {
-        slot.props.style.height = "100%";
+        // slot.props.style.height = "100%";
+        if (slot.props.style.layout !== "smart") {
+          slot.props.style.height = "100%";
+        } else {
+          slot.props.style.height = "auto";
+        }
       }
 
       if (!slot.meta.scope) {
