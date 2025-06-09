@@ -429,6 +429,10 @@ export const handleProcess = (
         return;
       }
 
+      if (props.type === "frameOutput") {
+        code += `this.params.outputs.${props.id}(${nextValue})`;
+        return;
+      }
       // ui
       const currentProvider = getCurrentProvider(
         { isSameScope, props },
