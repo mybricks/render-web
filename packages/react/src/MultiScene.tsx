@@ -202,6 +202,14 @@ export default function MultiScene ({json, options}) {
 
       options.scenesLoaded?.(scenes.json)
 
+      if (!openType) {
+        // 对话框
+        options.router?.(pageId, "open")
+      } else {
+        // 页面
+        options.router?.(pageId, "direct")
+      }
+
       if (openType) {
         if (openType === "popup") { // 兼容小程序场景的标签页打开
           scenes.disableAutoRun = false
