@@ -8,6 +8,8 @@ import React, {
 import Main from './Main'
 import { useModuleContext, useMyBricksRenderContext } from '.'
 import executor, { Var } from '../../core/executor'
+import RenderModuleComponent from "./RenderModuleComponent"
+import { deepCopy } from '../../core/utils';
 
 import lazyCss from './MultiScene.lazy.less'
 
@@ -141,8 +143,8 @@ export default function MultiScene ({json, options}) {
       lastSceneId: firstScene.type === 'popup' ? null : firstScene.id,
     };
 
-    env.canvas.open = async (pageId, params, openType, historyType, configs) => {
-      const sceneId = configs?.moduleId ?`${configs.moduleId}-${pageId}` : pageId
+    !env.canvas.open && (env.canvas.open = async (pageId, params, openType, historyType, configs) => {
+      const sceneId = configs?.moduleId ?`${configs?.moduleId}-${pageId}` : pageId
       // console.log(`打开场景 -> ${sceneId}`)
       let scenes = scenesMap[sceneId]
 
@@ -156,11 +158,22 @@ export default function MultiScene ({json, options}) {
           return
         }
         const json = await options.module.loadPage({pageId, ...configs})
+        let mergeToJson = json
+
+        if (configs?.mergeToJson) {
+          mergeToJson = {
+            ...configs.mergeToJson,
+            scenes: [json]
+          }
+        }
+
         json.moduleId = configs?.moduleId
+        mergeToJson.moduleId = configs?.moduleId
+        mergeToJson.id = json.id
 
         scenes = {
           disableAutoRun: false,
-          json,
+          json: mergeToJson,
           show: false,
           parentScope: null,
           todo: [],
@@ -172,7 +185,7 @@ export default function MultiScene ({json, options}) {
         if (json.type === 'popup') {
         } else {
           setPageScenes((pageScenes) => {
-            return [...pageScenes, json]
+            return [...pageScenes, mergeToJson]
           })
         }
         if (scenesOperateInputsTodo[sceneId]) {
@@ -264,10 +277,10 @@ export default function MultiScene ({json, options}) {
           })
         }
       }
-    }
+    })
 
     // 回退
-    env.canvas.back = () => {
+    !env.canvas.back && (env.canvas.back = () => {
       const back = debugHistory.back();
       if (back) {
         const { id, todo } = back;
@@ -275,10 +288,10 @@ export default function MultiScene ({json, options}) {
         const scenes = scenesMap[id]
         scenes.todo = todo
       }
-    }
+    })
 
     // 前进
-    env.canvas.forward = () => {
+    !env.canvas.forward && (env.canvas.forward = () => {
       const forward = debugHistory.forward();
       if (forward) {
         const { id, todo } = forward;
@@ -286,13 +299,13 @@ export default function MultiScene ({json, options}) {
         const scenes = scenesMap[id]
         scenes.todo = todo
       }
-    }
+    })
 
     // TODO:挪出去，优化一下
     const scenesOperate = {
-      open({todo, frameId, parentScope, comProps}) {
+      open({todo, frameId, parentScope, comProps}, configs) {
         // 目前这里仅用于调用全局fx
-        const fxFrame = globalFxIdToFrame[frameId];
+        const fxFrame = configs?.getFxFrame?.(frameId) || globalFxIdToFrame[frameId];
 
         if (fxFrame) {
           executor({
@@ -450,7 +463,7 @@ export default function MultiScene ({json, options}) {
       }
     }
 
-    env.scenesOperate = scenesOperate
+    !env.scenesOperate && (env.scenesOperate = scenesOperate);
 
     return {
       scenesMap: json.scenes.reduce((acc, json, index) => {
@@ -723,6 +736,10 @@ export default function MultiScene ({json, options}) {
 }
 
 function Scene({json, options, style = {}, className = ''}) {
+  if (json.moduleId) {
+    const env = deepCopy(options.env);
+    return <RenderModuleComponent json={json} options={{...options, env}}/>
+  }
   return (
     <Main json={json} options={options} style={style} className={className} from={"scene"}/>
   )

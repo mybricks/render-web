@@ -26,6 +26,8 @@ import { compareVersion, deepCopy, getStylesheetMountNode, getPxToVw, convertCam
 import type { ToJSON, MultiSceneToJSON } from "./types";
 // @ts-ignore
 import coreLib from '@mybricks/comlib-core';
+import RenderModuleComponent from "./RenderModuleComponent";
+import renderModuleJs from "./renderModuleJs";
 
 console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`, ``, ``);
 
@@ -219,6 +221,31 @@ class Context {
     //     return renderModule(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
     //   }
     // }
+    if (!env.renderModuleComponent) {
+      env.renderModuleComponent = (json, options2) => {
+        const env = deepCopy(options.env);
+        return <RenderModuleComponent json={json} options={{
+          ...options,
+          ...options2,
+          env,
+        }} />
+      }
+    }
+    if (!env.renderModuleJs) {
+      env.renderModuleJs = (json, options2) => {
+        const env = deepCopy(options.env);
+        return renderModuleJs({
+          json,
+          options: {
+            ...options,
+            ...options2,
+            env,
+          },
+          _context: this
+        })
+      }
+    }
+
     env.renderModule = (json: any, options2: any) => {
       const rootId1 = options.rootId
       const rootId2 = options2.rootId
@@ -907,7 +934,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
   }
 }
 
-class Modules {
+export class Modules {
   private _isReact18 = !!ReactDOM.createRoot
   private _renderMap: any = {};
   constructor(private _jsons: any) {}
