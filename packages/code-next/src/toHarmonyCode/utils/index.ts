@@ -1,4 +1,4 @@
-import type { Style } from "../toCode/types";
+import type { Style } from "../../toCode/types";
 
 type ImportType = "default" | "named";
 type DependencyImport = Record<
@@ -359,3 +359,7 @@ const convertHarmonyHeight = (style: HmStyle) => {
 
   return code;
 };
+
+export * from "./hm";
+export * from "./pinyin";
+export * from "./string";

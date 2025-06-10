@@ -166,6 +166,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       export const globalFxs = new GlobalFxs()
     `,
     importManager: globalImportManager,
+    name: "global",
   } as Result[0];
 };
 

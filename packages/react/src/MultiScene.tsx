@@ -281,7 +281,10 @@ export default function MultiScene ({json, options}) {
       if (configs) {
         if (configs.callInputs) {
           configs.callInputs.forEach(({ frameId, value, pinId }) => {
-            scenesOperate.inputs({ frameId, value, pinId })
+            scenesOperate.inputs({ frameId, value, pinId }, {
+              moduleId: configs?.moduleId,
+              ...configs
+            })
           })
         }
       }
@@ -360,10 +363,11 @@ export default function MultiScene ({json, options}) {
           })
         }
       },
-      inputs({frameId, parentScope, value, pinId}) {
+      inputs({frameId: pageId, parentScope, value, pinId}, configs) {
         // console.log('场景触发inputs: ', {
         //   frameId, parentScope, value, pinId
         // })
+        const frameId = configs?.moduleId ?`${configs?.moduleId}-${pageId}` : pageId
         const scenes = scenesMap[frameId]
         if (!scenes) {
           if (!scenesOperateInputsTodo[frameId]) {
@@ -375,7 +379,7 @@ export default function MultiScene ({json, options}) {
             scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
           }
         } else {
-          if (scenes.alreadyOpened) {
+          if (scenes.alreadyOpened && !configs?.moduleId) {
             if (pinId !== "open" && scenes._refs) {
               // 写死判断id不是open（约定这是打开），触发输入
               scenes._refs.inputs[pinId](value)

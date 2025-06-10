@@ -8,11 +8,11 @@ const renderModuleJs = ({ json, options, _context }: any) => {
   let moduleVersion = options.moduleVersion;
   if (!moduleId) {
     if (Array.isArray(json.scenes)) {
-      moduleId = json.scenes[0].extra.moduleId
-      moduleVersion = json.scenes[0].extra.moduleVersion
+      moduleId = json.scenes[0].extra.moduleId;
+      moduleVersion = json.scenes[0].extra.moduleVersion;
     } else {
-      moduleId = json.extra.moduleId
-      moduleVersion = json.extra.moduleVersion
+      moduleId = json.extra.moduleId;
+      moduleVersion = json.extra.moduleVersion;
     }
   }
 
@@ -30,6 +30,12 @@ const renderModuleJs = ({ json, options, _context }: any) => {
   const scenesOperate = options.env.scenesOperate;
   options.env.scenesOperate = {
     ...scenesOperate,
+    inputs(params: any) {
+      scenesOperate.inputs(params, {
+        moduleId,
+        moduleVersion,
+      });
+    },
     open(params: any) {
       scenesOperate.open(params, {
         getFxFrame(frameId: string) {

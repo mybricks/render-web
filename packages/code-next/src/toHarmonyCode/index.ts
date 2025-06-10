@@ -28,11 +28,13 @@ export type Result = Array<{
   importManager: ImportManager;
   type: "normal" | "popup" | "module" | "extensionEvent" | "global";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
+  name: string;
 }>;
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
-  const { scenes, extensionEvents, globalFxs, globalVars } = toCode(tojson);
+  const { scenes, extensionEvents, globalFxs, globalVars, modules } =
+    toCode(tojson);
 
   const importManager = new ImportManager();
   const addDependencyImport = importManager.addImport.bind(importManager);
@@ -55,6 +57,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       content: res,
       importManager,
       type: "extensionEvent",
+      name: "extensionEvent",
     });
   });
 
@@ -147,6 +150,84 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     });
   });
 
+  modules.forEach(({ scene, ui, event }) => {
+    const providerMetaMap = {};
+    const usedControllers = new Set<string>();
+
+    handleSlot(ui, {
+      ...config,
+      getUsedControllers: () => {
+        return usedControllers;
+      },
+      getCurrentScene: () => {
+        return scene;
+      },
+      add: (value) => {
+        result.push({
+          ...value,
+          type: scene.type,
+          meta: scene,
+        });
+      },
+      getEventByDiagramId: (diagramId) => {
+        return event.find((event) => event.diagramId === diagramId)!;
+      },
+      getVarEvents: (params) => {
+        if (!params) {
+          return event.filter((event) => {
+            return event.type === "var" && !event.meta.parentComId;
+          });
+        }
+        return event.filter((event) => {
+          return (
+            event.type === "var" &&
+            params.comId === event.meta.parentComId &&
+            params.slotId === event.meta.frameId
+          );
+        });
+      },
+      getFxEvents: (params) => {
+        if (!params) {
+          return event.filter((event) => {
+            return event.type === "fx" && !event.parentComId;
+          });
+        }
+        return event.filter((event) => {
+          return (
+            event.type === "fx" &&
+            params.comId === event.parentComId &&
+            params.slotId === event.parentSlotId
+          );
+        });
+      },
+      checkIsRoot: () => true,
+      getEffectEvent: (params) => {
+        // 默认只有一个生命周期事件
+        if (!params) {
+          // 主场景
+          return event.find((event) => {
+            return !event.slotId; // 没有slotId，认为是主场景
+          })!;
+        } else {
+          // 作用域插槽
+          const { comId, slotId } = params;
+          return event.find((event) => {
+            return event.slotId === slotId && event.comId === comId;
+          })!;
+        }
+      },
+      getCurrentProvider: () => {
+        return {
+          name: "slot_Index",
+          class: "Slot_Index",
+        };
+      },
+      getProviderMetaMap: () => {
+        return providerMetaMap;
+      },
+    });
+  });
+
   return result;
 };
 
@@ -159,7 +240,11 @@ export interface BaseConfig extends ToSpaCodeConfig {
   /** 获取使用的组件控制器 */
   getUsedControllers: () => Set<string>;
   /** 添加最终的文件列表 */
-  add: (value: { content: string; importManager: ImportManager }) => void;
+  add: (value: {
+    content: string;
+    importManager: ImportManager;
+    name: string;
+  }) => void;
   /** 获取事件 */
   getEventByDiagramId: (
     diagramId: string,
