@@ -1,6 +1,7 @@
 import type { UI, BaseConfig } from "./index";
 import { convertHarmonyFlex, ImportManager } from "./utils";
 import handleCom from "./handleCom";
+import handleModule from "./handleModule";
 
 type Dom = Extract<UI["children"][0], { type: "dom" }>;
 
@@ -32,7 +33,8 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
       level0Slots.push(...slots);
       level1Slots.push(...scopeSlots);
     } else if (child.type === "module") {
-      console.log("[出码 - TODO] dom嵌套模块");
+      const ui = handleModule(child, config);
+      uiCode += uiCode ? "\n" + ui : ui;
     } else {
       const { ui, js, slots, scopeSlots } = handleDom(child, config);
       uiCode += uiCode ? "\n" + ui : ui;

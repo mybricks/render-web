@@ -1,6 +1,7 @@
-import { convertHMFlexStyle, ImportManager } from "./utils";
+import { convertHMFlexStyle, ImportManager, getHmUi, getName } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
+import handleModule from "./handleModule";
 
 import type { UI, BaseConfig } from "./index";
 import type { PinAry } from "../toCode/types";
@@ -76,7 +77,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
       } else if (child.type === "module") {
-        console.log("[TODO] slot Module");
+        const ui = handleModule(child, nextConfig);
+        uiCode += uiCode ? "\n" + ui : ui;
       } else {
         const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
@@ -195,7 +197,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
       } else if (child.type === "module") {
-        console.log("[TODO] slot Module");
+        const ui = handleModule(child, nextConfig);
+        uiCode += uiCode ? "\n" + ui : ui;
       } else {
         const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
@@ -206,13 +209,31 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     });
 
     if (config.checkIsRoot()) {
+      const scene = config.getCurrentScene();
+      // 非模块，由于页面默认都有一个root组件，所以直接简单地Column设置宽高100%铺满即可
+      const isModule = scene.type === "module";
+
+      if (isModule) {
+        addDependencyImport({
+          dependencyNames: ["ModuleController"],
+          packageName: "../_proxy/Index",
+          importType: "named",
+        });
+      }
+
       // 主场景和作用域插槽会有生命周期事件
       let effectEventCode = handleEffectEvent(ui, {
         ...nextConfig,
         getParams: (paramPins) => {
-          return paramPins.reduce((pre: Record<string, string>, { id }) => {
+          return paramPins.reduce((pre: Record<string, string>, paramPin) => {
             // 调用函数，说明使用了打开输入
-            pre[id] = "pageParams";
+            // 模块调用data，页面使用路由
+            const { id, type } = paramPin;
+            pre[id] = isModule
+              ? type === "config"
+                ? `this.data.${id}`
+                : `this.controller.${id}`
+              : "pageParams";
             return pre;
           }, {});
         },
@@ -228,14 +249,16 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           dependencyNames: ["page"],
           importType: "named",
         });
-        effectEventCode = effectEventCode.replace(
-          "aboutToAppear(): void {",
-          `aboutToAppear(): void {
-          const pageParams = page.getParams("${ui.meta.slotId}")`,
-        );
+        if (!isModule) {
+          // 模块调用data，页面使用路由
+          effectEventCode = effectEventCode.replace(
+            "aboutToAppear(): void {",
+            `aboutToAppear(): void {
+            const pageParams = page.getParams("${ui.meta.slotId}")`,
+          );
+        }
       }
 
-      const scene = config.getCurrentScene();
       const usedControllers = config.getUsedControllers();
       let level0SlotsCode = level0Slots.join("\n");
       const filterControllers = Array.from(controllers).filter((controller) => {
@@ -267,7 +290,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           ${filterControllers
             .map((controller) => {
               const com = scene.coms[controller];
-              return `/** ${com.title} */\ncontroller_${com.id} = Controller()`;
+              const ControllerCode =
+                com.def.namespace === "mybricks.core-comlib.module"
+                  ? "ModuleController()"
+                  : "Controller()";
+              return `/** ${com.title} */\ncontroller_${com.id} = ${ControllerCode}`;
             })
             .join("\n")}
         }\n`
@@ -286,22 +313,30 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         importManager,
         content: `${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${scene.title} */
         @ComponentV2
-        struct Index {
+        ${isModule ? "export default " : ""}struct Index {
+          ${isModule ? "@Param @Require uid: string;" : ""}
+          ${isModule ? "@Param data: MyBricks.Data = {}" : ""}
+          ${isModule ? "@Param controller: MyBricks.ModuleController = ModuleController()" : ""}
           ${providerCode}
           ${(effectEventCode ? effectEventCode + "\n\n" : "") + jsCode}
           ${level0SlotsCode}
 
           build() {
-            Column() {
+            ${
+              isModule
+                ? getHmUi({ style: ui.props.style, children: uiCode })
+                : `Column() {
               ${uiCode}
             }
             .width("100%")
-            .height("100%")
+            .height("100%")`
+            }
           }
         }
 
         ${level1Slots.join("\n")}
         `,
+        name: getName(ui.meta.title),
       });
     }
 

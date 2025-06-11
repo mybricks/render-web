@@ -19,15 +19,27 @@ interface HandleModuleConfig extends BaseConfig {
 const handleModule = (module: Module, config: HandleModuleConfig): string => {
   const name = getName(module.meta.title);
 
-  console.log("module => ", module);
-
+  config.addParentDependencyImport({
+    dependencyNames: ["ModuleController"],
+    packageName: "../_proxy/Index",
+    importType: "named",
+  });
   config.addParentDependencyImport({
     packageName: "../sections",
     dependencyNames: [name],
     importType: "named",
   });
+  config.addController(module.meta.id);
 
-  return `${name}()`;
+  const configs = module.meta.model.data.configs;
+  const currentProvider = config.getCurrentProvider();
+  const usedControllers = config.getUsedControllers();
+
+  return `${name}({
+    uid: "${module.meta.id}",
+    ${configs ? `data: ${JSON.stringify(configs)},` : ""}
+    ${usedControllers.has(module.meta.id) ? `controller: this.${currentProvider.name}.controller_${module.meta.id},` : ""}
+  })`;
 };
 
 export default handleModule;

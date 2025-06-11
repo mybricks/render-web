@@ -178,7 +178,11 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           ${filterControllers
             .map((controller) => {
               const com = scene.coms[controller];
-              return `/** ${com.title} */\ncontroller_${com.id} = Controller()`;
+              const ControllerCode =
+                com.def.namespace === "mybricks.core-comlib.module"
+                  ? "ModuleController()"
+                  : "Controller()";
+              return `/** ${com.title} */\ncontroller_${com.id} = ${ControllerCode}`;
             })
             .join("\n")}
         }\n`
@@ -432,6 +436,24 @@ export const handleProcess = (
       if (props.type === "frameOutput") {
         code += `this.params.outputs.${props.id}(${nextValue})`;
         return;
+      }
+
+      if (category === "module") {
+        if (props.type === "frameRelOutput") {
+          code += `this.controller.outputs.${props.id}(${nextValue})`;
+          return;
+        } else if (props.type === "exe") {
+          const currentProvider = getCurrentProvider(
+            { isSameScope, props },
+            config,
+          );
+
+          const usedControllers = config.getUsedControllers();
+          usedControllers.add(props.meta.id);
+
+          code += `${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
+          return;
+        }
       }
       // ui
       const currentProvider = getCurrentProvider(
