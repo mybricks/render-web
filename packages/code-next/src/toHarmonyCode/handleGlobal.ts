@@ -51,16 +51,17 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,
     } as any);
 
-    globalImportManager.addImport({
-      packageName: "../utils/types",
-      dependencyNames: ["MyBricks"],
-      importType: "named",
-    });
-    globalImportManager.addImport({
-      packageName: "../utils/mybricks",
-      dependencyNames: ["createVariable"],
-      importType: "named",
-    });
+    // [TODO] 外部处理或传入
+    // globalImportManager.addImport({
+    //   packageName: "../utils/types",
+    //   dependencyNames: ["MyBricks"],
+    //   importType: "named",
+    // });
+    // globalImportManager.addImport({
+    //   packageName: "../utils/mybricks",
+    //   dependencyNames: ["createVariable"],
+    //   importType: "named",
+    // });
 
     const constantName = `globalVar${firstCharToUpperCase(com.title)}Params`;
 
@@ -74,17 +75,24 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
   let globalFxsInitCode = "";
   globalFxs.forEach((event) => {
-    globalImportManager.addImport({
-      packageName: "../utils/types",
-      dependencyNames: ["MyBricks"],
-      importType: "named",
-    });
-    globalImportManager.addImport({
-      packageName: "../utils/mybricks",
-      dependencyNames: ["createFx"],
-      importType: "named",
-    });
+    // [TODO] 外部处理或传入
+    // globalImportManager.addImport({
+    //   packageName: "../utils/types",
+    //   dependencyNames: ["MyBricks"],
+    //   importType: "named",
+    // });
+    // globalImportManager.addImport({
+    //   packageName: "../utils/mybricks",
+    //   dependencyNames: ["createFx"],
+    //   importType: "named",
+    // });
+    const currentScene = tojson.global.fxFrames.find(
+      (fxFrame) => fxFrame.id === event.frameId,
+    );
     const res = handleProcess(event, {
+      getCurrentScene: () => {
+        return currentScene;
+      },
       getParams: () => {
         return event.paramPins.reduce(
           (pre, cur, index) => {
@@ -139,9 +147,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
   return {
     type: "global",
-    content: `${globalImportManager.toCode()}
-    
-      /**
+    content: `/**
         * 全局变量
         */
       ${globalVarsParamsCode}

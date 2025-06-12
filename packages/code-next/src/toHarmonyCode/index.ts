@@ -20,6 +20,7 @@ export interface ToSpaCodeConfig {
     componentName: string;
   };
   getComponentPackageName: (props?: any) => string;
+  getPageId?: (id: string) => string;
 }
 
 /** 返回结果 */
@@ -41,6 +42,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
   extensionEvents.forEach((event) => {
     const res = handleProcess(event, {
+      ...config,
       getParams: () => {
         return {
           open: "value",

@@ -21,6 +21,9 @@ export interface HandleComConfig extends BaseConfig {
 
 const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   const { meta, props, slots, events } = com;
+
+  const isModule = meta.def.namespace.startsWith("mybricks.harmony.module");
+
   const { dependencyImport, componentName } =
     config.getComponentMetaByNamespace(meta.def.namespace, { type: "ui" });
 
@@ -271,6 +274,23 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   } else {
     const resultStyle = convertComponentStyle(props.style);
 
+    if (isModule) {
+      // 模块组件特殊处理，同模块
+      // [TODO] 合并下
+      const configs = meta.model.data.configs;
+      return {
+        ui: `/** ${meta.title} */
+        ${componentName}({
+          uid: "${meta.id}",
+          controller: this.${currentProvider.name}.controller_${meta.id},
+          ${configs ? `data: ${JSON.stringify(configs)},` : ""}
+        })`,
+        js: eventCode,
+        slots: [],
+        scopeSlots: [],
+      };
+    }
+
     return {
       ui: `/** ${meta.title} */
       ${componentName}({
@@ -309,6 +329,10 @@ export const handleProcess = (
   const { process } = event;
 
   process.nodesDeclaration.forEach(({ meta, props }: any) => {
+    if (meta.def.namespace.startsWith("mybricks.harmony.module")) {
+      // 模块特殊处理
+      return;
+    }
     if (meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
       config.addParentDependencyImport({
         packageName: config.getComponentPackageName(),
@@ -350,6 +374,23 @@ export const handleProcess = (
     const { componentType, category, runType } = props;
     // 参数
     const nextValue = getNextValue(props, config);
+
+    if (props.meta.def.namespace.startsWith("mybricks.harmony.module")) {
+      // 模块特殊处理，没有输出，调用api.open
+      const { componentName, dependencyImport } =
+        config.getComponentMetaByNamespace(props.meta.def.namespace, {
+          type: "js",
+        });
+
+      config.addParentDependencyImport(dependencyImport);
+      if (code) {
+        // 换行
+        code += "\n";
+      }
+      code += `${componentName}.${props.id}(${nextValue})`;
+      return;
+    }
+
     const isSameScope = checkIsSameScope(event, props);
     // 节点执行后的返回值（输出）
     const nextCode = getNextCode(props, config, isSameScope);
@@ -369,7 +410,10 @@ export const handleProcess = (
           importType: "named",
         });
         // const componentNameWithId = getComponentNameWithId(props, config);
-        code += `${nextCode}page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
+
+        const _sceneId = props.meta.model.data._sceneId;
+
+        code += `${nextCode}page.open("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
         // code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
       } else if (category === "normal") {
         const componentNameWithId = getComponentNameWithId(props, config);
