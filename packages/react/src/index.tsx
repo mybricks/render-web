@@ -806,6 +806,10 @@ import { transformToJSON } from "../../utils/src"
 export { transformToJSON }
 
 export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions) {
+  if (options.moduleId) {
+    options.env.edit = true
+  }
+
   let json = toJson
   if (!options.sceneOpenType) {
     options.sceneOpenType = "redirect"
