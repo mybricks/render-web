@@ -237,13 +237,6 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
     const resultStyle = convertComponentStyle(props.style);
 
-    // HACK
-    if (meta.def.namespace === "mybricks.harmony.systemPage") {
-      props.data = {
-        background: props.data.background,
-      };
-    }
-
     return {
       slots: [
         `/** ${meta.title}插槽 */
@@ -474,7 +467,9 @@ export const handleProcess = (
           dependencyNames: ["page"],
           importType: "named",
         });
-        code += `page.${props.id}("${props.meta.id}", ${nextValue})`;
+        const id = props.meta.id;
+
+        code += `page.${props.id}("${config.getPageId?.(id) || id}", ${nextValue})`;
         return;
       }
 

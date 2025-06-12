@@ -12,7 +12,7 @@ export function getLogInputVal(comTitle, comDef, pinId, val) {
     tval = val;
   }
 
-  return [`%c [MyBricks] 输入项 %c ${
+  return [`%c 输入 %c ${
       comTitle || comDef.title || comDef.namespace
     } | ${pinId} -> ${tval}`,
     `color:#FFF;background:#000`,
@@ -35,7 +35,7 @@ export function getLogOutVal(comTitle, comDef, pinId, val) {
     tval = val;
   }
 
-  return [`%c [MyBricks] 输出项 %c ${
+  return [`%c 输出 %c ${
       comTitle || comDef.title || comDef.namespace
     } | ${pinId} -> ${tval}`,
     `color:#FFF;background:#fa6400`,

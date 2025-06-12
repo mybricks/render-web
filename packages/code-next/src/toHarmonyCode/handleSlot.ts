@@ -250,11 +250,12 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           importType: "named",
         });
         if (!isModule) {
+          const slotId = ui.meta.slotId;
           // 模块调用data，页面使用路由
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
             `aboutToAppear(): void {
-            const pageParams = page.getParams("${ui.meta.slotId}")`,
+            const pageParams = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
           );
         }
       }
