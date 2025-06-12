@@ -375,7 +375,8 @@ export const handleProcess = (
     // 参数
     const nextValue = getNextValue(props, config);
 
-    if (props.meta.def.namespace.startsWith("mybricks.harmony.module")) {
+    if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
+      // frameoutput没有def
       // 模块特殊处理，没有输出，调用api.open
       const { componentName, dependencyImport } =
         config.getComponentMetaByNamespace(props.meta.def.namespace, {
