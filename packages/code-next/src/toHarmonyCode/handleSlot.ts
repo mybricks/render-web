@@ -1,4 +1,4 @@
-import { convertHMFlexStyle, ImportManager, getHmUi, getName } from "./utils";
+import { ImportManager, getHmUi, getName } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
 import handleModule from "./handleModule";
@@ -103,7 +103,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       },
     });
 
-    const hmStyle = convertHMFlexStyle(props.style);
+    // const hmStyle = convertHMFlexStyle(props.style);
 
     if (props.style.layout) {
       importManager.addImport({
@@ -119,20 +119,33 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ? `Column() {
         ${uiCode}
       }`
-        : `Flex({
-        direction: ${hmStyle.direction},
-        justifyContent: ${hmStyle.justifyContent},
-        alignItems: ${hmStyle.alignItems},
-        wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
-        space: {
-          main: LengthMetrics.vp(params.style?.rowGap || 0),
-          cross: LengthMetrics.vp(params.style?.columnGap || 0)
-        }
-      }) {
-        ${uiCode}
-      }
-      .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
-      .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
+        : getHmUi({
+            style: props.style,
+            children: uiCode,
+            extraFlex: `wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
+            space: {
+              main: LengthMetrics.vp(params.style?.rowGap || 0),
+              cross: LengthMetrics.vp(params.style?.columnGap || 0)
+            }`,
+          }),
+      // ui: !props.style.layout
+      //   ? `Column() {
+      //   ${uiCode}
+      // }`
+      //   : `Flex({
+      //   direction: ${hmStyle.direction},
+      //   justifyContent: ${hmStyle.justifyContent},
+      //   alignItems: ${hmStyle.alignItems},
+      //   wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
+      //   space: {
+      //     main: LengthMetrics.vp(params.style?.rowGap || 0),
+      //     cross: LengthMetrics.vp(params.style?.columnGap || 0)
+      //   }
+      // }) {
+      //   ${uiCode}
+      // }
+      // .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
+      // .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
       slots: level0Slots,
       scopeSlots: level1Slots,
       controllers,
@@ -341,7 +354,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       });
     }
 
-    const hmStyle = convertHMFlexStyle(props.style);
+    // const hmStyle = convertHMFlexStyle(props.style);
 
     if (props.style.layout) {
       addDependencyImport({
@@ -355,22 +368,35 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       js: jsCode,
       ui: !props.style.layout
         ? `Column() {
-          ${uiCode}
-        }`
-        : `Flex({
-        direction: ${hmStyle.direction},
-        justifyContent: ${hmStyle.justifyContent},
-        alignItems: ${hmStyle.alignItems},
-        wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
-        space: {
-          main: LengthMetrics.vp(params.style?.rowGap || 0),
-          cross: LengthMetrics.vp(params.style?.columnGap || 0)
-        }
-      }) {
         ${uiCode}
-      }
-      .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
-      .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
+      }`
+        : getHmUi({
+            style: props.style,
+            children: uiCode,
+            extraFlex: `wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
+            space: {
+              main: LengthMetrics.vp(params.style?.rowGap || 0),
+              cross: LengthMetrics.vp(params.style?.columnGap || 0)
+            }`,
+          }),
+      // ui: !props.style.layout
+      //   ? `Column() {
+      //     ${uiCode}
+      //   }`
+      //   : `Flex({
+      //   direction: ${hmStyle.direction},
+      //   justifyContent: ${hmStyle.justifyContent},
+      //   alignItems: ${hmStyle.alignItems},
+      //   wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
+      //   space: {
+      //     main: LengthMetrics.vp(params.style?.rowGap || 0),
+      //     cross: LengthMetrics.vp(params.style?.columnGap || 0)
+      //   }
+      // }) {
+      //   ${uiCode}
+      // }
+      // .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
+      // .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
       slots: level0Slots,
       scopeSlots: level1Slots,
       controllers,

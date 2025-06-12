@@ -48,24 +48,70 @@ const getHmHeight = (style: Style) => {
   return "height" in style ? `.height("${style.height}")` : "";
 };
 
+const getHmMargin = (style: Style) => {
+  let code = "";
+  if ("marginTop" in style) {
+    code += `top: "${style.marginTop}",`;
+  }
+  if ("marginRight" in style) {
+    code += `right: "${style.marginRight}",`;
+  }
+  if ("marginBottom" in style) {
+    code += `bottom: "${style.marginBottom}",`;
+  }
+  if ("marginLeft" in style) {
+    code += `left: "${style.marginLeft}",`;
+  }
+
+  if (code) {
+    return `.margin({${code}})`;
+  }
+
+  return "";
+};
+
+const getHmPadding = (style: Style) => {
+  let code = "";
+  if ("paddingTop" in style) {
+    code += `top: "${style.paddingTop}",`;
+  }
+  if ("paddingRight" in style) {
+    code += `right: "${style.paddingRight}",`;
+  }
+  if ("paddingBottom" in style) {
+    code += `bottom: "${style.paddingBottom}",`;
+  }
+  if ("paddingLeft" in style) {
+    code += `left: "${style.paddingLeft}",`;
+  }
+
+  if (code) {
+    return `.padding({${code}})`;
+  }
+
+  return "";
+};
+
 interface GetHmUiParams {
   style: Style;
   children: string;
+  extraFlex?: string;
 }
 /**
  * 默认用Flex布局
  */
 const getHmUi = (params: GetHmUiParams) => {
-  const { style, children } = params;
+  const { style, children, extraFlex } = params;
   const hmFlexParams = getHmFlexParams(style);
 
   return `Flex({
     direction: ${hmFlexParams.direction},
     justifyContent: ${hmFlexParams.justifyContent},
     alignItems: ${hmFlexParams.alignItems},
+    ${extraFlex}
   }) {
     ${children}
-  }${getHmWidth(style)}${getHmHeight(style)}`;
+  }${getHmWidth(style)}${getHmHeight(style)}${getHmPadding(style)}${getHmMargin(style)}`;
 };
 
 export { getHmUi };
