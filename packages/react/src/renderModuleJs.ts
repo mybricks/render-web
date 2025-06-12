@@ -117,6 +117,7 @@ const renderModuleJs = ({ json, options, _context }: any) => {
       scenesOperate: options.scenesOperate,
       _isNestedRender: options._isNestedRender,
       _isNestCom: options._isNestCom,
+      _isModuleCom: true,
       _context,
     },
     {

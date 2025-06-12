@@ -227,6 +227,7 @@ class Context {
         return <RenderModuleComponent json={json} options={{
           ...options,
           ...options2,
+          _isModuleCom: true,
           env,
         }} />
       }

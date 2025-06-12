@@ -750,7 +750,7 @@ export default function MultiScene ({json, options}) {
 function Scene({json, options, style = {}, className = ''}) {
   if (json.moduleId) {
     const env = deepCopy(options.env);
-    return <RenderModuleComponent json={json} options={{...options, env}}/>
+    return <RenderModuleComponent json={json} options={{...options, env, _isModuleCom: true,}}/>
   }
   return (
     <Main json={json} options={options} style={style} className={className} from={"scene"}/>

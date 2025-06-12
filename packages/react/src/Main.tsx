@@ -118,6 +118,7 @@ export default function Main({json, options, style = {}, className = '', root = 
         _env: options._env,
         _isNestedRender: options._isNestedRender,
         _isNestCom: options._isNestCom,
+        _isModuleCom: options._isModuleCom,
         _context,
         rootId: options.rootId
       }, {//////TODO goon

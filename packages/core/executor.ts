@@ -6,7 +6,7 @@
  * CheMingjun @2019
  * mybricks@126.com
  */
-import {logInputVal, logOutputVal} from './logger';
+import {logInputVal, logOutputVal, getLogInputVal, getLogOutVal} from './logger';
 import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
@@ -69,6 +69,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     debugLogger,
     _isNestedRender,
     _isNestCom,
+    _isModuleCom,
     _context,
     _getComProps,
     _getSlotValue,
@@ -236,6 +237,11 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     // }
     if (type === 'com') {
       const {com, pinHostId, val, fromCon, notifyAll, comDef, conId} = content
+      if (_isModuleCom) {
+        debugLogger("info", getLogOutVal(com.title, comDef, pinHostId, val));
+        return
+      }
+
       if (debugLogger) {//存在外部的debugLogger
         debugLogger('com', 'output', {id: com.id, pinHostId, val: dataSlim(val), fromCon, notifyAll, comDef, sceneId: json.id, conId}, isBreakpoint)
       } else {
@@ -265,6 +271,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     }
     const {com, pinHostId, val, frameKey, finishPinParentKey, comDef, conId} = content
     if (conId) {
+      if (_isModuleCom) {
+        debugLogger("info", getLogInputVal(com.title, comDef, pinHostId, val));
+        return
+      }
       if (debugLogger) {//存在外部的debugLogger
         debugLogger('com', 'input', {id: com.id, pinHostId, val: dataSlim(val), frameKey, finishPinParentKey, comDef, sceneId: json.id, conId}, isBreakpoint)
       } else {
