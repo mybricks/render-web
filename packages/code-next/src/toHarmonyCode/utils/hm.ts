@@ -49,47 +49,49 @@ const getHmHeight = (style: Style) => {
 };
 
 const getHmMargin = (style: Style) => {
-  let code = "";
-  if ("marginTop" in style) {
-    code += `top: "${style.marginTop}",`;
-  }
-  if ("marginRight" in style) {
-    code += `right: "${style.marginRight}",`;
-  }
-  if ("marginBottom" in style) {
-    code += `bottom: "${style.marginBottom}",`;
-  }
-  if ("marginLeft" in style) {
-    code += `left: "${style.marginLeft}",`;
+  const marginMap = {
+    marginTop: "top",
+    marginRight: "right",
+    marginBottom: "bottom",
+    marginLeft: "left",
+  };
+
+  const entries = [];
+
+  for (const [styleProp, marginKey] of Object.entries(marginMap)) {
+    if (styleProp in style) {
+      let value = style[styleProp as keyof Style];
+      if (typeof value === "string") {
+        value = value.replace("px", "");
+      }
+      entries.push(`${marginKey}: "${value}"`);
+    }
   }
 
-  if (code) {
-    return `.margin({${code}})`;
-  }
-
-  return "";
+  return entries.length > 0 ? `.margin({${entries.join(",")}})` : "";
 };
 
 const getHmPadding = (style: Style) => {
-  let code = "";
-  if ("paddingTop" in style) {
-    code += `top: "${style.paddingTop}",`;
-  }
-  if ("paddingRight" in style) {
-    code += `right: "${style.paddingRight}",`;
-  }
-  if ("paddingBottom" in style) {
-    code += `bottom: "${style.paddingBottom}",`;
-  }
-  if ("paddingLeft" in style) {
-    code += `left: "${style.paddingLeft}",`;
+  const paddingMap = {
+    paddingTop: "top",
+    paddingRight: "right",
+    paddingBottom: "bottom",
+    paddingLeft: "left",
+  };
+
+  const entries = [];
+
+  for (const [styleProp, paddingKey] of Object.entries(paddingMap)) {
+    if (styleProp in style) {
+      let value = style[styleProp as keyof Style];
+      if (typeof value === "string") {
+        value = value.replace("px", "");
+      }
+      entries.push(`${paddingKey}: "${value}"`);
+    }
   }
 
-  if (code) {
-    return `.padding({${code}})`;
-  }
-
-  return "";
+  return entries.length > 0 ? `.padding({${entries.join(",")}})` : "";
 };
 
 interface GetHmUiParams {
