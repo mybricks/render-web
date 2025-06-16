@@ -6,7 +6,7 @@ import { Modules, ModuleContextProvider, useMyBricksRenderContext } from ".";
 
 export const globalVariables: any = {};
 
-const RenderModuleComponent = ({ json, options }: any) => {
+const RenderModuleComponent = ({ json, options, style = {} }: any) => {
   const _context = useMyBricksRenderContext();
   const { env, modules } = useMemo(() => {
     let moduleId = options.moduleId;
@@ -87,15 +87,13 @@ const RenderModuleComponent = ({ json, options }: any) => {
       <Main
         json={Array.isArray(json.scenes) ? json.scenes[0] : json}
         options={options}
-        style={{}}
+        style={style}
         className={""}
         from={"scene"}
         root={false}
       />
     </ModuleContextProvider>
   );
-
-  return;
 };
 
 export default RenderModuleComponent;

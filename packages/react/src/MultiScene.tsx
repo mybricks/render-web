@@ -143,7 +143,7 @@ export default function MultiScene ({json, options}) {
       lastSceneId: firstScene.type === 'popup' ? null : firstScene.id,
     };
 
-    !env.canvas.open && (env.canvas.open = async (pageId, params, openType, historyType, configs) => {
+    env.canvas.open = async (pageId, params, openType, historyType, configs) => {
       const sceneId = configs?.moduleId ?`${configs?.moduleId}-${pageId}` : pageId
       // console.log(`打开场景 -> ${sceneId}`)
       let scenes = scenesMap[sceneId]
@@ -288,10 +288,10 @@ export default function MultiScene ({json, options}) {
           })
         }
       }
-    })
+    }
 
     // 回退
-    !env.canvas.back && (env.canvas.back = () => {
+    env.canvas.back = () => {
       const back = debugHistory.back();
       if (back) {
         const { id, todo } = back;
@@ -299,10 +299,10 @@ export default function MultiScene ({json, options}) {
         const scenes = scenesMap[id]
         scenes.todo = todo
       }
-    })
+    }
 
     // 前进
-    !env.canvas.forward && (env.canvas.forward = () => {
+    env.canvas.forward = () => {
       const forward = debugHistory.forward();
       if (forward) {
         const { id, todo } = forward;
@@ -310,7 +310,7 @@ export default function MultiScene ({json, options}) {
         const scenes = scenesMap[id]
         scenes.todo = todo
       }
-    })
+    }
 
     // TODO:挪出去，优化一下
     const scenesOperate = {
@@ -475,7 +475,7 @@ export default function MultiScene ({json, options}) {
       }
     }
 
-    !env.scenesOperate && (env.scenesOperate = scenesOperate);
+    env.scenesOperate = scenesOperate
 
     return {
       scenesMap: json.scenes.reduce((acc, json, index) => {
@@ -750,7 +750,7 @@ export default function MultiScene ({json, options}) {
 function Scene({json, options, style = {}, className = ''}) {
   if (json.moduleId) {
     const env = deepCopy(options.env);
-    return <RenderModuleComponent json={json} options={{...options, env, _isModuleCom: true,}}/>
+    return <RenderModuleComponent json={json} style={style} options={{...options, env, _isModuleCom: true,}}/>
   }
   return (
     <Main json={json} options={options} style={style} className={className} from={"scene"}/>
