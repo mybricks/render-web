@@ -305,7 +305,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
             .map((controller) => {
               const com = scene.coms[controller];
               const ControllerCode =
-                com.def.namespace === "mybricks.core-comlib.module"
+                com.def.namespace === "mybricks.core-comlib.module" ||
+                com.def.namespace.startsWith("mybricks.harmony.module.")
                   ? "ModuleController()"
                   : "Controller()";
               return `/** ${com.title} */\ncontroller_${com.id} = ${ControllerCode}`;

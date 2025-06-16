@@ -41,10 +41,28 @@ const getHmFlexParams = (style: Style) => {
 };
 
 const getHmWidth = (style: Style) => {
+  if (style.widthFull) {
+    if (style.layout !== "smart") {
+      return `.width("100%")`;
+    }
+    return `.width("auto")`;
+  } else if (style.widthAuto) {
+    return `.width("auto")`;
+  }
+
   return "width" in style ? `.width("${style.width}")` : "";
 };
 
 const getHmHeight = (style: Style) => {
+  if (style.heightFull) {
+    if (style.layout !== "smart") {
+      return `.height("100%")`;
+    }
+    return `.height("auto")`;
+  } else if (style.heightAuto) {
+    return `.height("auto")`;
+  }
+
   return "height" in style ? `.height("${style.height}")` : "";
 };
 
@@ -103,7 +121,7 @@ interface GetHmUiParams {
  * 默认用Flex布局
  */
 const getHmUi = (params: GetHmUiParams) => {
-  const { style, children, extraFlex } = params;
+  const { style, children, extraFlex = "" } = params;
   const hmFlexParams = getHmFlexParams(style);
 
   return `Flex({

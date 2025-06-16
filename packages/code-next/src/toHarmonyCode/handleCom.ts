@@ -182,7 +182,8 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             .map((controller) => {
               const com = scene.coms[controller];
               const ControllerCode =
-                com.def.namespace === "mybricks.core-comlib.module"
+                com.def.namespace === "mybricks.core-comlib.module" ||
+                com.def.namespace.startsWith("mybricks.harmony.module.")
                   ? "ModuleController()"
                   : "Controller()";
               return `/** ${com.title} */\ncontroller_${com.id} = ${ControllerCode}`;
@@ -371,18 +372,20 @@ export const handleProcess = (
     if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
       // frameoutput没有def
       // 模块特殊处理，没有输出，调用api.open
-      const { componentName, dependencyImport } =
-        config.getComponentMetaByNamespace(props.meta.def.namespace, {
-          type: "js",
-        });
+      if (props.componentType === "js") {
+        const { componentName, dependencyImport } =
+          config.getComponentMetaByNamespace(props.meta.def.namespace, {
+            type: "js",
+          });
 
-      config.addParentDependencyImport(dependencyImport);
-      if (code) {
-        // 换行
-        code += "\n";
+        config.addParentDependencyImport(dependencyImport);
+        if (code) {
+          // 换行
+          code += "\n";
+        }
+        code += `${componentName}.${props.id}(${nextValue})`;
+        return;
       }
-      code += `${componentName}.${props.id}(${nextValue})`;
-      return;
     }
 
     const isSameScope = checkIsSameScope(event, props);
