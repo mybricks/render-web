@@ -98,6 +98,11 @@ export interface Element {
      * 是否x轴居中
      */
     xCenter?: boolean;
+
+    /**
+     * 是否y轴居中【目前没有这个配置】
+     */
+    yCenter?: boolean;
   };
   /**
    * 子组件，如果组件被分为一组

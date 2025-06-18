@@ -318,28 +318,150 @@ export function columnFlexLayout(element: Element, layoutConfig: LayoutConfig) {
   const { elements, style: elementStyle } = element;
   // 找到第一个下对齐元素
   const bottomIndex = elements.sort((p, c) => p.style.top - c.style.top).findIndex((element) => isNumber(element.style.bottom));
+  // 找到居中（yCenter）的元素
+  const yCenterIndex = elements.findIndex((element) => element.style.yCenter);
   const { style: layoutStyle } = layoutConfig;
-  console.log(bottomIndex, "bottomIndex")
-  if (bottomIndex !== -1) {
-    log("处理居下的情况 🔥🔥🔥🔥🔥")
+
+  if (yCenterIndex !== -1) {
+    console.log("联系开发者支持y轴居中能力")
+  } else if (bottomIndex !== -1) {
+    // 有居下元素
+    // 居上的元素
+    const topElements = elements.slice(0, bottomIndex);
+    // 居下的元素
+    const bottomElements = elements.slice(bottomIndex);
+    // 最后一个元素
+    const layoutStyleBottom = layoutStyle.height + layoutStyle.top
+
+
+    if (!topElements.length) {
+      console.log("整体居下")
+    } else if (bottomIndex !== -1) {
+      // 有上有下
+      // 第一个元素居上距离
+      // 上侧是否有填充
+      let hasTopHeightFull = false
+      // 上侧高度
+      let topHeight = 0
+      let topStyle: Style = {
+        display: 'flex',
+        flexDirection: 'column',
+        flexWrap: "wrap",
+      }
+
+      // 遍历计算top值
+      topElements.forEach((element, index) => {
+        const elementStyle = element.style
+        if (elementStyle.heightFull) {
+          hasTopHeightFull = true
+        }
+        if (index === topElements.length - 1) {
+          topHeight = elementStyle.top + elementStyle.height
+        }
+      })
+
+      // 下侧是否有填充
+      let hasBottomHeightFull = false
+      // 下侧高度
+      let bottomHeight = 0
+      let bottomStyle: Style = {
+        display: 'flex',
+        flexDirection: 'column',
+        flexWrap: "wrap",
+      }
+      // 遍历计算bottom值
+      bottomElements.forEach((element, index) => {
+        const elementStyle = element.style
+        if (elementStyle.heightFull) {
+          hasBottomHeightFull = true
+        }
+        if (index === bottomElements.length - 1) {
+          bottomHeight = elementStyle.top + elementStyle.height - bottomElements[0].style.top
+        }
+      })
+
+      if (hasTopHeightFull && !hasBottomHeightFull) {
+        /** 上填充 下不填充 */
+        topStyle.flex = 1
+      } else if (!hasTopHeightFull && hasBottomHeightFull) {
+        /** 上不填充 下填充 */
+        bottomStyle.flex = 1
+      } else if (hasTopHeightFull && hasBottomHeightFull) {
+        /** 两边都填充 */
+        const gcd = findGCD([topHeight, bottomHeight])
+        topStyle.flex = topHeight / gcd;
+        bottomStyle.flex = bottomHeight / gcd;
+      }
+
+      const parentStyle: Style = {
+        display: 'flex',
+        flexDirection: 'column',
+        flexWrap: "wrap",
+        justifyContent: "space-between",
+        marginTop: elementStyle.top,
+        marginBottom: elementStyle.bottom,
+        height: "100%"
+      }
+
+      if (hasTopHeightFull || hasBottomHeightFull) {
+        // 任意一边有高度填充的话，需要设置纵向间距
+        parentStyle.rowGap = bottomElements[0].style.left - topHeight
+      }
+
+      return {
+        style: parentStyle,
+        elements: [
+          {
+            id: topElements[0].id,
+            // @ts-ignore
+            style: topStyle,
+            elements: calculateLayoutRelationship(topElements, {
+              // @ts-ignore
+              style: {
+                ...elementStyle,
+                top: 0, // 这里默认是0，通过元素自身的magrinTop来实现居上的间距
+                bottom: 0 // 这里默认是0，通过元素自身的magrinBottom来实现下的间距
+              },
+              startOnTop: true
+            })
+          },
+          {
+            id: bottomElements[0].id,
+            // @ts-ignore
+            style: bottomStyle,
+            elements: calculateLayoutRelationship(bottomElements, {
+              // @ts-ignore
+              style: {
+                ...elementStyle,
+                top: 0, // 这里默认是0，通过元素自身的magrinTop来实现居上的间距
+                bottom: 0 // 这里默认是0，通过元素自身的magrinBottom来实现居下的间距
+              },
+              startOnBottom: true
+            })
+          }
+        ]
+      }
+    }
+
+    // 右就是下，左就是上,
+    // width - height, 
+    // left - top, 
+    // right - bottom
   } else {
     // 没有居下，全局居上
-    log("elementStyle.top: ", elementStyle.top)
     return {
       style: {
         display: 'flex',
         flexDirection: 'column',
-        flexWrap: 'wrap',
+        // flexWrap: 'wrap', // 相同方向去除换行
         marginTop: elementStyle.top
       },
       elements: calculateLayoutRelationship(elements, {
         // @ts-ignore
         style: {
           ...elementStyle,
-          // left: 0, // 这里默认是0，通过元素自身的magrinLeft来实现居左的间距
-          // right: 0 // 这里默认是0，通过元素自身的magrinRight来实现居右的间距
-          top: 0,
-          bottom: 0
+          top: 0, // 这里默认是0，通过元素自身的magrinTop来实现居上的间距
+          bottom: 0 // 这里默认是0，通过元素自身的magrinBottom来实现居下的间距
         },
         startOnTop: true
       })

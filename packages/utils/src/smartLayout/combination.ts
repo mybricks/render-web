@@ -187,18 +187,10 @@ export function calculateLayoutRelationship(elements: Elements, layoutConfig: La
         } else if (element.style.flexDirection === "column") {
           // log("下一步是处理这块逻辑")
           // 纵向排列
+          // 居下实现，放开下方注释
           // const { style: parentStyle, elements } = columnFlexLayout(element, layoutConfig)
           // element.elements = elements
           // finalStyle = parentStyle
-          // element.elements = calculateLayoutRelationship(element.elements, {
-          //   // @ts-ignore
-          //   style: {
-          //     ...element.style,
-          //     top: 0,
-          //     bottom: 0,
-          //   },
-          //   startOnTop: true
-          // })
         } else {
           // element.elements = calculateLayoutRelationship(element.elements, {
           //   // @ts-ignore
