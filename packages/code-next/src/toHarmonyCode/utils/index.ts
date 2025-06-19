@@ -282,7 +282,7 @@ export const convertHarmonyFlex = (style: Style, config: { child: string }) => {
     alignItems: ${alignItems},
   }) {
     ${config.child}
-  }` +
+  }.flexShrink(0)` +
     convertHarmonyWidth(hmStyle) +
     convertHarmonyHeight(hmStyle) +
     convertHarmonyMargin(hmStyle) +

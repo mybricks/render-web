@@ -131,7 +131,7 @@ const getHmUi = (params: GetHmUiParams) => {
     ${extraFlex}
   }) {
     ${children}
-  }${getHmWidth(style)}${getHmHeight(style)}${getHmPadding(style)}${getHmMargin(style)}`;
+  }.flexShrink(0)${getHmWidth(style)}${getHmHeight(style)}${getHmPadding(style)}${getHmMargin(style)}`;
 };
 
 export { getHmUi };
