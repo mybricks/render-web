@@ -207,6 +207,11 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         struct ${scopeSlotComponentName} {
           @Param @Require params: MyBricks.SlotParams
           ${Array.from(consumers)
+            .filter(
+              // [TODO] 过滤同名，下一版将consumers改成字符串列表
+              (consumer, index, consumers) =>
+                index === consumers.findIndex((t) => t.name === consumer.name),
+            )
             .map((provider) => {
               return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
             })
