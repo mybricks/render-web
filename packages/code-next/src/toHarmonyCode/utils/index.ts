@@ -210,6 +210,13 @@ const IGNORE_COMPONENT_ROOT_STYLE_KEYS = new Set([
 
 const INCLUDE_ROOT_STYLE_TYPES = new Set(["string", "number"]);
 
+const REPLACE_PX_KEYS = new Set([
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+]);
+
 /** 组件样式转换(风格化、root根节点) */
 export const convertComponentStyle = (style: Style) => {
   const resultStyle: Record<string, string | Record<string, string | number>> =
@@ -227,7 +234,16 @@ export const convertComponentStyle = (style: Style) => {
           css: Record<string, string | number>;
           selector: string;
         }) => {
-          resultStyle[selector] = css;
+          resultStyle[selector] = Object.entries(css).reduce(
+            (css, [key, value]) => {
+              if (REPLACE_PX_KEYS.has(key) && typeof value === "string") {
+                css[key] = value.replace("px", "");
+              }
+
+              return css;
+            },
+            css,
+          );
         },
       );
     } else {

@@ -122,10 +122,10 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         : getHmUi({
             style: props.style,
             children: uiCode,
-            extraFlex: `wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
+            extraFlex: `wrap: this.params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
             space: {
-              main: LengthMetrics.vp(params.style?.rowGap || 0),
-              cross: LengthMetrics.vp(params.style?.columnGap || 0)
+              main: LengthMetrics.vp(this.params.style?.rowGap || 0),
+              cross: LengthMetrics.vp(this.params.style?.columnGap || 0)
             }`,
           }),
       // ui: !props.style.layout
