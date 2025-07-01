@@ -255,7 +255,7 @@ function RenderCom({
   const [, setShow] = useState(false)
 
   useMemo(() => {
-    const { handlePxToVw, debug, disableStyleInjection, rootId, stylization } = options
+    const { handlePxToVw, debug, disableStyleInjection, rootId, stylization, _isNestCom } = options
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
     // const styleId = rootId ? `${rootId}-${id}` : id;
     // const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${id}` : `${rootId}-${id}`) : (scopeId ? `${scopeId}-${id}` : id)
@@ -271,7 +271,7 @@ function RenderCom({
 
       if (Array.isArray(styleAry)) {
         // stylization.setStyle(id, styleAry);
-        stylization.setStyle(styleId, styleAry, true, true);
+        stylization.setStyle(styleId, styleAry, true, _isNestCom ? false : true);
         // const root = getStylesheetMountNode();
         // const styleTag = document.createElement('style')
         // let innerText = ''

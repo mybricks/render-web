@@ -259,14 +259,26 @@ class Context {
     }
     if (!env.renderCom) {
       env.renderCom = (json: any, options2: any) => {
+        const rootId1 = options.rootId
+        const rootId2 = options2.rootId
+        let rootId = rootId1 || rootId2;
+        if (rootId1 && rootId2) {
+          rootId = rootId1 + '_' + rootId2
+        }
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, ...options2, _isNestedRender: true, _isNestCom: true, _context: this })
+        return render(json, { ...options, ...options2, rootId, _isNestedRender: true, _isNestCom: true, _context: this })
       }
     } else {
       const renderCom = env.renderCom
       env.renderCom = (json: any, options2: any) => {
+        const rootId1 = options.rootId
+        const rootId2 = options2.rootId
+        let rootId = rootId1 || rootId2;
+        if (rootId1 && rootId2) {
+          rootId = rootId1 + '_' + rootId2
+        }
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderCom(json, { ...options, ...options2, _isNestedRender: true, _isNestCom: true, _context: this })
+        return renderCom(json, { ...options, ...options2, rootId, _isNestedRender: true, _isNestCom: true, _context: this })
       }
     }
     const body = document.body
