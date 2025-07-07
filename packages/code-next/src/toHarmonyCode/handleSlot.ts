@@ -97,7 +97,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           return pre;
         }, {});
       },
-      addParentDependencyImport: importManager.addImport.bind(importManager),
+      addParentDependencyImport: addDependencyImport,
       addConsumer: (provider: { name: string; class: string }) => {
         consumers.add(provider);
       },
