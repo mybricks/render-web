@@ -447,8 +447,10 @@ function transformSlotComAry(
       Reflect.deleteProperty(slot.style, "height")
     }
 
-    /** 是纵向排列 */
-    const isFlexColumn = slot.style.layout === "flex-column";
+    /** 
+     * 没有layout属性，或者layout属性为flex-column，认为是纵向排版
+     */
+    const isFlexColumn = !slot.style.layout || (slot.style.layout === "flex-column");
 
     /** 填充具体像素值 */
     const flexPX: number[] = [];
