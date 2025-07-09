@@ -268,6 +268,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
             `aboutToAppear(): void {
+            /** 页面参数 */
             const pageParams = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
           );
         }

@@ -304,6 +304,7 @@ const handleProcess = (
         // 调用信息
         const invocation = {
           id: con.to.id,
+          title: con.to.title,
           meta: {
             parentComId: undefined,
             frameId: undefined,
@@ -373,6 +374,7 @@ const handleProcess = (
     const invocation = {
       type: "exe", // 调用类型
       id: con.to.id, // 调用输入id
+      title: con.to.title, // 调用输入标题
       meta: comInfo, // 组件信息
       componentType, // 组件类型
       category, // 该类型下分类

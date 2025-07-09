@@ -358,7 +358,8 @@ export const handleProcess = (
       // JS计算特殊逻辑，运行时是内置实现的
       const componentNameWithId = `jsCode_${meta.id}`;
 
-      code += `const ${componentNameWithId} = codes.${meta.id}({
+      code += `/** ${meta.title} */
+      const ${componentNameWithId} = codes.${meta.id}({
         data: ${JSON.stringify({ runImmediate: !!props.data.runImmediate })},
         inputs: ${JSON.stringify(props.inputs)},
         outputs: ${JSON.stringify(props.outputs)},
@@ -376,7 +377,8 @@ export const handleProcess = (
 
     const componentNameWithId = `${componentName}_${meta.id}`;
 
-    code += `const ${componentNameWithId} = ${componentName}({${Object.entries(
+    code += `/** ${meta.title} */
+    const ${componentNameWithId} = ${componentName}({${Object.entries(
       props,
     ).reduce((pre, [key, value]) => {
       if (key === "data") {
@@ -405,7 +407,8 @@ export const handleProcess = (
           // 换行
           code += "\n";
         }
-        code += `${componentName}.${props.id}(${nextValue})`;
+        code += `/** 打开模块 */
+        ${componentName}.${props.id}(${nextValue})`;
         return;
       }
     }
@@ -432,11 +435,13 @@ export const handleProcess = (
 
         const _sceneId = props.meta.model.data._sceneId;
 
-        code += `${nextCode}page.open("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
+        code += `/** 打开 ${props.meta.title} */
+        ${nextCode}page.open("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
         // code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
       } else if (category === "normal") {
         const componentNameWithId = getComponentNameWithId(props, config);
-        code += `${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+        code += `/** 调用 ${props.meta.title} */
+        ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
         // code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else if (category === "frameOutput") {
         // [TODO] 判断是弹窗输出还是业务模块输出
@@ -447,7 +452,8 @@ export const handleProcess = (
         });
         const scene = config.getCurrentScene();
         const pinProxy = scene.pinProxies[`${props.meta.id}-${props.id}`];
-        code += `${nextCode}api.emit("${pinProxy.pinId}", ${nextValue})`;
+        code += `/** 调用模块注册回调 ${props.meta.title} */
+        ${nextCode}api.emit("${pinProxy.pinId}", ${nextValue})`;
       } else if (category === "var") {
         if (props.meta.global) {
           config.addParentDependencyImport({
@@ -455,14 +461,16 @@ export const handleProcess = (
             dependencyNames: ["globalVars"],
             importType: "named",
           });
-          code += `${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
+          code += `/** ${props.title} 全局变量 ${props.meta.title} */
+          ${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
         } else {
           const currentProvider = getCurrentProvider(
             { isSameScope, props },
             config,
           );
 
-          code += `${nextCode}this.${currentProvider.name}_Vars.${props.meta.title}.${props.id}(${nextValue})`;
+          code += `/** ${props.title} 变量 ${props.meta.title} */
+          ${nextCode}this.${currentProvider.name}_Vars.${props.meta.title}.${props.id}(${nextValue})`;
         }
       } else if (category === "fx") {
         if (props.meta.global) {
@@ -471,14 +479,16 @@ export const handleProcess = (
             dependencyNames: ["globalFxs"],
             importType: "named",
           });
-          code += `${nextCode}globalFxs.${props.meta.ioProxy.id}(${nextValue})`;
+          code += `/** 调用全局Fx ${props.meta.title} */
+          ${nextCode}globalFxs.${props.meta.ioProxy.id}(${nextValue})`;
         } else {
           const currentProvider = getCurrentProvider(
             { isSameScope, props },
             config,
           );
 
-          code += `${nextCode}this.${currentProvider.name}_Fxs.${props.meta.ioProxy.id}(${nextValue})`;
+          code += `/** 调用Fx ${props.meta.title} */
+          ${nextCode}this.${currentProvider.name}_Fxs.${props.meta.ioProxy.id}(${nextValue})`;
         }
       } else {
         console.log("[出码] 其它类型js节点");
@@ -493,13 +503,14 @@ export const handleProcess = (
           importType: "named",
         });
         const id = props.meta.id;
-
-        code += `page.${props.id}("${config.getPageId?.(id) || id}", ${nextValue})`;
+        code += `/** 调用页面输出 ${props.title} */
+        page.${props.id}("${config.getPageId?.(id) || id}", ${nextValue})`;
         return;
       }
 
       if (props.type === "frameOutput") {
-        code += `this.params.outputs.${props.id}(${nextValue})`;
+        code += `/** 调用插槽输出 ${props.title} */
+        this.params.outputs.${props.id}(${nextValue})`;
         return;
       }
 
@@ -529,7 +540,8 @@ export const handleProcess = (
       const usedControllers = config.getUsedControllers();
       usedControllers.add(props.meta.id);
 
-      code += `${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
+      code += `/** 调用 ${props.meta.title} 的 ${props.title} */
+      ${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
     }
   });
   if (event.type === "fx") {
