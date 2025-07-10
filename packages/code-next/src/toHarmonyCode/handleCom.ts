@@ -273,6 +273,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       ui: `/** ${meta.title} */
       ${componentName}({
         uid: "${meta.id}",
+        ${config.verbose ? `title: "${meta.title}",` : ""}
         controller: this.${currentProvider.name}.controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},
@@ -298,6 +299,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         ui: `/** ${meta.title} */
         ${componentName}({
           uid: "${meta.id}",
+          ${config.verbose ? `title: "${meta.title}",` : ""}
           controller: this.${currentProvider.name}.controller_${meta.id},
           ${configs ? `data: ${JSON.stringify(configs)},` : ""}
         })`,
@@ -311,6 +313,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       ui: `/** ${meta.title} */
       ${componentName}({
         uid: "${meta.id}",
+        ${config.verbose ? `title: "${meta.title}",` : ""}
         controller: this.${currentProvider.name}.controller_${meta.id},
         data: ${JSON.stringify(props.data)},
         styles: ${JSON.stringify(resultStyle)},${
@@ -360,6 +363,7 @@ export const handleProcess = (
 
       code += `/** ${meta.title} */
       const ${componentNameWithId} = codes.${meta.id}({
+        ${config.verbose ? `title: "${meta.title}",` : ""}
         data: ${JSON.stringify({ runImmediate: !!props.data.runImmediate })},
         inputs: ${JSON.stringify(props.inputs)},
         outputs: ${JSON.stringify(props.outputs)},
@@ -380,7 +384,10 @@ export const handleProcess = (
     code += `/** ${meta.title} */
     const ${componentNameWithId} = ${componentName}({${Object.entries(
       props,
-    ).reduce((pre, [key, value]) => {
+    ).reduce((pre, [key, value], index) => {
+      if (!index && config.verbose) {
+        pre += `title: "${meta.title}",`;
+      }
       if (key === "data") {
         return pre + `${key}: ${JSON.stringify(value)},`;
       }

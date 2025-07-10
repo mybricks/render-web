@@ -21,6 +21,11 @@ export interface ToSpaCodeConfig {
   };
   getComponentPackageName: (props?: any) => string;
   getPageId?: (id: string) => string;
+  /**
+   * 写入更多详细信息
+   * 当运行时打印IO日志时，必须开启
+   */
+  verbose?: boolean;
 }
 
 /** 返回结果 */

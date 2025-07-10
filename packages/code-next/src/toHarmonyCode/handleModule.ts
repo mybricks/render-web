@@ -37,6 +37,7 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
 
   return `${name}({
     uid: "${module.meta.id}",
+    ${config.verbose ? `title: "${module.meta.title}",` : ""}
     ${configs ? `data: ${JSON.stringify(configs)},` : ""}
     ${usedControllers.has(module.meta.id) ? `controller: this.${currentProvider.name}.controller_${module.meta.id},` : ""}
   })`;
