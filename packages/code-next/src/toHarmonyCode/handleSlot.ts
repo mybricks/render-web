@@ -331,6 +331,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         @ComponentV2
         ${isModule ? "export default " : ""}struct Index {
           ${isModule ? "@Param @Require uid: string;" : ""}
+          ${isModule && config.verbose ? "@Param @Require title: string;" : ""}
           ${isModule ? "@Param data: MyBricks.Data = {}" : ""}
           ${isModule ? "@Param controller: MyBricks.ModuleController = ModuleController()" : ""}
           ${providerCode}
