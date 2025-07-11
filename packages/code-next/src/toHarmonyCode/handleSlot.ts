@@ -103,8 +103,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       },
     });
 
-    // const hmStyle = convertHMFlexStyle(props.style);
-
     if (props.style.layout) {
       importManager.addImport({
         dependencyNames: ["LengthMetrics"],
@@ -356,8 +354,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         name: getName(ui.meta.title),
       });
     }
-
-    // const hmStyle = convertHMFlexStyle(props.style);
 
     if (props.style.layout) {
       addDependencyImport({

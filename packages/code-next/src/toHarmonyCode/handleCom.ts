@@ -88,10 +88,18 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         if (slot.props.style.layout !== "smart") {
           // slot.props.style.width = "100%";
           if (slot.props.style.layout === "flex-column") {
-            if (com.props.style.width === "auto") {
-              slot.props.style.width = "100%";
+            if (com.meta.def.namespace === "mybricks.harmony.containerBasic") {
+              if (com.props.style.width === "100%") {
+                slot.props.style.width = "100%";
+              } else {
+                slot.props.style.width = "auto";
+              }
             } else {
-              slot.props.style.width = "auto";
+              if (com.props.style.width === "auto") {
+                slot.props.style.width = "100%";
+              } else {
+                slot.props.style.width = "auto";
+              }
             }
           } else {
             slot.props.style.width = "100%";
@@ -107,10 +115,14 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         // slot.props.style.height = "100%";
         if (slot.props.style.layout !== "smart") {
           if (slot.props.style.layout === "flex-column") {
-            if (typeof com.props.style.height === "number") {
-              slot.props.style.height = "fit-content";
-            } else {
+            if (com.meta.def.namespace === "mybricks.harmony.containerRow") {
               slot.props.style.height = "auto";
+            } else {
+              if (typeof com.props.style.height === "number") {
+                slot.props.style.height = "fit-content";
+              } else {
+                slot.props.style.height = "auto";
+              }
             }
           } else {
             slot.props.style.height = "100%";
