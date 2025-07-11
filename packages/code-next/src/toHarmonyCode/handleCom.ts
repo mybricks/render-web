@@ -89,7 +89,10 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           // slot.props.style.width = "100%";
           if (slot.props.style.layout === "flex-column") {
             if (com.meta.def.namespace === "mybricks.harmony.containerBasic") {
-              if (com.props.style.width === "100%") {
+              if (
+                com.props.style.width === "100%" ||
+                typeof com.props.style.width === "number"
+              ) {
                 slot.props.style.width = "100%";
               } else {
                 slot.props.style.width = "auto";
@@ -119,7 +122,13 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
               slot.props.style.height = "auto";
             } else {
               if (typeof com.props.style.height === "number") {
-                slot.props.style.height = "fit-content";
+                if (
+                  com.meta.def.namespace === "mybricks.harmony.containerBasic"
+                ) {
+                  slot.props.style.height = "100%";
+                } else {
+                  slot.props.style.height = "fit-content";
+                }
               } else {
                 slot.props.style.height = "auto";
               }
