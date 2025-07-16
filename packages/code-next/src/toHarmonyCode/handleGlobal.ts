@@ -57,7 +57,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       ${res}
     }]\n`;
 
-    globalVarsInitCode += `${com.title}: MyBricks.Any = createVariable(...${constantName})\n`;
+    globalVarsInitCode += `${com.title}: MyBricks.Controller = createVariable(...${constantName})\n`;
     globalVarsResetCode += `this.${com.title} = createVariable(...${constantName})\n`;
   });
 

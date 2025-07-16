@@ -1,6 +1,6 @@
 {
   "name": "@mybricks/to-code-react",
-  "version": "0.0.5-next.71",
+  "version": "0.0.5-next.72",
   "description": "",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",

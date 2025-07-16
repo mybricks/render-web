@@ -267,7 +267,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
             "aboutToAppear(): void {",
             `aboutToAppear(): void {
             /** 页面参数 */
-            const pageParams = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
+            const pageParams: MyBricks.Any = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
           );
         }
       }
@@ -478,7 +478,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
       },
     });
 
-    varsDeclarationCode += `${varEvent.title}: MyBricks.Any = createVariable()`;
+    varsDeclarationCode += `${varEvent.title}: MyBricks.Controller = createVariable()`;
 
     varsImplementCode += `${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {
       ${code}
