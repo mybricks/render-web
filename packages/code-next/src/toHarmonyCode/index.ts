@@ -20,6 +20,7 @@ export interface ToSpaCodeConfig {
     componentName: string;
   };
   getComponentPackageName: (props?: any) => string;
+  getUtilsPackageName: () => string;
   getPageId?: (id: string) => string;
   /**
    * 写入更多详细信息
@@ -54,7 +55,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         };
       },
       getComponentPackageName: () => {
-        return "./_proxy/Index";
+        return config.getComponentPackageName({ type: "extensionEvent" });
       },
       addParentDependencyImport: addDependencyImport,
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,

@@ -51,41 +51,18 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,
     } as any);
 
-    // [TODO] 外部处理或传入
-    // globalImportManager.addImport({
-    //   packageName: "../utils/types",
-    //   dependencyNames: ["MyBricks"],
-    //   importType: "named",
-    // });
-    // globalImportManager.addImport({
-    //   packageName: "../utils/mybricks",
-    //   dependencyNames: ["createVariable"],
-    //   importType: "named",
-    // });
-
     const constantName = `globalVar${firstCharToUpperCase(com.title)}Params`;
 
     globalVarsParamsCode += `const ${constantName} = [${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {
       ${res}
     }]\n`;
 
-    globalVarsInitCode += `${com.title} = createVariable(...${constantName})\n`;
+    globalVarsInitCode += `${com.title}: MyBricks.Any = createVariable(...${constantName})\n`;
     globalVarsResetCode += `this.${com.title} = createVariable(...${constantName})\n`;
   });
 
   let globalFxsInitCode = "";
   globalFxs.forEach((event) => {
-    // [TODO] 外部处理或传入
-    // globalImportManager.addImport({
-    //   packageName: "../utils/types",
-    //   dependencyNames: ["MyBricks"],
-    //   importType: "named",
-    // });
-    // globalImportManager.addImport({
-    //   packageName: "../utils/mybricks",
-    //   dependencyNames: ["createFx"],
-    //   importType: "named",
-    // });
     const currentScene = tojson.global.fxFrames.find(
       (fxFrame) => fxFrame.id === event.frameId,
     );
@@ -138,7 +115,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       : "";
 
     globalFxsInitCode += `/** ${event.title} */
-    ${event.frameId} = createFx((${values}) => {
+    ${event.frameId}: MyBricks.Any = createFx((${values}) => {
       ${returnInterface}
       ${res} ${returnInterface ? "as Return" : ""}
     })

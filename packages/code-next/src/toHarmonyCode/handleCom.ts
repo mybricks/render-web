@@ -485,7 +485,7 @@ export const handleProcess = (
       } else if (category === "var") {
         if (props.meta.global) {
           config.addParentDependencyImport({
-            packageName: config.getComponentPackageName(props),
+            packageName: config.getComponentPackageName(),
             dependencyNames: ["globalVars"],
             importType: "named",
           });
@@ -503,7 +503,7 @@ export const handleProcess = (
       } else if (category === "fx") {
         if (props.meta.global) {
           config.addParentDependencyImport({
-            packageName: config.getComponentPackageName(props),
+            packageName: config.getComponentPackageName(),
             dependencyNames: ["globalFxs"],
             importType: "named",
           });

@@ -227,7 +227,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       if (isModule) {
         addDependencyImport({
           dependencyNames: ["ModuleController"],
-          packageName: "../_proxy/Index",
+          packageName: config.getUtilsPackageName(),
           importType: "named",
         });
       }
@@ -465,7 +465,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
     }
 
     config.addParentDependencyImport({
-      packageName: config.getComponentPackageName(),
+      packageName: config.getUtilsPackageName(),
       dependencyNames: ["createVariable"],
       importType: "named",
     });
@@ -478,7 +478,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
       },
     });
 
-    varsDeclarationCode += `${varEvent.title} = createVariable()`;
+    varsDeclarationCode += `${varEvent.title}: MyBricks.Any = createVariable()`;
 
     varsImplementCode += `${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {
       ${code}
@@ -525,7 +525,7 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
     }
 
     config.addParentDependencyImport({
-      packageName: config.getComponentPackageName(),
+      packageName: config.getUtilsPackageName(),
       dependencyNames: ["createFx"],
       importType: "named",
     });
@@ -568,7 +568,7 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
       : "";
 
     fxsDeclarationCode += `/** ${fxEvent.title} */
-    ${fxEvent.frameId} = createFx()
+    ${fxEvent.frameId}: MyBricks.Any = createFx()
     `;
     fxsImplementCode += `/** ${fxEvent.title} */
       ${fxEvent.frameId}: createFx((${values}) => {
