@@ -537,6 +537,11 @@ export const handleProcess = (
       }
 
       if (props.type === "frameOutput") {
+        if (props.category === "extension") {
+          code += `/** 调用api.emit ${props.title} */
+          this.emit("${props.id}", ${nextValue})`;
+          return;
+        }
         code += `/** 调用插槽输出 ${props.title} */
         this.params.outputs.${props.id}(${nextValue})`;
         return;
