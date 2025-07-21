@@ -1196,9 +1196,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     function _notifyBindings(val) {
       if (com.global) {
-        scenesOperate?.var.changed(comId, val)
+        scenesOperate?.var.changed({ com, value: val })
       } else {
-        _varBinding.changed(comId, val)
+        _varBinding.changed({ com, value: val })
       }
     }
 
@@ -2053,6 +2053,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 /** 变量相关操作 */
 export class Var {
   _varChangeCallBack = new Map<string, Set<(value: string) => void>>();
+  /** 基于变量组件的title存储当前值 */
+  _valuesTitleMap = new Map<string, any>();
   
   /**
    * 注册全局变量的变更监听
@@ -2081,15 +2083,22 @@ export class Var {
 
   /**
    * 全局变量值变更
-   * @param {string} id - 全局变量的ID
+   * @param {string} com - 全局变量组件信息
    * @param {string} value - 全局变量的当前变更的值
    */
-  changed(id: string, value: any) {
+  changed(params: any) {
+    const { com, value } = params;
+    const id = com.id;
+    this._valuesTitleMap.set(com.title, value);
     const callBack = this._varChangeCallBack.get(id)
     if (callBack) {
       callBack.forEach((cb) => {
         cb(value)
       })
     }
+  }
+
+  getValueByTitle(title: string) {
+    return this._valuesTitleMap.get(title);
   }
 }

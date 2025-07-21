@@ -76,6 +76,23 @@ const RenderModuleComponent = ({ json, options, style = {} }: any) => {
       modules = new Modules(jsonModules);
     }
 
+    const callConnector = options.env.callConnector;
+
+    if (callConnector) {
+      options.env.callConnector = (connector, params, config) => {
+        return callConnector(connector, params, config, {
+          globalVars: new Proxy(
+            {},
+            {
+              get(_, key) {
+                return globalVariables[moduleId].getValueByTitle(key);
+              },
+            },
+          ),
+        });
+      };
+    }
+
     return {
       env: options.env,
       modules,
