@@ -10,6 +10,8 @@ export interface ToSpaCodeConfig {
     namespace: string,
     config: {
       type: "js" | "ui";
+      // [TODO] 来源，extension 或 page
+      source?: string;
     },
   ) => {
     dependencyImport: {
@@ -33,7 +35,14 @@ export interface ToSpaCodeConfig {
 export type Result = Array<{
   content: string;
   importManager: ImportManager;
-  type: "normal" | "popup" | "module" | "extensionEvent" | "global";
+  type:
+    | "normal"
+    | "popup"
+    | "module"
+    | "extensionEvent"
+    | "global"
+    | "extension-config"
+    | "extension-api";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
   name: string;
 }>;
@@ -46,26 +55,40 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const importManager = new ImportManager();
   const addDependencyImport = importManager.addImport.bind(importManager);
 
-  extensionEvents.forEach((event) => {
-    const res = handleProcess(event, {
-      ...config,
-      getParams: () => {
-        return {
-          open: "value",
-        };
-      },
-      getComponentPackageName: () => {
-        return config.getComponentPackageName({ type: "extensionEvent" });
-      },
-      addParentDependencyImport: addDependencyImport,
-      getComponentMetaByNamespace: config.getComponentMetaByNamespace,
-    } as any);
+  extensionEvents.forEach((extension) => {
+    const { meta, events } = extension;
+    events.forEach((event) => {
+      const params =
+        event.type === "extension-config"
+          ? event.paramPins.reduce<Record<string, string>>((pre, cur) => {
+              pre[cur.id] = `value.${cur.id}`;
+              return pre;
+            }, {})
+          : { open: "value" };
+      const res = handleProcess(event, {
+        ...config,
+        getParams: () => {
+          return params;
+        },
+        getComponentPackageName: () => {
+          return config.getComponentPackageName({ type: "extensionEvent" });
+        },
+        addParentDependencyImport: addDependencyImport,
+        getComponentMetaByNamespace: ((namespace, options) => {
+          return config.getComponentMetaByNamespace(namespace, {
+            ...options,
+            source: "extensionEvent",
+          });
+        }) as typeof config.getComponentMetaByNamespace,
+      } as any);
 
-    result.push({
-      content: res,
-      importManager,
-      type: "extensionEvent",
-      name: "extensionEvent",
+      result.push({
+        content: res,
+        importManager,
+        meta,
+        type: event.type,
+        name: event.title,
+      });
     });
   });
 

@@ -24,7 +24,7 @@ const handleDiagram = (
   if (
     diagram.starter.type === "frame" &&
     diagram.starter.frameId === config.getSceneId() &&
-    frameType !== "globalFx"
+    !["globalFx", "extension-api", "extension-config"].includes(frameType)
   ) {
     const { paramPins, nodesDeclaration, nodesInvocation } =
       handleDiagramWidthMultipleInputs(diagram, config);
@@ -41,7 +41,24 @@ const handleDiagram = (
     };
   } else if (
     diagram.starter.type === "frame" &&
-    (frameType === "fx" || frameType === "globalFx")
+    ["extension-api", "extension-config"].includes(frameType)
+  ) {
+    const { paramPins, nodesDeclaration, nodesInvocation } =
+      handleDiagramWidthMultipleInputs(diagram, config);
+    return {
+      type: frameType, // 插槽类型
+      category: "effect", // 插槽的声明周期
+      diagramId: id,
+      paramPins,
+      title: diagram.title,
+      process: {
+        nodesDeclaration,
+        nodesInvocation,
+      },
+    };
+  } else if (
+    diagram.starter.type === "frame" &&
+    ["fx", "globalFx"].includes(frameType)
   ) {
     const { paramPins, nodesDeclaration, nodesInvocation, frameOutputs } =
       handleDiagramWidthMultipleInputs(diagram, config);
@@ -355,10 +372,12 @@ const handleProcess = (
     const nextMap: Record<string, DiagramCon[]> = {};
     config.getConAry().forEach((nextCon) => {
       if (
-        nextCon.from.parent.id === comInfo.id &&
-        (componentType === "js" && category !== "var"
-          ? true
-          : con.finishPinParentKey === nextCon.startPinParentKey)
+        (nextCon.from.parent.id === comInfo.id &&
+          componentType === "js" &&
+          (category !== "var"
+            ? true
+            : con.finishPinParentKey === nextCon.startPinParentKey)) ||
+        (category === "var" && nextCon.from.id === "changed") // 变量changed，变量的监听
       ) {
         if (!nextMap[nextCon.from.id]) {
           nextMap[nextCon.from.id] = [nextCon];
@@ -515,7 +534,10 @@ const handleProcess = (
               type: "node", // 来自节点返回
               id: paramId, // 返回的id
               meta: comInfo,
-              connectId: con.finishPinParentKey, // 单实例组件的连接，可能是undefined
+              connectId:
+                runType === "auto" // 全局变量自执行，补充connectId
+                  ? cons[0].startPinParentKey
+                  : con.finishPinParentKey, // 单实例组件的连接，可能是undefined
               componentType,
               category,
             };

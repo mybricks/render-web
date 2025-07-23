@@ -489,8 +489,14 @@ export const handleProcess = (
             dependencyNames: ["globalVars"],
             importType: "named",
           });
-          code += `/** ${props.title} 全局变量 ${props.meta.title} */
-          ${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
+          if (props.runType === "auto") {
+            // 变量自执行特殊处理
+            code += `/** ${props.title} 全局变量 ${props.meta.title} */
+            ${nextCode}globalVars.${props.meta.title}.changed()`;
+          } else {
+            code += `/** ${props.title} 全局变量 ${props.meta.title} */
+            ${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
+          }
         } else {
           const currentProvider = getCurrentProvider(
             { isSameScope, props },
@@ -537,6 +543,13 @@ export const handleProcess = (
       }
 
       if (props.type === "frameOutput") {
+        if (props.category === "extension-api") {
+          // extension-api卡片特殊处理
+          code += `/** 调用api回调 ${props.title} */
+          callBack.${props.id}(${nextValue});`;
+          return;
+        }
+
         if (props.category === "extension") {
           code += `/** 调用api.emit ${props.title} */
           this.emit("${props.id}", ${nextValue})`;

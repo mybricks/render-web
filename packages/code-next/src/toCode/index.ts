@@ -25,7 +25,7 @@ const toCode = (
 ): {
   scenes: Result;
   modules: Result;
-  extensionEvents: Result[0]["event"];
+  extensionEvents: Array<{ meta: Scene; events: Result[0]["event"] }>;
   globalFxs: Result[0]["event"];
   globalVars: Result[0]["event"];
 } => {
@@ -55,7 +55,7 @@ const toCode = (
 
   const extensionEvents = tojson.frames
     .filter((frame) => {
-      return frame.type === "extension";
+      return ["extension-config", "extension-api"].includes(frame.type);
     })
     .reduce(
       (pre, frame) => {
@@ -63,8 +63,9 @@ const toCode = (
           return fxFrame.id === frame.id;
         })!;
 
-        pre.push(
-          ...handleFrame(frame, {
+        pre.push({
+          meta: scene,
+          events: handleFrame(frame, {
             getScene: () => {
               return scene;
             },
@@ -85,11 +86,11 @@ const toCode = (
               return frameMap;
             },
           }),
-        );
+        });
 
         return pre;
       },
-      [] as Result[0]["event"],
+      [] as Array<{ meta: Scene; events: Result[0]["event"] }>,
     );
 
   const globalFxs = tojson.frames

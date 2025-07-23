@@ -177,7 +177,15 @@ export interface Frame {
    * mpa最外层才会有 root
    * 扩展的模块 extension
    */
-  type: "fx" | "com" | "global" | "globalFx" | "root" | "extension";
+  type:
+    | "fx"
+    | "com"
+    | "global"
+    | "globalFx"
+    | "root"
+    | "extension"
+    | "extension-config"
+    | "extension-api";
 }
 
 interface Global {
