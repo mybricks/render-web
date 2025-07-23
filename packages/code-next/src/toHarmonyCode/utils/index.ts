@@ -302,7 +302,8 @@ export const convertHarmonyFlex = (style: Style, config: { child: string }) => {
     convertHarmonyWidth(hmStyle) +
     convertHarmonyHeight(hmStyle) +
     convertHarmonyMargin(hmStyle) +
-    convertHarmonyPadding(hmStyle);
+    convertHarmonyPadding(hmStyle) +
+    convertHarmonyZIndex(hmStyle);
 
   return flex;
 };
@@ -367,10 +368,21 @@ const convertHarmonyWidth = (style: HmStyle) => {
   return code;
 };
 
+/** 转hm height代码 */
 const convertHarmonyHeight = (style: HmStyle) => {
   let code = "";
   if ("height" in style) {
     code = `.height("${style.height}")`;
+  }
+
+  return code;
+};
+
+/** 转hm zIndex代码 */
+const convertHarmonyZIndex = (style: HmStyle) => {
+  let code = "";
+  if ("zIndex" in style) {
+    code = `.zIndex(${style.zIndex})`;
   }
 
   return code;

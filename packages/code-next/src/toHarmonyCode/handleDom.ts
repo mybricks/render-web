@@ -45,11 +45,19 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
   });
 
   if (!props.style.width) {
-    props.style.width = "auto";
+    if (
+      props.style.display === "flex" &&
+      props.style.justifyContent !== "flex-end" // 单个组件又对齐，设置width(auto)导致Flex组件宽度没有撑开
+    ) {
+      props.style.width = "auto";
+    }
   }
   if (!props.style.height) {
     props.style.height = "auto";
   }
+
+  // 由于组件都有zIndex，同级Flex不设置一定被盖在下面
+  props.style.zIndex = getMaxZIndex(children);
 
   const ui = convertHarmonyFlex(props.style, {
     child: uiCode,
@@ -64,3 +72,10 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
 };
 
 export default handleDom;
+
+function getMaxZIndex(children: Dom["children"]) {
+  return children.reduce((max, child) => {
+    const zIndex = child.props.style.zIndex;
+    return typeof zIndex === "number" ? Math.max(max, zIndex) : max;
+  }, 1);
+}
