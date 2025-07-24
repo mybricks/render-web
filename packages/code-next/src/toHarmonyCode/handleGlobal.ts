@@ -45,7 +45,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
         if (props?.meta.global) {
           return "";
         }
-        return "./Index";
+        return "./index";
       },
       addParentDependencyImport: globalAddDependencyImport,
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,
@@ -85,7 +85,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
         if (props?.meta.global) {
           return "";
         }
-        return "./Index";
+        return "./index";
       },
       addParentDependencyImport: globalAddDependencyImport,
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,

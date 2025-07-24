@@ -3,8 +3,9 @@ import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
 import { ImportManager } from "./utils";
-import { handleProcess } from "./handleCom";
 import handleGlobal from "./handleGlobal";
+import handleExtension from "./handleExtension";
+
 export interface ToSpaCodeConfig {
   getComponentMetaByNamespace: (
     namespace: string,
@@ -52,45 +53,14 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const { scenes, extensionEvents, globalFxs, globalVars, modules } =
     toCode(tojson);
 
-  const importManager = new ImportManager();
-  const addDependencyImport = importManager.addImport.bind(importManager);
-
-  extensionEvents.forEach((extension) => {
-    const { meta, events } = extension;
-    events.forEach((event) => {
-      const params =
-        event.type === "extension-config"
-          ? event.paramPins.reduce<Record<string, string>>((pre, cur) => {
-              pre[cur.id] = `value.${cur.id}`;
-              return pre;
-            }, {})
-          : { open: "value" };
-      const res = handleProcess(event, {
-        ...config,
-        getParams: () => {
-          return params;
-        },
-        getComponentPackageName: () => {
-          return config.getComponentPackageName({ type: "extensionEvent" });
-        },
-        addParentDependencyImport: addDependencyImport,
-        getComponentMetaByNamespace: ((namespace, options) => {
-          return config.getComponentMetaByNamespace(namespace, {
-            ...options,
-            source: "extensionEvent",
-          });
-        }) as typeof config.getComponentMetaByNamespace,
-      } as any);
-
-      result.push({
-        content: res,
-        importManager,
-        meta,
-        type: event.type,
-        name: event.title,
-      });
-    });
-  });
+  result.push(
+    ...handleExtension(
+      {
+        extensionEvents,
+      },
+      config,
+    ),
+  );
 
   result.push(
     handleGlobal(

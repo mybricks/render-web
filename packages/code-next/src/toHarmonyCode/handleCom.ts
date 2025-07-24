@@ -421,25 +421,25 @@ export const handleProcess = (
     // 参数
     const nextValue = getNextValue(props, config);
 
-    if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
-      // frameoutput没有def
-      // 模块特殊处理，没有输出，调用api.open
-      if (props.componentType === "js") {
-        const { componentName, dependencyImport } =
-          config.getComponentMetaByNamespace(props.meta.def.namespace, {
-            type: "js",
-          });
+    // if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
+    //   // frameoutput没有def
+    //   // 模块特殊处理，没有输出，调用api.open
+    //   if (props.componentType === "js") {
+    //     const { componentName, dependencyImport } =
+    //       config.getComponentMetaByNamespace(props.meta.def.namespace, {
+    //         type: "js",
+    //       });
 
-        config.addParentDependencyImport(dependencyImport);
-        if (code) {
-          // 换行
-          code += "\n";
-        }
-        code += `/** 打开模块 */
-        ${componentName}.${props.id}(${nextValue})`;
-        return;
-      }
-    }
+    //     config.addParentDependencyImport(dependencyImport);
+    //     if (code) {
+    //       // 换行
+    //       code += "\n";
+    //     }
+    //     code += `/** 打开模块 */
+    //     ${componentName}.${props.id}(${nextValue})`;
+    //     return;
+    //   }
+    // }
 
     const isSameScope = checkIsSameScope(event, props);
     // 节点执行后的返回值（输出）
@@ -467,7 +467,16 @@ export const handleProcess = (
         ${nextCode}page.open("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
         // code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
       } else if (category === "normal") {
-        const componentNameWithId = getComponentNameWithId(props, config);
+        let componentNameWithId = getComponentNameWithId(props, config);
+        if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
+          const { componentName, dependencyImport } =
+            config.getComponentMetaByNamespace(props.meta.def.namespace, {
+              type: "js",
+            });
+
+          config.addParentDependencyImport(dependencyImport);
+          componentNameWithId = `${componentName}.${props.meta.title}`;
+        }
         code += `/** 调用 ${props.meta.title} */
         ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
         // code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
@@ -590,7 +599,7 @@ export const handleProcess = (
       ${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
     }
   });
-  if (event.type === "fx") {
+  if (["fx", "extension-api"].includes(event.type)) {
     const returnCode = Object.entries(event.frameOutputs)
       .map(([, { id, outputs }]: any) => {
         if (!outputs) {

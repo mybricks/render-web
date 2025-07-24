@@ -43,7 +43,7 @@ const handleDiagram = (
     diagram.starter.type === "frame" &&
     ["extension-api", "extension-config"].includes(frameType)
   ) {
-    const { paramPins, nodesDeclaration, nodesInvocation } =
+    const { paramPins, nodesDeclaration, nodesInvocation, frameOutputs } =
       handleDiagramWidthMultipleInputs(diagram, config);
     return {
       type: frameType, // 插槽类型
@@ -55,6 +55,13 @@ const handleDiagram = (
         nodesDeclaration,
         nodesInvocation,
       },
+      frameOutputs: frame.outputs.map(({ id, title }) => {
+        return {
+          id,
+          title,
+          outputs: frameOutputs[id],
+        };
+      }),
     };
   } else if (
     diagram.starter.type === "frame" &&
@@ -309,7 +316,7 @@ const handleProcess = (
       const frame = config.getFrame();
       const frameType = frame.type;
 
-      if (["fx", "globalFx"].includes(frameType)) {
+      if (["fx", "globalFx", "extension-api"].includes(frameType)) {
         // 这里说明是卡片的输出，不需要再往下走了
         if (!frameOutputs[con.to.id]) {
           frameOutputs[con.to.id] = [];
