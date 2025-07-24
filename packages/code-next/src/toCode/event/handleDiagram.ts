@@ -24,7 +24,12 @@ const handleDiagram = (
   if (
     diagram.starter.type === "frame" &&
     diagram.starter.frameId === config.getSceneId() &&
-    !["globalFx", "extension-api", "extension-config"].includes(frameType)
+    ![
+      "globalFx",
+      "extension-api",
+      "extension-config",
+      "extension-bus",
+    ].includes(frameType)
   ) {
     const { paramPins, nodesDeclaration, nodesInvocation } =
       handleDiagramWidthMultipleInputs(diagram, config);
@@ -41,7 +46,7 @@ const handleDiagram = (
     };
   } else if (
     diagram.starter.type === "frame" &&
-    ["extension-api", "extension-config"].includes(frameType)
+    ["extension-api", "extension-config", "extension-bus"].includes(frameType)
   ) {
     const { paramPins, nodesDeclaration, nodesInvocation, frameOutputs } =
       handleDiagramWidthMultipleInputs(diagram, config);
@@ -316,7 +321,9 @@ const handleProcess = (
       const frame = config.getFrame();
       const frameType = frame.type;
 
-      if (["fx", "globalFx", "extension-api"].includes(frameType)) {
+      if (
+        ["fx", "globalFx", "extension-api", "extension-bus"].includes(frameType)
+      ) {
         // 这里说明是卡片的输出，不需要再往下走了
         if (!frameOutputs[con.to.id]) {
           frameOutputs[con.to.id] = [];
@@ -458,7 +465,7 @@ const handleProcess = (
         }
       }
 
-      if (category === "normal") {
+      if (category === "normal" || category === "bus") {
         // 普通js类型，判断下是否多输入
         nodesInvocation.push({
           ...invocation,

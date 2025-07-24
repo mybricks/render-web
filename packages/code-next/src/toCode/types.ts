@@ -81,7 +81,14 @@ export interface Scene {
   pinRels: Record<string, string[]>;
   deps: Def[];
   comsAutoRun: Record<string, { id: string }[]>;
-  type: "normal" | "popup" | "module"; // 默认页面 | 弹窗 | 模块
+  /**
+   * normal - 默认页面
+   * popup - 弹窗
+   * module - 模块
+   * extension-bus - 总线fx
+   */
+  type: "normal" | "popup" | "module" | "extension-bus";
+  name: string;
   pinProxies: Record<
     string,
     {
@@ -185,7 +192,8 @@ export interface Frame {
     | "root"
     | "extension"
     | "extension-config"
-    | "extension-api";
+    | "extension-api"
+    | "extension-bus";
 }
 
 interface Global {

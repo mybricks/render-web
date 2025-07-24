@@ -20,16 +20,26 @@ const handleExtension = (
   const result: Result = [];
   const importManager = new ImportManager();
   const addDependencyImport = importManager.addImport.bind(importManager);
+
+  const extensionBusImportManager = new ImportManager();
+  const addExtensionBusDependencyImport =
+    extensionBusImportManager.addImport.bind(extensionBusImportManager);
+  let extensionBusInitCode = "";
+
   extensionEvents.forEach((extension) => {
     const { meta, events } = extension;
     events.forEach((event) => {
-      const isExtensionConfig = event.type === "extension-config";
+      const { isExtensionConfig, isExtensionApi, isExtensionBus } =
+        getExtensionType(event.type);
       const params = isExtensionConfig
         ? event.paramPins.reduce<Record<string, string>>((pre, cur) => {
             pre[cur.id] = `value.${cur.id}`;
             return pre;
           }, {})
-        : { open: "value" };
+        : {
+            open: "value",
+            call: "value",
+          };
       let res = handleProcess(event, {
         ...config,
         getParams: () => {
@@ -38,7 +48,9 @@ const handleExtension = (
         getComponentPackageName: () => {
           return config.getComponentPackageName({ type: "extensionEvent" });
         },
-        addParentDependencyImport: addDependencyImport,
+        addParentDependencyImport: isExtensionBus
+          ? addExtensionBusDependencyImport
+          : addDependencyImport,
         getComponentMetaByNamespace: ((namespace, options) => {
           return config.getComponentMetaByNamespace(namespace, {
             ...options,
@@ -47,7 +59,7 @@ const handleExtension = (
         }) as typeof config.getComponentMetaByNamespace,
       } as any);
 
-      if (!isExtensionConfig) {
+      if (isExtensionApi) {
         /** 结果interface定义 */
         const returnInterface = event.frameOutputs.length
           ? `interface Return {
@@ -65,9 +77,25 @@ const handleExtension = (
           ${res} ${returnInterface ? "as Return" : ""}
         })
         `;
+      } else if (isExtensionBus) {
+        /** 结果interface定义 */
+        const returnInterface = event.frameOutputs.length
+          ? `interface Return {
+    ${event.frameOutputs
+      .map((frameOutput: any) => {
+        return `/** ${frameOutput.title} */
+      ${frameOutput.id}: MyBricks.EventValue`;
+      })
+      .join("\n")}}`
+          : "";
+        extensionBusInitCode += `/** ${event.title} */
+        ${event.title}: MyBricks.Any = createFx((value: MyBricks.Any) => {
+          ${returnInterface}
+          ${res} ${returnInterface ? "as Return" : ""}
+        })
+        `;
+        return;
       }
-
-      console.log("[res]", res);
 
       result.push({
         content: res,
@@ -79,7 +107,29 @@ const handleExtension = (
     });
   });
 
+  if (extensionBusInitCode) {
+    result.push({
+      content: `/** 系统总线 */      
+      class Bus {
+        ${extensionBusInitCode}
+      }
+
+      export const bus = new Bus()`,
+      importManager: extensionBusImportManager,
+      type: "extension-bus",
+      name: "系统总线",
+    });
+  }
+
   return result;
 };
 
 export default handleExtension;
+
+const getExtensionType = (type: Result[0]["type"]) => {
+  return {
+    isExtensionConfig: type === "extension-config",
+    isExtensionApi: type === "extension-api",
+    isExtensionBus: type === "extension-bus",
+  };
+};

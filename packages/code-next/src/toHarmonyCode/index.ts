@@ -43,7 +43,8 @@ export type Result = Array<{
     | "extensionEvent"
     | "global"
     | "extension-config"
-    | "extension-api";
+    | "extension-api"
+    | "extension-bus";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
   name: string;
 }>;
@@ -52,6 +53,21 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
   const { scenes, extensionEvents, globalFxs, globalVars, modules } =
     toCode(tojson);
+
+  const busTitleMap: any = {};
+  tojson.global.fxFrames.forEach((fxFrame) => {
+    const { name, type, title } = fxFrame;
+    if (type === "extension-bus") {
+      if (name === "bus-getUser" || name === "bus-user") {
+        busTitleMap["mybricks.core-comlib.bus-getUser"] = {
+          title,
+        };
+      }
+    }
+  });
+  const getBusTitle = (namespace: string) => {
+    return busTitleMap[namespace];
+  };
 
   result.push(
     ...handleExtension(
@@ -148,6 +164,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       getProviderMetaMap: () => {
         return providerMetaMap;
       },
+      getBusTitle,
     });
   });
 
@@ -226,6 +243,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       getProviderMetaMap: () => {
         return providerMetaMap;
       },
+      getBusTitle,
     });
   });
 
@@ -267,6 +285,7 @@ export interface BaseConfig extends ToSpaCodeConfig {
   }) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
   getCurrentProvider: () => { name: string; class: string };
   getProviderMetaMap: () => Record<string, { name: string; class: string }>;
+  getBusTitle: (namespace: string) => { title: string };
 }
 
 export default toHarmonyCode;

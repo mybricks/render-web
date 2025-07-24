@@ -35,6 +35,15 @@ export const validateJsFxComponent = (namespace: string) => {
   return namespace === "mybricks.core-comlib.fn";
 };
 
+const BUS_COMPONENT_MAP: Record<string, boolean> = {
+  "mybricks.core-comlib.bus-getUser": true,
+};
+
+/** 判断是否bus类型组件 */
+export const validateJsBusComponent = (namespace: string) => {
+  return BUS_COMPONENT_MAP[namespace];
+};
+
 /** 判断是否js类型组件 */
 export const validateJsComponent = (type?: string) => {
   if (!type) {
@@ -58,7 +67,8 @@ export type ComponentTypeAndCategory =
         | "frameOutput"
         | "fx"
         | "scene"
-        | "var";
+        | "var"
+        | "bus";
     }
   | {
       componentType: "ui";
@@ -84,6 +94,8 @@ export const getComponentTypeAndCategoryByDef = (
       category = "scene";
     } else if (validateJsVarComponent(namespace)) {
       category = "var";
+    } else if (validateJsBusComponent(namespace)) {
+      category = "bus";
     }
   } else {
     componentType = "ui";

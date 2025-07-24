@@ -392,6 +392,9 @@ export const handleProcess = (
 
       return;
     }
+    if (meta.def.namespace === "mybricks.core-comlib.bus-getUser") {
+      return;
+    }
 
     const { dependencyImport, componentName } =
       config.getComponentMetaByNamespace(meta.def.namespace, {
@@ -533,6 +536,11 @@ export const handleProcess = (
           code += `/** 调用Fx ${props.meta.title} */
           ${nextCode}this.${currentProvider.name}_Fxs.${props.meta.ioProxy.id}(${nextValue})`;
         }
+      } else if (category === "bus") {
+        const componentNameWithId = getComponentNameWithId(props, config);
+
+        code += `/** 调用 ${props.meta.title} */
+        ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -599,7 +607,7 @@ export const handleProcess = (
       ${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
     }
   });
-  if (["fx", "extension-api"].includes(event.type)) {
+  if (["fx", "extension-api", "extension-bus"].includes(event.type)) {
     const returnCode = Object.entries(event.frameOutputs)
       .map(([, { id, outputs }]: any) => {
         if (!outputs) {
@@ -687,6 +695,8 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
         return `globalFxs_${meta.ioProxy.id}_${meta.id}`;
       }
       return `fxs_${meta.ioProxy.id}_${meta.id}`;
+    } else if (category === "bus") {
+      return `bus.${config.getBusTitle(props.meta.def.namespace).title}`;
     }
   } else if (componentType === "ui") {
     if (category === "module") {
@@ -722,6 +732,8 @@ const getNextCode = (
   if (componentType === "js") {
     if (category === "var") {
       return `const ${componentNameWithId}_${nextParam[0].connectId} = `;
+    } else if (category === "bus") {
+      return `const bus_${props.meta.id} = `;
     }
     return `const ${componentNameWithId}_result = `;
     // if (category === "var") {
@@ -770,6 +782,8 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
     }
     if (param.category === "frameOutput") {
       return `${componentNameWithId}_result`;
+    } else if (param.category === "bus") {
+      return `bus_${param.meta.id}.${id}`;
     }
     return `${componentNameWithId}_result.${id}`;
   });

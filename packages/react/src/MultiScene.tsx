@@ -134,8 +134,12 @@ export default function MultiScene ({json, options}) {
 
     /** 便于通过id查找全局FX信息 */
     const globalFxIdToFrame = {};
+    const globalExtensionFxIdToFrame = {}
     global.fxFrames.forEach((fx) => {
       globalFxIdToFrame[fx.id] = fx;
+      if (fx.type === "extension-bus") { // [TODO] 引擎定义个新的字段
+        globalExtensionFxIdToFrame[fx.name] = fx;
+      }
     });
 
     const firstScene = json.scenes[0];
@@ -314,9 +318,16 @@ export default function MultiScene ({json, options}) {
 
     // TODO:挪出去，优化一下
     const scenesOperate = {
-      open({todo, frameId, parentScope, comProps}, configs) {
+      open({todo, frameId, busName, parentScope, comProps}, configs) {
+        let fxFrame;
+
         // 目前这里仅用于调用全局fx
-        const fxFrame = configs?.getFxFrame?.(frameId) || globalFxIdToFrame[frameId];
+        if (busName) {
+          // 有busName认为是bus
+          fxFrame = globalExtensionFxIdToFrame[busName]
+        } else {
+          fxFrame = configs?.getFxFrame?.(frameId) || globalFxIdToFrame[frameId];
+        }
 
         if (fxFrame) {
           executor({

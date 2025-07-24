@@ -12,6 +12,13 @@ import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
 
+const COMPONENT_NAMESPACE_TO_BUS_INFO_MAP = {
+  "mybricks.core-comlib.bus-getUser": {
+    name: "bus-getUser",
+    pinId: "call",
+  },
+}
+
 const generateMissingComponentMessage = (def: any) => {
   return `未找到组件(${def.namespace}@${def.version})定义`
 }
@@ -487,6 +494,22 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     }
 
     if (inReg.type === 'com') {
+      if (inReg.def.namespace === "mybricks.core-comlib.bus-getUser") {
+        const comProps = getComProps(inReg.comId, nextScope)
+        const busInfo = COMPONENT_NAMESPACE_TO_BUS_INFO_MAP[inReg.def.namespace]
+        scenesOperate?.open({
+          // frameId,
+          busName: busInfo.name,
+          todo: {
+            pinId: busInfo.pinId,
+            value: val
+          },
+          comProps,
+          parentScope: comProps
+        })
+        return
+      }
+
       if (fromCon) {
         if (fromCon.finishPinParentKey === inReg.startPinParentKey) {//same scope,rels///TODO
           exeInputForCom(inReg, val, nextScope)
