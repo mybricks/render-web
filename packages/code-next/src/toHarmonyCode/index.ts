@@ -58,7 +58,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   tojson.global.fxFrames.forEach((fxFrame) => {
     const { name, type, title } = fxFrame;
     if (type === "extension-bus") {
-      if (name === "bus-getUser" || name === "bus-user") {
+      if (name === "bus-getUser") {
         busTitleMap["mybricks.core-comlib.bus-getUser"] = {
           title,
         };
