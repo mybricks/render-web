@@ -1897,6 +1897,13 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             return
           }
 
+          if (jsCom.global && def.namespace === "mybricks.core-comlib.var") {
+            // 全局变量在api卡片下才有“起始组件”状态（监听值变更）
+            env.scenesOperate?.var.regist(jsCom.id, (value) => {
+              props.outputs['changed'](value, true, undefined, true)
+            })
+          }
+
           comDef.runtime({
             env: Env,
             _env,
