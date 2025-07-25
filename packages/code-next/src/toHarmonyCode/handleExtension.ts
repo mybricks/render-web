@@ -89,7 +89,7 @@ const handleExtension = (
       .join("\n")}}`
           : "";
         extensionBusInitCode += `/** ${event.title} */
-        ${event.title}: MyBricks.Any = createFx((value: MyBricks.Any) => {
+        ${event.title}: MyBricks.Api = createFx((value: MyBricks.Any) => {
           ${returnInterface}
           ${res} ${returnInterface ? "as Return" : ""}
         })
