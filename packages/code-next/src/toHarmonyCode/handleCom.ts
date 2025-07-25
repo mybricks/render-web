@@ -734,6 +734,9 @@ const getNextCode = (
       return `const ${componentNameWithId}_${nextParam[0].connectId} = `;
     } else if (category === "bus") {
       return `const bus_${props.meta.id} = `;
+    } else if (category === "scene") {
+      // [TODO] harmony-render-utils里想办法解决类型问题
+      return `const ${componentNameWithId}_result: MyBricks.EventValue = `;
     }
     return `const ${componentNameWithId}_result = `;
     // if (category === "var") {
