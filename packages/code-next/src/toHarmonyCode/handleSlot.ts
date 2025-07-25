@@ -423,12 +423,15 @@ export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
       : undefined,
   );
 
-  const code = handleProcess(effectEvent, {
-    ...config,
-    getParams: () => {
-      return config.getParams(effectEvent.paramPins);
-    },
-  });
+  // [TODO] 观察下什么情况下effectEvent是undefined
+  const code =
+    effectEvent &&
+    handleProcess(effectEvent, {
+      ...config,
+      getParams: () => {
+        return config.getParams(effectEvent.paramPins);
+      },
+    });
 
   if (!code) {
     return null;

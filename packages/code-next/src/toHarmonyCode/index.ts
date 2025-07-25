@@ -25,6 +25,7 @@ export interface ToSpaCodeConfig {
   getComponentPackageName: (props?: any) => string;
   getUtilsPackageName: () => string;
   getPageId?: (id: string) => string;
+  getBus?: (namespace: string) => { title: string };
   /**
    * 写入更多详细信息
    * 当运行时打印IO日志时，必须开启
@@ -53,21 +54,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
   const { scenes, extensionEvents, globalFxs, globalVars, modules } =
     toCode(tojson);
-
-  const busTitleMap: any = {};
-  tojson.global.fxFrames.forEach((fxFrame) => {
-    const { name, type, title } = fxFrame;
-    if (type === "extension-bus") {
-      if (name === "bus-getUser") {
-        busTitleMap["mybricks.core-comlib.bus-getUser"] = {
-          title,
-        };
-      }
-    }
-  });
-  const getBusTitle = (namespace: string) => {
-    return busTitleMap[namespace];
-  };
 
   result.push(
     ...handleExtension(
@@ -164,7 +150,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       getProviderMetaMap: () => {
         return providerMetaMap;
       },
-      getBusTitle,
     });
   });
 
@@ -243,7 +228,6 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       getProviderMetaMap: () => {
         return providerMetaMap;
       },
-      getBusTitle,
     });
   });
 
@@ -285,7 +269,6 @@ export interface BaseConfig extends ToSpaCodeConfig {
   }) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
   getCurrentProvider: () => { name: string; class: string };
   getProviderMetaMap: () => Record<string, { name: string; class: string }>;
-  getBusTitle: (namespace: string) => { title: string };
 }
 
 export default toHarmonyCode;

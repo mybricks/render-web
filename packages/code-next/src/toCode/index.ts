@@ -210,27 +210,31 @@ const handleScene = (params: {
       return undefined;
     },
   });
-  const event = handleFrame(frame, {
-    getScene: () => {
-      return scene;
-    },
-    getSceneId: () => {
-      return scene.id;
-    },
-    getComsAutoRun: () => {
-      return scene.comsAutoRun["_rootFrame_"];
-    },
-    getSceneType: () => {
-      return scene.type;
-    },
-    getComInfo: (comId) => {
-      return scene.coms[comId];
-    },
-    getFrameId: () => undefined,
-    getFrameMap: () => {
-      return params.frameMap;
-    },
-  });
+
+  // [TODO] 观察下什么情况下frame是undefined
+  const event = frame
+    ? handleFrame(frame, {
+        getScene: () => {
+          return scene;
+        },
+        getSceneId: () => {
+          return scene.id;
+        },
+        getComsAutoRun: () => {
+          return scene.comsAutoRun["_rootFrame_"];
+        },
+        getSceneType: () => {
+          return scene.type;
+        },
+        getComInfo: (comId) => {
+          return scene.coms[comId];
+        },
+        getFrameId: () => undefined,
+        getFrameMap: () => {
+          return params.frameMap;
+        },
+      })
+    : [];
 
   return {
     scene,
