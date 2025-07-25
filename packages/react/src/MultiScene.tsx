@@ -37,11 +37,12 @@ class DebugHistory {
     });
   }
 
-  back() {
-    // 回退
-    if (this.index > 0) {
-      return this.history[--this.index];
-    }
+  back(num) {
+    const nextIndex = this.index - num;
+
+    this.index = nextIndex < 0 ? 0 : nextIndex;
+
+    return this.history[this.index];
   }
 
   forward() {
@@ -295,8 +296,8 @@ export default function MultiScene ({json, options}) {
     }
 
     // 回退
-    env.canvas.back = () => {
-      const back = debugHistory.back();
+    env.canvas.back = (num) => {
+      const back = debugHistory.back(Math.abs(num) || 1);
       if (back) {
         const { id, todo } = back;
         env.canvas.open(id, null, "blank", "back")
