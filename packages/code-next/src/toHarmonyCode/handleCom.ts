@@ -478,7 +478,11 @@ export const handleProcess = (
             });
 
           config.addParentDependencyImport(dependencyImport);
-          componentNameWithId = `${componentName}.${props.meta.title}`;
+
+          const api =
+            config.getApi?.(props.meta.def.namespace).title || props.meta.title;
+
+          componentNameWithId = `${componentName}.${api}`;
         }
         code += `/** 调用 ${props.meta.title} */
         ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;

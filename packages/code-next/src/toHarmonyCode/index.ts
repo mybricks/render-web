@@ -26,6 +26,7 @@ export interface ToSpaCodeConfig {
   getUtilsPackageName: () => string;
   getPageId?: (id: string) => string;
   getBus?: (namespace: string) => { title: string };
+  getApi?: (namespace: string) => { title: string };
   /**
    * 写入更多详细信息
    * 当运行时打印IO日志时，必须开启
