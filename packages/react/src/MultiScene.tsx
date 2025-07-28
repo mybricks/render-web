@@ -557,7 +557,9 @@ export default function MultiScene ({json, options}) {
                 scenes.parentScope = null
                 if (scenes.type === 'popup') {
                   setPopupIds((popupIds) => {
-                    return popupIds.filter((id) => id !== scenes.json.id)
+                    return popupIds.filter((popupId) => {
+                      return id !== popupId
+                    })
                   })
                 } else {
                   setCount((count) => count+1)
@@ -646,7 +648,9 @@ export default function MultiScene ({json, options}) {
             // scenes.parentScope = null
             if (scenes.type === 'popup') {
               setPopupIds((popupIds) => {
-                return popupIds.filter((id) => id !== scenes.json.id)
+                return popupIds.filter((popupId) => {
+                  return id !== popupId
+                })
               })
             } else {
               setCount((count) => count+1)
@@ -717,7 +721,6 @@ export default function MultiScene ({json, options}) {
       return popupIds.map((sceneId) => {
         const scene = scenesMap[sceneId]
         const json = scene.json
-        const { id } = json
 
         let className = ''
         let style = {position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 999}
@@ -735,9 +738,9 @@ export default function MultiScene ({json, options}) {
         
         return (
           <Scene
-            key={json.id}
+            key={sceneId}
             json={{...json, scenesMap}}
-            options={getOptions(id)}
+            options={getOptions(sceneId)}
             style={{position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 999}}
           />
         )
