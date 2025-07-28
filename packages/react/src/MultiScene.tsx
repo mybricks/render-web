@@ -541,9 +541,9 @@ export default function MultiScene ({json, options}) {
         scenes._refs = _refs
         const todo = scenes.todo
         const { inputs, outputs } = _refs
-        const disableAutoRun = scenes.disableAutoRun
+        const disableAutoRun = scenes.disableAutoRun;
 
-        scenes.json.outputs?.forEach((output) => {
+        (scenes.json.outputs || scenes.json.scenes?.[0]?.outputs)?.forEach((output) => {
           outputs(output.id, (value) => {
             // TODO: 临时，后续应该给场景一个回调
             if (output.id === 'apply') {
@@ -591,8 +591,8 @@ export default function MultiScene ({json, options}) {
         } else if (!disableAutoRun) {
           scenes.disableAutoRun = true
           Promise.resolve().then(() => {
-            const todo = []
-            scenes.json.inputs?.forEach?.((input) => {
+            const todo = [];
+            (scenes.json.inputs || scenes.json.scenes?.[0]?.inputs)?.forEach?.((input) => {
               const { id, mockData, type, extValues } = input
 
               if (type === "ext") {
