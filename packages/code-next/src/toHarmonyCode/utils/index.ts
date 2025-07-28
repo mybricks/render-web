@@ -287,7 +287,10 @@ export const convertComponentStyle = (style: Style) => {
 };
 
 /** 转hm Flex代码 */
-export const convertHarmonyFlex = (style: Style, config: { child: string }) => {
+export const convertHarmonyFlexComponent = (
+  style: Style,
+  config: { child: string },
+) => {
   const hmStyle = convertHMFlexStyle(style);
   const { direction, justifyContent, alignItems } = hmStyle;
 
@@ -298,7 +301,8 @@ export const convertHarmonyFlex = (style: Style, config: { child: string }) => {
     alignItems: ${alignItems},
   }) {
     ${config.child}
-  }.flexShrink(0)` +
+  }` +
+    convertHarmonyFlex(hmStyle) +
     convertHarmonyWidth(hmStyle) +
     convertHarmonyHeight(hmStyle) +
     convertHarmonyMargin(hmStyle) +
@@ -386,6 +390,14 @@ const convertHarmonyZIndex = (style: HmStyle) => {
   }
 
   return code;
+};
+
+/** 转hm flex代码 */
+const convertHarmonyFlex = (style: HmStyle) => {
+  if ("flex" in style) {
+    return `.flexGrow(${style.flex})`;
+  }
+  return `.flexShrink(0)`;
 };
 
 export * from "./hm";

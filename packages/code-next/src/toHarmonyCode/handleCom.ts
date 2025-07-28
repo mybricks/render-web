@@ -700,7 +700,7 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
       }
       return `fxs_${meta.ioProxy.id}_${meta.id}`;
     } else if (category === "bus") {
-      return `bus.${config.getBus!(props.meta.def.namespace).title}`;
+      return `bus.${config.getBus!(props.meta.def.namespace).name}`;
     }
   } else if (componentType === "ui") {
     if (category === "module") {

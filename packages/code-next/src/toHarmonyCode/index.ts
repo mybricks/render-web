@@ -25,7 +25,7 @@ export interface ToSpaCodeConfig {
   getComponentPackageName: (props?: any) => string;
   getUtilsPackageName: () => string;
   getPageId?: (id: string) => string;
-  getBus?: (namespace: string) => { title: string };
+  getBus?: (namespace: string) => { title: string; name: string };
   getApi?: (namespace: string) => { title: string };
   /**
    * 写入更多详细信息

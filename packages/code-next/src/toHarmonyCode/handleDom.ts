@@ -1,5 +1,5 @@
 import type { UI, BaseConfig } from "./index";
-import { convertHarmonyFlex, ImportManager } from "./utils";
+import { convertHarmonyFlexComponent, ImportManager } from "./utils";
 import handleCom from "./handleCom";
 import handleModule from "./handleModule";
 
@@ -52,6 +52,10 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
       props.style.width = "auto";
     }
   }
+  if (props.style.flex) {
+    // 有flex代表需要填充，鸿蒙Flex组件内如果没子组件，不设置width，不会撑开
+    props.style.width = "100%";
+  }
   if (!props.style.height) {
     props.style.height = "auto";
   }
@@ -59,7 +63,7 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
   // 由于组件都有zIndex，同级Flex不设置一定被盖在下面
   props.style.zIndex = getMaxZIndex(children);
 
-  const ui = convertHarmonyFlex(props.style, {
+  const ui = convertHarmonyFlexComponent(props.style, {
     child: uiCode,
   });
 
