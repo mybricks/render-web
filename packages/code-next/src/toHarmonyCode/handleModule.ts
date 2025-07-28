@@ -20,11 +20,6 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
   const name = getName(module.meta.title);
 
   config.addParentDependencyImport({
-    dependencyNames: ["ModuleController"],
-    packageName: "../_proxy/Index",
-    importType: "named",
-  });
-  config.addParentDependencyImport({
     packageName: "../sections",
     dependencyNames: [name],
     importType: "named",
