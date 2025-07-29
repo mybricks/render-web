@@ -2,7 +2,7 @@
 import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
-import { ImportManager } from "./utils";
+import { ImportManager, getUsedControllers } from "./utils";
 import handleGlobal from "./handleGlobal";
 import handleExtension from "./handleExtension";
 
@@ -78,7 +78,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
   scenes.forEach(({ scene, ui, event }) => {
     const providerMetaMap = {};
-    const usedControllers = new Set<string>();
+    const usedControllers = getUsedControllers(event);
 
     handleSlot(ui, {
       ...config,
@@ -156,7 +156,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
   modules.forEach(({ scene, ui, event }) => {
     const providerMetaMap = {};
-    const usedControllers = new Set<string>();
+    const usedControllers = getUsedControllers(event);
 
     handleSlot(ui, {
       ...config,

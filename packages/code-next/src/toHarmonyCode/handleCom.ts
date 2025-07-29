@@ -545,6 +545,11 @@ export const handleProcess = (
 
         code += `/** 调用 ${props.meta.title} */
         ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+      } else if (category === "frameInput") {
+        console.log("[frameInput - 待处理]", {
+          props,
+          isSameScope,
+        });
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -591,9 +596,6 @@ export const handleProcess = (
             config,
           );
 
-          const usedControllers = config.getUsedControllers();
-          usedControllers.add(props.meta.id);
-
           code += `${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
           return;
         }
@@ -603,9 +605,6 @@ export const handleProcess = (
         { isSameScope, props },
         config,
       );
-
-      const usedControllers = config.getUsedControllers();
-      usedControllers.add(props.meta.id);
 
       code += `/** 调用 ${props.meta.title} 的 ${props.title} */
       ${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;

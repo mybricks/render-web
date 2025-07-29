@@ -332,6 +332,9 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           ${isModule && config.verbose ? "@Param @Require title: string;" : ""}
           ${isModule ? "@Param data: MyBricks.Data = {}" : ""}
           ${isModule ? "@Param controller: MyBricks.ModuleController = ModuleController()" : ""}
+          ${isModule ? "@Param styles: Styles = {} " : ""}
+          ${isModule ? "myBricksColumnModifier = new MyBricksColumnModifier(this.styles.root)" : ""}
+          ${isModule ? "@Local columnVisibilityController: ColumnVisibilityController = new ColumnVisibilityController()" : ""}
           ${providerCode}
           ${(effectEventCode ? effectEventCode + "\n\n" : "") + jsCode}
           ${level0SlotsCode}
@@ -339,7 +342,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           build() {
             ${
               isModule
-                ? getHmUi({ style: ui.props.style, children: uiCode })
+                ? `Column() {
+                  ${getHmUi({ style: ui.props.style, children: uiCode })}
+                }
+                .attributeModifier(this.myBricksColumnModifier)
+                .visibility(this.columnVisibilityController.visibility)`
                 : `Column() {
               ${uiCode}
             }

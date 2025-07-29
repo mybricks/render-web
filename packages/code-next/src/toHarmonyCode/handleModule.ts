@@ -1,5 +1,5 @@
 import type { UI, BaseConfig } from "./index";
-import { ImportManager, getName } from "./utils";
+import { ImportManager, getName, convertComponentStyle } from "./utils";
 
 type Module = Extract<UI["children"][0], { type: "module" }>;
 
@@ -30,10 +30,13 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
   const currentProvider = config.getCurrentProvider();
   const usedControllers = config.getUsedControllers();
 
+  const resultStyle = convertComponentStyle(module.props.style);
+
   return `${name}({
     uid: "${module.meta.id}",
     ${config.verbose ? `title: "${module.meta.title}",` : ""}
     ${configs ? `data: ${JSON.stringify(configs)},` : ""}
+    styles: ${JSON.stringify(resultStyle)},
     ${usedControllers.has(module.meta.id) ? `controller: this.${currentProvider.name}.controller_${module.meta.id},` : ""}
   })`;
 };

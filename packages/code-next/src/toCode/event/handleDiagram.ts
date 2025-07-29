@@ -520,6 +520,11 @@ const handleProcess = (
           ...invocation,
           paramSource: [config.getParamSource()],
         });
+      } else if (category === "frameInput") {
+        nodesInvocation.push({
+          ...invocation,
+          paramSource: [config.getParamSource()],
+        });
       }
     } else {
       // ui组件
