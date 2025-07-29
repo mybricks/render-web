@@ -552,11 +552,6 @@ export const handleProcess = (
         const pinValueProxy =
           scene.pinValueProxies[`${props.meta.id}-${props.id}`];
         const params = config.getParams();
-        config.addParentDependencyImport({
-          packageName: config.getComponentPackageName(),
-          dependencyNames: ["join"],
-          importType: "named",
-        });
         // 场景输入
         code += `/** 调用获取当前输入值 ${props.title} */
           ${nextCode}join(${nextValue}, ${params[pinValueProxy.pinId]})`;
