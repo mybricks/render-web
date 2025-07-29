@@ -316,12 +316,14 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       // 模块组件特殊处理，同模块
       // [TODO] 合并下
       const configs = meta.model.data.configs;
+      const resultStyle = convertComponentStyle(com.props.style);
       return {
         ui: `/** ${meta.title} */
         ${componentName}({
           uid: "${meta.id}",
           ${config.verbose ? `title: "${meta.title}",` : ""}
           controller: this.${currentProvider.name}.controller_${meta.id},
+          styles: ${JSON.stringify(resultStyle)},
           ${configs ? `data: ${JSON.stringify(configs)},` : ""}
         })`,
         js: eventCode,
