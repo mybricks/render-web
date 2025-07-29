@@ -70,11 +70,6 @@ const RenderModuleComponent = ({ json, options, style = {} }: any) => {
         });
       },
     };
-    let modules;
-    const jsonModules = json.modules;
-    if (jsonModules) {
-      modules = new Modules(jsonModules);
-    }
 
     const callConnector = options.env.callConnector;
 
@@ -93,9 +88,15 @@ const RenderModuleComponent = ({ json, options, style = {} }: any) => {
       };
     }
 
+    const modules = (window as any)[`module_${moduleId}`].modules;
+
+    options.env.getModuleJSON = (moduleId: string) => {
+      return modules[moduleId];
+    };
+
     return {
       env: options.env,
-      modules,
+      modules: new Modules(modules),
     };
   }, []);
 
