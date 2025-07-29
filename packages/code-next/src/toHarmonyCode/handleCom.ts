@@ -548,10 +548,18 @@ export const handleProcess = (
         code += `/** 调用 ${props.meta.title} */
         ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else if (category === "frameInput") {
-        console.log("[frameInput - 待处理]", {
-          props,
-          isSameScope,
+        const scene = config.getCurrentScene();
+        const pinValueProxy =
+          scene.pinValueProxies[`${props.meta.id}-${props.id}`];
+        const params = config.getParams();
+        config.addParentDependencyImport({
+          packageName: config.getComponentPackageName(),
+          dependencyNames: ["join"],
+          importType: "named",
         });
+        // 场景输入
+        code += `/** 调用获取当前输入值 ${props.title} */
+          ${nextCode}join(${nextValue}, ${params[pinValueProxy.pinId]})`;
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -702,6 +710,8 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
       return `fxs_${meta.ioProxy.id}_${meta.id}`;
     } else if (category === "bus") {
       return `bus.${config.getBus!(props.meta.def.namespace).name}`;
+    } else if (category === "frameInput") {
+      return `frameInput_${meta.id}`;
     }
   } else if (componentType === "ui") {
     if (category === "module") {
@@ -792,6 +802,8 @@ const getNextValue = (props: any, config: HandleProcessConfig) => {
       return `${componentNameWithId}_result`;
     } else if (param.category === "bus") {
       return `bus_${param.meta.id}.${id}`;
+    } else if (param.category === "frameInput") {
+      return `${componentNameWithId}_result`;
     }
     return `${componentNameWithId}_result.${id}`;
   });
