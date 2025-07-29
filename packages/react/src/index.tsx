@@ -939,6 +939,10 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     if (!("scenes" in json) && json.type === "module") {
       // 非多场景的module，说明是引擎搭建态的模块，把edit设置为null
       options.env.edit = null;
+      if (options.env.ENABLE_MODULE_EDIT) {
+        // 区块搭建态，将env.edit设置为true
+        options.env.edit = true;
+      }
     }
 
     return (
