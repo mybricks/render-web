@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Frame, ComInfo, Diagram, DiagramCon } from "../types";
 import type { HandleFrameConfig } from "./handleFrame";
-import { getComponentTypeAndCategoryByDef } from "./utils";
+import { getComponentTypeAndCategoryByDef, getConFromSceneById } from "./utils";
 
 export interface HandleDiagramConfig extends HandleFrameConfig {
   getFrame: () => Frame;
@@ -521,8 +521,14 @@ const handleProcess = (
           paramSource: [config.getParamSource()],
         });
       } else if (category === "frameInput") {
+        const conInfo = getConFromSceneById({
+          scene: config.getScene(),
+          conId: con.id,
+        });
+
         nodesInvocation.push({
           ...invocation,
+          frameKey: conInfo.targetFrameKey || conInfo.frameKey,
           paramSource: [config.getParamSource()],
         });
       }

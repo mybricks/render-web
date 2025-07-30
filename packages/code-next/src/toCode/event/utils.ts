@@ -109,3 +109,27 @@ export const getComponentTypeAndCategoryByDef = (
     category,
   } as ComponentTypeAndCategory;
 };
+
+interface GetConFromSceneByIdParams {
+  scene: Scene;
+  conId: string;
+}
+export const getConFromSceneById = (
+  params: GetConFromSceneByIdParams,
+): Scene["cons"][string][0] => {
+  const { scene, conId } = params;
+  const { cons } = scene;
+  let reslut;
+
+  Object.entries(cons).find(([, con]) => {
+    return con.find((con) => {
+      if (con.id === conId) {
+        reslut = con;
+        return true;
+      }
+      return false;
+    });
+  });
+
+  return reslut!;
+};

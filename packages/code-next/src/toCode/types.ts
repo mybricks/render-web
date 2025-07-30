@@ -112,6 +112,14 @@ export interface Scene {
     id: string;
     title: string;
   }[];
+  cons: Record<
+    string,
+    Array<{
+      id: string;
+      frameKey: string;
+      targetFrameKey?: string;
+    }>
+  >;
 }
 
 export interface DiagramCon {

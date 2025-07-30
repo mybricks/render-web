@@ -552,9 +552,15 @@ export const handleProcess = (
         const pinValueProxy =
           scene.pinValueProxies[`${props.meta.id}-${props.id}`];
         const params = config.getParams();
-        // 场景输入
-        code += `/** 调用获取当前输入值 ${props.title} */
+        // [TODO] 下一版支持获取上级作用域的输入项目，通过frameKey做判断
+        if (pinValueProxy.frameId === scene.id) {
+          // 场景输入
+          code += `/** 调用获取当前输入值 ${props.title} */
           ${nextCode}join(${nextValue}, ${params[pinValueProxy.pinId]})`;
+        } else {
+          code += `/** 调用获取当前输入值 ${props.title} */
+          ${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
+        }
       } else {
         console.log("[出码] 其它类型js节点");
       }
