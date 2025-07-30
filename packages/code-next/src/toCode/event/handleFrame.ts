@@ -40,7 +40,10 @@ const handleFrame = (frame: Frame, config: HandleFrameConfig) => {
       return pre;
     }, {}),
   );
-  const result: Result[] = frame.diagrams
+
+  const result: Result[] = (
+    frame.type === "extension-config" ? [frame.diagrams[0]] : frame.diagrams
+  )
     .map((diagram) => {
       return handleDiagram(diagram, {
         ...config,
