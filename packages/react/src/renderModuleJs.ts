@@ -19,7 +19,12 @@ const renderModuleJs = ({ json, options, _context }: any) => {
   if (!globalVariables[moduleId]) {
     // 初始化全局变量
     // [TODO] 全局变量默认值
-    globalVariables[moduleId] = new Var();
+    if (options.extend?.env?.scenesOperate?.var) {
+      globalVariables[moduleId] =
+        options.extend?.env?.scenesOperate?.var.clone();
+    } else {
+      globalVariables[moduleId] = new Var();
+    }
     _context.onCompleteCallBacks.push(() => {
       // 调试结束销毁全局变量
       Reflect.deleteProperty(globalVariables, moduleId);
@@ -27,6 +32,16 @@ const renderModuleJs = ({ json, options, _context }: any) => {
   }
 
   options.env.scenesOperate.var = globalVariables[moduleId];
+  options.env.scenesOperate.getGlobalComProps = (comId) => {
+    return {
+      data: {
+        val: globalVariables[moduleId].getValueById(comId),
+      },
+    };
+  };
+  options.env.scenesOperate.exeGlobalCom = ({ com, value }) => {
+    globalVariables[moduleId].changed({ com, value });
+  };
   const scenesOperate = options.env.scenesOperate;
   options.env.scenesOperate = {
     ...scenesOperate,

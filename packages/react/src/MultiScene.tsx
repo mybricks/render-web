@@ -485,7 +485,7 @@ export default function MultiScene ({json, options}) {
           observable: _context.observable
         })
       },
-      ...env.scenesOperate,
+      ...options.extend?.env?.scenesOperate,
     }
 
     env.scenesOperate = scenesOperate
