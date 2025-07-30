@@ -164,7 +164,8 @@ let stylesheetMountNode: Node | undefined = void 0
  * @returns 获取style样式挂载节点
  */
 export function getStylesheetMountNode(): Node {
-  return stylesheetMountNode || (stylesheetMountNode = document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.head)
+  return document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.head
+  // return stylesheetMountNode || (stylesheetMountNode = document.getElementById('_mybricks-geo-webview_')?.shadowRoot || document.head)
 }
 
 export function easyClone(val: any) {

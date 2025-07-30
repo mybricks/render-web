@@ -844,7 +844,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
       // console.time("xxx")
       // transformToJSON(json);
       // console.timeEnd("xxx")
-      jsx = <MultiScene json={json} options={options}/>
+      jsx = <MultiScene key={options.reRenderKey} json={json} options={options}/>
     } else {
       if (json.slot) {
         // 检查一下这个json.type的判断能否去掉
@@ -857,7 +857,10 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     if (!jsx) {
       // TODO: 这里是运行纯函数的模版
       // const _context = new Context(options, json)
-      const _context = options._isNestedRender ? options._context : new Context(options, json)
+      const _context = options._isNestedRender ? options._context : new Context({
+        ...options,
+        observable: (value) => value
+      }, json)
 
       executor({
         json,
