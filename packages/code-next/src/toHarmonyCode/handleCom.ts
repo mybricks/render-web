@@ -315,7 +315,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     if (isModule) {
       // 模块组件特殊处理，同模块
       // [TODO] 合并下
-      const configs = meta.model.data.configs;
+      const data = meta.model.data.config;
       const resultStyle = convertComponentStyle(com.props.style);
       return {
         ui: `/** ${meta.title} */
@@ -324,7 +324,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           ${config.verbose ? `title: "${meta.title}",` : ""}
           controller: this.${currentProvider.name}.controller_${meta.id},
           styles: ${JSON.stringify(resultStyle)},
-          ${configs ? `data: ${JSON.stringify(configs)},` : ""}
+          ${data ? `data: ${JSON.stringify(data)},` : ""}
         })`,
         js: eventCode,
         slots: [],
