@@ -185,10 +185,12 @@ class Context {
       this.observable = observable
     }
     // 各种lazycss加载
-    loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
-    loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
-    loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
-    loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
+    if (json.scenes || json.slot) {
+      loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
+      loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
+      loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
+      loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
+    }
 
     // 国际化，是否可以去除？？，PC通用组件库内使用
     // TODO: 去除
@@ -938,7 +940,7 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     if (jsonModules) {
       modules = new Modules(jsonModules)
     }
-    
+
     if (!("scenes" in json) && json.type === "module") {
       // 非多场景的module，说明是引擎搭建态的模块，把edit设置为null
       options.env.edit = null;
