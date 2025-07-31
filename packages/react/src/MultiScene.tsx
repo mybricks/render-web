@@ -136,10 +136,14 @@ export default function MultiScene ({json, options}) {
     /** 便于通过id查找全局FX信息 */
     const globalFxIdToFrame = {};
     const globalExtensionFxIdToFrame = {}
+    let configFx;
     global.fxFrames.forEach((fx) => {
       globalFxIdToFrame[fx.id] = fx;
       if (fx.type === "extension-bus") { // [TODO] 引擎定义个新的字段
         globalExtensionFxIdToFrame[fx.name] = fx;
+      }
+      if (fx.type === "extension-config") {
+        configFx = fx;
       }
     });
 
@@ -317,6 +321,23 @@ export default function MultiScene ({json, options}) {
       }
     }
 
+    const globalVarMap = {}
+    const scenesOperateInputsTodo = {}
+    const scenesMap = json.scenes.reduce((acc, json, index) => {
+      return {
+        ...acc,
+        [json.id]: {
+          show: index === 0,
+          todo: [],
+          json,
+          disableAutoRun: !!(disableAutoRun || index),
+          useEntryAnimation: false,
+          type: json.slot?.showType || json.type,
+          main: index === 0
+        }
+      }
+    }, {})
+
     // TODO:挪出去，优化一下
     const scenesOperate = {
       open({todo, frameId, busName, parentScope, comProps}, configs) {
@@ -490,23 +511,54 @@ export default function MultiScene ({json, options}) {
 
     env.scenesOperate = scenesOperate
 
-    return {
-      scenesMap: json.scenes.reduce((acc, json, index) => {
-        return {
-          ...acc,
-          [json.id]: {
-            show: index === 0,
-            todo: [],
-            json,
-            disableAutoRun: !!(disableAutoRun || index),
-            useEntryAnimation: false,
-            type: json.slot?.showType || json.type,
-            main: index === 0
+    if (configFx) {
+      executor({
+        json: configFx,
+        getComDef: (def) => _context.getComDef(def),
+        events: options.events,
+        env,
+        ref(refs) {
+          const { inputs } = refs
+          const jsonInputs = configFx.inputs
+          if (inputs && Array.isArray(jsonInputs)) {
+            jsonInputs.forEach((input) => {
+              const { id, mockData, type, extValues } = input
+              let value = void 0
+              if (options.debug) {
+                if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
+                  try {
+                    value = JSON.parse(decodeURIComponent(extValues.config.defaultValue))
+                  } catch {
+                    value = extValues.config.defaultValue
+                  }
+                } else {
+                  try {
+                    value = JSON.parse(decodeURIComponent(mockData))
+                  } catch {
+                    value = mockData
+                  }
+                }
+              }
+              inputs[id](value)
+            })
           }
-        }
-      }, {}),
-      scenesOperateInputsTodo: {},
-      globalVarMap: {},
+          refs.run()
+        },
+        onError: _context.onError,
+        debug: options.debug,
+        debugLogger: options.debugLogger,
+        logger: _context.logger,
+        scenesOperate,
+        _context
+      }, {//////TODO goon
+        observable: _context.observable//传递获取响应式的方法
+      })
+    }
+
+    return {
+      scenesMap,
+      scenesOperateInputsTodo,
+      globalVarMap,
       debugHistory: new DebugHistory(json.scenes[0]),
       globalFxIdToFrame,
       env
