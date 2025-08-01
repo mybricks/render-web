@@ -1,4 +1,4 @@
-import { ImportManager, getHmUi, getName } from "./utils";
+import { ImportManager, getName, convertHarmonyFlexComponent } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
 import handleModule from "./handleModule";
@@ -125,9 +125,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ? `Column() {
         ${uiCode}
       }`
-        : getHmUi({
-            style: props.style,
-            children: uiCode,
+        : convertHarmonyFlexComponent(props.style, {
+            child: uiCode,
             extraFlex: `wrap: this.params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
             space: {
               main: LengthMetrics.vp(this.params.style?.rowGap || 0),
@@ -368,7 +367,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
             ${
               isModule
                 ? `Column() {
-                  ${getHmUi({ style: ui.props.style, children: uiCode })}
+                  ${convertHarmonyFlexComponent(ui.props.style, { child: uiCode })}
                 }
                 .attributeModifier(this.myBricksColumnModifier)
                 .visibility(this.columnVisibilityController.visibility)`
@@ -413,9 +412,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ? `Column() {
         ${uiCode}
       }`
-        : getHmUi({
-            style: props.style,
-            children: uiCode,
+        : convertHarmonyFlexComponent(props.style, {
+            child: uiCode,
             extraFlex: `wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
             space: {
               main: LengthMetrics.vp(params.style?.rowGap || 0),

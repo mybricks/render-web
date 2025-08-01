@@ -279,25 +279,38 @@ export const convertComponentStyle = (style: Style) => {
 /** 转hm Flex代码 */
 export const convertHarmonyFlexComponent = (
   style: Style,
-  config: { child: string },
+  config: { child: string; extraFlex?: string },
 ) => {
   const hmStyle = convertHMFlexStyle(style);
   const { direction, justifyContent, alignItems } = hmStyle;
+  const { child, extraFlex = "" } = config;
 
   const flex =
     `Flex({
     direction: ${direction},
     justifyContent: ${justifyContent},
     alignItems: ${alignItems},
+    ${extraFlex}
   }) {
-    ${config.child}
+    ${child}
   }` +
     convertHarmonyFlex(hmStyle) +
     convertHarmonyWidth(hmStyle) +
     convertHarmonyHeight(hmStyle) +
     convertHarmonyMargin(hmStyle) +
     convertHarmonyPadding(hmStyle) +
-    convertHarmonyZIndex(hmStyle);
+    convertHarmonyBasicStyle(hmStyle, {
+      key: "zIndex",
+      useQuotes: false,
+    }) +
+    convertHarmonyBasicStyle(hmStyle, {
+      key: "backgroundColor",
+      useQuotes: true,
+    }) +
+    convertHarmonyBackgroundImage(hmStyle) +
+    convertHarmonyBorderRadius(hmStyle) +
+    convertHarmonyBorder(hmStyle) +
+    convertHarmonyBoxShadow(hmStyle);
 
   return flex;
 };
@@ -330,19 +343,52 @@ const convertHarmonyMargin = (style: HmStyle) => {
 
 /** 转hm padding代码 */
 const convertHarmonyPadding = (style: HmStyle) => {
-  const { paddingTop, paddingRight, paddingBottom, paddingLeft } = style;
+  const { padding, paddingTop, paddingRight, paddingBottom, paddingLeft } =
+    style;
+
+  if (padding) {
+    const values = String(style.borderRadius).split(" ");
+    const length = values.length;
+    const [first, second, third, fourth] = values;
+
+    if (length === 1) {
+      return `.padding(${removePx(values[0])})`;
+    } else if (length === 2) {
+      return `.padding(${JSON.stringify({
+        top: removePx(first),
+        right: removePx(second),
+        bottom: removePx(first),
+        left: removePx(second),
+      })})`;
+    } else if (length === 3) {
+      return `.padding(${JSON.stringify({
+        top: removePx(first),
+        right: removePx(second),
+        bottom: removePx(third),
+        left: removePx(second),
+      })})`;
+    } else {
+      return `.padding(${JSON.stringify({
+        top: removePx(first),
+        right: removePx(second),
+        bottom: removePx(first),
+        left: removePx(fourth),
+      })})`;
+    }
+  }
+
   let code = "";
   if (paddingTop) {
-    code += `top: ${paddingTop},`;
+    code += `top: ${removePx(paddingTop)},`;
   }
   if (paddingRight) {
-    code += `right: ${paddingRight},`;
+    code += `right: ${removePx(paddingRight)},`;
   }
   if (paddingBottom) {
-    code += `bottom: ${paddingBottom},`;
+    code += `bottom: ${removePx(paddingBottom)},`;
   }
   if (paddingLeft) {
-    code += `left: ${paddingLeft},`;
+    code += `left: ${removePx(paddingLeft)},`;
   }
 
   if (code) {
@@ -354,32 +400,30 @@ const convertHarmonyPadding = (style: HmStyle) => {
 
 /** 转hm width代码 */
 const convertHarmonyWidth = (style: HmStyle) => {
-  let code = "";
-  if ("width" in style) {
-    code = `.width("${style.width}")`;
+  if (style.widthFull) {
+    if (style.layout !== "smart") {
+      return `.width("100%")`;
+    }
+    return `.width("auto")`;
+  } else if (style.widthAuto) {
+    return `.width("auto")`;
   }
 
-  return code;
+  return "width" in style ? `.width("${style.width}")` : "";
 };
 
 /** 转hm height代码 */
 const convertHarmonyHeight = (style: HmStyle) => {
-  let code = "";
-  if ("height" in style) {
-    code = `.height("${style.height}")`;
+  if (style.heightFull) {
+    if (style.layout !== "smart") {
+      return `.height("100%")`;
+    }
+    return `.height("auto")`;
+  } else if (style.heightAuto) {
+    return `.height("auto")`;
   }
 
-  return code;
-};
-
-/** 转hm zIndex代码 */
-const convertHarmonyZIndex = (style: HmStyle) => {
-  let code = "";
-  if ("zIndex" in style) {
-    code = `.zIndex(${style.zIndex})`;
-  }
-
-  return code;
+  return "height" in style ? `.height("${style.height}")` : "";
 };
 
 /** 转hm flex代码 */
@@ -388,6 +432,267 @@ const convertHarmonyFlex = (style: HmStyle) => {
     return `.flexGrow(${style.flex})`;
   }
   return `.flexShrink(0)`;
+};
+
+const convertHarmonyBackgroundImage = (style: HmStyle) => {
+  if (!("backgroundImage" in style)) {
+    return "";
+  }
+
+  const backgroundImage = style.backgroundImage as string;
+
+  if (backgroundImage.startsWith("url")) {
+    const match = backgroundImage.match(/url\((["']?)([^)"']+)\1\)/);
+
+    if (match) {
+      return `.backgroundImage("${match[2]}")`;
+    }
+
+    return "";
+  } else if (backgroundImage.startsWith("linear-gradient")) {
+    return `.linearGradient(${JSON.stringify(parseLinearGradient(backgroundImage))})`;
+  }
+
+  return "";
+};
+
+const convertHarmonyBorderRadius = (style: HmStyle) => {
+  if (!("borderRadius" in style)) {
+    return "";
+  }
+
+  const values = String(style.borderRadius).split(" ");
+  const length = values.length;
+  const [first, second, third, fourth] = values;
+
+  if (length === 1) {
+    return `.borderRadius(${removePx(values[0])})`;
+  } else if (length === 2) {
+    return `.borderRadius(${JSON.stringify({
+      topLeft: removePx(first),
+      topRight: removePx(second),
+      bottomRight: removePx(first),
+      bottomLeft: removePx(second),
+    })})`;
+  } else if (length === 3) {
+    return `.borderRadius(${JSON.stringify({
+      topLeft: removePx(first),
+      topRight: removePx(second),
+      bottomRight: removePx(third),
+      bottomLeft: removePx(second),
+    })})`;
+  } else {
+    return `.borderRadius(${JSON.stringify({
+      topLeft: removePx(first),
+      topRight: removePx(second),
+      bottomRight: removePx(third),
+      bottomLeft: removePx(fourth),
+    })})`;
+  }
+};
+
+const BORDER_STYLE_HM_MAP: Record<string, string> = {
+  solid: "BorderStyle.Solid",
+  dashed: "BorderStyle.Dashed",
+  dotted: "BorderStyle.Dotted",
+};
+
+const convertHarmonyBorder = (style: HmStyle) => {
+  const { border, borderTop, borderRight, borderBottom, borderLeft } = style;
+
+  if (border) {
+    const { width, style, color } = parseBorder(border as string);
+    return `.border({
+      width: ${width},
+      style: ${style},
+      color: "${color}"
+    })`;
+  }
+
+  let borderWidth = "";
+  let borderStyle = "";
+  let borderColor = "";
+
+  [
+    [borderTop, "top"],
+    [borderRight, "right"],
+    [borderBottom, "bottom"],
+    [borderLeft, "left"],
+  ].forEach(([border, key]) => {
+    if (border) {
+      const { width, style, color } = parseBorder(borderTop as string);
+      borderWidth += `${key}: ${width},`;
+      borderStyle += `${key}: ${style},`;
+      borderColor += `${key}: "${color}",`;
+    }
+  });
+
+  let code = "";
+
+  if (borderWidth) {
+    code += `.borderWidth({${borderWidth}})`;
+  }
+  if (borderStyle) {
+    code += `.borderStyle({${borderStyle}})`;
+  }
+  if (borderColor) {
+    code += `.borderColor({${borderColor}})`;
+  }
+
+  return code;
+};
+
+const convertHarmonyBoxShadow = (style: HmStyle) => {
+  if (!("boxShadow" in style)) {
+    return "";
+  }
+
+  const boxShadow = parseBoxShadow(style.boxShadow as string);
+
+  return `.shadow(${JSON.stringify({
+    offsetX: removePx(boxShadow.offsetX),
+    offsetY: removePx(boxShadow.offsetY),
+    color: boxShadow.color,
+    radius: removePx(boxShadow.blurRadius),
+    fill: boxShadow.inset,
+  })})`;
+};
+
+/** 转hm 基础style（无特别操作来处理样式） */
+const convertHarmonyBasicStyle = (
+  style: HmStyle,
+  config: {
+    key: string;
+    useQuotes: boolean;
+  },
+) => {
+  const { key, useQuotes } = config;
+
+  if (!(key in style)) {
+    return "";
+  }
+
+  const quote = useQuotes ? '"' : "";
+
+  return `.${key}(${quote}${style[key]}${quote})`;
+};
+
+interface ParseLinearGradientResult {
+  angle: number;
+  colors: Array<[string, number]>;
+}
+
+/** 解析渐变色 */
+const parseLinearGradient = (
+  gradientStr: string,
+): ParseLinearGradientResult => {
+  try {
+    // 移除 'linear-gradient(' 和最后的 ')'
+    const content: string = gradientStr.replace(/^linear-gradient\(|\)$/g, "");
+
+    // 使用正则表达式匹配角度
+    const angleMatch = content.match(/(\d+)deg/);
+    const angle: number = angleMatch ? parseInt(angleMatch[1]) : 0;
+
+    // 使用正则表达式匹配颜色和百分比
+    // 支持 rgba, rgb, hex 和颜色名称
+    const colorRegex =
+      /(?:rgba?\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)|#[0-9a-fA-F]{3,6}|\w+)\s*(\d+)%/g;
+    const colorMatches = content.match(colorRegex);
+
+    const colors: Array<[string, number]> = [];
+
+    if (colorMatches) {
+      colorMatches.forEach((match) => {
+        // 分离颜色和百分比
+        const lastSpaceIndex = match.lastIndexOf(" ");
+        let color, percentStr;
+
+        if (lastSpaceIndex === -1) {
+          // 如果没有空格（比如 "0%" 单独出现），这可能是个错误情况
+          return;
+        } else {
+          color = match.substring(0, lastSpaceIndex).trim();
+          percentStr = match.substring(lastSpaceIndex).trim();
+        }
+
+        const percent = parseInt(percentStr.replace("%", ""));
+        colors.push([color, percent / 100]);
+      });
+    }
+
+    return {
+      angle: angle,
+      colors: colors,
+    };
+  } catch (error) {
+    console.error("[parseLinearGradient]", error);
+    return {
+      angle: 0,
+      colors: [],
+    };
+  }
+};
+
+/** 解析border */
+const parseBorder = (border: string) => {
+  const match = (border as string).match(
+    /^(\d*\.?\d+\w+)\s+(solid|dashed|dotted)\s+(.+)$/,
+  )!;
+
+  const [, width, style, color] = match;
+
+  return {
+    width: removePx(width),
+    style: BORDER_STYLE_HM_MAP[style],
+    color,
+  };
+};
+
+/** 解析boxShadow */
+const parseBoxShadow = (boxShadow: string) => {
+  const result = {
+    inset: false,
+    offsetX: "0",
+    offsetY: "0",
+    blurRadius: "0",
+    spreadRadius: "0",
+    color: "",
+  };
+
+  boxShadow = boxShadow.trim();
+
+  if (boxShadow.startsWith("inset")) {
+    result.inset = true;
+    boxShadow = boxShadow.replace(/^inset\s+/, "");
+  }
+
+  const regex =
+    /^([-\d.]+px)\s+([-\d.]+px)\s+([-\d.]+px)\s+([-\d.]+px)\s+(.+)$/;
+  const match = boxShadow.match(regex);
+
+  if (match) {
+    result.offsetX = match[1];
+    result.offsetY = match[2];
+    result.blurRadius = match[3];
+    result.spreadRadius = match[4];
+    result.color = match[5].trim();
+  } else {
+    console.error("[parseBoxShadow - 数据格式不正确]", boxShadow);
+  }
+
+  return result;
+};
+
+/** 去除px */
+const removePx = (str: string | number) => {
+  if (typeof str === "number") {
+    return str;
+  }
+  if (/px$/.test(str)) {
+    return parseFloat(str);
+  }
+  return `"${str}"`;
 };
 
 export * from "./hm";
