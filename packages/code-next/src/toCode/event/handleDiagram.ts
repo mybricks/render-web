@@ -316,6 +316,7 @@ const handleProcess = (
     multipleInputsNodes,
     frameOutputs,
   } = result;
+  const frame = config.getFrame();
   cons.forEach((con) => {
     if (con.to.parent.type === "frame") {
       const frame = config.getFrame();
@@ -384,19 +385,36 @@ const handleProcess = (
     );
     // 下一步
     const nextMap: Record<string, DiagramCon[]> = {};
+
     config.getConAry().forEach((nextCon) => {
-      if (
-        (nextCon.from.parent.id === comInfo.id &&
-          componentType === "js" &&
-          (category !== "var"
+      // [TODO] 变量没有对应的finishPinParentKey和startPinParentKey，看看怎么解决
+      if (["extension-api", "extension-bus"].includes(frame.type)) {
+        if (
+          (nextCon.from.parent.id === comInfo.id &&
+            componentType === "js" &&
+            (category !== "var"
+              ? true
+              : con.finishPinParentKey === nextCon.startPinParentKey)) ||
+          (category === "var" && nextCon.from.id === "changed") // 变量changed，变量的监听
+        ) {
+          if (!nextMap[nextCon.from.id]) {
+            nextMap[nextCon.from.id] = [nextCon];
+          } else {
+            nextMap[nextCon.from.id].push(nextCon);
+          }
+        }
+      } else {
+        if (
+          nextCon.from.parent.id === comInfo.id &&
+          (componentType === "js" && category !== "var"
             ? true
-            : con.finishPinParentKey === nextCon.startPinParentKey)) ||
-        (category === "var" && nextCon.from.id === "changed") // 变量changed，变量的监听
-      ) {
-        if (!nextMap[nextCon.from.id]) {
-          nextMap[nextCon.from.id] = [nextCon];
-        } else {
-          nextMap[nextCon.from.id].push(nextCon);
+            : con.finishPinParentKey === nextCon.startPinParentKey)
+        ) {
+          if (!nextMap[nextCon.from.id]) {
+            nextMap[nextCon.from.id] = [nextCon];
+          } else {
+            nextMap[nextCon.from.id].push(nextCon);
+          }
         }
       }
     });

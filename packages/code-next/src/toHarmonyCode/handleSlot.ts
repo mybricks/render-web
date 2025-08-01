@@ -8,7 +8,10 @@ import type { PinAry } from "../toCode/types";
 
 interface HandleSlotConfig extends BaseConfig {
   addParentDependencyImport?: (typeof ImportManager)["prototype"]["addImport"];
-  addController?: (controller: string) => void;
+  addComId?: (comId: string) => void;
+  addConsumer?: (
+    provider: ReturnType<BaseConfig["getCurrentProvider"]>,
+  ) => void;
   checkIsRoot: () => boolean;
 }
 
@@ -19,17 +22,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
   let uiCode = "";
   let jsCode = "";
 
-  const providerMetaMap = config.getProviderMetaMap();
   const currentProvider = config.getCurrentProvider();
 
   if (ui.meta.scope) {
-    const currentProvider = {
-      name: `slot_${ui.meta.slotId[0].toUpperCase() + ui.meta.slotId.slice(1)}_${ui.meta.comId}`,
-      class: `Slot_${ui.meta.slotId[0].toUpperCase() + ui.meta.slotId.slice(1)}_${ui.meta.comId}`,
-    };
-
     // 声明组件Controller
-    const controllers = new Set<string>();
+    const comIds = new Set<string>();
     // 调用上层组件
     const consumers = new Set<{ name: string; class: string }>();
 
@@ -38,8 +35,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       importManager.addImport.bind(importManager);
     const nextConfig = {
       ...config,
-      addController: (controller: string) => {
-        controllers.add(controller);
+      addComId: (comId: string) => {
+        comIds.add(comId);
       },
       addParentDependencyImport: addDependencyImport,
       addConsumer: (provider: { name: string; class: string }) => {
@@ -62,15 +59,26 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         consumers.add(provider);
       },
     });
+    // 主场景和作用域插槽会有生命周期事件
+    let effectEventCode = handleEffectEvent(ui, {
+      ...nextConfig,
+      getParams: (paramPins) => {
+        return paramPins.reduce((pre: Record<string, string>, { id }) => {
+          pre[id] = `this.params.inputValues.${id}`;
+          return pre;
+        }, {});
+      },
+      addParentDependencyImport: addDependencyImport,
+      addConsumer: (provider: { name: string; class: string }) => {
+        consumers.add(provider);
+      },
+    });
 
     const level0Slots: string[] = [];
     const level1Slots: string[] = [];
 
     children.forEach((child) => {
       if (child.type === "com") {
-        if (!providerMetaMap[child.meta.id]) {
-          providerMetaMap[child.meta.id] = currentProvider;
-        }
         const { ui, js, slots, scopeSlots } = handleCom(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
         jsCode += js;
@@ -88,27 +96,27 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
     });
 
-    // 主场景和作用域插槽会有生命周期事件
-    const effectEventCode = handleEffectEvent(ui, {
-      ...nextConfig,
-      getParams: (paramPins) => {
-        return paramPins.reduce((pre: Record<string, string>, { id }) => {
-          pre[id] = `this.params.inputValues.${id}`;
-          return pre;
-        }, {});
-      },
-      addParentDependencyImport: addDependencyImport,
-      addConsumer: (provider: { name: string; class: string }) => {
-        consumers.add(provider);
-      },
-    });
-
     if (props.style.layout) {
       importManager.addImport({
         dependencyNames: ["LengthMetrics"],
         packageName: "@kit.ArkUI",
         importType: "named",
       });
+    }
+
+    if (currentProvider.useParams) {
+      if (effectEventCode) {
+        effectEventCode = effectEventCode.replace(
+          "aboutToAppear(): void {",
+          `aboutToAppear(): void {
+            this.${currentProvider.name}.params = this.params;
+          `,
+        );
+      } else {
+        effectEventCode = `aboutToAppear(): void {
+          this.${currentProvider.name}.params = this.params;
+        }`;
+      }
     }
 
     return {
@@ -146,14 +154,14 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       // .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
       slots: level0Slots,
       scopeSlots: level1Slots,
-      controllers,
+      comIds,
       consumers,
       vars, // [TODO] vars fxs consumers应该在这一层处理完成，作为js返回
       fxs,
     };
   } else {
     // 声明组件Controller
-    const controllers = new Set<string>();
+    const comIds = new Set<string>();
     // 调用上层组件
     const consumers = new Set<{ name: string; class: string }>();
 
@@ -162,36 +170,89 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       importManager.addImport.bind(importManager);
     const nextConfig = {
       ...config,
-      addController:
-        config.addController ||
-        ((controller: string) => {
-          controllers.add(controller);
+      addComId:
+        config.addComId ||
+        ((comId: string) => {
+          comIds.add(comId);
         }),
       addParentDependencyImport: addDependencyImport,
-      addConsumer: (provider: { name: string; class: string }) => {
-        consumers.add(provider);
-      },
+      addConsumer:
+        config.addConsumer ||
+        ((provider: ReturnType<BaseConfig["getCurrentProvider"]>) => {
+          consumers.add(provider);
+        }),
     };
 
     let vars = null;
     let fxs = null;
+
+    // 主场景和作用域插槽会有生命周期事件
+    let effectEventCode;
 
     if (config.checkIsRoot()) {
       // 之类要提前，把变量id与provider进行绑定
       vars = handleVarsEvent(ui, {
         ...nextConfig,
         addParentDependencyImport: addDependencyImport,
-        addConsumer: (provider: { name: string; class: string }) => {
-          consumers.add(provider);
-        },
+        addConsumer:
+          config.addConsumer ||
+          ((provider: ReturnType<BaseConfig["getCurrentProvider"]>) => {
+            consumers.add(provider);
+          }),
       });
       fxs = handleFxsEvent(ui, {
         ...nextConfig,
         addParentDependencyImport: addDependencyImport,
-        addConsumer: (provider: { name: string; class: string }) => {
-          consumers.add(provider);
-        },
+        addConsumer:
+          config.addConsumer ||
+          ((provider: ReturnType<BaseConfig["getCurrentProvider"]>) => {
+            consumers.add(provider);
+          }),
       });
+
+      const scene = config.getCurrentScene();
+      const isModule = scene.type === "module";
+
+      effectEventCode = handleEffectEvent(ui, {
+        ...nextConfig,
+        getParams: (paramPins) => {
+          return paramPins.reduce((pre: Record<string, string>, paramPin) => {
+            // 调用函数，说明使用了打开输入
+            // 模块调用data，页面使用路由
+            const { id, type } = paramPin;
+            pre[id] = isModule
+              ? type === "config"
+                ? `this.data.${id}`
+                : `this.controller.${id}`
+              : "pageParams";
+            return pre;
+          }, {});
+        },
+        addParentDependencyImport: importManager.addImport.bind(importManager),
+        addConsumer:
+          config.addConsumer ||
+          ((provider: ReturnType<BaseConfig["getCurrentProvider"]>) => {
+            consumers.add(provider);
+          }),
+      });
+
+      if (effectEventCode && effectEventCode.match("pageParams")) {
+        importManager.addImport({
+          packageName: config.getComponentPackageName(),
+          dependencyNames: ["page"],
+          importType: "named",
+        });
+        if (!isModule) {
+          const slotId = ui.meta.slotId;
+          // 模块调用data，页面使用路由
+          effectEventCode = effectEventCode.replace(
+            "aboutToAppear(): void {",
+            `aboutToAppear(): void {
+            /** 页面参数 */
+            const pageParams: MyBricks.Any = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
+          );
+        }
+      }
     }
 
     const level0Slots: string[] = [];
@@ -199,9 +260,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     children.forEach((child) => {
       if (child.type === "com") {
-        if (!providerMetaMap[child.meta.id]) {
-          providerMetaMap[child.meta.id] = currentProvider;
-        }
         const { ui, js, slots, scopeSlots } = handleCom(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
         jsCode += js;
@@ -232,62 +290,26 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         });
       }
 
-      // 主场景和作用域插槽会有生命周期事件
-      let effectEventCode = handleEffectEvent(ui, {
-        ...nextConfig,
-        getParams: (paramPins) => {
-          return paramPins.reduce((pre: Record<string, string>, paramPin) => {
-            // 调用函数，说明使用了打开输入
-            // 模块调用data，页面使用路由
-            const { id, type } = paramPin;
-            pre[id] = isModule
-              ? type === "config"
-                ? `this.data.${id}`
-                : `this.controller.${id}`
-              : "pageParams";
-            return pre;
-          }, {});
-        },
-        addParentDependencyImport: importManager.addImport.bind(importManager),
-        addConsumer: (provider: { name: string; class: string }) => {
-          consumers.add(provider);
-        },
-      });
-
-      if (effectEventCode && effectEventCode.match("pageParams")) {
-        importManager.addImport({
-          packageName: config.getComponentPackageName(),
-          dependencyNames: ["page"],
-          importType: "named",
-        });
-        if (!isModule) {
-          const slotId = ui.meta.slotId;
-          // 模块调用data，页面使用路由
-          effectEventCode = effectEventCode.replace(
-            "aboutToAppear(): void {",
-            `aboutToAppear(): void {
-            /** 页面参数 */
-            const pageParams: MyBricks.Any = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
-          );
-        }
-      }
-
-      const usedControllers = config.getUsedControllers();
+      // const usedControllers = config.getUsedControllers();
       let level0SlotsCode = level0Slots.join("\n");
-      const filterControllers = Array.from(controllers).filter((controller) => {
-        if (!usedControllers.has(controller)) {
-          uiCode = uiCode.replace(
-            `controller: this.${currentProvider.name}.controller_${controller},\n`,
-            "",
-          );
-          level0SlotsCode = level0SlotsCode.replace(
-            `controller: this.${currentProvider.name}.controller_${controller},\n`,
-            "",
-          );
-          return false;
-        }
-        return true;
-      });
+
+      const filterControllers = Array.from(currentProvider.coms).filter(
+        (controller) => {
+          if (!currentProvider.controllers.has(controller)) {
+            uiCode = uiCode.replace(
+              `controller: this.${currentProvider.name}.controller_${controller},\n`,
+              "",
+            );
+            level0SlotsCode = level0SlotsCode.replace(
+              `controller: this.${currentProvider.name}.controller_${controller},\n`,
+              "",
+            );
+            return false;
+          }
+
+          return true;
+        },
+      );
 
       const varsDeclarationCode = vars
         ? `/** 根组件变量 */
@@ -297,9 +319,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ? `/** 根组件Fx */
       ${fxs.fxsDeclarationCode}\n`
         : "";
-      const classCode = filterControllers.length
-        ? `/** 根组件控制器 */
+      const classCode =
+        filterControllers.length || currentProvider.useParams
+          ? `/** 根组件控制器 */
         class ${currentProvider.class} {
+          ${currentProvider.useParams ? "/** 插槽参数 */\nparams: MyBricks.Any" : ""}
           ${filterControllers
             .map((controller) => {
               const com = scene.coms[controller];
@@ -312,10 +336,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
             })
             .join("\n")}
         }\n`
-        : "";
-      let providerCode = filterControllers.length
-        ? `@Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()\n`
-        : "";
+          : "";
+      let providerCode =
+        filterControllers.length || currentProvider.useParams
+          ? `@Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()\n`
+          : "";
       if (vars) {
         providerCode += vars.varsImplementCode + "\n";
       }
@@ -370,6 +395,18 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       });
     }
 
+    Array.from(currentProvider.coms).filter((controller) => {
+      if (!currentProvider.controllers.has(controller)) {
+        uiCode = uiCode.replace(
+          `controller: this.${currentProvider.name}.controller_${controller},\n`,
+          "",
+        );
+        return false;
+      }
+
+      return true;
+    });
+
     return {
       js: jsCode,
       ui: !props.style.layout
@@ -405,7 +442,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       // .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
       slots: level0Slots,
       scopeSlots: level1Slots,
-      controllers,
+      comIds,
       consumers,
     };
   }
@@ -416,7 +453,7 @@ export default handleSlot;
 interface HandleEffectEventConfig extends HandleSlotConfig {
   addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   getParams: (paramPins: PinAry) => Record<string, string>;
-  addConsumer: (provider: { name: string; class: string }) => void;
+  addConsumer: (provider: ReturnType<BaseConfig["getCurrentProvider"]>) => void;
 }
 
 export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
@@ -451,13 +488,12 @@ export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
 
 interface HandleVarsEventConfig extends HandleSlotConfig {
   addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
-  addConsumer: (provider: { name: string; class: string }) => void;
+  addConsumer: (provider: ReturnType<BaseConfig["getCurrentProvider"]>) => void;
 }
 
 export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   const isScope = ui.meta.scope;
   const currentProvider = config.getCurrentProvider();
-  const providerMetaMap = config.getProviderMetaMap();
   const varEvents = config.getVarEvents(
     isScope
       ? {
@@ -470,10 +506,6 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   let varsImplementCode = "";
 
   varEvents.forEach((varEvent) => {
-    if (!providerMetaMap[varEvent.meta.id]) {
-      providerMetaMap[varEvent.meta.id] = currentProvider;
-    }
-
     config.addParentDependencyImport({
       packageName: config.getUtilsPackageName(),
       dependencyNames: ["createVariable"],
@@ -488,11 +520,11 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
       },
     });
 
-    varsDeclarationCode += `${varEvent.title}: MyBricks.Controller = createVariable()`;
+    varsDeclarationCode += `${varEvent.title}: MyBricks.Controller = createVariable()\n`;
 
     varsImplementCode += `${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {
       ${code}
-    })`;
+    }),\n`;
   });
 
   if (!varsDeclarationCode) {
@@ -511,13 +543,12 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
 
 interface HandleFxsEventConfig extends HandleSlotConfig {
   addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
-  addConsumer: (provider: { name: string; class: string }) => void;
+  addConsumer: (provider: ReturnType<BaseConfig["getCurrentProvider"]>) => void;
 }
 
 export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
   const isScope = ui.meta.scope;
   const currentProvider = config.getCurrentProvider();
-  const providerMetaMap = config.getProviderMetaMap();
   const fxEvents = config.getFxEvents(
     isScope
       ? {
@@ -530,10 +561,6 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
   let fxsImplementCode = "";
 
   fxEvents.forEach((fxEvent) => {
-    if (!providerMetaMap[fxEvent.frameId]) {
-      providerMetaMap[fxEvent.frameId] = currentProvider;
-    }
-
     config.addParentDependencyImport({
       packageName: config.getUtilsPackageName(),
       dependencyNames: ["createFx"],

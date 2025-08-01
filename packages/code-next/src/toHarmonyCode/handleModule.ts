@@ -5,8 +5,8 @@ type Module = Extract<UI["children"][0], { type: "module" }>;
 
 interface HandleModuleConfig extends BaseConfig {
   addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
-  addController: (controller: string) => void;
-  addConsumer: (provider: { name: string; class: string }) => void;
+  addConsumer: (provider: ReturnType<BaseConfig["getCurrentProvider"]>) => void;
+  addComId: (comId: string) => void;
 }
 
 // type HandleModuleResult = {
@@ -24,11 +24,10 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
     dependencyNames: [name],
     importType: "named",
   });
-  config.addController(module.meta.id);
 
   const configs = module.meta.model.data.configs;
   const currentProvider = config.getCurrentProvider();
-  const usedControllers = config.getUsedControllers();
+  currentProvider.coms.add(module.meta.id);
 
   const resultStyle = convertComponentStyle(module.props.style);
 
@@ -36,8 +35,8 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
     uid: "${module.meta.id}",
     ${config.verbose ? `title: "${module.meta.title}",` : ""}
     ${configs ? `data: ${JSON.stringify(configs)},` : ""}
+    controller: this.${currentProvider.name}.controller_${module.meta.id},
     styles: ${JSON.stringify(resultStyle)},
-    ${usedControllers.has(module.meta.id) ? `controller: this.${currentProvider.name}.controller_${module.meta.id},` : ""}
   })`;
 };
 

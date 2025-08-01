@@ -7,8 +7,8 @@ type Dom = Extract<UI["children"][0], { type: "dom" }>;
 
 interface HandleDomConfig extends BaseConfig {
   addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
-  addController: (controller: string) => void;
-  addConsumer: (provider: { name: string; class: string }) => void;
+  addConsumer: (provider: ReturnType<BaseConfig["getCurrentProvider"]>) => void;
+  addComId: (comId: string) => void;
 }
 
 type HandleDomResult = {

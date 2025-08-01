@@ -2,7 +2,7 @@
 import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
-import { ImportManager, getUsedControllers } from "./utils";
+import { ImportManager } from "./utils";
 import handleGlobal from "./handleGlobal";
 import handleExtension from "./handleExtension";
 
@@ -77,14 +77,18 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   );
 
   scenes.forEach(({ scene, ui, event }) => {
-    const providerMetaMap = {};
-    const usedControllers = getUsedControllers(event);
+    const providerMap: ReturnType<BaseConfig["getProviderMap"]> = {};
+    const currentProvider: ReturnType<BaseConfig["getCurrentProvider"]> = {
+      name: "slot_Index",
+      class: "Slot_Index",
+      controllers: new Set(),
+      useParams: false,
+      coms: new Set(),
+    };
+    providerMap[currentProvider.name] = currentProvider;
 
     handleSlot(ui, {
       ...config,
-      getUsedControllers: () => {
-        return usedControllers;
-      },
       getCurrentScene: () => {
         return scene;
       },
@@ -143,26 +147,27 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         }
       },
       getCurrentProvider: () => {
-        return {
-          name: "slot_Index",
-          class: "Slot_Index",
-        };
+        return currentProvider;
       },
-      getProviderMetaMap: () => {
-        return providerMetaMap;
+      getProviderMap: () => {
+        return providerMap;
       },
     });
   });
 
   modules.forEach(({ scene, ui, event }) => {
-    const providerMetaMap = {};
-    const usedControllers = getUsedControllers(event);
+    const providerMap: ReturnType<BaseConfig["getProviderMap"]> = {};
+    const currentProvider: ReturnType<BaseConfig["getCurrentProvider"]> = {
+      name: "slot_Index",
+      class: "Slot_Index",
+      controllers: new Set(),
+      useParams: false,
+      coms: new Set(),
+    };
+    providerMap[currentProvider.name] = currentProvider;
 
     handleSlot(ui, {
       ...config,
-      getUsedControllers: () => {
-        return usedControllers;
-      },
       getCurrentScene: () => {
         return scene;
       },
@@ -221,13 +226,10 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         }
       },
       getCurrentProvider: () => {
-        return {
-          name: "slot_Index",
-          class: "Slot_Index",
-        };
+        return currentProvider;
       },
-      getProviderMetaMap: () => {
-        return providerMetaMap;
+      getProviderMap: () => {
+        return providerMap;
       },
     });
   });
@@ -241,8 +243,6 @@ export type UI = ToCodeResult["scenes"][0]["ui"];
 export interface BaseConfig extends ToSpaCodeConfig {
   /** 获取当前场景信息 */
   getCurrentScene: () => ReturnType<typeof toCode>["scenes"][0]["scene"];
-  /** 获取使用的组件控制器 */
-  getUsedControllers: () => Set<string>;
   /** 添加最终的文件列表 */
   add: (value: {
     content: string;
@@ -268,8 +268,17 @@ export interface BaseConfig extends ToSpaCodeConfig {
     comId: string;
     slotId: string;
   }) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
-  getCurrentProvider: () => { name: string; class: string };
-  getProviderMetaMap: () => Record<string, { name: string; class: string }>;
+  getCurrentProvider: () => {
+    name: string;
+    class: string;
+    controllers: Set<string>;
+    useParams: boolean;
+    coms: Set<string>;
+  };
+  getProviderMap: () => Record<
+    string,
+    ReturnType<BaseConfig["getCurrentProvider"]>
+  >;
 }
 
 export default toHarmonyCode;

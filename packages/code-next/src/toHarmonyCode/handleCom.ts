@@ -15,8 +15,8 @@ type HandleComResult = {
 
 export interface HandleComConfig extends BaseConfig {
   addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
-  addController: (controller: string) => void;
-  addConsumer: (provider: { name: string; class: string }) => void;
+  addConsumer: (provider: ReturnType<BaseConfig["getCurrentProvider"]>) => void;
+  addComId: (comId: string) => void;
 }
 
 const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
@@ -28,7 +28,6 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     config.getComponentMetaByNamespace(meta.def.namespace, { type: "ui" });
 
   config.addParentDependencyImport(dependencyImport);
-  config.addController(meta.id);
 
   let eventCode = "";
   let comEventCode = "";
@@ -62,10 +61,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   });
 
   const currentProvider = config.getCurrentProvider();
-  const providerMetaMap = config.getProviderMetaMap();
-  if (!providerMetaMap[meta.id]) {
-    providerMetaMap[meta.id] = currentProvider;
-  }
+  currentProvider.coms.add(meta.id);
 
   if (slots) {
     // 当前组件的插槽
@@ -167,30 +163,41 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         }
       } else {
         // [TODO] 作用域插槽
-        const currentProvider = {
-          name: `slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
-          class: `Slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`,
+        const providerName = `slot_${slot.meta.slotId[0].toUpperCase() + slot.meta.slotId.slice(1)}_${slot.meta.comId}`;
+        const currentProvider: ReturnType<BaseConfig["getCurrentProvider"]> = {
+          name: providerName,
+          class: providerName[0].toUpperCase() + providerName.slice(1),
+          controllers: new Set(),
+          useParams: false,
+          coms: new Set(),
         };
-        const { js, ui, slots, scopeSlots, controllers, consumers, vars, fxs } =
-          handleSlot(slot, {
+        const providerMap = config.getProviderMap();
+        providerMap[currentProvider.name] = currentProvider;
+
+        const { js, ui, slots, scopeSlots, consumers, vars, fxs } = handleSlot(
+          slot,
+          {
             ...config,
             checkIsRoot: () => {
               return false;
             },
-          });
+            getCurrentProvider() {
+              return currentProvider;
+            },
+          },
+        );
         let uiCode = ui;
 
-        config.addController(meta.id);
+        currentProvider.coms.add(meta.id);
 
         level1Slots.push(...scopeSlots);
 
         const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${meta.id}`;
         const scene = config.getCurrentScene();
-        const usedControllers = config.getUsedControllers();
         let slotsCode = slots.join("\n");
-        const filterControllers = Array.from(controllers).filter(
+        const filterControllers = Array.from(currentProvider.coms).filter(
           (controller) => {
-            if (!usedControllers.has(controller)) {
+            if (!currentProvider.controllers.has(controller)) {
               uiCode = uiCode.replace(
                 `controller: this.${currentProvider.name}.controller_${controller},\n`,
                 "",
@@ -201,6 +208,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
               );
               return false;
             }
+
             return true;
           },
         );
@@ -213,9 +221,11 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           ? `/** ${meta.title}（${slot.meta.title}）组件Fx */
       ${fxs.fxsDeclarationCode}\n`
           : "";
-        const classCode = filterControllers.length
-          ? `/** ${meta.title}（${slot.meta.title}）组件控制器 */
+        const classCode =
+          filterControllers.length || currentProvider.useParams
+            ? `/** ${meta.title}（${slot.meta.title}）组件控制器 */
           class Slot_${scopeSlotComponentName} {
+          ${currentProvider.useParams ? "/** 插槽参数 */\nparams: MyBricks.Any" : ""}
           ${filterControllers
             .map((controller) => {
               const com = scene.coms[controller];
@@ -228,11 +238,12 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             })
             .join("\n")}
         }\n`
-          : "";
+            : "";
 
-        let providerCode = filterControllers.length
-          ? `@Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()\n`
-          : "";
+        let providerCode =
+          filterControllers.length || currentProvider.useParams
+            ? `@Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()\n`
+            : "";
         if (vars) {
           providerCode += vars.varsImplementCode + "\n";
         }
@@ -360,7 +371,7 @@ export default handleCom;
 interface HandleProcessConfig extends BaseConfig {
   addParentDependencyImport: (typeof ImportManager)["prototype"]["addImport"];
   getParams: () => Record<string, string>;
-  addConsumer: (provider: { name: string; class: string }) => void;
+  addConsumer: (provider: ReturnType<BaseConfig["getCurrentProvider"]>) => void;
 }
 
 export const handleProcess = (
@@ -552,14 +563,31 @@ export const handleProcess = (
         const pinValueProxy =
           scene.pinValueProxies[`${props.meta.id}-${props.id}`];
         const params = config.getParams();
-        // [TODO] 下一版支持获取上级作用域的输入项目，通过frameKey做判断
-        if (pinValueProxy.frameId === scene.id) {
+        const { frameKey } = props;
+        if (frameKey === "_rootFrame_") {
           // 场景输入
           code += `/** 调用获取当前输入值 ${props.title} */
           ${nextCode}join(${nextValue}, ${params[pinValueProxy.pinId]})`;
         } else {
-          code += `/** 调用获取当前输入值 ${props.title} */
-          ${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
+          const [comId, slotId] = frameKey.split("-");
+
+          if (comId === props.meta.parentComId) {
+            // 同作用域
+            code += `/** 调用获取当前输入值 ${props.title} */
+            ${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
+          } else {
+            // 跨作用域
+            const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${comId}`;
+            const providerMap = config.getProviderMap();
+
+            const provider = providerMap[`slot_${scopeSlotComponentName}`];
+            provider.useParams = true;
+
+            config.addConsumer(provider);
+
+            code += `/** 调用获取当前输入值 ${props.title} */
+            ${nextCode}join(${nextValue}, this.slot_${scopeSlotComponentName}.params.inputValues.${pinValueProxy.pinId})`;
+          }
         }
       } else {
         console.log("[出码] 其它类型js节点");
@@ -606,6 +634,7 @@ export const handleProcess = (
             { isSameScope, props },
             config,
           );
+          currentProvider.controllers.add(props.meta.id);
 
           code += `${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
           return;
@@ -616,6 +645,7 @@ export const handleProcess = (
         { isSameScope, props },
         config,
       );
+      currentProvider.controllers.add(props.meta.id);
 
       code += `/** 调用 ${props.meta.title} 的 ${props.title} */
       ${nextCode}this.${currentProvider.name}.controller_${props.meta.id}.${props.id}(${nextValue})`;
@@ -753,6 +783,8 @@ const getNextCode = (
     } else if (category === "scene") {
       // [TODO] harmony-render-utils里想办法解决类型问题
       return `const ${componentNameWithId}_result: MyBricks.EventValue = `;
+    } else if (category === "frameInput") {
+      return `const ${componentNameWithId}_result: MyBricks.EventValue = `;
     }
     return `const ${componentNameWithId}_result = `;
     // if (category === "var") {
@@ -836,29 +868,36 @@ const getCurrentProvider = (
   },
   config: HandleProcessConfig,
 ) => {
+  const providerMap = config.getProviderMap();
   const { isSameScope, props } = params;
-  let currentProvider = config.getCurrentProvider();
+  const { category, meta } = props;
+  const { parentComId, frameId } = meta;
+
+  const provider = !parentComId
+    ? providerMap[`slot_Index`]
+    : providerMap[
+        `slot_${frameId[0].toUpperCase() + frameId.slice(1)}_${parentComId}`
+      ];
 
   if (!isSameScope) {
-    const providerMetaMap = config.getProviderMetaMap();
-    currentProvider = providerMetaMap[props.meta.id];
-    // 非当前作用域，借助@Consumer调用上层组件
-    if (props.category === "var") {
+    if (category === "var") {
       // 变量
       config.addConsumer({
-        class: currentProvider.class + "_Vars",
-        name: currentProvider.name + "_Vars",
+        ...provider,
+        class: provider.class + "_Vars",
+        name: provider.name + "_Vars",
       });
-    } else if (props.category === "fx") {
+    } else if (category === "fx") {
       // Fx
       config.addConsumer({
-        class: currentProvider.class + "_Fxs",
-        name: currentProvider.name + "_Fxs",
+        ...provider,
+        class: provider.class + "_Fxs",
+        name: provider.name + "_Fxs",
       });
     } else {
-      config.addConsumer(currentProvider);
+      config.addConsumer(provider);
     }
   }
 
-  return currentProvider;
+  return provider;
 };
