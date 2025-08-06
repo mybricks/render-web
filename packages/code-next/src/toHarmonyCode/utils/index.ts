@@ -695,7 +695,6 @@ const removePx = (str: string | number) => {
   return `"${str}"`;
 };
 
-export * from "./hm";
 export * from "./pinyin";
 export * from "./string";
 export * from "./code";

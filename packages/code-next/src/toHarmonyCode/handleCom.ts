@@ -479,8 +479,11 @@ export const handleProcess = (
 
         const _sceneId = props.meta.model.data._sceneId;
 
+        const operateName =
+          props.meta.model.data.openType === "redirect" ? "replace" : "open";
+
         code += `/** 打开 ${props.meta.title} */
-        ${nextCode}page.open("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
+        ${nextCode}page.${operateName}("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
         // code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
       } else if (category === "normal") {
         let componentNameWithId = getComponentNameWithId(props, config);
@@ -501,16 +504,20 @@ export const handleProcess = (
         ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
         // code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else if (category === "frameOutput") {
-        // [TODO] 判断是弹窗输出还是业务模块输出
-        config.addParentDependencyImport({
-          packageName: "../api",
-          dependencyNames: ["api"],
-          importType: "default",
-        });
+        // [TODO] 目前是区块调用输出
         const scene = config.getCurrentScene();
         const pinProxy = scene.pinProxies[`${props.meta.id}-${props.id}`];
-        code += `/** 调用模块注册回调 ${props.meta.title} */
-        ${nextCode}api.emit("${pinProxy.pinId}", ${nextValue})`;
+
+        if (pinProxy.frameId === scene.id) {
+          if (scene.type === "module") {
+            code += `/** 调用 ${props.meta.title} */
+            this.events.${pinProxy.pinId}?.(${nextValue})`;
+          } else {
+            console.log("[frameOutput 当前场景非区块]");
+          }
+        } else {
+          console.log("[frameOutput 非当前场景]");
+        }
       } else if (category === "var") {
         if (props.meta.global) {
           config.addParentDependencyImport({
@@ -620,6 +627,13 @@ export const handleProcess = (
           this.emit("${props.id}", ${nextValue})`;
           return;
         }
+
+        if (props.category === "module") {
+          code += `/** 调用 ${props.title} */
+          this.events.${props.id}?.(${nextValue})`;
+          return;
+        }
+
         code += `/** 调用插槽输出 ${props.title} */
         this.params.outputs.${props.id}(${nextValue})`;
         return;

@@ -1,5 +1,6 @@
 import type { UI, BaseConfig } from "./index";
 import { ImportManager, getName, convertComponentStyle } from "./utils";
+import { handleProcess } from "./handleCom";
 
 type Module = Extract<UI["children"][0], { type: "module" }>;
 
@@ -9,15 +10,38 @@ interface HandleModuleConfig extends BaseConfig {
   addComId: (comId: string) => void;
 }
 
-// type HandleModuleResult = {
-//   ui: string;
-//   js: string;
-//   slots: string[];
-//   scopeSlots: string[];
-// };
-
 const handleModule = (module: Module, config: HandleModuleConfig): string => {
-  const name = getName(module.meta.title);
+  const { meta, events, moduleId } = module;
+  const name = config.getFileName?.(moduleId) || getName(meta.title);
+  let comEventCode = "";
+
+  Object.entries(events).forEach(([eventId, { diagramId }]) => {
+    if (!diagramId) {
+      // 没有添加事件
+      return;
+    }
+
+    const event = config.getEventByDiagramId(diagramId)!;
+
+    if (!event) {
+      // 在引擎内新建了事件后删除，存在脏数据
+      return;
+    }
+
+    const defaultValue = "value";
+
+    comEventCode += `${eventId}: (${defaultValue}: MyBricks.EventValue) => {
+      ${handleProcess(event, {
+        ...config,
+        addParentDependencyImport: config.addParentDependencyImport,
+        getParams: () => {
+          return {
+            [eventId]: defaultValue,
+          };
+        },
+      })}
+    },`;
+  });
 
   config.addParentDependencyImport({
     packageName: "../sections",
@@ -37,6 +61,13 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
     ${configs ? `data: ${JSON.stringify(configs)},` : ""}
     controller: this.${currentProvider.name}.controller_${module.meta.id},
     styles: ${JSON.stringify(resultStyle)},
+    ${
+      comEventCode
+        ? `events: {
+      ${comEventCode}  
+    }`
+        : ""
+    }
   })`;
 };
 

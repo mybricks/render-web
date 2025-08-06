@@ -352,11 +352,12 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         content: `${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${scene.title} */
         @ComponentV2
         ${isModule ? "export default " : ""}struct Index {
-          ${isModule ? "@Param @Require uid: string;" : ""}
-          ${isModule && config.verbose ? "@Param @Require title: string;" : ""}
+          ${isModule ? '@Param uid: string = ""' : ""}
+          ${isModule && config.verbose ? `@Param title: string = "${scene.title}"` : ""}
           ${isModule ? "@Param data: MyBricks.Data = {}" : ""}
           ${isModule ? "@Param controller: MyBricks.ModuleController = ModuleController()" : ""}
-          ${isModule ? "@Param styles: Styles = {} " : ""}
+          ${isModule ? "@Param styles: Styles = {}" : ""}
+          ${isModule ? "@Param events: MyBricks.Events = {}" : ""}
           ${isModule ? "myBricksColumnModifier = new MyBricksColumnModifier(this.styles.root)" : ""}
           ${isModule ? "@Local columnVisibilityController: ColumnVisibilityController = new ColumnVisibilityController()" : ""}
           ${providerCode}
@@ -382,7 +383,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
         ${level1Slots.join("\n")}
         `,
-        name: getName(ui.meta.title),
+        name: config.getFileName?.(ui.meta.slotId) || getName(ui.meta.title),
       });
     }
 
