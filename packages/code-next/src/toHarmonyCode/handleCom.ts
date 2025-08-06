@@ -169,6 +169,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           class: providerName[0].toUpperCase() + providerName.slice(1),
           controllers: new Set(),
           useParams: false,
+          useEvents: false,
           coms: new Set(),
         };
         const providerMap = config.getProviderMap();
@@ -222,10 +223,13 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       ${fxs.fxsDeclarationCode}\n`
           : "";
         const classCode =
-          filterControllers.length || currentProvider.useParams
+          filterControllers.length ||
+          currentProvider.useParams ||
+          currentProvider.useEvents
             ? `/** ${meta.title}（${slot.meta.title}）组件控制器 */
           class Slot_${scopeSlotComponentName} {
           ${currentProvider.useParams ? "/** 插槽参数 */\nparams: MyBricks.Any" : ""}
+          ${currentProvider.useEvents ? "/** 事件 */\nevents: MyBricks.Events = {}" : ""}
           ${filterControllers
             .map((controller) => {
               const com = scene.coms[controller];
@@ -241,7 +245,9 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             : "";
 
         let providerCode =
-          filterControllers.length || currentProvider.useParams
+          filterControllers.length ||
+          currentProvider.useParams ||
+          currentProvider.useEvents
             ? `@Provider() slot_${scopeSlotComponentName}: Slot_${scopeSlotComponentName} = new Slot_${scopeSlotComponentName}()\n`
             : "";
         if (vars) {
@@ -510,8 +516,19 @@ export const handleProcess = (
 
         if (pinProxy.frameId === scene.id) {
           if (scene.type === "module") {
-            code += `/** 调用 ${props.meta.title} */
-            this.events.${pinProxy.pinId}?.(${nextValue})`;
+            if (props.meta.parentComId) {
+              // 说明是作用域插槽里调用
+              const providerMap = config.getProviderMap();
+              // 模块输出，直接取顶层
+              const provider = providerMap["slot_Index"];
+              provider.useEvents = true;
+              config.addConsumer(provider);
+              code += `/** 调用 ${props.meta.title} */
+              this.${provider.name}.events.${pinProxy.pinId}?.(${nextValue})`;
+            } else {
+              code += `/** 调用 ${props.meta.title} */
+              this.events.${pinProxy.pinId}?.(${nextValue})`;
+            }
           } else {
             console.log("[frameOutput 当前场景非区块]");
           }
@@ -629,8 +646,19 @@ export const handleProcess = (
         }
 
         if (props.category === "module") {
-          code += `/** 调用 ${props.title} */
-          this.events.${props.id}?.(${nextValue})`;
+          if (props.meta.parentComId) {
+            // 说明是作用域插槽里调用
+            const providerMap = config.getProviderMap();
+            // 模块输出，直接取顶层
+            const provider = providerMap["slot_Index"];
+            provider.useEvents = true;
+            config.addConsumer(provider);
+            code += `/** 调用 ${props.title} */
+            this.${provider.name}.events.${props.id}?.(${nextValue})`;
+          } else {
+            code += `/** 调用 ${props.title} */
+            this.events.${props.id}?.(${nextValue})`;
+          }
           return;
         }
 

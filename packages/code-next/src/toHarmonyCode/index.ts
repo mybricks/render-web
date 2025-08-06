@@ -84,6 +84,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       class: "Slot_Index",
       controllers: new Set(),
       useParams: false,
+      useEvents: false,
       coms: new Set(),
     };
     providerMap[currentProvider.name] = currentProvider;
@@ -163,6 +164,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       class: "Slot_Index",
       controllers: new Set(),
       useParams: false,
+      useEvents: false,
       coms: new Set(),
     };
     providerMap[currentProvider.name] = currentProvider;
@@ -273,7 +275,10 @@ export interface BaseConfig extends ToSpaCodeConfig {
     name: string;
     class: string;
     controllers: Set<string>;
+    /** 夸作用域调用当前输入项（当前仅作用域插槽） */
     useParams: boolean;
+    /** 调用事件（当前仅区块的输出项） */
+    useEvents: boolean;
     coms: Set<string>;
   };
   getProviderMap: () => Record<

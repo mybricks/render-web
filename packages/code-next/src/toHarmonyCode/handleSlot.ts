@@ -119,6 +119,21 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
     }
 
+    if (currentProvider.useEvents) {
+      if (effectEventCode) {
+        effectEventCode = effectEventCode.replace(
+          "aboutToAppear(): void {",
+          `aboutToAppear(): void {
+            this.${currentProvider.name}.events = this.events;
+          `,
+        );
+      } else {
+        effectEventCode = `aboutToAppear(): void {
+          this.${currentProvider.name}.events = this.events;
+        }`;
+      }
+    }
+
     return {
       js: (effectEventCode ? effectEventCode + "\n\n" : "") + jsCode,
       ui: !props.style.layout
@@ -319,10 +334,13 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       ${fxs.fxsDeclarationCode}\n`
         : "";
       const classCode =
-        filterControllers.length || currentProvider.useParams
+        filterControllers.length ||
+        currentProvider.useParams ||
+        currentProvider.useEvents
           ? `/** 根组件控制器 */
         class ${currentProvider.class} {
           ${currentProvider.useParams ? "/** 插槽参数 */\nparams: MyBricks.Any" : ""}
+          ${currentProvider.useEvents ? "/** 事件 */\nevents: MyBricks.Events = {}" : ""}
           ${filterControllers
             .map((controller) => {
               const com = scene.coms[controller];
@@ -337,7 +355,9 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         }\n`
           : "";
       let providerCode =
-        filterControllers.length || currentProvider.useParams
+        filterControllers.length ||
+        currentProvider.useParams ||
+        currentProvider.useEvents
           ? `@Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()\n`
           : "";
       if (vars) {
