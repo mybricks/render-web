@@ -119,21 +119,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
     }
 
-    if (currentProvider.useEvents) {
-      if (effectEventCode) {
-        effectEventCode = effectEventCode.replace(
-          "aboutToAppear(): void {",
-          `aboutToAppear(): void {
-            this.${currentProvider.name}.events = this.events;
-          `,
-        );
-      } else {
-        effectEventCode = `aboutToAppear(): void {
-          this.${currentProvider.name}.events = this.events;
-        }`;
-      }
-    }
-
     return {
       js: (effectEventCode ? effectEventCode + "\n\n" : "") + jsCode,
       ui: !props.style.layout
@@ -302,6 +287,21 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           packageName: config.getUtilsPackageName(),
           importType: "named",
         });
+      }
+
+      if (currentProvider.useEvents) {
+        if (effectEventCode) {
+          effectEventCode = effectEventCode.replace(
+            "aboutToAppear(): void {",
+            `aboutToAppear(): void {
+              this.${currentProvider.name}.events = createModuleEventsHandle(this.events);
+            `,
+          );
+        } else {
+          effectEventCode = `aboutToAppear(): void {
+            this.${currentProvider.name}.events = createModuleEventsHandle(this.events);
+          }`;
+        }
       }
 
       // const usedControllers = config.getUsedControllers();
