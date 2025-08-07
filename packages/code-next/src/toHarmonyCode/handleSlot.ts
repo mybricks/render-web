@@ -415,17 +415,19 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       });
     }
 
-    Array.from(currentProvider.coms).filter((controller) => {
-      if (!currentProvider.controllers.has(controller)) {
-        uiCode = uiCode.replace(
-          `controller: this.${currentProvider.name}.controller_${controller},\n`,
-          "",
-        );
-        return false;
-      }
+    if (config.checkIsRoot()) {
+      Array.from(currentProvider.coms).filter((controller) => {
+        if (!currentProvider.controllers.has(controller)) {
+          uiCode = uiCode.replace(
+            `controller: this.${currentProvider.name}.controller_${controller},\n`,
+            "",
+          );
+          return false;
+        }
 
-      return true;
-    });
+        return true;
+      });
+    }
 
     return {
       js: jsCode,
