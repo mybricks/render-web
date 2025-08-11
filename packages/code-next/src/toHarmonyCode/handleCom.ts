@@ -613,6 +613,13 @@ export const handleProcess = (
             ${nextCode}join(${nextValue}, this.slot_${scopeSlotComponentName}.params.inputValues.${pinValueProxy.pinId})`;
           }
         }
+      } else if (category === "event") {
+        const scene = config.getCurrentScene();
+        const pinProxy = scene.pinProxies[`${props.meta.id}-${props.id}`];
+        const event = config.getExtensionEventById(pinProxy.frameId);
+
+        code += `/** 调用事件 ${event.title} */
+        ${nextCode}events.${event.title}(${nextValue})`;
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -785,6 +792,8 @@ const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
       return `bus.${config.getBus!(props.meta.def.namespace).name}`;
     } else if (category === "frameInput") {
       return `frameInput_${meta.id}`;
+    } else if (category === "event") {
+      return `event_${meta.id}`;
     }
   } else if (componentType === "ui") {
     if (category === "module") {

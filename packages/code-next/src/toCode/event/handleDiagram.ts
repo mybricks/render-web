@@ -483,7 +483,7 @@ const handleProcess = (
         }
       }
 
-      if (category === "normal" || category === "bus") {
+      if (category === "normal" || category === "bus" || category === "event") {
         // 普通js类型，判断下是否多输入
         nodesInvocation.push({
           ...invocation,

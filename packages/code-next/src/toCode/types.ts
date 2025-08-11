@@ -201,7 +201,8 @@ export interface Frame {
     | "extension"
     | "extension-config"
     | "extension-api"
-    | "extension-bus";
+    | "extension-bus"
+    | "extension-event";
 }
 
 interface Global {

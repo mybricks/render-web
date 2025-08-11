@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
@@ -57,12 +58,27 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
   const { scenes, extensionEvents, globalFxs, globalVars, modules } =
     toCode(tojson);
 
+  const eventsMap = tojson.frames.reduce((pre, cur) => {
+    if (cur.type === "extension-event") {
+      pre[cur.id] = cur;
+    }
+    return pre;
+  }, {} as any);
+
+  const getExtensionEventById = (id: string) => {
+    return eventsMap[id];
+  };
+
   result.push(
     ...handleExtension(
       {
         extensionEvents,
       },
-      config,
+      {
+        ...config,
+        // @ts-ignore
+        getExtensionEventById,
+      },
     ),
   );
 
@@ -73,7 +89,11 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         globalFxs,
         globalVars,
       },
-      config,
+      {
+        ...config,
+        // @ts-ignore
+        getExtensionEventById,
+      },
     ),
   );
 
@@ -154,6 +174,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       getProviderMap: () => {
         return providerMap;
       },
+      getExtensionEventById,
     });
   });
 
@@ -234,6 +255,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
       getProviderMap: () => {
         return providerMap;
       },
+      getExtensionEventById,
     });
   });
 
@@ -285,6 +307,9 @@ export interface BaseConfig extends ToSpaCodeConfig {
     string,
     ReturnType<BaseConfig["getCurrentProvider"]>
   >;
+  getExtensionEventById: (
+    id: string,
+  ) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
 }
 
 export default toHarmonyCode;
