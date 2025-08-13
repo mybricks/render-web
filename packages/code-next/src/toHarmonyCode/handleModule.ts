@@ -11,8 +11,10 @@ interface HandleModuleConfig extends BaseConfig {
 }
 
 const handleModule = (module: Module, config: HandleModuleConfig): string => {
-  const { meta, events, moduleId } = module;
-  const name = config.getFileName?.(moduleId) || getName(meta.title);
+  const { events, moduleId } = module;
+  const moduleScene = config.getSceneById(moduleId);
+
+  const name = config.getFileName?.(moduleId) || getName(moduleScene.title);
   let comEventCode = "";
 
   Object.entries(events).forEach(([eventId, { diagramId }]) => {
@@ -52,7 +54,6 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
   const configs = module.meta.model.data.configs;
   const currentProvider = config.getCurrentProvider();
   currentProvider.coms.add(module.meta.id);
-
   const resultStyle = convertComponentStyle(module.props.style);
 
   return `${name}({

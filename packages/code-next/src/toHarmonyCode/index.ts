@@ -64,6 +64,14 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
     }
     return pre;
   }, {} as any);
+  const sceneMap = tojson.scenes.reduce((pre, cur) => {
+    pre[cur.id] = cur;
+    return pre;
+  }, {} as any);
+
+  const getSceneById = (id: string) => {
+    return sceneMap[id];
+  };
 
   const getExtensionEventById = (id: string) => {
     return eventsMap[id];
@@ -78,6 +86,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         ...config,
         // @ts-ignore
         getExtensionEventById,
+        getSceneById,
       },
     ),
   );
@@ -93,6 +102,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         ...config,
         // @ts-ignore
         getExtensionEventById,
+        getSceneById,
       },
     ),
   );
@@ -175,6 +185,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         return providerMap;
       },
       getExtensionEventById,
+      getSceneById,
     });
   });
 
@@ -256,6 +267,7 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
         return providerMap;
       },
       getExtensionEventById,
+      getSceneById,
     });
   });
 
@@ -310,6 +322,7 @@ export interface BaseConfig extends ToSpaCodeConfig {
   getExtensionEventById: (
     id: string,
   ) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
+  getSceneById: (id: string) => ReturnType<typeof toCode>["scenes"][0]["scene"];
 }
 
 export default toHarmonyCode;
