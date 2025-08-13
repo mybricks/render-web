@@ -3,7 +3,7 @@ import * as CSS from "csstype";
 
 // -- TOJSON 相关定义
 export interface Style extends CSS.Properties {
-  layout: "smart" | "flex-column";
+  layout: "smart" | "flex-column" | "flex-row";
   widthFull?: boolean;
   widthAuto?: boolean;
   heightFull?: boolean;

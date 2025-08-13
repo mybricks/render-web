@@ -429,6 +429,17 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       });
     }
 
+    if (props.style.layout) {
+      if (ui.children.find((child) => child.props.style.flex)) {
+        // 有flex，说明是填充。
+        if (props.style.layout === "flex-column") {
+          props.style.height = "100%";
+        } else if (props.style.layout === "flex-row") {
+          props.style.width = "100%";
+        }
+      }
+    }
+
     return {
       js: jsCode,
       ui: !props.style.layout
