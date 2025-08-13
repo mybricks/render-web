@@ -304,6 +304,31 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         }
       }
 
+      if (isModule) {
+        if (effectEventCode) {
+          effectEventCode = effectEventCode.replace(
+            "aboutToAppear(): void {",
+            `aboutToAppear(): void {
+              if (this.navigation?.navPathStack) {
+                customNavigation.registConfig({
+                  navPathStack: this.navigation.navPathStack,
+                  entryRouter: this.navigation?.entryRouter
+                })
+              }
+            `,
+          );
+        } else {
+          effectEventCode = `aboutToAppear(): void {
+            if (this.navigation?.navPathStack) {
+              customNavigation.registConfig({
+                navPathStack: this.navigation.navPathStack,
+                entryRouter: this.navigation?.entryRouter
+              })
+            }
+          }`;
+        }
+      }
+
       // const usedControllers = config.getUsedControllers();
       let level0SlotsCode = level0Slots.join("\n");
 
@@ -380,6 +405,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           ${isModule ? "@Param events: MyBricks.Events = {}" : ""}
           ${isModule ? "myBricksColumnModifier = new MyBricksColumnModifier(this.styles.root)" : ""}
           ${isModule ? "@Local columnVisibilityController: ColumnVisibilityController = new ColumnVisibilityController()" : ""}
+          ${isModule ? "@Param navigation?: CustomNavConfig = {} as CustomNavConfig" : ""}
           ${providerCode}
           ${(effectEventCode ? effectEventCode + "\n\n" : "") + jsCode}
           ${level0SlotsCode}
