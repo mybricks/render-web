@@ -392,14 +392,14 @@ export const handleProcess = (
     if (meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
       config.addParentDependencyImport({
         packageName: config.getComponentPackageName(),
-        dependencyNames: ["codes"],
+        dependencyNames: ["jsModules"],
         importType: "named",
       });
       // JS计算特殊逻辑，运行时是内置实现的
       const componentNameWithId = `jsCode_${meta.id}`;
 
       code += `/** ${meta.title} */
-      const ${componentNameWithId} = codes.${meta.id}({
+      const ${componentNameWithId} = jsModules.${meta.id}({
         ${config.verbose ? `title: "${meta.title}",` : ""}
         data: ${JSON.stringify({ runImmediate: !!props.data.runImmediate })},
         inputs: ${JSON.stringify(props.inputs)},
