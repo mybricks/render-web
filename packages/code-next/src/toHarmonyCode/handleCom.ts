@@ -389,7 +389,12 @@ export const handleProcess = (
       // 模块特殊处理
       return;
     }
-    if (meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
+    if (
+      [
+        "mybricks.core-comlib.js-ai",
+        "mybricks.harmony._muilt-inputJs",
+      ].includes(meta.def.namespace)
+    ) {
       config.addParentDependencyImport({
         packageName: config.getComponentPackageName(),
         dependencyNames: ["jsModules"],
@@ -614,9 +619,12 @@ export const handleProcess = (
         const scene = config.getCurrentScene();
         const pinProxy = scene.pinProxies[`${props.meta.id}-${props.id}`];
         const event = config.getExtensionEventById(pinProxy.frameId);
+        const { dependencyImport, componentName } =
+          config.getModuleApi("event");
+        config.addParentDependencyImport(dependencyImport);
 
         code += `/** 调用事件 ${event.title} */
-        ${nextCode}events.${event.title}(${nextValue})`;
+        ${nextCode}${componentName}.${event.title}(${nextValue})`;
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -762,7 +770,12 @@ const checkIsSameScope = (event: any, props: any) => {
 const getComponentNameWithId = (props: any, config: HandleProcessConfig) => {
   const { componentType, category, meta, moduleId, type } = props;
   if (componentType === "js") {
-    if (props.meta.def.namespace === "mybricks.harmony._muilt-inputJs") {
+    if (
+      [
+        "mybricks.core-comlib.js-ai",
+        "mybricks.harmony._muilt-inputJs",
+      ].includes(props.meta.def.namespace)
+    ) {
       // JS计算特殊逻辑，运行时是内置实现的
       return `jsCode_${meta.id}`;
     } else if (props.meta.def.namespace === "mybricks.core-comlib.scenes") {
