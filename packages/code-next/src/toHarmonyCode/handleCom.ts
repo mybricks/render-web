@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { convertComponentStyle, ImportManager } from "./utils";
+import { convertComponentStyle, ImportManager, getPaddingCode } from "./utils";
 import handleSlot from "./handleSlot";
 
 import type { UI, BaseConfig } from "./index";
@@ -294,6 +294,29 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     });
 
     const resultStyle = convertComponentStyle(props.style);
+    const paddingCode = getPaddingCode(resultStyle);
+
+    let ui = `${componentName}({
+      uid: "${meta.id}",
+      ${config.verbose ? `title: "${meta.title}",` : ""}
+      controller: this.${currentProvider.name}.controller_${meta.id},
+      data: ${JSON.stringify(props.data)},
+      styles: ${JSON.stringify(resultStyle)},
+      slots: this.slots_${meta.id}.bind(this),${
+        comEventCode
+          ? `
+      events: {
+        ${comEventCode}
+      },`
+          : ""
+      }${com.meta.frameId ? "parentSlot: this.params" : ""}
+    })`;
+
+    if (paddingCode) {
+      ui = `Column() {
+        ${ui}
+      }${paddingCode}`;
+    }
 
     return {
       slots: [
@@ -306,21 +329,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       ],
       scopeSlots: level1Slots,
       ui: `/** ${meta.title} */
-      ${componentName}({
-        uid: "${meta.id}",
-        ${config.verbose ? `title: "${meta.title}",` : ""}
-        controller: this.${currentProvider.name}.controller_${meta.id},
-        data: ${JSON.stringify(props.data)},
-        styles: ${JSON.stringify(resultStyle)},
-        slots: this.slots_${meta.id}.bind(this),${
-          comEventCode
-            ? `
-        events: {
-          ${comEventCode}
-        },`
-            : ""
-        }${com.meta.frameId ? "parentSlot: this.params" : ""}
-      })`,
+        ${ui}`,
       js: eventCode,
     };
   } else {
@@ -346,22 +355,32 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       };
     }
 
+    const paddingCode = getPaddingCode(resultStyle);
+
+    let ui = `${componentName}({
+      uid: "${meta.id}",
+      ${config.verbose ? `title: "${meta.title}",` : ""}
+      controller: this.${currentProvider.name}.controller_${meta.id},
+      data: ${JSON.stringify(props.data)},
+      styles: ${JSON.stringify(resultStyle)},${
+        comEventCode
+          ? `
+      events: {
+        ${comEventCode}
+      },`
+          : ""
+      }${com.meta.frameId ? "parentSlot: this.params" : ""}
+    })`;
+
+    if (paddingCode) {
+      ui = `Column() {
+        ${ui}
+      }${paddingCode}`;
+    }
+
     return {
       ui: `/** ${meta.title} */
-      ${componentName}({
-        uid: "${meta.id}",
-        ${config.verbose ? `title: "${meta.title}",` : ""}
-        controller: this.${currentProvider.name}.controller_${meta.id},
-        data: ${JSON.stringify(props.data)},
-        styles: ${JSON.stringify(resultStyle)},${
-          comEventCode
-            ? `
-        events: {
-          ${comEventCode}
-        },`
-            : ""
-        }${com.meta.frameId ? "parentSlot: this.params" : ""}
-      })`,
+      ${ui}`,
       js: eventCode,
       slots: [],
       scopeSlots: [],

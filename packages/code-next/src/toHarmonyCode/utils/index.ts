@@ -209,8 +209,7 @@ const REPLACE_PX_KEYS = new Set([
 
 /** 组件样式转换(风格化、root根节点) */
 export const convertComponentStyle = (style: Style) => {
-  const resultStyle: Record<string, string | Record<string, string | number>> =
-    {};
+  const resultStyle: Record<string, Record<string, string | number>> = {};
   const rootStyle: Record<string, string | number> = {};
   Object.entries(style).forEach(([key, value]) => {
     if (IGNORE_COMPONENT_STYLE_KEYS.has(key)) {
@@ -693,6 +692,35 @@ const removePx = (str: string | number) => {
     return parseFloat(str);
   }
   return `"${str}"`;
+};
+
+export const getPaddingCode = (
+  componentStyle: Record<string, Record<string, string | number>>,
+) => {
+  const { root } = componentStyle;
+  let paddingCode = "";
+
+  if (root.paddingTop) {
+    paddingCode += `top: ${root.paddingTop},`;
+    delete root.paddingTop;
+  }
+  if (root.paddingRight) {
+    paddingCode += `right: ${root.paddingRight},`;
+    delete root.paddingRight;
+  }
+  if (root.paddingBottom) {
+    paddingCode += `bottom: ${root.paddingBottom},`;
+    delete root.paddingBottom;
+  }
+  if (root.paddingLeft) {
+    paddingCode += `left: ${root.paddingLeft},`;
+    delete root.paddingLeft;
+  }
+  if (paddingCode) {
+    return `.padding({${paddingCode}})`;
+  }
+
+  return;
 };
 
 export * from "./pinyin";
