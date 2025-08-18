@@ -613,6 +613,14 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
       },
     });
 
+    if (code.includes("merge(")) {
+      config.addParentDependencyImport({
+        packageName: config.getUtilsPackageName(),
+        dependencyNames: ["merge"],
+        importType: "named",
+      });
+    }
+
     /** 入参 */
     const values = fxEvent.paramPins
       .map((paramPin, index) => {
@@ -637,7 +645,7 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
       : "";
 
     fxsDeclarationCode += `/** ${fxEvent.title} */
-    ${fxEvent.frameId}: MyBricks.Any = createFx()
+    ${fxEvent.frameId}: MyBricks.Api = createFx()
     `;
     fxsImplementCode += `/** ${fxEvent.title} */
       ${fxEvent.frameId}: createFx((${values}) => {

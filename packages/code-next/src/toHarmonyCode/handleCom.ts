@@ -718,7 +718,7 @@ export const handleProcess = (
             .join(",")}`;
 
           if (outputs.length > 1) {
-            return `${id}: mergeSubjects(${next})`;
+            return `${id}: merge(${next})`;
           }
 
           return `${id}: ${next}`;

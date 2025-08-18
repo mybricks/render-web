@@ -45,7 +45,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
         if (props?.meta.global) {
           return "";
         }
-        return "./index";
+        return "./Index";
       },
       addParentDependencyImport: globalAddDependencyImport,
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,
@@ -85,7 +85,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
         if (props?.meta.global) {
           return "";
         }
-        return "./index";
+        return "./Index";
       },
       addParentDependencyImport: globalAddDependencyImport,
       getComponentMetaByNamespace: config.getComponentMetaByNamespace,
@@ -115,7 +115,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       : "";
 
     globalFxsInitCode += `/** ${event.title} */
-    ${event.frameId}: MyBricks.Any = createFx((${values}) => {
+    ${event.frameId}: MyBricks.Api = createFx((${values}) => {
       ${returnInterface}
       ${res} ${returnInterface ? "as Return" : ""}
     })
