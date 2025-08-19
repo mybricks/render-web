@@ -62,6 +62,8 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
   const currentProvider = config.getCurrentProvider();
   currentProvider.coms.add(meta.id);
+  // 解决深浅色模式切换，数据重制等问题
+  currentProvider.controllers.add(meta.id);
 
   if (slots) {
     // 当前组件的插槽
