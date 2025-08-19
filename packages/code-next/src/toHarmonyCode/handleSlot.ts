@@ -18,6 +18,7 @@ interface HandleSlotConfig extends BaseConfig {
 const handleSlot = (ui: UI, config: HandleSlotConfig) => {
   const importManager = new ImportManager();
   const { props, children } = ui;
+  const parent = ui;
 
   let uiCode = "";
   let jsCode = "";
@@ -88,6 +89,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         const ui = handleModule(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
       } else {
+        if (parent.props.style.width === "auto") {
+          if (child.props.style.width === "100%") {
+            child.props.style.width = "auto";
+          }
+        }
         const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
         jsCode += js;
@@ -268,6 +274,13 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         const ui = handleModule(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
       } else {
+        if (parent.props.style.width === "auto") {
+          if (child.props.style.width === "100%") {
+            child.props.style.width = "auto";
+          } else {
+            child.props.style.width = "auto";
+          }
+        }
         const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
         uiCode += uiCode ? "\n" + ui : ui;
         jsCode += js;

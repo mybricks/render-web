@@ -104,7 +104,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             slot.props.style.width = "100%";
           }
         } else {
-          slot.props.style.width = "auto";
+          // slot.props.style.width = "auto";
         }
       }
 
