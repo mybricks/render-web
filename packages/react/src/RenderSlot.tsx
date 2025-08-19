@@ -271,7 +271,10 @@ function RenderCom({
 
       if (Array.isArray(styleAry)) {
         // stylization.setStyle(id, styleAry);
-        stylization.setStyle(styleId, styleAry, true, _isNestCom ? false : true);
+        stylization.setStyle(styleId, styleAry, true, {
+          // isDefault: _isNestCom ? false : true,
+          isDefault: true,
+        });
         // const root = getStylesheetMountNode();
         // const styleTag = document.createElement('style')
         // let innerText = ''

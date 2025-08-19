@@ -654,7 +654,8 @@ class Stylization {
   private _cssMap: Record<string, Record<string, Record<string, any>>> = {}
   
   /** 设置样式 */
-  setStyle(id: string, style: any, notOverwrite: boolean = false, isDefault: boolean = false) {
+  setStyle(id: string, style: any, notOverwrite: boolean = false, config = { isDefault: false, }) {
+    const { isDefault } = config;
     let styleAry = [] as {css: string, selector: string, global?: boolean }[];
 
     // TODO: 处理global
