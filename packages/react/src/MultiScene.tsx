@@ -338,6 +338,33 @@ export default function MultiScene ({json, options}) {
       }
     }, {})
 
+    const currentGlobalVariable = new Var();
+
+    Object.entries(json.global.comsReg).forEach(([, com]) => {
+      if (com.global) {
+        const initValue = com.model.data.initValue
+        currentGlobalVariable.changed({ com, value: initValue });
+        globalVarMap[com.id] = initValue
+      }
+    })
+
+    const callConnector = options.env.callConnector;
+
+    if (callConnector) {
+      options.env.callConnector = (connector, params, config) => {
+        return callConnector(connector, params, config, {
+          globalVars: new Proxy(
+            {},
+            {
+              get(_, key) {
+                return currentGlobalVariable.getValueByTitle(key);
+              },
+            },
+          ),
+        });
+      };
+    }
+
     // TODO:挪出去，优化一下
     const scenesOperate = {
       open({todo, frameId, busName, parentScope, comProps}, configs) {
@@ -483,7 +510,7 @@ export default function MultiScene ({json, options}) {
         //     }
         // })
       },
-      var: new Var(),
+      var: currentGlobalVariable,
       callExtension({pinId, value, moduleId}) {
         const fxFrame = global.fxFrames.find((fx) => fx.name === moduleId);
         executor({
