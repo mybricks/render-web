@@ -61,8 +61,10 @@ export interface ComInfo {
       }[]
     >;
   };
-  /** 有值时，组件在作用域插槽内 */
+  /** 插槽ID，有值时，组件在作用域插槽内 */
   frameId?: string;
+  /** 父组件ID，有值时，组件在作用域插槽内 */
+  parentComId?: string;
   outputs: string[];
   inputs: string[];
   ioProxy: {
@@ -71,6 +73,10 @@ export interface ComInfo {
   asRoot?: boolean;
   /** 判断全局变量 */
   global?: boolean;
+  frames?: Array<{
+    id: string;
+    title: string;
+  }>;
 }
 
 export interface Scene {

@@ -16,6 +16,7 @@ export interface HandleFrameConfig extends EventBaseConfig {
 
 interface Result {
   paramPins: PinAry;
+  diagramId: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }
