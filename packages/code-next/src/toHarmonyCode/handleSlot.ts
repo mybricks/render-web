@@ -300,20 +300,28 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           packageName: config.getUtilsPackageName(),
           importType: "named",
         });
-      }
 
-      if (currentProvider.useEvents) {
+        addDependencyImport({
+          dependencyNames: ["MyBricksDescriptor"],
+          packageName: config.getUtilsPackageName(),
+          importType: "named",
+        });
+
         if (effectEventCode) {
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
-            `aboutToAppear(): void {
-              this.${currentProvider.name}.events = createModuleEventsHandle(this.events);
-            `,
+            `@MyBricksDescriptor({
+              navigation,
+              provider: "${currentProvider.name}",
+            })
+            aboutToAppear(): void {`,
           );
         } else {
-          effectEventCode = `aboutToAppear(): void {
-            this.${currentProvider.name}.events = createModuleEventsHandle(this.events);
-          }`;
+          effectEventCode = `@MyBricksDescriptor({
+            navigation,
+            provider: "${currentProvider.name}",
+          })
+          aboutToAppear(): void {}`;
         }
       }
 
