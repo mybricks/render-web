@@ -3,9 +3,14 @@
 import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
-import { ImportManager } from "./utils";
+import {
+  ImportManager,
+  firstCharToLowerCase,
+  firstCharToUpperCase,
+} from "./utils";
 import handleGlobal from "./handleGlobal";
 import handleExtension from "./handleExtension";
+import ai, { AIConfig } from "./withAI";
 
 export interface ToSpaCodeConfig {
   getComponentMetaByNamespace: (
@@ -42,6 +47,10 @@ export interface ToSpaCodeConfig {
    * 当运行时打印IO日志时，必须开启
    */
   verbose?: boolean;
+  getComponentName?: any;
+  getComponentController?: any;
+  getProviderName?: any;
+  getEventNodeName?: any;
 }
 
 /** 返回结果 */
@@ -62,9 +71,152 @@ export type Result = Array<{
 }>;
 
 const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
+  return getCode({ tojson, toCodejson: toCode(tojson) }, config);
+};
+
+interface ToHarmonyCodeWithAIConfig extends ToSpaCodeConfig {
+  ai: AIConfig;
+}
+
+const toHarmonyCodeWithAI = async (
+  tojson: ToJSON,
+  config: ToHarmonyCodeWithAIConfig,
+): Promise<Result> => {
+  const toCodejson = toCode(tojson);
+
+  const { fileNames, componentNames } = await ai(
+    { tojson, toCodejson },
+    config.ai,
+  );
+  // const fileNames: any =
+  // const componentNames: any =
+
+  return getCode(
+    { tojson, toCodejson },
+    {
+      ...config,
+      getFileName(sceneId) {
+        // 场景ID查询，包括模块
+        return fileNames.find((fileName: any) => fileName.id === sceneId)!
+          .fileName;
+      },
+      getComponentName(params: any) {
+        const { com, slot, scene } = params;
+        const componentName = componentNames.find((componentName: any) => {
+          return componentName.scene.id === scene.id;
+        })!;
+        const { ui } = componentName;
+
+        if (slot) {
+          const uiComponentNames = ui[`${slot.comId}_${slot.slotId}`];
+          const uiComponent = uiComponentNames.find(
+            (uiComponentName: any) => uiComponentName.id === slot.comId,
+          );
+          return uiComponent!.componentName;
+        }
+
+        const uiComponentNames = !com.parentComId
+          ? ui["root"]
+          : ui[`${com.parentComId}_${com.frameId}`];
+        const uiComponent = uiComponentNames.find(
+          (uiComponentName: any) => uiComponentName.id === com.id,
+        );
+
+        return uiComponent!.componentName;
+      },
+      getComponentController(params: any) {
+        const { com, scene } = params;
+        const componentName = componentNames.find((componentName: any) => {
+          return componentName.scene.id === scene.id;
+        })!;
+        const { ui } = componentName;
+        const uiComponentNames = !com.parentComId
+          ? ui["root"]
+          : ui[`${com.parentComId}_${com.frameId}`];
+        const uiComponent = uiComponentNames.find(
+          (uiComponentName: any) => uiComponentName.id === com.id,
+        );
+
+        return uiComponent!.componentName + "Controller";
+      },
+      getProviderName(params: any) {
+        const { com, slot, scene } = params;
+
+        if (slot) {
+          const componentName = componentNames.find((componentName: any) => {
+            return componentName.scene.id === scene.id;
+          })!;
+          const { ui } = componentName;
+          const uiComponentNames = ui[`${slot.comId}_${slot.slotId}`];
+          const uiComponent = uiComponentNames.find(
+            (uiComponentName: any) => uiComponentName.id === slot.comId,
+          );
+
+          return `${uiComponent!.componentName}Provider`;
+        }
+
+        if (com?.parentComId) {
+          const componentName = componentNames.find((componentName: any) => {
+            return componentName.scene.id === scene.id;
+          })!;
+          const { ui } = componentName;
+          const uiComponentNames = ui[`${com.parentComId}_${com.frameId}`];
+
+          const uiComponent = uiComponentNames.find(
+            (uiComponentName: any) => uiComponentName.id === com.parentComId,
+          );
+
+          return `${uiComponent!.componentName}Provider`;
+        } else {
+          const providerName = fileNames.find(
+            (fileName: any) => fileName.id === scene.id,
+          )!.fileName;
+
+          return firstCharToLowerCase(providerName) + "Provider";
+        }
+      },
+      getEventNodeName(params: any) {
+        const { com, scene, event, type, connectId } = params;
+        const componentName = componentNames
+          .find((componentName: any) => {
+            return componentName.scene.id === scene.id;
+          })!
+          .event.find((e: any) => {
+            return e.id === event.diagramId;
+          });
+
+        if (type === "call") {
+          const nodeName = componentName.functionExecution.find((node: any) => {
+            return (
+              node.id === com.id &&
+              (connectId ? connectId === node.connectId : true)
+            );
+          })!.variableName;
+
+          return nodeName;
+        } else {
+          const nodeName = componentName.functionDefinition.find(
+            (node: any) => {
+              return node.id === com.id;
+            },
+          )!.variableName;
+
+          return nodeName;
+        }
+      },
+    },
+  );
+};
+
+interface GetCodeParams {
+  tojson: ToJSON;
+  toCodejson: ReturnType<typeof toCode>;
+}
+const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
   const result: Result = [];
+  const { tojson, toCodejson } = params;
   const { scenes, extensionEvents, globalFxs, globalVars, modules } =
-    toCode(tojson);
+    toCodejson;
 
   const eventsMap = tojson.frames.reduce((pre, cur) => {
     if (cur.type === "extension-event") {
@@ -117,14 +269,17 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
   scenes.forEach(({ scene, ui, event }) => {
     const providerMap: ReturnType<BaseConfig["getProviderMap"]> = {};
+    const fileName = config.getFileName?.(ui.meta.slotId);
+    const providerName = fileName ? `${fileName}Provider` : "slot_Index";
     const currentProvider: ReturnType<BaseConfig["getCurrentProvider"]> = {
-      name: "slot_Index",
-      class: "Slot_Index",
+      name: firstCharToLowerCase(providerName),
+      class: firstCharToUpperCase(providerName),
       controllers: new Set(),
       useParams: false,
       useEvents: false,
       coms: new Set(),
     };
+
     providerMap[currentProvider.name] = currentProvider;
 
     handleSlot(ui, {
@@ -199,9 +354,11 @@ const toHarmonyCode = (tojson: ToJSON, config: ToSpaCodeConfig): Result => {
 
   modules.forEach(({ scene, ui, event }) => {
     const providerMap: ReturnType<BaseConfig["getProviderMap"]> = {};
+    const fileName = config.getFileName?.(ui.meta.slotId);
+    const providerName = fileName ? `${fileName}Provider` : "slot_Index";
     const currentProvider: ReturnType<BaseConfig["getCurrentProvider"]> = {
-      name: "slot_Index",
-      class: "Slot_Index",
+      name: firstCharToLowerCase(providerName),
+      class: firstCharToUpperCase(providerName),
       controllers: new Set(),
       useParams: false,
       useEvents: false,
@@ -334,3 +491,5 @@ export interface BaseConfig extends ToSpaCodeConfig {
 }
 
 export default toHarmonyCode;
+
+export { toHarmonyCodeWithAI };

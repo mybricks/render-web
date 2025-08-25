@@ -55,12 +55,17 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
   const currentProvider = config.getCurrentProvider();
   currentProvider.coms.add(module.meta.id);
   const resultStyle = convertComponentStyle(module.props.style);
+  const componentController =
+    config.getComponentController?.({
+      com: module.meta,
+      scene: config.getCurrentScene(),
+    }) || `controller_${module.meta.id}`;
 
   return `${name}({
     uid: "${module.meta.id}",
     ${config.verbose ? `title: "${module.meta.title}",` : ""}
     ${configs ? `data: ${JSON.stringify(configs)},` : ""}
-    controller: this.${currentProvider.name}.controller_${module.meta.id},
+    controller: this.${currentProvider.name}.${componentController},
     styles: ${JSON.stringify(resultStyle)},
     ${
       comEventCode

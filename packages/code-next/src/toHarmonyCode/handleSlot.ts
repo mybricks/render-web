@@ -323,12 +323,16 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       const filterControllers = Array.from(currentProvider.coms).filter(
         (controller) => {
           if (!currentProvider.controllers.has(controller)) {
+            const com = scene.coms[controller];
+            const componentController =
+              config.getComponentController?.({ com, scene }) ||
+              `controller_${controller}`;
             uiCode = uiCode.replace(
-              `controller: this.${currentProvider.name}.controller_${controller},\n`,
+              `controller: this.${currentProvider.name}.${componentController},\n`,
               "",
             );
             level0SlotsCode = level0SlotsCode.replace(
-              `controller: this.${currentProvider.name}.controller_${controller},\n`,
+              `controller: this.${currentProvider.name}.${componentController},\n`,
               "",
             );
             return false;
@@ -357,12 +361,15 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           ${filterControllers
             .map((controller) => {
               const com = scene.coms[controller];
+              const componentController =
+                config.getComponentController?.({ com, scene }) ||
+                `controller_${com.id}`;
               const ControllerCode =
                 com.def.namespace === "mybricks.core-comlib.module" ||
                 com.def.namespace.startsWith("mybricks.harmony.module.")
                   ? "ModuleController()"
                   : "Controller()";
-              return `/** ${com.title} */\ncontroller_${com.id} = ${ControllerCode}`;
+              return `/** ${com.title} */\n${componentController} = ${ControllerCode}`;
             })
             .join("\n")}
         }\n`
@@ -429,10 +436,15 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     }
 
     if (config.checkIsRoot()) {
+      const scene = config.getCurrentScene();
       Array.from(currentProvider.coms).filter((controller) => {
         if (!currentProvider.controllers.has(controller)) {
+          const com = scene.coms[controller];
+          const componentController =
+            config.getComponentController?.({ com, scene }) ||
+            `controller_${controller}`;
           uiCode = uiCode.replace(
-            `controller: this.${currentProvider.name}.controller_${controller},\n`,
+            `controller: this.${currentProvider.name}.${componentController},\n`,
             "",
           );
           return false;

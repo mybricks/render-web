@@ -1,8 +1,13 @@
 import { pinyin } from "./pinyin";
 
-/** 将第一个字符转小写 */
+/** 将第一个字符转大写 */
 const firstCharToUpperCase = (str: string): string => {
   return str.charAt(0).toUpperCase() + str.slice(1);
+};
+
+/** 将第一个字符转小写 */
+const firstCharToLowerCase = (str: string): string => {
+  return str.charAt(0).toLowerCase() + str.slice(1);
 };
 
 /** 仅保留中文0-9a-zA-Z，按中文拆分，非中文连写 */
@@ -23,4 +28,9 @@ const getName = (text: string) => {
   }, "");
 };
 
-export { cleanAndSplitString, getName, firstCharToUpperCase };
+export {
+  cleanAndSplitString,
+  getName,
+  firstCharToUpperCase,
+  firstCharToLowerCase,
+};
