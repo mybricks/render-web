@@ -311,14 +311,12 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
             `@MyBricksDescriptor({
-              navigation,
               provider: "${currentProvider.name}",
             })
             aboutToAppear(): void {`,
           );
         } else {
           effectEventCode = `@MyBricksDescriptor({
-            navigation,
             provider: "${currentProvider.name}",
           })
           aboutToAppear(): void {}`;
