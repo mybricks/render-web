@@ -389,6 +389,13 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           controller: this.${currentProvider.name}.${componentController},
           styles: ${JSON.stringify(resultStyle)},
           ${data ? `data: ${JSON.stringify(data)},` : ""}
+          ${
+            comEventCode
+              ? `events: {
+        ${comEventCode}
+      },`
+              : ""
+          }
         })`,
         js: eventCode,
         slots: [],
