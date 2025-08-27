@@ -1,4 +1,10 @@
-import { ImportManager, getName, convertHarmonyFlexComponent } from "./utils";
+import {
+  ImportManager,
+  getName,
+  convertHarmonyFlexComponent,
+  getClassCode,
+  getSlotComponentCode,
+} from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
 import handleModule from "./handleModule";
@@ -323,7 +329,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         }
       }
 
-      // const usedControllers = config.getUsedControllers();
       let level0SlotsCode = level0Slots.join("\n");
 
       const filterControllers = Array.from(currentProvider.coms).filter(
@@ -356,30 +361,14 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ? `/** 根组件Fx */
       ${fxs.fxsDeclarationCode}\n`
         : "";
-      const classCode =
-        filterControllers.length ||
-        currentProvider.useParams ||
-        currentProvider.useEvents
-          ? `/** 根组件控制器 */
-        class ${currentProvider.class} {
-          ${currentProvider.useParams ? "/** 插槽参数 */\nparams: MyBricks.Any" : ""}
-          ${currentProvider.useEvents ? "/** 事件 */\nevents: MyBricks.Events = {}" : ""}
-          ${filterControllers
-            .map((controller) => {
-              const com = scene.coms[controller];
-              const componentController =
-                config.getComponentController?.({ com, scene }) ||
-                `controller_${com.id}`;
-              const ControllerCode =
-                com.def.namespace === "mybricks.core-comlib.module" ||
-                com.def.namespace.startsWith("mybricks.harmony.module.")
-                  ? "ModuleController()"
-                  : "Controller()";
-              return `/** ${com.title} */\n${componentController} = ${ControllerCode}`;
-            })
-            .join("\n")}
-        }\n`
-          : "";
+      const classCode = getClassCode({
+        filterControllers,
+        currentProvider,
+        scene,
+        config,
+        title: "根组件控制器",
+      });
+
       let providerCode =
         filterControllers.length ||
         currentProvider.useParams ||
@@ -392,6 +381,28 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       if (fxs) {
         providerCode += fxs.fxsImplementCode + "\n";
       }
+
+      // const slotComponentCode = getSlotComponentCode({
+      //   scene,
+      //   isModule,
+      //   config,
+      //   providerCode,
+      //   effectEventCode,
+      //   jsCode,
+      //   level0SlotsCode,
+      //   level1Slots,
+      //   uiCode: isModule
+      //     ? convertHarmonyFlexComponent(ui.props.style, { child: uiCode })
+      //     : uiCode,
+      // });
+
+      // config.add({
+      //   importManager,
+      //   content: `${varsDeclarationCode}${fxsDeclarationCode}${classCode}
+      //   ${slotComponentCode}
+      //   `,
+      //   name: config.getFileName?.(ui.meta.slotId) || getName(ui.meta.title),
+      // });
 
       config.add({
         importManager,

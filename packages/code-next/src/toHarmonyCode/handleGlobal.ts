@@ -48,7 +48,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
         return "./Index";
       },
       addParentDependencyImport: globalAddDependencyImport,
-      getComponentMetaByNamespace: config.getComponentMetaByNamespace,
+      getComponentMeta: config.getComponentMeta,
     } as any);
 
     const constantName = `globalVar${firstCharToUpperCase(com.title)}Params`;
@@ -88,7 +88,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
         return "./Index";
       },
       addParentDependencyImport: globalAddDependencyImport,
-      getComponentMetaByNamespace: config.getComponentMetaByNamespace,
+      getComponentMeta: config.getComponentMeta,
     } as any);
 
     /** 入参 */

@@ -29,10 +29,14 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
   const isModule = meta.def.namespace.startsWith("mybricks.harmony.module");
 
-  const { dependencyImport, componentName } =
-    config.getComponentMetaByNamespace(meta.def.namespace, { type: "ui" });
+  const { importInfo } = config.getComponentMeta(meta);
+  const componentName = importInfo.name;
 
-  config.addParentDependencyImport(dependencyImport);
+  config.addParentDependencyImport({
+    packageName: importInfo.from,
+    dependencyNames: [importInfo.name],
+    importType: importInfo.type,
+  });
 
   let eventCode = "";
   let comEventCode = "";
@@ -461,46 +465,18 @@ export const handleProcess = (
       // 模块特殊处理
       return;
     }
-    if (
-      [
-        "mybricks.core-comlib.js-ai",
-        "mybricks.harmony._muilt-inputJs",
-      ].includes(meta.def.namespace)
-    ) {
-      config.addParentDependencyImport({
-        packageName: config.getComponentPackageName(),
-        dependencyNames: ["jsModules"],
-        importType: "named",
-      });
-      // JS计算特殊逻辑，运行时是内置实现的
-      const componentNameWithId =
-        config.getEventNodeName?.({
-          com: meta,
-          scene: config.getCurrentScene(),
-          type: "declaration",
-          event,
-        }) || `jsCode_${meta.id}`;
-
-      code += `/** ${meta.title} */
-      const ${componentNameWithId} = jsModules.${meta.id}({
-        ${config.verbose ? `title: "${meta.title}",` : ""}
-        data: ${JSON.stringify({ runImmediate: !!props.data.runImmediate })},
-        inputs: ${JSON.stringify(props.inputs)},
-        outputs: ${JSON.stringify(props.outputs)},
-      })\n`;
-
-      return;
-    }
     if (meta.def.namespace === "mybricks.core-comlib.bus-getUser") {
       return;
     }
 
-    const { dependencyImport, componentName } =
-      config.getComponentMetaByNamespace(meta.def.namespace, {
-        type: "js",
-      });
+    const { importInfo, callName } = config.getComponentMeta(meta);
+    const componentName = importInfo.name;
 
-    config.addParentDependencyImport(dependencyImport);
+    config.addParentDependencyImport({
+      packageName: importInfo.from,
+      dependencyNames: [importInfo.name],
+      importType: importInfo.type,
+    });
 
     const componentNameWithId =
       config.getEventNodeName?.({
@@ -511,7 +487,7 @@ export const handleProcess = (
       }) || `${componentName}_${meta.id}`;
 
     code += `/** ${meta.title} */
-    const ${componentNameWithId} = ${componentName}({${Object.entries(
+    const ${componentNameWithId} = ${callName || componentName}({${Object.entries(
       props,
     ).reduce((pre, [key, value], index) => {
       if (!index && config.verbose) {
@@ -528,26 +504,6 @@ export const handleProcess = (
     const { componentType, category, runType } = props;
     // 参数
     const nextValue = getNextValue(props, config, event);
-
-    // if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
-    //   // frameoutput没有def
-    //   // 模块特殊处理，没有输出，调用api.open
-    //   if (props.componentType === "js") {
-    //     const { componentName, dependencyImport } =
-    //       config.getComponentMetaByNamespace(props.meta.def.namespace, {
-    //         type: "js",
-    //       });
-
-    //     config.addParentDependencyImport(dependencyImport);
-    //     if (code) {
-    //       // 换行
-    //       code += "\n";
-    //     }
-    //     code += `/** 打开模块 */
-    //     ${componentName}.${props.id}(${nextValue})`;
-    //     return;
-    //   }
-    // }
 
     const isSameScope = checkIsSameScope(event, props);
     // 节点执行后的返回值（输出）
@@ -567,7 +523,6 @@ export const handleProcess = (
           dependencyNames: ["page"],
           importType: "named",
         });
-        // const componentNameWithId = getComponentNameWithId(props, config);
 
         const _sceneId = props.meta.model.data._sceneId;
 
@@ -576,16 +531,17 @@ export const handleProcess = (
 
         code += `/** 打开 ${props.meta.title} */
         ${nextCode}page.${operateName}("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
-        // code += `const ${componentNameWithId}_result = page.open("${props.meta.model.data._sceneId}", ${nextValue})`;
       } else if (category === "normal") {
         let componentNameWithId = getComponentNameWithId(props, config, event);
         if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
-          const { componentName, dependencyImport } =
-            config.getComponentMetaByNamespace(props.meta.def.namespace, {
-              type: "js",
-            });
+          const { importInfo } = config.getComponentMeta(props.meta);
+          const componentName = importInfo.name;
 
-          config.addParentDependencyImport(dependencyImport);
+          config.addParentDependencyImport({
+            packageName: importInfo.from,
+            dependencyNames: [importInfo.name],
+            importType: importInfo.type,
+          });
 
           const api =
             config.getApi?.(props.meta.def.namespace).title || props.meta.title;
@@ -594,7 +550,6 @@ export const handleProcess = (
         }
         code += `/** 调用 ${props.meta.title} */
         ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
-        // code += `const ${componentNameWithId}_result = ${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else if (category === "frameOutput") {
         // [TODO] 目前是区块调用输出
         const scene = config.getCurrentScene();
@@ -604,9 +559,7 @@ export const handleProcess = (
           if (scene.type === "module") {
             if (props.meta.parentComId) {
               // 说明是作用域插槽里调用
-              // const providerMap = config.getProviderMap();
               // 模块输出，直接取顶层
-              // const provider = providerMap["slot_Index"];
               const providerName =
                 config.getProviderName?.({
                   scene,
@@ -753,9 +706,7 @@ export const handleProcess = (
         if (props.category === "module") {
           if (props.meta.parentComId) {
             // 说明是作用域插槽里调用
-            // const providerMap = config.getProviderMap();
             // 模块输出，直接取顶层
-            // const provider = providerMap["slot_Index"];
             const providerName =
               config.getProviderName?.({
                 scene: config.getCurrentScene(),
@@ -883,22 +834,7 @@ const getComponentNameWithId = (
 ) => {
   const { componentType, category, meta, moduleId, type } = props;
   if (componentType === "js") {
-    if (
-      [
-        "mybricks.core-comlib.js-ai",
-        "mybricks.harmony._muilt-inputJs",
-      ].includes(props.meta.def.namespace)
-    ) {
-      const componentName =
-        config.getEventNodeName?.({
-          com: props.meta,
-          scene: config.getCurrentScene(),
-          event,
-          type: "declaration",
-        }) || `jsCode_${meta.id}`;
-      // JS计算特殊逻辑，运行时是内置实现的
-      return componentName;
-    } else if (props.meta.def.namespace === "mybricks.core-comlib.scenes") {
+    if (props.meta.def.namespace === "mybricks.core-comlib.scenes") {
       // 场景打开特殊处理，运行时内置实现
       return `page_${meta.id}`;
     } else if (
@@ -908,7 +844,6 @@ const getComponentNameWithId = (
       return `api_${meta.id}`;
     } else if (category === "var") {
       if (meta.global) {
-        // globalVars_token_id_result
         return `globalVars_${meta.title}`;
       }
 
@@ -961,14 +896,9 @@ const getComponentNameWithId = (
     }
   }
 
-  const { componentName } = config.getComponentMetaByNamespace(
-    props.meta.def.namespace,
-    {
-      type: componentType,
-    },
-  );
+  const { importInfo } = config.getComponentMeta(props.meta);
 
-  return `${componentName}_${meta.id}`;
+  return `${importInfo.name}_${meta.id}`;
 };
 
 const getNextCode = (
@@ -1005,17 +935,6 @@ const getNextCode = (
       }) || `${componentNameWithId}_result`;
 
     return `const ${next} = `;
-    // if (category === "var") {
-    //   return nextParam.length
-    //     ? `const ${componentNameWithId}_${nextParam[0].connectId} = `
-    //     : "";
-    // } else if (category === "fx") {
-    //   return nextParam.length
-    //     ? `const [${nextParam.map(({ id }: any) => {
-    //         return `${componentNameWithId}_${id}`;
-    //       })}] = `
-    //     : "";
-    // }
   }
 
   // ui
@@ -1064,7 +983,6 @@ const getNextValue = (props: any, config: HandleProcessConfig, event: any) => {
         }) || `${param.meta.id}_${param.id}_${param.connectId}`;
       // ui
       return `${next}.${param.id}`;
-      // return `${componentNameWithId}_${id}_${connectId}`;
     }
     if (param.category === "frameOutput") {
       return `${componentNameWithId}_result`;

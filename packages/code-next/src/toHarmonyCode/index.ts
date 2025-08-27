@@ -13,20 +13,20 @@ import handleExtension from "./handleExtension";
 import ai, { AIConfig } from "./withAI";
 
 export interface ToSpaCodeConfig {
-  getComponentMetaByNamespace: (
-    namespace: string,
-    config: {
-      type: "js" | "ui";
-      // [TODO] 来源，extension 或 page
-      source?: string;
-    },
+  getComponentMeta: (
+    com: Extract<UI["children"][0], { type: "com" }>["meta"],
+    config?: any,
   ) => {
-    dependencyImport: {
-      packageName: string;
-      dependencyNames: string[];
-      importType: "default" | "named";
+    importInfo: {
+      name: string;
+      from: string;
+      type: "default" | "named";
     };
-    componentName: string;
+    /**
+     * 调用名
+     * 例如js、ai-js这类特殊组件，调用方式由外部实现
+     */
+    callName?: string;
   };
   getComponentPackageName: (props?: any) => string;
   getUtilsPackageName: () => string;

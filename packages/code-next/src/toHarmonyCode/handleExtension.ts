@@ -51,12 +51,12 @@ const handleExtension = (
         addParentDependencyImport: isExtensionBus
           ? addExtensionBusDependencyImport
           : addDependencyImport,
-        getComponentMetaByNamespace: ((namespace, options) => {
-          return config.getComponentMetaByNamespace(namespace, {
-            ...options,
-            source: "extensionEvent",
+        getComponentMeta: ((com, config) => {
+          return config.getComponentMeta(com, {
+            ...config,
+            json: meta,
           });
-        }) as typeof config.getComponentMetaByNamespace,
+        }) as typeof config.getComponentMeta,
       } as any);
 
       if (isExtensionApi) {
