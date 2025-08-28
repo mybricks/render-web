@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import toCode from "../toCode";
-import { ImportManager } from "./utils";
+import { ImportManager, indentation } from "./utils";
 import { handleProcess } from "./handleCom";
 import type { ToSpaCodeConfig, Result } from "./index";
 
@@ -42,6 +42,7 @@ const handleExtension = (
           };
       let res = handleProcess(event, {
         ...config,
+        depth: 2,
         getParams: () => {
           return params;
         },
@@ -51,49 +52,58 @@ const handleExtension = (
         addParentDependencyImport: isExtensionBus
           ? addExtensionBusDependencyImport
           : addDependencyImport,
-        getComponentMeta: ((com, config) => {
+        getComponentMeta: ((com, configMeta) => {
           return config.getComponentMeta(com, {
-            ...config,
+            ...configMeta,
             json: meta,
           });
         }) as typeof config.getComponentMeta,
       } as any);
 
+      const indent = indentation(config.codeStyle!.indent);
+      const indent2 = indentation(config.codeStyle!.indent * 2);
+      const indent3 = indentation(config.codeStyle!.indent * 3);
+
       if (isExtensionApi) {
         /** 结果interface定义 */
         const returnInterface = event.frameOutputs.length
-          ? `interface Return {
-    ${event.frameOutputs
-      .map((frameOutput: any) => {
-        return `/** ${frameOutput.title} */
-      ${frameOutput.id}: MyBricks.EventValue`;
-      })
-      .join("\n")}}`
+          ? `${indent2}interface Return {` +
+            `\n${event.frameOutputs.reduce((pre: string, frameOutput: any) => {
+              return (
+                pre +
+                (`${indent3}/** ${frameOutput.title} */` +
+                  `\n${indent3}${frameOutput.id}: MyBricks.EventValue\n`)
+              );
+            }, "")}` +
+            `${indent2}}`
           : "";
 
-        res = `/** ${event.title} */
-        ${event.title}: MyBricks.Api = transformApi((value: MyBricks.Any) => {
-          ${returnInterface}
-          ${res} ${returnInterface ? "as Return" : ""}
-        })
-        `;
+        res =
+          `${indent}/** ${event.title} */` +
+          `\n${indent}${event.title}: MyBricks.Api = transformApi((value: MyBricks.Any) => {` +
+          (returnInterface ? `\n${returnInterface}` : "") +
+          `\n${res}${returnInterface ? " as Return" : ""}` +
+          `\n${indent}})\n`;
       } else if (isExtensionBus) {
         /** 结果interface定义 */
         const returnInterface = event.frameOutputs.length
-          ? `interface Return {
-    ${event.frameOutputs
-      .map((frameOutput: any) => {
-        return `/** ${frameOutput.title} */
-      ${frameOutput.id}: MyBricks.EventValue`;
-      })
-      .join("\n")}}`
+          ? `${indent2}interface Return {` +
+            `\n${event.frameOutputs.reduce((pre: string, frameOutput: any) => {
+              return (
+                pre +
+                (`${indent3}/** ${frameOutput.title} */` +
+                  `\n${indent3}${frameOutput.id}: MyBricks.EventValue\n`)
+              );
+            }, "")}` +
+            `${indent2}}`
           : "";
-        extensionBusInitCode += `/** ${event.title} */
-        ${event.title}: MyBricks.Api = createFx((value: MyBricks.Any) => {
-          ${returnInterface}
-          ${res} ${returnInterface ? "as Return" : ""}
-        })
-        `;
+
+        extensionBusInitCode +=
+          `${indent}/** ${event.title} */` +
+          `\n${indent}${event.title}: MyBricks.Api = createFx((value: MyBricks.Any) => {` +
+          (returnInterface ? `\n${returnInterface}` : "") +
+          `\n${res}${returnInterface ? " as Return" : ""}` +
+          `\n${indent}})\n`;
         return;
       }
 
@@ -109,12 +119,8 @@ const handleExtension = (
 
   if (extensionBusInitCode) {
     result.push({
-      content: `/** 系统总线 */      
-      class Bus {
-        ${extensionBusInitCode}
-      }
-
-      export const bus = new Bus()`,
+      content:
+        `/** 系统总线 */` + "\nclass Bus {" + `\n${extensionBusInitCode}` + "}",
       importManager: extensionBusImportManager,
       type: "extension-bus",
       name: "系统总线",

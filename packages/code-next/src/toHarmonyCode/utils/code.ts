@@ -195,8 +195,8 @@ export const getSlotComponentCode = (params: any, config: any) => {
   slotComponentCode += providerCode ? `\n${providerCode}` : "";
   slotComponentCode += `${isModule ? `\n${indentation2}myBricksColumnModifier = new MyBricksColumnModifier(this.styles.root)` : ""}`;
   slotComponentCode += effectEventCode ? `\n\n${effectEventCode}` : "";
-  slotComponentCode += jsCode ? `\n${jsCode}` : "";
-  slotComponentCode += level0SlotsCode ? `\n${level0SlotsCode}` : "";
+  slotComponentCode += jsCode ? `\n\n${jsCode}` : "";
+  slotComponentCode += level0SlotsCode ? `\n\n${level0SlotsCode}` : "";
 
   return (
     `/** ${scene.title} */\n@ComponentV2\n` +
@@ -315,7 +315,7 @@ export const getBuilderCode = (params: any, config: any) => {
   const indent = indentation(config.codeStyle!.indent);
 
   return (
-    `\n${indent}/** ${meta.title}插槽 */\n` +
+    `${indent}/** ${meta.title}插槽 */\n` +
     `${indent}@Builder\n` +
     `${indent}${slotsName}(params: MyBricks.SlotParams) {\n` +
     currentSlotsCode +
@@ -338,14 +338,28 @@ export const getSlotScopeComponentCode = (params: any, config: any) => {
 
   const indent = indentation(config.codeStyle.indent);
 
+  const consumersCode = Array.from(consumers)
+    .filter(
+      // [TODO] 过滤同名，下一版将consumers改成字符串列表
+      (consumer: any, index: any, consumers: any) =>
+        index === consumers.findIndex((t: any) => t.name === consumer.name),
+    )
+    .reduce((pre, provider: any) => {
+      return (
+        pre +
+        `\n${indent}@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`
+      );
+    }, "");
+
   return (
     `/** ${meta.title}（${slot.meta.title}） */` +
     "\n@ComponentV2" +
     `\nstruct ${scopeSlotComponentName} {` +
     `\n${indent}@Param @Require params: MyBricks.SlotParams` +
     (providerCode ? `\n${providerCode}` : "") +
-    (js ? `\n${js}` : "") +
-    (slotsCode ? `\n${slotsCode}` : "") +
+    (consumersCode ? consumersCode : "") +
+    (js ? `\n\n${js}` : "") +
+    (slotsCode ? `\n\n${slotsCode}` : "") +
     `\n\n${indent}build() {\n` +
     uiCode +
     `\n${indent}}` +

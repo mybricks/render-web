@@ -225,7 +225,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             scene,
           }) || `${slotId}_${meta.id}`,
         );
-        let slotsCode = slots.join("\n");
+        let slotsCode = slots.join("\n\n");
 
         const filterControllers = Array.from(currentProvider.coms).filter(
           (controller) => {
@@ -699,7 +699,7 @@ export const handleProcess = (
           // extension-api卡片特殊处理
           code +=
             `${indent}/** 调用api回调 ${props.title} */` +
-            `\n${indent}callBack.${props.id}(${nextValue});`;
+            `\n${indent}callBack.${props.id}(${nextValue})`;
           return;
         }
 
@@ -777,28 +777,29 @@ export const handleProcess = (
     }
   });
   if (["fx", "extension-api", "extension-bus"].includes(event.type)) {
-    const returnCode = Object.entries(event.frameOutputs)
-      .map(([, { id, outputs }]: any) => {
+    const returnCode = Object.entries(event.frameOutputs).reduce(
+      (pre, [, { id, outputs }]: any) => {
         if (!outputs) {
-          return `${id}: undefined`;
+          return pre + `${indent2}${id}: undefined,\n`;
         } else {
           const next = `${outputs
             .map((output: any) => {
               return getNextValueWithParam(output, config, event);
             })
-            .join(",")}`;
+            .join(", ")}`;
 
           if (outputs.length > 1) {
-            return `${id}: merge(${next})`;
+            return pre + `${indent2}${id}: merge(${next}),\n`;
           }
 
-          return `${id}: ${next}`;
+          return pre + `${indent2}${id}: ${next},\n`;
         }
-      })
-      .join(",");
+      },
+      "",
+    );
 
     if (returnCode) {
-      code += `\n${indent}return {${returnCode}}`;
+      code += `\n${indent}return {\n${returnCode}${indent}}`;
     }
   }
 

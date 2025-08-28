@@ -72,6 +72,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     // 主场景和作用域插槽会有生命周期事件
     let effectEventCode = handleEffectEvent(ui, {
       ...nextConfig,
+      depth: 2,
       getParams: (paramPins) => {
         return paramPins.reduce((pre: Record<string, string>, { id }) => {
           pre[id] = `this.params.inputValues.${id}`;
@@ -120,17 +121,19 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     }
 
     if (currentProvider.useParams) {
+      const indent = indentation(config.codeStyle!.indent);
+      const indent2 = indentation(config.codeStyle!.indent * 2);
       if (effectEventCode) {
         effectEventCode = effectEventCode.replace(
           "aboutToAppear(): void {",
-          `aboutToAppear(): void {
-            this.${currentProvider.name}.params = this.params;
-          `,
+          `aboutToAppear(): void {` +
+            `\n${indent2}this.${currentProvider.name}.params = this.params`,
         );
       } else {
-        effectEventCode = `aboutToAppear(): void {
-          this.${currentProvider.name}.params = this.params;
-        }`;
+        effectEventCode =
+          `${indent}aboutToAppear(): void {` +
+          `\n${indent2}this.${currentProvider.name}.params = this.params;` +
+          `\n${indent}`;
       }
     }
 
@@ -212,6 +215,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
       effectEventCode = handleEffectEvent(ui, {
         ...nextConfig,
+        depth: 2,
         getParams: (paramPins) => {
           return paramPins.reduce((pre: Record<string, string>, paramPin) => {
             // 调用函数，说明使用了打开输入
@@ -240,13 +244,14 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           importType: "named",
         });
         if (!isModule) {
+          const indent = indentation(config.codeStyle!.indent * 2);
           const slotId = ui.meta.slotId;
           // 模块调用data，页面使用路由
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
-            `aboutToAppear(): void {
-            /** 页面参数 */
-            const pageParams: MyBricks.Any = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
+            `aboutToAppear(): void {` +
+              `\n${indent}/** 页面参数 */` +
+              `\n${indent}const pageParams: MyBricks.Any = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
           );
         }
       }
@@ -315,7 +320,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         }
       }
 
-      let level0SlotsCode = level0Slots.join("\n");
+      let level0SlotsCode = level0Slots.join("\n\n");
 
       const filterControllers = Array.from(currentProvider.coms).filter(
         (controller) => {
@@ -433,12 +438,12 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
     }
 
+    const indent = indentation(config.codeStyle!.indent * 3);
+
     return {
       js: jsCode,
       ui: !props.style.layout
-        ? `Column() {
-        ${uiCode}
-      }`
+        ? `${indent}Column() {\n` + uiCode + `\n${indent}}`
         : convertHarmonyFlexComponent(props.style, {
             child: uiCode,
             useExtraFlex: true,
@@ -486,9 +491,9 @@ export const handleEffectEvent = (ui: UI, config: HandleEffectEventConfig) => {
     return null;
   }
 
-  return `aboutToAppear(): void {
-    ${code}
-  }`;
+  const indent = indentation(config.codeStyle!.indent);
+
+  return `${indent}aboutToAppear(): void {` + `\n${code}` + `\n${indent}}`;
 };
 
 interface HandleVarsEventConfig extends HandleSlotConfig {

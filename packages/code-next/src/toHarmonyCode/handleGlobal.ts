@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import toCode from "../toCode";
-import { ImportManager, firstCharToUpperCase } from "./utils";
+import { ImportManager, firstCharToUpperCase, indentation } from "./utils";
 import { handleProcess } from "./handleCom";
 import type { ToJSON } from "../toCode/types";
 import type { ToSpaCodeConfig, Result } from "./index";
@@ -25,6 +25,10 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
   let globalVarsResetCode = "";
   let globalVarsParamsCode = "";
 
+  const indent = indentation(config.codeStyle!.indent);
+  const indent2 = indentation(config.codeStyle!.indent * 2);
+  const indent3 = indentation(config.codeStyle!.indent * 3);
+
   Object.entries(tojson.global.comsReg).forEach(([, com]) => {
     if (com.def.namespace !== "mybricks.core-comlib.var") {
       // 非变量，不需要初始化
@@ -37,6 +41,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
     const res = handleProcess(event, {
       ...config,
+      depth: 1,
       getParams: () => {
         return {
           [event.paramId]: "value",
@@ -54,12 +59,13 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
     const constantName = `globalVar${firstCharToUpperCase(com.title)}Params`;
 
-    globalVarsParamsCode += `const ${constantName} = [${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {
-      ${res}
-    }]\n`;
+    globalVarsParamsCode +=
+      `const ${constantName} = [${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {` +
+      `\n${res}` +
+      "\n}]";
 
-    globalVarsInitCode += `${com.title}: MyBricks.Controller = createVariable(...${constantName})\n`;
-    globalVarsResetCode += `this.${com.title} = createVariable(...${constantName})\n`;
+    globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = createVariable(...${constantName})\n`;
+    globalVarsResetCode += `${indent2}this.${com.title} = createVariable(...${constantName})\n`;
   });
 
   let globalFxsInitCode = "";
@@ -69,6 +75,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     );
     const res = handleProcess(event, {
       ...config,
+      depth: 2,
       getCurrentScene: () => {
         return currentScene;
       },
@@ -107,49 +114,46 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
     /** 结果interface定义 */
     const returnInterface = event.frameOutputs.length
-      ? `interface Return {
-    ${event.frameOutputs
-      .map((frameOutput: any) => {
-        return `/** ${frameOutput.title} */
-      ${frameOutput.id}: MyBricks.EventValue`;
-      })
-      .join("\n")}}`
+      ? `${indent2}interface Return {` +
+        `\n${event.frameOutputs.reduce((pre: string, frameOutput: any) => {
+          return (
+            pre +
+            (`${indent3}/** ${frameOutput.title} */` +
+              `\n${indent3}${frameOutput.id}: MyBricks.EventValue\n`)
+          );
+        }, "")}` +
+        `${indent2}}`
       : "";
 
-    globalFxsInitCode += `/** ${event.title} */
-    ${event.frameId}: MyBricks.Api = createFx((${values}) => {
-      ${returnInterface}
-      ${res} ${returnInterface ? "as Return" : ""}
-    })
-    `;
+    globalFxsInitCode +=
+      `${indent}/** ${event.title} */` +
+      `\n${indent}${event.frameId}: MyBricks.Api = createFx((${values}) => {` +
+      (returnInterface ? `\n${returnInterface}` : "") +
+      `\n${res}${returnInterface ? " as Return" : ""}` +
+      `\n${indent}})\n`;
   });
+
+  const varCode =
+    "/** 全局变量 */" +
+    `\n${globalVarsParamsCode}` +
+    `\n\nclass GlobalVars {` +
+    `\n${globalVarsInitCode}` +
+    `\n${indent}reset() {` +
+    `\n${globalVarsResetCode}` +
+    `${indent}}` +
+    `\n}` +
+    `\n\nexport const globalVars = new GlobalVars()`;
+
+  const fxCode =
+    "/** 全局Fx */" +
+    `\nclass GlobalFxs {` +
+    `\n${globalFxsInitCode}` +
+    `}` +
+    `\n\nexport const globalFxs = new GlobalFxs()`;
 
   return {
     type: "global",
-    content: `/**
-        * 全局变量
-        */
-      ${globalVarsParamsCode}
-      class GlobalVars {
-        ${globalVarsInitCode}
-
-        reset() {
-          ${globalVarsResetCode}
-        }
-      }
-
-      export const globalVars = new GlobalVars()
-
-
-      /**
-        * 全局Fx
-        */      
-      class GlobalFxs {
-        ${globalFxsInitCode}
-      }
-
-      export const globalFxs = new GlobalFxs()
-    `,
+    content: varCode + "\n\n" + fxCode,
     importManager: globalImportManager,
     name: "global",
   } as Result[0];
