@@ -62,7 +62,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     globalVarsParamsCode +=
       `const ${constantName} = [${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {` +
       `\n${res}` +
-      "\n}]";
+      "\n}]\n";
 
     globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = createVariable(...${constantName})\n`;
     globalVarsResetCode += `${indent2}this.${com.title} = createVariable(...${constantName})\n`;
@@ -136,7 +136,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
   const varCode =
     "/** 全局变量 */" +
     `\n${globalVarsParamsCode}` +
-    `\n\nclass GlobalVars {` +
+    `\nclass GlobalVars {` +
     `\n${globalVarsInitCode}` +
     `\n${indent}reset() {` +
     `\n${globalVarsResetCode}` +
