@@ -24,20 +24,24 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
   let jsCode = "";
   const level0Slots: string[] = [];
   const level1Slots: string[] = [];
+  const nextConfig = {
+    ...config,
+    depth: config.depth + 1,
+  };
 
   children.forEach((child) => {
     if (child.type === "com") {
-      const { ui, js, slots, scopeSlots } = handleCom(child, config);
-      uiCode += uiCode ? "\n" + ui : ui;
+      const { ui, js, slots, scopeSlots } = handleCom(child, nextConfig);
+      uiCode += uiCode ? "\n\n" + ui : ui;
       jsCode += js;
       level0Slots.push(...slots);
       level1Slots.push(...scopeSlots);
     } else if (child.type === "module") {
-      const ui = handleModule(child, config);
-      uiCode += uiCode ? "\n" + ui : ui;
+      const ui = handleModule(child, nextConfig);
+      uiCode += uiCode ? "\n\n" + ui : ui;
     } else {
-      const { ui, js, slots, scopeSlots } = handleDom(child, config);
-      uiCode += uiCode ? "\n" + ui : ui;
+      const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
+      uiCode += uiCode ? "\n\n" + ui : ui;
       jsCode += js;
       level0Slots.push(...slots);
       level1Slots.push(...scopeSlots);
@@ -65,6 +69,8 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
 
   const ui = convertHarmonyFlexComponent(props.style, {
     child: uiCode,
+    indentSize: config.codeStyle!.indent,
+    initialIndent: config.codeStyle!.indent * config.depth,
   });
 
   return {

@@ -17,7 +17,7 @@ interface HandleGlobalParams {
 
 const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
   const { tojson, globalFxs, globalVars } = params;
-  const globalImportManager = new ImportManager();
+  const globalImportManager = new ImportManager(config);
   const globalAddDependencyImport =
     globalImportManager.addImport.bind(globalImportManager);
 

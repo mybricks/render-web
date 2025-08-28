@@ -4,6 +4,8 @@ import {
   convertHarmonyFlexComponent,
   getClassCode,
   getSlotComponentCode,
+  indentation,
+  getProviderCode,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
@@ -22,7 +24,7 @@ interface HandleSlotConfig extends BaseConfig {
 }
 
 const handleSlot = (ui: UI, config: HandleSlotConfig) => {
-  const importManager = new ImportManager();
+  const importManager = new ImportManager(config);
   const { props, children } = ui;
   const parent = ui;
 
@@ -42,6 +44,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       importManager.addImport.bind(importManager);
     const nextConfig = {
       ...config,
+      depth: config.depth + 3, // [TODO 看情况的]
       addComId: (comId: string) => {
         comIds.add(comId);
       },
@@ -87,13 +90,13 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     children.forEach((child) => {
       if (child.type === "com") {
         const { ui, js, slots, scopeSlots } = handleCom(child, nextConfig);
-        uiCode += uiCode ? "\n" + ui : ui;
+        uiCode += uiCode ? "\n\n" + ui : ui;
         jsCode += js;
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
       } else if (child.type === "module") {
         const ui = handleModule(child, nextConfig);
-        uiCode += uiCode ? "\n" + ui : ui;
+        uiCode += uiCode ? "\n\n" + ui : ui;
       } else {
         if (parent.props.style.width === "auto") {
           if (child.props.style.width === "100%") {
@@ -101,7 +104,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           }
         }
         const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
-        uiCode += uiCode ? "\n" + ui : ui;
+        uiCode += uiCode ? "\n\n" + ui : ui;
         jsCode += js;
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
@@ -131,38 +134,18 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
     }
 
+    const indent = indentation(config.codeStyle!.indent * 2);
+
     return {
       js: (effectEventCode ? effectEventCode + "\n\n" : "") + jsCode,
       ui: !props.style.layout
-        ? `Column() {
-        ${uiCode}
-      }`
+        ? `${indent}Column() {\n` + uiCode + `\n${indent}}`
         : convertHarmonyFlexComponent(props.style, {
             child: uiCode,
-            extraFlex: `wrap: this.params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
-            space: {
-              main: LengthMetrics.vp(this.params.style?.rowGap || 0),
-              cross: LengthMetrics.vp(this.params.style?.columnGap || 0)
-            }`,
+            useExtraFlex: true,
+            indentSize: config.codeStyle!.indent,
+            initialIndent: config.codeStyle!.indent * 3,
           }),
-      // ui: !props.style.layout
-      //   ? `Column() {
-      //   ${uiCode}
-      // }`
-      //   : `Flex({
-      //   direction: ${hmStyle.direction},
-      //   justifyContent: ${hmStyle.justifyContent},
-      //   alignItems: ${hmStyle.alignItems},
-      //   wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
-      //   space: {
-      //     main: LengthMetrics.vp(params.style?.rowGap || 0),
-      //     cross: LengthMetrics.vp(params.style?.columnGap || 0)
-      //   }
-      // }) {
-      //   ${uiCode}
-      // }
-      // .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
-      // .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
       slots: level0Slots,
       scopeSlots: level1Slots,
       comIds,
@@ -171,6 +154,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       fxs,
     };
   } else {
+    const scene = config.getCurrentScene();
+    const isModule = scene.type === "module";
     // 声明组件Controller
     const comIds = new Set<string>();
     // 调用上层组件
@@ -181,6 +166,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       importManager.addImport.bind(importManager);
     const nextConfig = {
       ...config,
+      depth: config.depth + (config.checkIsRoot() && isModule ? 4 : 3), // [TODO 看情况的]
       addComId:
         config.addComId ||
         ((comId: string) => {
@@ -272,13 +258,13 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     children.forEach((child) => {
       if (child.type === "com") {
         const { ui, js, slots, scopeSlots } = handleCom(child, nextConfig);
-        uiCode += uiCode ? "\n" + ui : ui;
+        uiCode += uiCode ? "\n\n" + ui : ui;
         jsCode += js;
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
       } else if (child.type === "module") {
         const ui = handleModule(child, nextConfig);
-        uiCode += uiCode ? "\n" + ui : ui;
+        uiCode += uiCode ? "\n\n" + ui : ui;
       } else {
         if (parent.props.style.width === "auto") {
           if (child.props.style.width === "100%") {
@@ -288,7 +274,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           }
         }
         const { ui, js, slots, scopeSlots } = handleDom(child, nextConfig);
-        uiCode += uiCode ? "\n" + ui : ui;
+        uiCode += uiCode ? "\n\n" + ui : ui;
         jsCode += js;
         level0Slots.push(...slots);
         level1Slots.push(...scopeSlots);
@@ -296,9 +282,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     });
 
     if (config.checkIsRoot()) {
-      const scene = config.getCurrentScene();
       // 非模块，由于页面默认都有一个root组件，所以直接简单地Column设置宽高100%铺满即可
-      const isModule = scene.type === "module";
 
       if (isModule) {
         addDependencyImport({
@@ -316,16 +300,18 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         if (effectEventCode) {
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
-            `@MyBricksDescriptor({
-              provider: "${currentProvider.name}",
-            })
-            aboutToAppear(): void {`,
+            `${indentation(2)}@MyBricksDescriptor({\n` +
+              `${indentation(4)}provider: "${currentProvider.name}",\n` +
+              `${indentation(2)}})\n` +
+              `${indentation(2)}aboutToAppear(): void {`,
           );
         } else {
-          effectEventCode = `@MyBricksDescriptor({
-            provider: "${currentProvider.name}",
-          })
-          aboutToAppear(): void {}`;
+          effectEventCode =
+            `${indentation(2)}@MyBricksDescriptor({\n` +
+            `${indentation(4)}provider: "${currentProvider.name}",\n` +
+            `${indentation(2)}})\n` +
+            `${indentation(2)}aboutToAppear(): void {\n` +
+            `${indentation(2)}}`;
         }
       }
 
@@ -354,13 +340,12 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       );
 
       const varsDeclarationCode = vars
-        ? `/** 根组件变量 */
-      ${vars.varsDeclarationCode}\n`
+        ? "/** 根组件变量 */\n" + vars.varsDeclarationCode + "\n"
         : "";
       const fxsDeclarationCode = fxs
-        ? `/** 根组件Fx */
-      ${fxs.fxsDeclarationCode}\n`
+        ? "/** 根组件Fx */\n" + fxs.fxsDeclarationCode + "\n"
         : "";
+
       const classCode = getClassCode({
         filterControllers,
         currentProvider,
@@ -369,77 +354,43 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         title: "根组件控制器",
       });
 
-      let providerCode =
-        filterControllers.length ||
-        currentProvider.useParams ||
-        currentProvider.useEvents
-          ? `@Provider() ${currentProvider.name}: ${currentProvider.class} = new ${currentProvider.class}()\n`
-          : "";
-      if (vars) {
-        providerCode += vars.varsImplementCode + "\n";
-      }
-      if (fxs) {
-        providerCode += fxs.fxsImplementCode + "\n";
-      }
+      const providerCode = getProviderCode(
+        {
+          filterControllers,
+          currentProvider,
+          vars,
+          fxs,
+        },
+        config,
+      );
 
-      // const slotComponentCode = getSlotComponentCode({
-      //   scene,
-      //   isModule,
-      //   config,
-      //   providerCode,
-      //   effectEventCode,
-      //   jsCode,
-      //   level0SlotsCode,
-      //   level1Slots,
-      //   uiCode: isModule
-      //     ? convertHarmonyFlexComponent(ui.props.style, { child: uiCode })
-      //     : uiCode,
-      // });
-
-      // config.add({
-      //   importManager,
-      //   content: `${varsDeclarationCode}${fxsDeclarationCode}${classCode}
-      //   ${slotComponentCode}
-      //   `,
-      //   name: config.getFileName?.(ui.meta.slotId) || getName(ui.meta.title),
-      // });
+      const slotComponentCode = getSlotComponentCode(
+        {
+          scene,
+          isModule,
+          providerCode,
+          effectEventCode,
+          jsCode,
+          level0SlotsCode,
+          level1Slots,
+          uiCode: isModule
+            ? convertHarmonyFlexComponent(ui.props.style, {
+                child: uiCode,
+                indentSize: config.codeStyle!.indent,
+                initialIndent: config.codeStyle!.indent * 3,
+              })
+            : uiCode,
+        },
+        config,
+      );
 
       config.add({
         importManager,
-        content: `${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${scene.title} */
-        @ComponentV2
-        ${isModule ? "export default " : ""}struct Index {
-          ${isModule ? '@Param uid: string = ""' : ""}
-          ${isModule && config.verbose ? `@Param title: string = "${scene.title}"` : ""}
-          ${isModule ? "@Param data: MyBricks.Data = {}" : ""}
-          ${isModule ? "@Param controller: MyBricks.ModuleController = ModuleController()" : ""}
-          ${isModule ? "@Param styles: Styles = {}" : ""}
-          ${isModule ? "@Param events: MyBricks.Events = {}" : ""}
-          ${isModule ? "@Local columnVisibilityController: ColumnVisibilityController = new ColumnVisibilityController()" : ""}
-          ${providerCode}
-          ${isModule ? "myBricksColumnModifier = new MyBricksColumnModifier(this.styles.root)" : ""}
-          ${(effectEventCode ? effectEventCode + "\n\n" : "") + jsCode}
-          ${level0SlotsCode}
-
-          build() {
-            ${
-              isModule
-                ? `Column() {
-                  ${convertHarmonyFlexComponent(ui.props.style, { child: uiCode })}
-                }
-                .attributeModifier(this.myBricksColumnModifier)
-                .visibility(this.columnVisibilityController.visibility)`
-                : `Column() {
-              ${uiCode}
-            }
-            .width("100%")
-            .height("100%")`
-            }
-          }
-        }
-
-        ${level1Slots.join("\n")}
-        `,
+        content:
+          (varsDeclarationCode ? `${varsDeclarationCode}\n` : "") +
+          (fxsDeclarationCode ? `${fxsDeclarationCode}\n` : "") +
+          (classCode ? `${classCode}\n` : "") +
+          slotComponentCode,
         name: config.getFileName?.(ui.meta.slotId) || getName(ui.meta.title),
       });
     }
@@ -490,30 +441,10 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }`
         : convertHarmonyFlexComponent(props.style, {
             child: uiCode,
-            extraFlex: `wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
-            space: {
-              main: LengthMetrics.vp(params.style?.rowGap || 0),
-              cross: LengthMetrics.vp(params.style?.columnGap || 0)
-            }`,
+            useExtraFlex: true,
+            indentSize: config.codeStyle!.indent,
+            initialIndent: config.codeStyle!.indent * 3,
           }),
-      // ui: !props.style.layout
-      //   ? `Column() {
-      //     ${uiCode}
-      //   }`
-      //   : `Flex({
-      //   direction: ${hmStyle.direction},
-      //   justifyContent: ${hmStyle.justifyContent},
-      //   alignItems: ${hmStyle.alignItems},
-      //   wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,
-      //   space: {
-      //     main: LengthMetrics.vp(params.style?.rowGap || 0),
-      //     cross: LengthMetrics.vp(params.style?.columnGap || 0)
-      //   }
-      // }) {
-      //   ${uiCode}
-      // }
-      // .width(${typeof hmStyle.width === "number" ? hmStyle.width : `"${hmStyle.width}"`})
-      // .height(${typeof hmStyle.height === "number" ? hmStyle.height : `"${hmStyle.height}"`})`,
       slots: level0Slots,
       scopeSlots: level1Slots,
       comIds,
@@ -579,6 +510,9 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   let varsDeclarationCode = "";
   let varsImplementCode = "";
 
+  const indent = indentation(config.codeStyle!.indent);
+  const indent2 = indentation(config.codeStyle!.indent * 2);
+
   varEvents.forEach((varEvent) => {
     config.addParentDependencyImport({
       packageName: config.getUtilsPackageName(),
@@ -594,11 +528,12 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
       },
     });
 
-    varsDeclarationCode += `${varEvent.title}: MyBricks.Controller = createVariable()\n`;
+    varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable()\n`;
 
-    varsImplementCode += `${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {
-      ${code}
-    }),\n`;
+    varsImplementCode +=
+      `${indent2}${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {\n` +
+      code +
+      `\n${indent2}})`;
   });
 
   if (!varsDeclarationCode) {
@@ -606,12 +541,12 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
   }
 
   return {
-    varsDeclarationCode: `class ${currentProvider.class}_Vars {
-      ${varsDeclarationCode}
-    }`,
-    varsImplementCode: `@Provider() ${currentProvider.name}_Vars: ${currentProvider.class}_Vars = {
-      ${varsImplementCode}
-    }`,
+    varsDeclarationCode:
+      `class ${currentProvider.class}_Vars {\n` + varsDeclarationCode + "}",
+    varsImplementCode:
+      `${indent}@Provider() ${currentProvider.name}_Vars: ${currentProvider.class}_Vars = {\n` +
+      varsImplementCode +
+      `\n${indent}}`,
   };
 };
 
@@ -633,6 +568,9 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
   );
   let fxsDeclarationCode = "";
   let fxsImplementCode = "";
+
+  const indent = indentation(config.codeStyle!.indent);
+  const indent2 = indentation(config.codeStyle!.indent * 2);
 
   fxEvents.forEach((fxEvent) => {
     config.addParentDependencyImport({
@@ -686,15 +624,16 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
         .join("\n")}}`
       : "";
 
-    fxsDeclarationCode += `/** ${fxEvent.title} */
-    ${fxEvent.frameId}: MyBricks.Api = createFx()
-    `;
-    fxsImplementCode += `/** ${fxEvent.title} */
-      ${fxEvent.frameId}: createFx((${values}) => {
-        ${returnInterface}
-        ${code} ${returnInterface ? "as Return" : ""}
-      })
-      `;
+    fxsDeclarationCode +=
+      `${indent}/** ${fxEvent.title} */\n` +
+      `${indent}${fxEvent.frameId}: MyBricks.Api = createFx()\n`;
+
+    fxsImplementCode +=
+      `${indent2}/** ${fxEvent.title} */\n` +
+      `${indent2}${fxEvent.frameId}: createFx((${values}) => {\n` +
+      (returnInterface ? `${returnInterface}\n` : "") +
+      `${code} ${returnInterface ? "as Return" : ""}\n` +
+      `${indent2}})`;
   });
 
   if (!fxsDeclarationCode) {
@@ -702,11 +641,11 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
   }
 
   return {
-    fxsDeclarationCode: `class ${currentProvider.class}_Fxs {
-      ${fxsDeclarationCode}
-    }`,
-    fxsImplementCode: `@Provider() ${currentProvider.name}_Fxs: ${currentProvider.class}_Fxs = {
-      ${fxsImplementCode}
-    }`,
+    fxsDeclarationCode:
+      `class ${currentProvider.class}_Fxs {\n` + fxsDeclarationCode + "}",
+    fxsImplementCode:
+      `${indent}@Provider() ${currentProvider.name}_Fxs: ${currentProvider.class}_Fxs = {\n` +
+      fxsImplementCode +
+      `\n${indent}}`,
   };
 };

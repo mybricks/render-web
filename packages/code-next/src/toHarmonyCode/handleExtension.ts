@@ -18,10 +18,10 @@ const handleExtension = (
 ) => {
   const { extensionEvents } = params;
   const result: Result = [];
-  const importManager = new ImportManager();
+  const importManager = new ImportManager(config);
   const addDependencyImport = importManager.addImport.bind(importManager);
 
-  const extensionBusImportManager = new ImportManager();
+  const extensionBusImportManager = new ImportManager(config);
   const addExtensionBusDependencyImport =
     extensionBusImportManager.addImport.bind(extensionBusImportManager);
   let extensionBusInitCode = "";

@@ -51,6 +51,11 @@ export interface ToSpaCodeConfig {
   getComponentController?: any;
   getProviderName?: any;
   getEventNodeName?: any;
+
+  /** 代码风格 */
+  codeStyle?: {
+    indent: number;
+  };
 }
 
 /** 返回结果 */
@@ -88,8 +93,6 @@ const toHarmonyCodeWithAI = async (
     { tojson, toCodejson },
     config.ai,
   );
-  // const fileNames: any =
-  // const componentNames: any =
 
   return getCode(
     { tojson, toCodejson },
@@ -213,6 +216,8 @@ interface GetCodeParams {
   toCodejson: ReturnType<typeof toCode>;
 }
 const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
+  transformConfig(config);
+
   const result: Result = [];
   const { tojson, toCodejson } = params;
   const { scenes, extensionEvents, globalFxs, globalVars, modules } =
@@ -349,6 +354,7 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       },
       getExtensionEventById,
       getSceneById,
+      depth: 0,
     });
   });
 
@@ -433,10 +439,20 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       },
       getExtensionEventById,
       getSceneById,
+      depth: 0,
     });
   });
 
   return result;
+};
+
+/** 初始化配置 */
+const transformConfig = (config: ToSpaCodeConfig) => {
+  if (!config.codeStyle) {
+    config.codeStyle = {
+      indent: 2,
+    };
+  }
 };
 
 type ToCodeResult = ReturnType<typeof toCode>;
@@ -488,6 +504,8 @@ export interface BaseConfig extends ToSpaCodeConfig {
     id: string,
   ) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
   getSceneById: (id: string) => ReturnType<typeof toCode>["scenes"][0]["scene"];
+  /** 层级，用于格式化代码 */
+  depth: number;
 }
 
 export default toHarmonyCode;

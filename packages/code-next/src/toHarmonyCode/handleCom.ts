@@ -2,8 +2,14 @@
 import {
   convertComponentStyle,
   ImportManager,
-  getPaddingCode,
   firstCharToUpperCase,
+  indentation,
+  getBuilderCode,
+  getUiComponentCode,
+  getClassCode,
+  getProviderCode,
+  getSlotScopeComponentCode,
+  genObjectCode,
 } from "./utils";
 import handleSlot from "./handleSlot";
 
@@ -28,7 +34,6 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   const { meta, props, slots, events } = com;
 
   const isModule = meta.def.namespace.startsWith("mybricks.harmony.module");
-
   const { importInfo } = config.getComponentMeta(meta);
   const componentName = importInfo.name;
 
@@ -55,18 +60,21 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     }
 
     const defaultValue = "value";
+    const indent = indentation(config.codeStyle!.indent * (config.depth + 2));
 
-    comEventCode += `${eventId}: (${defaultValue}: MyBricks.EventValue) => {
-        ${handleProcess(event, {
-          ...config,
-          addParentDependencyImport: config.addParentDependencyImport,
-          getParams: () => {
-            return {
-              [eventId]: defaultValue,
-            };
-          },
-        })}
-    },`;
+    comEventCode +=
+      `${indent}${eventId}: (${defaultValue}: MyBricks.EventValue) => {\n` +
+      handleProcess(event, {
+        ...config,
+        depth: config.depth + 3,
+        addParentDependencyImport: config.addParentDependencyImport,
+        getParams: () => {
+          return {
+            [eventId]: defaultValue,
+          };
+        },
+      }) +
+      `\n${indent}}`;
   });
 
   const currentProvider = config.getCurrentProvider();
@@ -151,6 +159,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           checkIsRoot: () => {
             return false;
           },
+          depth: 1,
         });
 
         level0Slots.push(...slots);
@@ -158,16 +167,16 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
         eventCode += js; // 非 scope 没有js
 
+        const indent = indentation(config.codeStyle!.indent * 2);
+
         if (!index) {
           // 第一个 if
-          currentSlotsCode = `if (params.id === "${slotId}") {
-            ${ui}
-          }`;
+          currentSlotsCode =
+            `${indent}if (params.id === "${slotId}") {\n` + ui + `\n${indent}}`;
         } else {
           // 其它的 else if
-          currentSlotsCode += `else if (params.id === "${slotId}") {
-            ${ui}
-          }`;
+          currentSlotsCode +=
+            ` else if (params.id === "${slotId}") {\n` + ui + `\n${indent}}`;
         }
       } else {
         const providerName =
@@ -199,6 +208,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
             getCurrentProvider() {
               return currentProvider;
             },
+            depth: 0,
           },
         );
         let uiCode = ui;
@@ -240,93 +250,76 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         );
 
         const varsDeclarationCode = vars
-          ? `/** ${meta.title}（${slot.meta.title}）组件变量 */
-      ${vars.varsDeclarationCode}\n`
+          ? `/** ${meta.title}（${slot.meta.title}）组件变量 */\n` +
+            vars.varsDeclarationCode +
+            "\n"
           : "";
         const fxsDeclarationCode = fxs
-          ? `/** ${meta.title}（${slot.meta.title}）组件Fx */
-      ${fxs.fxsDeclarationCode}\n`
+          ? `/** ${meta.title}（${slot.meta.title}）组件Fx */\n` +
+            fxs.fxsDeclarationCode +
+            "\n"
           : "";
-        const classCode =
-          filterControllers.length ||
-          currentProvider.useParams ||
-          currentProvider.useEvents
-            ? `/** ${meta.title}（${slot.meta.title}）组件控制器 */
-          class ${firstCharToUpperCase(providerName)} {
-          ${currentProvider.useParams ? "/** 插槽参数 */\nparams: MyBricks.Any" : ""}
-          ${currentProvider.useEvents ? "/** 事件 */\nevents: MyBricks.Events = {}" : ""}
-          ${filterControllers
-            .map((controller) => {
-              const com = scene.coms[controller];
-              const componentController =
-                config.getComponentController?.({ com, scene }) ||
-                `controller_${com.id}`;
 
-              const ControllerCode =
-                com.def.namespace === "mybricks.core-comlib.module" ||
-                com.def.namespace.startsWith("mybricks.harmony.module.")
-                  ? "ModuleController()"
-                  : "Controller()";
-              return `/** ${com.title} */\n${componentController} = ${ControllerCode}`;
-            })
-            .join("\n")}
-        }\n`
-            : "";
+        const classCode = getClassCode({
+          filterControllers,
+          currentProvider,
+          scene,
+          config,
+          title: `${meta.title}（${slot.meta.title}）组件控制器`,
+        });
 
-        let providerCode =
-          filterControllers.length ||
-          currentProvider.useParams ||
-          currentProvider.useEvents
-            ? `@Provider() ${providerName}: ${firstCharToUpperCase(providerName)} = new ${firstCharToUpperCase(providerName)}()\n`
-            : "";
-        if (vars) {
-          providerCode += vars.varsImplementCode + "\n";
-        }
-        if (fxs) {
-          providerCode += fxs.fxsImplementCode + "\n";
-        }
+        const providerCode = getProviderCode(
+          {
+            filterControllers,
+            currentProvider,
+            vars,
+            fxs,
+          },
+          config,
+        );
 
-        level1Slots.push(`${varsDeclarationCode}${fxsDeclarationCode}${classCode}/** ${meta.title}（${slot.meta.title}） */
-        @ComponentV2
-        struct ${scopeSlotComponentName} {
-          @Param @Require params: MyBricks.SlotParams
-          ${Array.from(consumers)
-            .filter(
-              // [TODO] 过滤同名，下一版将consumers改成字符串列表
-              (consumer, index, consumers) =>
-                index === consumers.findIndex((t) => t.name === consumer.name),
-            )
-            .map((provider) => {
-              return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
-            })
-            .join("\n")}
-          ${providerCode}
+        const slotScopeComponentCode = getSlotScopeComponentCode(
+          {
+            meta,
+            slot,
+            scopeSlotComponentName,
+            consumers,
+            providerCode,
+            js,
+            slotsCode,
+            uiCode,
+          },
+          config,
+        );
 
-          ${js}
+        level1Slots.push(
+          "\n\n" +
+            (varsDeclarationCode ? `${varsDeclarationCode}\n` : "") +
+            (fxsDeclarationCode ? `${fxsDeclarationCode}\n` : "") +
+            (classCode ? `${classCode}\n` : "") +
+            slotScopeComponentCode,
+        );
 
-          ${slotsCode}
-
-          build() {
-            ${uiCode}
-          }
-        }`);
+        const indent = indentation(config.codeStyle!.indent * 2);
+        const indent2 = indentation(config.codeStyle!.indent * 3);
 
         if (!index) {
           // 第一个 if
-          currentSlotsCode = `if (params.id === "${slotId}") {
-            ${scopeSlotComponentName}({ params })
-          }`;
+          currentSlotsCode =
+            `${indent}if (params.id === "${slotId}") {\n` +
+            `${indent2}${scopeSlotComponentName}({ params })` +
+            `\n${indent}}`;
         } else {
           // 其它的 else if
-          currentSlotsCode += `else if (params.id === "${slotId}") {
-            ${scopeSlotComponentName}({ params })
-          }`;
+          currentSlotsCode +=
+            ` else if (params.id === "${slotId}") {\n` +
+            `${indent2}${scopeSlotComponentName}({ params })` +
+            `\n${indent}}`;
         }
       }
     });
 
     const resultStyle = convertComponentStyle(props.style);
-    const paddingCode = getPaddingCode(resultStyle);
     const componentController =
       config.getComponentController?.({
         com: meta,
@@ -336,40 +329,34 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       ? `${config.getComponentName({ com: meta, scene: config.getCurrentScene() })}Slots`
       : `slots_${meta.id}`;
 
-    let ui = `${componentName}({
-      uid: "${meta.id}",
-      ${config.verbose ? `title: "${meta.title}",` : ""}
-      controller: this.${currentProvider.name}.${componentController},
-      data: ${JSON.stringify(props.data)},
-      styles: ${JSON.stringify(resultStyle)},
-      slots: this.${slotsName}.bind(this),${
-        comEventCode
-          ? `
-      events: {
-        ${comEventCode}
-      },`
-          : ""
-      }${com.meta.frameId ? "parentSlot: this.params" : ""}
-    })`;
-
-    if (paddingCode) {
-      ui = `Column() {
-        ${ui}
-      }${paddingCode}`;
-    }
+    const uiComponentCode = getUiComponentCode(
+      {
+        componentName,
+        meta,
+        currentProvider,
+        componentController,
+        props,
+        resultStyle,
+        slotsName,
+        comEventCode,
+      },
+      config,
+    );
 
     return {
       slots: [
-        `/** ${meta.title}插槽 */
-      @Builder
-      ${slotsName}(params: MyBricks.SlotParams) {
-        ${currentSlotsCode}
-      }`,
+        getBuilderCode(
+          {
+            meta,
+            slotsName,
+            currentSlotsCode,
+          },
+          config,
+        ),
         ...level0Slots,
       ],
       scopeSlots: level1Slots,
-      ui: `/** ${meta.title} */
-        ${ui}`,
+      ui: uiComponentCode,
       js: eventCode,
     };
   } else {
@@ -407,37 +394,27 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       };
     }
 
-    const paddingCode = getPaddingCode(resultStyle);
     const componentController =
       config.getComponentController?.({
         com: meta,
         scene: config.getCurrentScene(),
       }) || `controller_${meta.id}`;
 
-    let ui = `${componentName}({
-      uid: "${meta.id}",
-      ${config.verbose ? `title: "${meta.title}",` : ""}
-      controller: this.${currentProvider.name}.${componentController},
-      data: ${JSON.stringify(props.data)},
-      styles: ${JSON.stringify(resultStyle)},${
-        comEventCode
-          ? `
-      events: {
-        ${comEventCode}
-      },`
-          : ""
-      }${com.meta.frameId ? "parentSlot: this.params" : ""}
-    })`;
-
-    if (paddingCode) {
-      ui = `Column() {
-        ${ui}
-      }${paddingCode}`;
-    }
+    const uiComponentCode = getUiComponentCode(
+      {
+        componentName,
+        meta,
+        currentProvider,
+        componentController,
+        props,
+        resultStyle,
+        comEventCode,
+      },
+      config,
+    );
 
     return {
-      ui: `/** ${meta.title} */
-      ${ui}`,
+      ui: uiComponentCode,
       js: eventCode,
       slots: [],
       scopeSlots: [],
@@ -459,6 +436,9 @@ export const handleProcess = (
 ) => {
   let code = "";
   const { process } = event;
+
+  const indent = indentation(config.codeStyle!.indent * config.depth);
+  const indent2 = indentation(config.codeStyle!.indent * (config.depth + 1));
 
   process.nodesDeclaration.forEach(({ meta, props }: any) => {
     if (meta.def.namespace.startsWith("mybricks.harmony.module")) {
@@ -486,18 +466,23 @@ export const handleProcess = (
         event,
       }) || `${componentName}_${meta.id}`;
 
-    code += `/** ${meta.title} */
-    const ${componentNameWithId} = ${callName || componentName}({${Object.entries(
-      props,
-    ).reduce((pre, [key, value], index) => {
-      if (!index && config.verbose) {
-        pre += `title: "${meta.title}",`;
-      }
-      if (key === "data") {
-        return pre + `${key}: ${JSON.stringify(value)},`;
-      }
-      return pre + `${key}: ${JSON.stringify(value)},`;
-    }, "")}})\n`;
+    code +=
+      `${indent}/** ${meta.title} */` +
+      `\n${indent}const ${componentNameWithId} = ${callName || componentName}({` +
+      (config.verbose ? `\n${indent2}title: "${meta.title}",` : "") +
+      (props.data
+        ? `\n${indent2}data: ${genObjectCode(props.data, {
+            initialIndent: config.codeStyle!.indent * (config.depth + 1),
+            indentSize: config.codeStyle!.indent,
+          })},`
+        : "") +
+      (props.inputs
+        ? `\n${indent2}inputs: [${props.inputs.map((input: string) => `"${input}"`).join(", ")}],`
+        : "") +
+      (props.outputs
+        ? `\n${indent2}outputs: [${props.outputs.map((output: string) => `"${output}"`).join(", ")}],`
+        : "") +
+      `\n${indent}})\n`;
   });
 
   process.nodesInvocation.forEach((props: any) => {
@@ -529,8 +514,9 @@ export const handleProcess = (
         const operateName =
           props.meta.model.data.openType === "redirect" ? "replace" : "open";
 
-        code += `/** 打开 ${props.meta.title} */
-        ${nextCode}page.${operateName}("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
+        code +=
+          `${indent}/** 打开 ${props.meta.title} */` +
+          `\n${indent}${nextCode}page.${operateName}("${config.getPageId?.(_sceneId) || _sceneId}", ${nextValue})`;
       } else if (category === "normal") {
         let componentNameWithId = getComponentNameWithId(props, config, event);
         if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
@@ -548,8 +534,9 @@ export const handleProcess = (
 
           componentNameWithId = `${componentName}.${api}`;
         }
-        code += `/** 调用 ${props.meta.title} */
-        ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+        code +=
+          `${indent}/** 调用 ${props.meta.title} */` +
+          `\n${indent}${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else if (category === "frameOutput") {
         // [TODO] 目前是区块调用输出
         const scene = config.getCurrentScene();
@@ -568,11 +555,13 @@ export const handleProcess = (
 
               provider.useEvents = true;
               config.addConsumer(provider);
-              code += `/** 调用 ${props.meta.title} */
-              this.${provider.name}.events.${pinProxy.pinId}?.(${nextValue})`;
+              code +=
+                `${indent}/** 调用 ${props.meta.title} */` +
+                `\n${indent}this.${provider.name}.events.${pinProxy.pinId}?.(${nextValue})`;
             } else {
-              code += `/** 调用 ${props.meta.title} */
-              this.events.${pinProxy.pinId}?.(${nextValue})`;
+              code +=
+                `${indent}/** 调用 ${props.meta.title} */` +
+                `\n${indent}this.events.${pinProxy.pinId}?.(${nextValue})`;
             }
           } else {
             console.log("[frameOutput 当前场景非区块]");
@@ -589,11 +578,13 @@ export const handleProcess = (
           });
           if (props.runType === "auto") {
             // 变量自执行特殊处理
-            code += `/** ${props.title} 全局变量 ${props.meta.title} */
-            ${nextCode}globalVars.${props.meta.title}.changed()`;
+            code +=
+              `${indent}/** ${props.title} 全局变量 ${props.meta.title} */` +
+              `\n${indent}${nextCode}globalVars.${props.meta.title}.changed()`;
           } else {
-            code += `/** ${props.title} 全局变量 ${props.meta.title} */
-            ${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
+            code +=
+              `${indent}/** ${props.title} 全局变量 ${props.meta.title} */` +
+              `\n${indent}${nextCode}globalVars.${props.meta.title}.${props.id}(${nextValue})`;
           }
         } else {
           const currentProvider = getCurrentProvider(
@@ -601,8 +592,9 @@ export const handleProcess = (
             config,
           );
 
-          code += `/** ${props.title} 变量 ${props.meta.title} */
-          ${nextCode}this.${currentProvider.name}_Vars.${props.meta.title}.${props.id}(${nextValue})`;
+          code +=
+            `${indent}/** ${props.title} 变量 ${props.meta.title} */` +
+            `\n${indent}${nextCode}this.${currentProvider.name}_Vars.${props.meta.title}.${props.id}(${nextValue})`;
         }
       } else if (category === "fx") {
         if (props.meta.global) {
@@ -611,16 +603,18 @@ export const handleProcess = (
             dependencyNames: ["globalFxs"],
             importType: "named",
           });
-          code += `/** 调用全局Fx ${props.meta.title} */
-          ${nextCode}globalFxs.${props.meta.ioProxy.id}(${nextValue})`;
+          code +=
+            `${indent}/** 调用全局Fx ${props.meta.title} */` +
+            `\n${indent}${nextCode}globalFxs.${props.meta.ioProxy.id}(${nextValue})`;
         } else {
           const currentProvider = getCurrentProvider(
             { isSameScope, props },
             config,
           );
 
-          code += `/** 调用Fx ${props.meta.title} */
-          ${nextCode}this.${currentProvider.name}_Fxs.${props.meta.ioProxy.id}(${nextValue})`;
+          code +=
+            `${indent}/** 调用Fx ${props.meta.title} */` +
+            `\n${indent}${nextCode}this.${currentProvider.name}_Fxs.${props.meta.ioProxy.id}(${nextValue})`;
         }
       } else if (category === "bus") {
         const componentNameWithId = getComponentNameWithId(
@@ -629,8 +623,9 @@ export const handleProcess = (
           event,
         );
 
-        code += `/** 调用 ${props.meta.title} */
-        ${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
+        code +=
+          `${indent}/** 调用 ${props.meta.title} */` +
+          `\n${indent}${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else if (category === "frameInput") {
         const scene = config.getCurrentScene();
         const pinValueProxy =
@@ -639,15 +634,17 @@ export const handleProcess = (
         const { frameKey } = props;
         if (frameKey === "_rootFrame_") {
           // 场景输入
-          code += `/** 调用获取当前输入值 ${props.title} */
-          ${nextCode}join(${nextValue}, ${params[pinValueProxy.pinId]})`;
+          code +=
+            `${indent}/** 调用获取当前输入值 ${props.title} */` +
+            `\n${indent}${nextCode}join(${nextValue}, ${params[pinValueProxy.pinId]})`;
         } else {
           const [comId, slotId] = frameKey.split("-");
 
           if (comId === props.meta.parentComId) {
             // 同作用域
-            code += `/** 调用获取当前输入值 ${props.title} */
-            ${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
+            code +=
+              `${indent}/** 调用获取当前输入值 ${props.title} */` +
+              `\n${indent}${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
           } else {
             // 跨作用域
             const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${comId}`;
@@ -657,8 +654,9 @@ export const handleProcess = (
 
             config.addConsumer(provider);
 
-            code += `/** 调用获取当前输入值 ${props.title} */
-            ${nextCode}join(${nextValue}, this.slot_${scopeSlotComponentName}.params.inputValues.${pinValueProxy.pinId})`;
+            code +=
+              `${indent}/** 调用获取当前输入值 ${props.title} */` +
+              `\n${indent}${nextCode}join(${nextValue}, this.slot_${scopeSlotComponentName}.params.inputValues.${pinValueProxy.pinId})`;
           }
         }
       } else if (category === "event") {
@@ -669,8 +667,9 @@ export const handleProcess = (
           config.getModuleApi("event");
         config.addParentDependencyImport(dependencyImport);
 
-        code += `/** 调用事件 ${event.title} */
-        ${nextCode}${componentName}.${event.title}(${nextValue})`;
+        code +=
+          `${indent}/** 调用事件 ${event.title} */` +
+          `\n${indent}${nextCode}${componentName}.${event.title}(${nextValue})`;
       } else {
         console.log("[出码] 其它类型js节点");
       }
@@ -684,22 +683,25 @@ export const handleProcess = (
           importType: "named",
         });
         const id = props.meta.id;
-        code += `/** 调用页面输出 ${props.title} */
-        page.${props.id}("${config.getPageId?.(id) || id}", ${nextValue})`;
+        code +=
+          `${indent}/** 调用页面输出 ${props.title} */` +
+          `\n${indent}page.${props.id}("${config.getPageId?.(id) || id}", ${nextValue})`;
         return;
       }
 
       if (props.type === "frameOutput") {
         if (props.category === "extension-api") {
           // extension-api卡片特殊处理
-          code += `/** 调用api回调 ${props.title} */
-          callBack.${props.id}(${nextValue});`;
+          code +=
+            `${indent}/** 调用api回调 ${props.title} */` +
+            `\n${indent}callBack.${props.id}(${nextValue});`;
           return;
         }
 
         if (props.category === "extension") {
-          code += `/** 调用api.emit ${props.title} */
-          this.emit("${props.id}", ${nextValue})`;
+          code +=
+            `${indent}/** 调用api.emit ${props.title} */` +
+            `\n${indent}this.emit("${props.id}", ${nextValue})`;
           return;
         }
 
@@ -714,23 +716,26 @@ export const handleProcess = (
             const provider = config.getProviderMap()[providerName];
             provider.useEvents = true;
             config.addConsumer(provider);
-            code += `/** 调用 ${props.title} */
-            this.${provider.name}.events.${props.id}?.(${nextValue})`;
+            code +=
+              `${indent}/** 调用 ${props.title} */` +
+              `\n${indent}this.${provider.name}.events.${props.id}?.(${nextValue})`;
           } else {
-            code += `/** 调用 ${props.title} */
-            this.events.${props.id}?.(${nextValue})`;
+            code +=
+              `${indent}/** 调用 ${props.title} */` +
+              `\n${indent}this.events.${props.id}?.(${nextValue})`;
           }
           return;
         }
 
-        code += `/** 调用插槽输出 ${props.title} */
-        this.params.outputs.${props.id}(${nextValue})`;
+        code +=
+          `${indent}/** 调用插槽输出 ${props.title} */` +
+          `\n${indent}this.params.outputs.${props.id}(${nextValue})`;
         return;
       }
 
       if (category === "module") {
         if (props.type === "frameRelOutput") {
-          code += `this.controller.outputs.${props.id}(${nextValue})`;
+          code += `${indent}this.controller.outputs.${props.id}(${nextValue})`;
           return;
         } else if (props.type === "exe") {
           const currentProvider = getCurrentProvider(
@@ -745,7 +750,7 @@ export const handleProcess = (
               scene: config.getCurrentScene(),
             }) || `controller_${props.meta.id}`;
 
-          code += `${nextCode}this.${currentProvider.name}.${componentController}.${props.id}(${nextValue})`;
+          code += `${indent}${nextCode}this.${currentProvider.name}.${componentController}.${props.id}(${nextValue})`;
           return;
         }
       }
@@ -761,8 +766,9 @@ export const handleProcess = (
           scene: config.getCurrentScene(),
         }) || `controller_${props.meta.id}`;
 
-      code += `/** 调用 ${props.meta.title} 的 ${props.title} */
-      ${nextCode}this.${currentProvider.name}.${componentController}.${props.id}(${nextValue})`;
+      code +=
+        `${indent}/** 调用 ${props.meta.title} 的 ${props.title} */` +
+        `\n${indent}${nextCode}this.${currentProvider.name}.${componentController}.${props.id}(${nextValue})`;
     }
   });
   if (["fx", "extension-api", "extension-bus"].includes(event.type)) {
@@ -787,7 +793,7 @@ export const handleProcess = (
       .join(",");
 
     if (returnCode) {
-      code += `\nreturn {${returnCode}}`;
+      code += `\n${indent}return {${returnCode}}`;
     }
   }
 

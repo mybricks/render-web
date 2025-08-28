@@ -1,4 +1,5 @@
 import type { Style } from "../../toCode/types";
+import { indentation } from "./code";
 
 const HM_STYLE_MAP: Record<string, Record<string, string>> = {
   layout: {
@@ -201,162 +202,235 @@ export const convertComponentStyle = (style: Style) => {
 /** 转hm Flex代码 */
 export const convertHarmonyFlexComponent = (
   style: Style,
-  config: { child: string; extraFlex?: string },
+  config: {
+    child: string;
+    useExtraFlex?: boolean;
+    initialIndent: number;
+    indentSize: number;
+  },
 ) => {
   const hmStyle = convertHMFlexStyle(style);
   const { direction, justifyContent, alignItems } = hmStyle;
-  const { child, extraFlex = "" } = config;
+  const { child, useExtraFlex, initialIndent, indentSize } = config;
 
-  const flex =
-    `Flex({
-    direction: ${direction},
-    justifyContent: ${justifyContent},
-    alignItems: ${alignItems},
-    ${extraFlex}
-  }) {
-    ${child}
-  }` +
-    convertHarmonyFlex(hmStyle) +
-    convertHarmonyWidth(hmStyle) +
-    convertHarmonyHeight(hmStyle) +
-    convertHarmonyMargin(hmStyle) +
-    convertHarmonyPadding(hmStyle) +
+  const convertHarmonyStyleConfig = {
+    initialIndent,
+    indentSize,
+  };
+
+  return (
+    `${indentation(initialIndent)}Flex({\n` +
+    `${indentation(initialIndent + indentSize)}direction: ${direction},\n` +
+    `${indentation(initialIndent + indentSize)}justifyContent: ${justifyContent},\n` +
+    `${indentation(initialIndent + indentSize)}alignItems: ${alignItems},\n` +
+    (useExtraFlex
+      ? `${getExtraFlexCode({
+          initialIndent: initialIndent + indentSize,
+          indentSize,
+        })}\n`
+      : "") +
+    `${indentation(initialIndent)}}) {\n` +
+    `${child}\n` +
+    `${indentation(initialIndent)}}` +
+    convertHarmonyFlex(hmStyle, convertHarmonyStyleConfig) +
+    convertHarmonyWidth(hmStyle, convertHarmonyStyleConfig) +
+    convertHarmonyHeight(hmStyle, convertHarmonyStyleConfig) +
+    convertHarmonyMargin(hmStyle, convertHarmonyStyleConfig) +
+    convertHarmonyPadding(hmStyle, convertHarmonyStyleConfig) +
     convertHarmonyBasicStyle(hmStyle, {
       key: "zIndex",
       useQuotes: false,
+      ...convertHarmonyStyleConfig,
     }) +
     convertHarmonyBasicStyle(hmStyle, {
       key: "backgroundColor",
       useQuotes: true,
+      ...convertHarmonyStyleConfig,
     }) +
-    convertHarmonyBackgroundImage(hmStyle) +
-    convertHarmonyBorderRadius(hmStyle) +
-    convertHarmonyBorder(hmStyle) +
-    convertHarmonyBoxShadow(hmStyle);
+    convertHarmonyBackgroundImage(hmStyle, convertHarmonyStyleConfig) +
+    convertHarmonyBorderRadius(hmStyle, convertHarmonyStyleConfig) +
+    convertHarmonyBorder(hmStyle, convertHarmonyStyleConfig) +
+    convertHarmonyBoxShadow(hmStyle, convertHarmonyStyleConfig)
+  );
+};
 
-  return flex;
+const getExtraFlexCode = (config: ConvertHarmonyStyleConfig) => {
+  const { indentSize, initialIndent } = config;
+  const indent = indentation(initialIndent);
+  const indent2 = indentation(initialIndent + indentSize);
+
+  return (
+    `${indent}wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,` +
+    `\n${indent}space: {` +
+    `\n${indent2}main: LengthMetrics.vp(params.style?.rowGap || 0),` +
+    `\n${indent2}cross: LengthMetrics.vp(params.style?.columnGap || 0),` +
+    `\n${indent}}`
+  );
 };
 
 type HmStyle = Record<string, number | string>;
 
 /** 转hm margin代码 */
-const convertHarmonyMargin = (style: HmStyle) => {
+const convertHarmonyMargin = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
   const { marginTop, marginRight, marginBottom, marginLeft } = style;
-  let code = "";
+  const codes = [];
+
   if (marginTop) {
-    code += `top: ${marginTop},`;
+    codes.push(`top: ${marginTop},`);
   }
   if (marginRight) {
-    code += `right: ${marginRight},`;
+    codes.push(`right: ${marginRight},`);
   }
   if (marginBottom) {
-    code += `bottom: ${marginBottom},`;
+    codes.push(`bottom: ${marginBottom},`);
   }
   if (marginLeft) {
-    code += `left: ${marginLeft},`;
+    codes.push(`left: ${marginLeft},`);
   }
 
-  if (code) {
-    return `.margin({${code}})`;
+  if (codes.length) {
+    return genObjectStyleCode("margin", codes, config);
   }
 
   return "";
 };
 
 /** 转hm padding代码 */
-const convertHarmonyPadding = (style: HmStyle) => {
+const convertHarmonyPadding = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
   const { padding, paddingTop, paddingRight, paddingBottom, paddingLeft } =
     style;
 
   if (padding) {
-    const values = String(style.borderRadius).split(" ");
+    const values = String(padding).split(" ");
     const length = values.length;
     const [first, second, third, fourth] = values;
+    const initialIndent = `\n${indentation(config.initialIndent)}`;
 
     if (length === 1) {
-      return `.padding(${removePx(values[0])})`;
+      return `${initialIndent}.padding(${removePx(values[0])})`;
     } else if (length === 2) {
-      return `.padding(${JSON.stringify({
-        top: removePx(first),
-        right: removePx(second),
-        bottom: removePx(first),
-        left: removePx(second),
-      })})`;
+      const firstValue = removePx(first);
+      const secondValue = removePx(second);
+      return genObjectStyleCode(
+        "padding",
+        [
+          `top: ${firstValue},`,
+          `right: ${secondValue},`,
+          `bottom: ${firstValue},`,
+          `left: ${secondValue},`,
+        ],
+        config,
+      );
     } else if (length === 3) {
-      return `.padding(${JSON.stringify({
-        top: removePx(first),
-        right: removePx(second),
-        bottom: removePx(third),
-        left: removePx(second),
-      })})`;
+      const secondValue = removePx(second);
+      return genObjectStyleCode(
+        "padding",
+        [
+          `top: ${removePx(first)},`,
+          `right: ${secondValue},`,
+          `bottom: ${removePx(third)},`,
+          `left: ${secondValue},`,
+        ],
+        config,
+      );
     } else {
-      return `.padding(${JSON.stringify({
-        top: removePx(first),
-        right: removePx(second),
-        bottom: removePx(first),
-        left: removePx(fourth),
-      })})`;
+      const firstValue = removePx(first);
+      return genObjectStyleCode(
+        "padding",
+        [
+          `top: ${firstValue},`,
+          `right: ${removePx(second)},`,
+          `bottom: ${firstValue},`,
+          `left: ${removePx(fourth)},`,
+        ],
+        config,
+      );
     }
   }
 
-  let code = "";
+  const codes = [];
   if (paddingTop) {
-    code += `top: ${removePx(paddingTop)},`;
+    codes.push(`top: ${removePx(paddingTop)},`);
   }
   if (paddingRight) {
-    code += `right: ${removePx(paddingRight)},`;
+    codes.push(`right: ${removePx(paddingRight)},`);
   }
   if (paddingBottom) {
-    code += `bottom: ${removePx(paddingBottom)},`;
+    codes.push(`bottom: ${removePx(paddingBottom)},`);
   }
   if (paddingLeft) {
-    code += `left: ${removePx(paddingLeft)},`;
+    codes.push(`left: ${removePx(paddingLeft)},`);
   }
 
-  if (code) {
-    return `.padding({${code}})`;
+  if (codes.length) {
+    return genObjectStyleCode("padding", codes, config);
   }
-
   return "";
 };
 
 /** 转hm width代码 */
-const convertHarmonyWidth = (style: HmStyle) => {
+const convertHarmonyWidth = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
+  const indent = `\n${indentation(config.initialIndent)}`;
   if (style.widthFull) {
     if (style.layout !== "smart") {
-      return `.width("100%")`;
+      return `${indent}.width("100%")`;
     }
-    return `.width("auto")`;
+    return `${indent}.width("auto")`;
   } else if (style.widthAuto) {
-    return `.width("auto")`;
+    return `${indent}.width("auto")`;
   }
 
-  return "width" in style ? `.width("${style.width}")` : "";
+  return "width" in style ? `${indent}.width("${style.width}")` : "";
 };
 
 /** 转hm height代码 */
-const convertHarmonyHeight = (style: HmStyle) => {
+const convertHarmonyHeight = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
+  const indent = `\n${indentation(config.initialIndent)}`;
   if (style.heightFull) {
     if (style.layout !== "smart") {
-      return `.height("100%")`;
+      return `${indent}.height("100%")`;
     }
-    return `.height("auto")`;
+    return `${indent}.height("auto")`;
   } else if (style.heightAuto) {
-    return `.height("auto")`;
+    return `${indent}.height("auto")`;
   }
 
-  return "height" in style ? `.height("${style.height}")` : "";
+  return "height" in style ? `${indent}.height("${style.height}")` : "";
 };
+
+interface ConvertHarmonyStyleConfig {
+  initialIndent: number;
+  indentSize: number;
+}
 
 /** 转hm flex代码 */
-const convertHarmonyFlex = (style: HmStyle) => {
+const convertHarmonyFlex = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
+  const indent = `\n${indentation(config.initialIndent)}`;
   if ("flex" in style) {
-    return `.flexGrow(${style.flex})`;
+    return `${indent}.flexGrow(${style.flex})`;
   }
-  return `.flexShrink(0)`;
+  return `${indent}.flexShrink(0)`;
 };
 
-const convertHarmonyBackgroundImage = (style: HmStyle) => {
+const convertHarmonyBackgroundImage = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
   if (!("backgroundImage" in style)) {
     return "";
   }
@@ -367,18 +441,21 @@ const convertHarmonyBackgroundImage = (style: HmStyle) => {
     const match = backgroundImage.match(/url\((["']?)([^)"']+)\1\)/);
 
     if (match) {
-      return `.backgroundImage("${match[2]}")`;
+      return `\n${indentation(config.initialIndent)}.backgroundImage("${match[2]}")`;
     }
 
     return "";
   } else if (backgroundImage.startsWith("linear-gradient")) {
-    return `.linearGradient(${JSON.stringify(parseLinearGradient(backgroundImage))})`;
+    return `\n${indentation(config.initialIndent)}.linearGradient(${JSON.stringify(parseLinearGradient(backgroundImage))})`;
   }
 
   return "";
 };
 
-const convertHarmonyBorderRadius = (style: HmStyle) => {
+const convertHarmonyBorderRadius = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
   if (!("borderRadius" in style)) {
     return "";
   }
@@ -386,30 +463,55 @@ const convertHarmonyBorderRadius = (style: HmStyle) => {
   const values = String(style.borderRadius).split(" ");
   const length = values.length;
   const [first, second, third, fourth] = values;
+  const initialIndent = `\n${indentation(config.initialIndent)}`;
 
   if (length === 1) {
-    return `.borderRadius(${removePx(values[0])})`;
+    return `${initialIndent}.borderRadius(${removePx(values[0])})`;
   } else if (length === 2) {
-    return `.borderRadius(${JSON.stringify({
-      topLeft: removePx(first),
-      topRight: removePx(second),
-      bottomRight: removePx(first),
-      bottomLeft: removePx(second),
-    })})`;
+    const valueIndent = `\n${indentation(config.initialIndent + config.indentSize)}`;
+    const firstValue = removePx(first);
+    const secondValue = removePx(second);
+    return (
+      `${initialIndent}.borderRadius({` +
+      [
+        `topLeft: ${firstValue},`,
+        `topRight: ${secondValue},`,
+        `bottomRight: ${firstValue},`,
+        `bottomLeft: ${secondValue},`,
+      ].reduce((pre, cur) => {
+        return pre + `${valueIndent}${cur}`;
+      }, "") +
+      `${initialIndent}})`
+    );
   } else if (length === 3) {
-    return `.borderRadius(${JSON.stringify({
-      topLeft: removePx(first),
-      topRight: removePx(second),
-      bottomRight: removePx(third),
-      bottomLeft: removePx(second),
-    })})`;
+    const valueIndent = `\n${indentation(config.initialIndent + config.indentSize)}`;
+    const secondValue = removePx(second);
+    return (
+      `${initialIndent}.borderRadius({` +
+      [
+        `topLeft: ${removePx(first)},`,
+        `topRight: ${secondValue},`,
+        `bottomRight: ${removePx(third)},`,
+        `bottomLeft: ${secondValue},`,
+      ].reduce((pre, cur) => {
+        return pre + `${valueIndent}${cur}`;
+      }, "") +
+      `${initialIndent}})`
+    );
   } else {
-    return `.borderRadius(${JSON.stringify({
-      topLeft: removePx(first),
-      topRight: removePx(second),
-      bottomRight: removePx(third),
-      bottomLeft: removePx(fourth),
-    })})`;
+    const valueIndent = `\n${indentation(config.initialIndent + config.indentSize)}`;
+    return (
+      `${initialIndent}.borderRadius({` +
+      [
+        `topLeft: ${removePx(first)},`,
+        `topRight: ${removePx(second)},`,
+        `bottomRight: ${removePx(third)},`,
+        `bottomLeft: ${removePx(fourth)},`,
+      ].reduce((pre, cur) => {
+        return pre + `${valueIndent}${cur}`;
+      }, "") +
+      `${initialIndent}})`
+    );
   }
 };
 
@@ -419,21 +521,20 @@ const BORDER_STYLE_HM_MAP: Record<string, string> = {
   dotted: "BorderStyle.Dotted",
 };
 
-const convertHarmonyBorder = (style: HmStyle) => {
+const convertHarmonyBorder = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
   const { border, borderTop, borderRight, borderBottom, borderLeft } = style;
 
   if (border) {
     const { width, style, color } = parseBorder(border as string);
-    return `.border({
-      width: ${width},
-      style: ${style},
-      color: "${color}"
-    })`;
+    return `\n${indentation(config.initialIndent)}.border({ width: ${width}, style: ${style}, color: "${color}", })`;
   }
 
-  let borderWidth = "";
-  let borderStyle = "";
-  let borderColor = "";
+  const borderWidth: string[] = [];
+  const borderStyle: string[] = [];
+  const borderColor: string[] = [];
 
   [
     [borderTop, "top"],
@@ -442,51 +543,80 @@ const convertHarmonyBorder = (style: HmStyle) => {
     [borderLeft, "left"],
   ].forEach(([border, key]) => {
     if (border) {
-      const { width, style, color } = parseBorder(borderTop as string);
-      borderWidth += `${key}: ${width},`;
-      borderStyle += `${key}: ${style},`;
-      borderColor += `${key}: "${color}",`;
+      const { width, style, color } = parseBorder(border as string);
+      borderWidth.push(`${key}: ${width},`);
+      borderStyle.push(`${key}: ${style},`);
+      borderColor.push(`${key}: "${color}",`);
     }
   });
 
-  let code = "";
-
-  if (borderWidth) {
-    code += `.borderWidth({${borderWidth}})`;
-  }
-  if (borderStyle) {
-    code += `.borderStyle({${borderStyle}})`;
-  }
-  if (borderColor) {
-    code += `.borderColor({${borderColor}})`;
-  }
-
-  return code;
+  return (
+    genObjectStyleCode("borderWidth", borderWidth, config) +
+    genObjectStyleCode("borderStyle", borderStyle, config) +
+    genObjectStyleCode("borderColor", borderColor, config)
+  );
 };
 
-const convertHarmonyBoxShadow = (style: HmStyle) => {
+/** 通用对象属性格式化代码生成 */
+const genObjectStyleCode = (
+  key: string,
+  items: string[],
+  config: ConvertHarmonyStyleConfig,
+) => {
+  if (!items.length) {
+    return "";
+  }
+
+  const initialIndent = `\n${indentation(config.initialIndent)}`;
+  if (items.length > 3) {
+    // 换行
+    const valueIndent = `\n${indentation(config.initialIndent + config.indentSize)}`;
+    return (
+      `${initialIndent}.${key}({` +
+      items.reduce((pre, cur) => {
+        return pre + `${valueIndent}${cur}`;
+      }, "") +
+      `${initialIndent}})`
+    );
+  } else {
+    return `${initialIndent}.${key}({${items.reduce((pre, cur) => {
+      return pre + ` ${cur}`;
+    }, "")} })`;
+  }
+};
+
+const convertHarmonyBoxShadow = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
   if (!("boxShadow" in style)) {
     return "";
   }
 
   const boxShadow = parseBoxShadow(style.boxShadow as string);
 
-  return `.shadow(${JSON.stringify({
-    offsetX: removePx(boxShadow.offsetX),
-    offsetY: removePx(boxShadow.offsetY),
-    color: boxShadow.color,
-    radius: removePx(boxShadow.blurRadius),
-    fill: boxShadow.inset,
-  })})`;
+  return genObjectStyleCode(
+    "shadow",
+    [
+      `offsetX: ${removePx(boxShadow.offsetX)},`,
+      `offsetY: ${removePx(boxShadow.offsetY)},`,
+      `color: ${boxShadow.color},`,
+      `radius: ${removePx(boxShadow.blurRadius)},`,
+      `fill: ${boxShadow.inset},`,
+    ],
+    config,
+  );
 };
+
+interface ConvertHarmonyBasicStyleConfig extends ConvertHarmonyStyleConfig {
+  key: string;
+  useQuotes: boolean;
+}
 
 /** 转hm 基础style（无特别操作来处理样式） */
 const convertHarmonyBasicStyle = (
   style: HmStyle,
-  config: {
-    key: string;
-    useQuotes: boolean;
-  },
+  config: ConvertHarmonyBasicStyleConfig,
 ) => {
   const { key, useQuotes } = config;
 
@@ -496,7 +626,7 @@ const convertHarmonyBasicStyle = (
 
   const quote = useQuotes ? '"' : "";
 
-  return `.${key}(${quote}${style[key]}${quote})`;
+  return `\n${indentation(config.initialIndent)}.${key}(${quote}${style[key]}${quote})`;
 };
 
 interface ParseLinearGradientResult {
@@ -619,31 +749,29 @@ const removePx = (str: string | number) => {
 
 export const getPaddingCode = (
   componentStyle: Record<string, Record<string, string | number>>,
+  config: ConvertHarmonyStyleConfig,
 ) => {
   const { root } = componentStyle;
-  let paddingCode = "";
+  const codes: string[] = [];
 
   if (root.paddingTop) {
-    paddingCode += `top: ${root.paddingTop},`;
+    codes.push(`top: ${root.paddingTop},`);
     delete root.paddingTop;
   }
   if (root.paddingRight) {
-    paddingCode += `right: ${root.paddingRight},`;
+    codes.push(`right: ${root.paddingRight},`);
     delete root.paddingRight;
   }
   if (root.paddingBottom) {
-    paddingCode += `bottom: ${root.paddingBottom},`;
+    codes.push(`bottom: ${root.paddingBottom},`);
     delete root.paddingBottom;
   }
   if (root.paddingLeft) {
-    paddingCode += `left: ${root.paddingLeft},`;
+    codes.push(`left: ${root.paddingLeft},`);
     delete root.paddingLeft;
   }
-  if (paddingCode) {
-    return `.padding({${paddingCode}})`;
-  }
 
-  return;
+  return genObjectStyleCode("padding", codes, config);
 };
 
 export * from "./pinyin";
