@@ -74,7 +74,7 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           };
         },
       }) +
-      `\n${indent}}`;
+      `\n${indent}},\n`;
   });
 
   const currentProvider = config.getCurrentProvider();

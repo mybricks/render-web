@@ -238,7 +238,7 @@ export const genObjectCode = (
     } else if (value && typeof value === "object") {
       return genObjectCode(value, { initialIndent: level, indentSize });
     } else if (typeof value === "string") {
-      return `"${value}"`;
+      return JSON.stringify(value);
     } else {
       return String(value);
     }
@@ -251,7 +251,7 @@ export const genObjectCode = (
   keys.forEach((key, idx) => {
     result +=
       indent(initialIndent + indentSize) +
-      `"${key}": ${formatValue(object[key], initialIndent + indentSize)}`;
+      `${JSON.stringify(key)}: ${formatValue(object[key], initialIndent + indentSize)}`;
     if (idx < keys.length - 1) result += ",";
     result += "\n";
   });
@@ -296,7 +296,7 @@ export const getUiComponentCode = (params: any, config: any) => {
     })},` +
     (slotsName ? `\n${indent2}slots: this.${slotsName}.bind(this),` : "") +
     (comEventCode
-      ? `\n${indent2}events: {\n` + comEventCode + `\n${indent2}},`
+      ? `\n${indent2}events: {\n` + comEventCode + `${indent2}},`
       : "") +
     (meta.frameId ? `\n${indent2}parentSlot: this.params,` : "") +
     `\n${indent}})`;
