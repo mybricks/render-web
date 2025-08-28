@@ -36,6 +36,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     })!;
 
     const res = handleProcess(event, {
+      ...config,
       getParams: () => {
         return {
           [event.paramId]: "value",
@@ -67,6 +68,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       (fxFrame) => fxFrame.id === event.frameId,
     );
     const res = handleProcess(event, {
+      ...config,
       getCurrentScene: () => {
         return currentScene;
       },

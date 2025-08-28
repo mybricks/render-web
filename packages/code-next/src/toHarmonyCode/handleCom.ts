@@ -571,11 +571,16 @@ export const handleProcess = (
         }
       } else if (category === "var") {
         if (props.meta.global) {
-          config.addParentDependencyImport({
-            packageName: config.getComponentPackageName(),
-            dependencyNames: ["globalVars"],
-            importType: "named",
-          });
+          const packageName = config.getComponentPackageName(props);
+
+          if (packageName) {
+            config.addParentDependencyImport({
+              packageName,
+              dependencyNames: ["globalVars"],
+              importType: "named",
+            });
+          }
+
           if (props.runType === "auto") {
             // 变量自执行特殊处理
             code +=
