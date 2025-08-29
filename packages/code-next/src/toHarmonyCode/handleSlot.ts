@@ -538,7 +538,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
     varsImplementCode +=
       `${indent2}${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {\n` +
       code +
-      `\n${indent2}})`;
+      `\n${indent2}}),\n`;
   });
 
   if (!varsDeclarationCode) {
@@ -551,7 +551,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
     varsImplementCode:
       `${indent}@Provider() ${currentProvider.name}_Vars: ${currentProvider.class}_Vars = {\n` +
       varsImplementCode +
-      `\n${indent}}`,
+      `${indent}}`,
   };
 };
 

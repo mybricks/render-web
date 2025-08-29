@@ -18,10 +18,13 @@ export interface ToSpaCodeConfig {
     config?: any,
   ) => {
     importInfo: {
+      /** 导入名「a as b」*/
       name: string;
       from: string;
       type: "default" | "named";
     };
+    /** 组件名 */
+    name: string;
     /**
      * 调用名
      * 例如js、ai-js这类特殊组件，调用方式由外部实现

@@ -34,8 +34,8 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   const { meta, props, slots, events } = com;
 
   const isModule = meta.def.namespace.startsWith("mybricks.harmony.module");
-  const { importInfo } = config.getComponentMeta(meta);
-  const componentName = importInfo.name;
+  const { importInfo, callName } = config.getComponentMeta(meta);
+  const componentName = callName;
 
   config.addParentDependencyImport({
     packageName: importInfo.from,
@@ -449,8 +449,8 @@ export const handleProcess = (
       return;
     }
 
-    const { importInfo, callName } = config.getComponentMeta(meta);
-    const componentName = importInfo.name;
+    const { importInfo, name, callName } = config.getComponentMeta(meta);
+    const componentName = name;
 
     config.addParentDependencyImport({
       packageName: importInfo.from,
@@ -520,8 +520,8 @@ export const handleProcess = (
       } else if (category === "normal") {
         let componentNameWithId = getComponentNameWithId(props, config, event);
         if (props.meta.def?.namespace.startsWith("mybricks.harmony.module")) {
-          const { importInfo } = config.getComponentMeta(props.meta);
-          const componentName = importInfo.name;
+          const { importInfo, callName } = config.getComponentMeta(props.meta);
+          const componentName = callName;
 
           config.addParentDependencyImport({
             packageName: importInfo.from,
@@ -908,9 +908,9 @@ const getComponentNameWithId = (
     }
   }
 
-  const { importInfo } = config.getComponentMeta(props.meta);
+  const { name } = config.getComponentMeta(props.meta);
 
-  return `${importInfo.name}_${meta.id}`;
+  return `${name}_${meta.id}`;
 };
 
 const getNextCode = (

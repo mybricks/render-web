@@ -120,7 +120,11 @@ const handleExtension = (
   if (extensionBusInitCode) {
     result.push({
       content:
-        `/** 系统总线 */` + "\nclass Bus {" + `\n${extensionBusInitCode}` + "}",
+        `/** 系统总线 */` +
+        "\nclass Bus {" +
+        `\n${extensionBusInitCode}` +
+        "}" +
+        `\n\nexport const bus = new Bus()`,
       importManager: extensionBusImportManager,
       type: "extension-bus",
       name: "系统总线",
