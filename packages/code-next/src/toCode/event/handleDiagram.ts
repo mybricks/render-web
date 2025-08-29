@@ -21,6 +21,11 @@ const handleDiagram = (
   const frame = config.getFrame();
   const frameType = frame.type;
 
+  if (!diagram.starter) {
+    // [TODO] 引擎脏数据兼容
+    return;
+  }
+
   if (
     diagram.starter.type === "frame" &&
     diagram.starter.frameId === config.getSceneId() &&
