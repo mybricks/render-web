@@ -262,6 +262,7 @@ export const genObjectCode = (
 /** ui组件代码 */
 export const getUiComponentCode = (params: any, config: any) => {
   const {
+    isModule,
     componentName,
     meta,
     currentProvider,
@@ -286,10 +287,13 @@ export const getUiComponentCode = (params: any, config: any) => {
     `\n${indent2}uid: "${meta.id}",` +
     (config.verbose ? `\n${indent2}title: "${meta.title}",` : "") +
     `\n${indent2}controller: this.${currentProvider.name}.${componentController},` +
-    `\n${indent2}data: ${genObjectCode(props.data, {
-      initialIndent: initialIndent + config.codeStyle!.indent,
-      indentSize: config.codeStyle!.indent,
-    })},` +
+    `\n${indent2}data: ${genObjectCode(
+      isModule ? meta.model.data.config : props.data,
+      {
+        initialIndent: initialIndent + config.codeStyle!.indent,
+        indentSize: config.codeStyle!.indent,
+      },
+    )},` +
     `\n${indent2}styles: ${genObjectCode(resultStyle, {
       initialIndent: initialIndent + config.codeStyle!.indent,
       indentSize: config.codeStyle!.indent,
@@ -298,12 +302,12 @@ export const getUiComponentCode = (params: any, config: any) => {
     (comEventCode
       ? `\n${indent2}events: {\n` + comEventCode + `${indent2}},`
       : "") +
-    (meta.frameId ? `\n${indent2}parentSlot: this.params,` : "") +
+    (meta.frameId && !isModule ? `\n${indent2}parentSlot: this.params,` : "") +
     `\n${indent}})`;
 
   if (paddingCode) {
     const indent = indentation(config.codeStyle!.indent * config.depth);
-    ui = `${indent}Column() {\n` + ui + `\n${indent}}` + `\n${paddingCode}`;
+    ui = `${indent}Column() {\n` + ui + `\n${indent}}` + paddingCode;
   }
 
   return ui;

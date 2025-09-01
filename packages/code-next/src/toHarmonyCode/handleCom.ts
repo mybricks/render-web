@@ -10,6 +10,7 @@ import {
   getProviderCode,
   getSlotScopeComponentCode,
   genObjectCode,
+  getPaddingCode,
 } from "./utils";
 import handleSlot from "./handleSlot";
 
@@ -46,6 +47,14 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   let eventCode = "";
   let comEventCode = "";
 
+  const paddingCode = getPaddingCode(
+    convertComponentStyle(JSON.parse(JSON.stringify(props.style))),
+    {
+      initialIndent: config.codeStyle!.indent * config.depth,
+      indentSize: config.codeStyle!.indent,
+    },
+  );
+
   Object.entries(events).forEach(([eventId, { diagramId }]) => {
     if (!diagramId) {
       // 没有添加事件
@@ -60,13 +69,15 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     }
 
     const defaultValue = "value";
-    const indent = indentation(config.codeStyle!.indent * (config.depth + 2));
+    const indent = indentation(
+      config.codeStyle!.indent * (config.depth + (paddingCode ? 3 : 2)),
+    );
 
     comEventCode +=
       `${indent}${eventId}: (${defaultValue}: MyBricks.EventValue) => {\n` +
       handleProcess(event, {
         ...config,
-        depth: config.depth + 3,
+        depth: config.depth + (paddingCode ? 4 : 3),
         addParentDependencyImport: config.addParentDependencyImport,
         getParams: () => {
           return {
@@ -365,29 +376,29 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     if (isModule) {
       // 模块组件特殊处理，同模块
       // [TODO] 合并下
-      const data = meta.model.data.config;
       const resultStyle = convertComponentStyle(com.props.style);
       const componentController =
         config.getComponentController?.({
           com: meta,
           scene: config.getCurrentScene(),
         }) || `controller_${meta.id}`;
+
+      const uiComponentCode = getUiComponentCode(
+        {
+          isModule,
+          componentName,
+          meta,
+          currentProvider,
+          componentController,
+          props,
+          resultStyle,
+          comEventCode,
+        },
+        config,
+      );
+
       return {
-        ui: `/** ${meta.title} */
-        ${componentName}({
-          uid: "${meta.id}",
-          ${config.verbose ? `title: "${meta.title}",` : ""}
-          controller: this.${currentProvider.name}.${componentController},
-          styles: ${JSON.stringify(resultStyle)},
-          ${data ? `data: ${JSON.stringify(data)},` : ""}
-          ${
-            comEventCode
-              ? `events: {
-        ${comEventCode}
-      },`
-              : ""
-          }
-        })`,
+        ui: uiComponentCode,
         js: eventCode,
         slots: [],
         scopeSlots: [],
@@ -777,19 +788,21 @@ export const handleProcess = (
     }
   });
   if (["fx", "extension-api", "extension-bus"].includes(event.type)) {
+    const indent3 = indentation(config.codeStyle!.indent * (config.depth + 2));
     const returnCode = Object.entries(event.frameOutputs).reduce(
       (pre, [, { id, outputs }]: any) => {
         if (!outputs) {
           return pre + `${indent2}${id}: undefined,\n`;
         } else {
+          const wrap = outputs.length > 1;
           const next = `${outputs
             .map((output: any) => {
-              return getNextValueWithParam(output, config, event);
+              return `${wrap ? `\n${indent3}` : ""}${getNextValueWithParam(output, config, event)}`;
             })
             .join(", ")}`;
 
-          if (outputs.length > 1) {
-            return pre + `${indent2}${id}: merge(${next}),\n`;
+          if (wrap) {
+            return pre + `${indent2}${id}: merge(` + next + `\n${indent2})\n`;
           }
 
           return pre + `${indent2}${id}: ${next},\n`;
@@ -1033,7 +1046,16 @@ const getNextValueWithParam = (
     if (componentType === "js" && category === "var") {
       return `${componentNameWithId}_${connectId}`;
     }
-    return `${componentNameWithId}_${id}_${connectId}`;
+    const next =
+      config.getEventNodeName?.({
+        com: param.meta,
+        scene: config.getCurrentScene(),
+        event,
+        connectId,
+        type: "call",
+      }) || `${param.meta.id}_${param.id}_${param.connectId}`;
+    // ui
+    return `${next}.${param.id}`;
   }
   return `${componentNameWithId}_result.${id}`;
 };

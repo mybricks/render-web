@@ -576,6 +576,8 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
 
   const indent = indentation(config.codeStyle!.indent);
   const indent2 = indentation(config.codeStyle!.indent * 2);
+  const indent3 = indentation(config.codeStyle!.indent * 3);
+  const indent4 = indentation(config.codeStyle!.indent * 4);
 
   fxEvents.forEach((fxEvent) => {
     config.addParentDependencyImport({
@@ -620,13 +622,15 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
 
     /** 结果interface定义 */
     const returnInterface = fxEvent.frameOutputs.length
-      ? `interface Return {
-      ${fxEvent.frameOutputs
-        .map((frameOutput: { title: string; id: string }) => {
-          return `/** ${frameOutput.title} */
-        ${frameOutput.id}: MyBricks.EventValue`;
-        })
-        .join("\n")}}`
+      ? `${indent3}interface Return {\n` +
+        `${fxEvent.frameOutputs
+          .map((frameOutput: { title: string; id: string }) => {
+            return (
+              `${indent4}/** ${frameOutput.title} */` +
+              `\n${indent4}${frameOutput.id}: MyBricks.EventValue`
+            );
+          })
+          .join("\n")}\n${indent3}}`
       : "";
 
     fxsDeclarationCode +=
@@ -638,7 +642,7 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
       `${indent2}${fxEvent.frameId}: createFx((${values}) => {\n` +
       (returnInterface ? `${returnInterface}\n` : "") +
       `${code} ${returnInterface ? "as Return" : ""}\n` +
-      `${indent2}})`;
+      `${indent2}}),\n`;
   });
 
   if (!fxsDeclarationCode) {
@@ -651,6 +655,6 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
     fxsImplementCode:
       `${indent}@Provider() ${currentProvider.name}_Fxs: ${currentProvider.class}_Fxs = {\n` +
       fxsImplementCode +
-      `\n${indent}}`,
+      `${indent}}`,
   };
 };
