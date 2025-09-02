@@ -1041,6 +1041,9 @@ const getNextValueWithParam = (
   }
   // [TODO] 这里要判断类型的
   const { id, connectId, category, componentType } = param;
+  if (category === "bus") {
+    return `bus_${param.meta.id}`;
+  }
   const componentNameWithId = getComponentNameWithId(param, config, event);
   if (connectId) {
     if (componentType === "js" && category === "var") {
