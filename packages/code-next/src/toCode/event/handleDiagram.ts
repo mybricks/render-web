@@ -504,7 +504,10 @@ const handleProcess = (
         });
       } else if (category === "fx") {
         // fx
-        const { frame, meta } = config.getFrameById(comInfo.ioProxy.id);
+        const { frame, meta } = getFrameById(
+          { com: comInfo, pinId: invocation.id },
+          config,
+        );
         const paramSource = [config.getParamSource()];
         const configs = comInfo.model.data.configs || {};
 
@@ -595,7 +598,10 @@ const handleProcess = (
                 moduleId: comInfo.model.data.definedId,
               };
             } else if (componentType === "js" && category === "fx") {
-              const { frame } = config.getFrameById(comInfo.ioProxy.id);
+              const { frame } = getFrameById(
+                { com: comInfo, pinId: invocation.id },
+                config,
+              );
 
               if (frame.type === "globalFx") {
                 // 判断是否全局fx
@@ -618,4 +624,26 @@ const handleProcess = (
   });
 
   return result;
+};
+
+interface GetFrameByIdParams {
+  com: ComInfo;
+  pinId: string;
+}
+const getFrameById = (
+  params: GetFrameByIdParams,
+  config: HandleDiagramConfig,
+) => {
+  const { com, pinId } = params;
+  if (!com.ioProxy) {
+    const { pinProxies } = config.getScene();
+    const pinProxy = pinProxies[`${com.id}-${pinId}`];
+    const res = config.getFrameById(pinProxy.frameId);
+    com.ioProxy = {
+      id: res.frame.id,
+    };
+    return res;
+  } else {
+    return config.getFrameById(com.ioProxy.id);
+  }
 };
