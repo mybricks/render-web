@@ -305,7 +305,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         if (effectEventCode) {
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
-            `${indentation(2)}@MyBricksDescriptor({\n` +
+            `@MyBricksDescriptor({\n` +
               `${indentation(4)}provider: "${currentProvider.name}",\n` +
               `${indentation(2)}})\n` +
               `${indentation(2)}aboutToAppear(): void {`,
