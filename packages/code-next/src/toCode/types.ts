@@ -111,6 +111,7 @@ export interface Scene {
     }
   >;
   inputs: {
+    id: string;
     type: "normal" | "config";
     pinId: string;
   }[];
