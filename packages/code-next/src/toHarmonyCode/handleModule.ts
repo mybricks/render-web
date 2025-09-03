@@ -1,5 +1,10 @@
 import type { UI, BaseConfig } from "./index";
-import { ImportManager, getName, convertComponentStyle } from "./utils";
+import {
+  ImportManager,
+  getName,
+  convertComponentStyle,
+  getModuleComponentCode,
+} from "./utils";
 import { handleProcess } from "./handleCom";
 
 type Module = Extract<UI["children"][0], { type: "module" }>;
@@ -61,20 +66,35 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
       scene: config.getCurrentScene(),
     }) || `controller_${module.meta.id}`;
 
-  return `${name}({
-    uid: "${module.meta.id}",
-    ${config.verbose ? `title: "${module.meta.title}",` : ""}
-    ${configs ? `data: ${JSON.stringify(configs)},` : ""}
-    controller: this.${currentProvider.name}.${componentController},
-    styles: ${JSON.stringify(resultStyle)},
-    ${
-      comEventCode
-        ? `events: {
-      ${comEventCode}  
-    }`
-        : ""
-    }
-  })`;
+  const uiComponentCode = getModuleComponentCode(
+    {
+      name,
+      module,
+      configs,
+      resultStyle,
+      currentProvider,
+      componentController,
+      comEventCode,
+    },
+    config,
+  );
+
+  return uiComponentCode;
+
+  // return `${name}({
+  //   uid: "${module.meta.id}",
+  //   ${config.verbose ? `title: "${module.meta.title}",` : ""}
+  //   ${configs ? `data: ${JSON.stringify(configs)},` : ""}
+  //   controller: this.${currentProvider.name}.${componentController},
+  //   styles: ${JSON.stringify(resultStyle)},
+  //   ${
+  //     comEventCode
+  //       ? `events: {
+  //     ${comEventCode}
+  //   }`
+  //       : ""
+  //   }
+  // })`;
 };
 
 export default handleModule;

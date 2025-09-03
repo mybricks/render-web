@@ -121,6 +121,12 @@ export const getClassCode = (params: any) => {
     if (currentProvider.useEvents) {
       classCode += `${indentation2}/** 事件 */\n${indentation2}events: MyBricks.Events = {}\n`;
     }
+    if (currentProvider.useController) {
+      classCode += `${indentation2}/** 区块控制器 */\n${indentation2}controller = ModuleController()\n`;
+    }
+    if (currentProvider.useData) {
+      classCode += `${indentation2}/** 区块配置 */\n${indentation2}data: MyBricks.Any;\n`;
+    }
     if (filterControllers.length) {
       classCode += filterControllers.reduce((pre: any, cur: any) => {
         const com = scene.coms[cur];
@@ -313,6 +319,43 @@ export const getUiComponentCode = (params: any, config: any) => {
   return ui;
 };
 
+/** 模块组件代码 */
+export const getModuleComponentCode = (params: any, config: any) => {
+  const {
+    name,
+    module,
+    configs,
+    resultStyle,
+    currentProvider,
+    componentController,
+    comEventCode,
+  } = params;
+  const initialIndent = config.codeStyle!.indent * config.depth;
+  const indent = indentation(initialIndent);
+  const indent2 = indentation(initialIndent + config.codeStyle!.indent);
+
+  return (
+    `${indent}${name}({` +
+    `\n${indent2}uid: "${module.meta.id}",` +
+    (config.verbose ? `\n${indent2}title: "${module.meta.title}",` : "") +
+    (configs
+      ? `\n${indent2}data: ${genObjectCode(configs, {
+          initialIndent: initialIndent + config.codeStyle!.indent,
+          indentSize: config.codeStyle!.indent,
+        })},`
+      : "") +
+    `\n${indent2}controller: this.${currentProvider.name}.${componentController},` +
+    `\n${indent2}styles: ${genObjectCode(resultStyle, {
+      initialIndent: initialIndent + config.codeStyle!.indent,
+      indentSize: config.codeStyle!.indent,
+    })},` +
+    (comEventCode
+      ? `\n${indent2}events: {\n` + comEventCode + `${indent2}},`
+      : "") +
+    `\n${indent}})`
+  );
+};
+
 /** 插槽Builder代码 */
 export const getBuilderCode = (params: any, config: any) => {
   const { meta, slotsName, currentSlotsCode } = params;
@@ -369,30 +412,4 @@ export const getSlotScopeComponentCode = (params: any, config: any) => {
     `\n${indent}}` +
     "\n}"
   );
-
-  return `/** ${meta.title}（${slot.meta.title}） */
-        @ComponentV2
-        struct ${scopeSlotComponentName} {
-          @Param @Require params: MyBricks.SlotParams
-          ${Array.from(consumers)
-            .filter(
-              // [TODO] 过滤同名，下一版将consumers改成字符串列表
-              (consumer: any, index: any, consumers: any) =>
-                index ===
-                consumers.findIndex((t: any) => t.name === consumer.name),
-            )
-            .map((provider: any) => {
-              return `@Consumer("${provider.name}") ${provider.name}: ${provider.class} = new ${provider.class}()`;
-            })
-            .join("\n")}
-          ${providerCode}
-
-          ${js}
-
-          ${slotsCode}
-
-          build() {
-            ${uiCode}
-          }
-        }`;
 };

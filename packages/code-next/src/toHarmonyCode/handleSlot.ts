@@ -137,10 +137,25 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       }
     }
 
+    if (effectEventCode && effectEventCode.match("pageParams")) {
+      importManager.addImport({
+        packageName: config.getComponentPackageName(),
+        dependencyNames: ["page"],
+        importType: "named",
+      });
+      const indent2 = indentation(config.codeStyle!.indent * 2);
+      effectEventCode = effectEventCode.replace(
+        "aboutToAppear(): void {",
+        `aboutToAppear(): void {` +
+          `\n${indent2}/** 页面参数 */` +
+          `\n${indent2}const pageParams: MyBricks.Any = page.getParams("${config.getCurrentScene().id}")`,
+      );
+    }
+
     const indent = indentation(config.codeStyle!.indent * 2);
 
     return {
-      js: (effectEventCode ? effectEventCode + "\n\n" : "") + jsCode,
+      js: (effectEventCode || "") + jsCode,
       ui: !props.style.layout
         ? `${indent}Column() {\n` + uiCode + `\n${indent}}`
         : convertHarmonyFlexComponent(props.style, {

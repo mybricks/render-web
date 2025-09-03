@@ -73,18 +73,34 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
       config.codeStyle!.indent * (config.depth + (paddingCode ? 3 : 2)),
     );
 
+    let process = handleProcess(event, {
+      ...config,
+      depth: config.depth + (paddingCode ? 4 : 3),
+      addParentDependencyImport: config.addParentDependencyImport,
+      getParams: () => {
+        return {
+          [eventId]: defaultValue,
+        };
+      },
+    });
+
+    if (process.includes("pageParams")) {
+      config.addParentDependencyImport({
+        packageName: config.getComponentPackageName(),
+        dependencyNames: ["page"],
+        importType: "named",
+      });
+      process =
+        indentation(
+          config.codeStyle!.indent * (config.depth + (paddingCode ? 4 : 3)),
+        ) +
+        `const pageParams: MyBricks.Any = page.getParams("${config.getCurrentScene().id}");\n` +
+        process;
+    }
+
     comEventCode +=
       `${indent}${eventId}: (${defaultValue}: MyBricks.EventValue) => {\n` +
-      handleProcess(event, {
-        ...config,
-        depth: config.depth + (paddingCode ? 4 : 3),
-        addParentDependencyImport: config.addParentDependencyImport,
-        getParams: () => {
-          return {
-            [eventId]: defaultValue,
-          };
-        },
-      }) +
+      process +
       `\n${indent}},\n`;
   });
 
@@ -205,6 +221,8 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
           useParams: false,
           useEvents: false,
           coms: new Set(),
+          useController: false,
+          useData: false,
         };
         const providerMap = config.getProviderMap();
         providerMap[currentProvider.name] = currentProvider;
@@ -646,13 +664,41 @@ export const handleProcess = (
         const scene = config.getCurrentScene();
         const pinValueProxy =
           scene.pinValueProxies[`${props.meta.id}-${props.id}`];
-        const params = config.getParams();
+        // const params = config.getParams();
         const { frameKey } = props;
         if (frameKey === "_rootFrame_") {
           // 场景输入
-          code +=
-            `${indent}/** 调用获取当前输入值 ${props.title} */` +
-            `\n${indent}${nextCode}join(${nextValue}, ${params[pinValueProxy.pinId]})`;
+
+          if (scene.type === "module") {
+            const title = `${indent}/** 调用获取当前输入值 ${props.title} */`;
+            const input = scene.inputs.find(
+              (input) => input.id === pinValueProxy.pinId,
+            );
+            const joinNext = `${input?.type === "config" ? "data" : "controller"}.${pinValueProxy.pinId}`;
+
+            if (props.meta.parentComId) {
+              const rootProvider = config.getRootProvider();
+              config.addConsumer(rootProvider);
+
+              if (input?.type === "config") {
+                rootProvider.useData = true;
+              } else {
+                rootProvider.useController = true;
+              }
+
+              code +=
+                title +
+                `\n${indent}${nextCode}join(${nextValue}, this.${rootProvider.name}.${joinNext})`;
+            } else {
+              code +=
+                title +
+                `\n${indent}${nextCode}join(${nextValue}, this.${joinNext})`;
+            }
+          } else {
+            code +=
+              `${indent}/** 调用获取当前输入值 ${props.title} */` +
+              `\n${indent}${nextCode}join(${nextValue}, pageParams)`;
+          }
         } else {
           const [comId, slotId] = frameKey.split("-");
 

@@ -286,6 +286,8 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       useParams: false,
       useEvents: false,
       coms: new Set(),
+      useController: false,
+      useData: false,
     };
 
     providerMap[currentProvider.name] = currentProvider;
@@ -352,6 +354,9 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       getCurrentProvider: () => {
         return currentProvider;
       },
+      getRootProvider: () => {
+        return currentProvider;
+      },
       getProviderMap: () => {
         return providerMap;
       },
@@ -372,6 +377,8 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       useParams: false,
       useEvents: false,
       coms: new Set(),
+      useController: false,
+      useData: false,
     };
     providerMap[currentProvider.name] = currentProvider;
 
@@ -437,6 +444,9 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       getCurrentProvider: () => {
         return currentProvider;
       },
+      getRootProvider() {
+        return currentProvider;
+      },
       getProviderMap: () => {
         return providerMap;
       },
@@ -460,6 +470,21 @@ const transformConfig = (config: ToSpaCodeConfig) => {
 
 type ToCodeResult = ReturnType<typeof toCode>;
 export type UI = ToCodeResult["scenes"][0]["ui"];
+
+interface Provider {
+  name: string;
+  class: string;
+  controllers: Set<string>;
+  /** 跨作用域调用当前输入项（当前仅作用于插槽） */
+  useParams: boolean;
+  /** 调用事件（当前仅区块的输出项） */
+  useEvents: boolean;
+  coms: Set<string>;
+  /** 使用区块的输入项 */
+  useController: boolean;
+  /** 使用区块的配置项 */
+  useData: boolean;
+}
 
 export interface BaseConfig extends ToSpaCodeConfig {
   /** 获取当前场景信息 */
@@ -489,16 +514,8 @@ export interface BaseConfig extends ToSpaCodeConfig {
     comId: string;
     slotId: string;
   }) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
-  getCurrentProvider: () => {
-    name: string;
-    class: string;
-    controllers: Set<string>;
-    /** 夸作用域调用当前输入项（当前仅作用域插槽） */
-    useParams: boolean;
-    /** 调用事件（当前仅区块的输出项） */
-    useEvents: boolean;
-    coms: Set<string>;
-  };
+  getCurrentProvider: () => Provider;
+  getRootProvider: () => Provider;
   getProviderMap: () => Record<
     string,
     ReturnType<BaseConfig["getCurrentProvider"]>
