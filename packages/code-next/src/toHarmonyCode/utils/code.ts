@@ -198,6 +198,7 @@ export const getSlotComponentCode = (params: any, config: any) => {
   slotComponentCode += `${isModule ? `\n${indentation2}@Param styles: Styles = {}` : ""}`;
   slotComponentCode += `${isModule ? `\n${indentation2}@Param events: MyBricks.Events = {}` : ""}`;
   slotComponentCode += `${isModule ? `\n${indentation2}@Local columnVisibilityController: ColumnVisibilityController = new ColumnVisibilityController()` : ""}`;
+  slotComponentCode += `${isModule ? `\n${indentation2}@BuilderParam empty: () => void = empty` : ""}`;
   slotComponentCode += providerCode ? `\n${providerCode}` : "";
   slotComponentCode += `${isModule ? `\n${indentation2}myBricksColumnModifier = new MyBricksColumnModifier(this.styles.root)` : ""}`;
   slotComponentCode += effectEventCode ? `\n\n${effectEventCode}` : "";
@@ -205,6 +206,7 @@ export const getSlotComponentCode = (params: any, config: any) => {
   slotComponentCode += level0SlotsCode ? `\n\n${level0SlotsCode}` : "";
 
   return (
+    (isModule ? "@Builder\nfunction empty() {\n}\n\n" : "") +
     `/** ${scene.title} */\n@ComponentV2\n` +
     (slotComponentCode ? `${slotComponentCode}\n\n` : "") +
     `${indentation2}build() {\n` +
