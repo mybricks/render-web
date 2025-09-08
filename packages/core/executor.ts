@@ -1823,7 +1823,10 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             if (!scopeParent) {
               needDelete = true;
             } else {
-              if (!_scopeIdToComInFrameIdMap[scopeParent.id]) {
+              // if (!_scopeIdToComInFrameIdMap[scopeParent.id])
+              if (!Object.keys(_scopeIdToComInFrameIdMap).find((key) => {
+                return key.startsWith(scopeParent.id)
+              })) {
                 needDelete = true;
               }
             }
