@@ -255,7 +255,9 @@ const transformToJSON = (tojson: ToJSON) => {
   return {
     ...tojson,
     frames: tojson.frames.flatMap((frame) =>
-      frame.type === "root" && frame.frames.length ? frame.frames : [frame],
+      frame.type === "root" && frame.frames.length
+        ? [frame, ...frame.frames]
+        : [frame],
     ),
   };
 };

@@ -159,10 +159,11 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       ui: !props.style.layout
         ? `${indent}Column() {\n` + uiCode + `\n${indent}}`
         : convertHarmonyFlexComponent(props.style, {
+            scope: true,
             child: uiCode,
             useExtraFlex: true,
             indentSize: config.codeStyle!.indent,
-            initialIndent: config.codeStyle!.indent * 3,
+            initialIndent: config.codeStyle!.indent * 2,
           }),
       slots: level0Slots,
       scopeSlots: level1Slots,
@@ -395,6 +396,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           level1Slots,
           uiCode: isModule
             ? convertHarmonyFlexComponent(ui.props.style, {
+                scope: false,
                 child: uiCode,
                 indentSize: config.codeStyle!.indent,
                 initialIndent: config.codeStyle!.indent * 3,
@@ -460,6 +462,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       ui: !props.style.layout
         ? `${indent}Column() {\n` + uiCode + `\n${indent}}`
         : convertHarmonyFlexComponent(props.style, {
+            scope: false,
             child: uiCode,
             useExtraFlex: true,
             indentSize: config.codeStyle!.indent,

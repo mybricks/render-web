@@ -203,6 +203,7 @@ export const convertComponentStyle = (style: Style) => {
 export const convertHarmonyFlexComponent = (
   style: Style,
   config: {
+    scope: boolean;
     child: string;
     useExtraFlex?: boolean;
     initialIndent: number;
@@ -211,7 +212,7 @@ export const convertHarmonyFlexComponent = (
 ) => {
   const hmStyle = convertHMFlexStyle(style);
   const { direction, justifyContent, alignItems } = hmStyle;
-  const { child, useExtraFlex, initialIndent, indentSize } = config;
+  const { scope, child, useExtraFlex, initialIndent, indentSize } = config;
 
   const convertHarmonyStyleConfig = {
     initialIndent,
@@ -227,6 +228,7 @@ export const convertHarmonyFlexComponent = (
       ? `${getExtraFlexCode({
           initialIndent: initialIndent + indentSize,
           indentSize,
+          scope,
         })}\n`
       : "") +
     `${indentation(initialIndent)}}) {\n` +
@@ -254,16 +256,20 @@ export const convertHarmonyFlexComponent = (
   );
 };
 
-const getExtraFlexCode = (config: ConvertHarmonyStyleConfig) => {
-  const { indentSize, initialIndent } = config;
+interface GetExtraFlexCodeConfig extends ConvertHarmonyStyleConfig {
+  scope: boolean;
+}
+const getExtraFlexCode = (config: GetExtraFlexCodeConfig) => {
+  const { indentSize, initialIndent, scope } = config;
   const indent = indentation(initialIndent);
   const indent2 = indentation(initialIndent + indentSize);
+  const params = (scope ? "this." : "") + "params";
 
   return (
-    `${indent}wrap: params.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,` +
+    `${indent}wrap: ${params}.style?.flexWrap === "wrap" ? FlexWrap.Wrap : FlexWrap.NoWrap,` +
     `\n${indent}space: {` +
-    `\n${indent2}main: LengthMetrics.vp(params.style?.rowGap || 0),` +
-    `\n${indent2}cross: LengthMetrics.vp(params.style?.columnGap || 0),` +
+    `\n${indent2}main: LengthMetrics.vp(${params}.style?.rowGap || 0),` +
+    `\n${indent2}cross: LengthMetrics.vp(${params}.style?.columnGap || 0),` +
     `\n${indent}}`
   );
 };
@@ -614,7 +620,7 @@ interface ConvertHarmonyBasicStyleConfig extends ConvertHarmonyStyleConfig {
 }
 
 /** 转hm 基础style（无特别操作来处理样式） */
-const convertHarmonyBasicStyle = (
+export const convertHarmonyBasicStyle = (
   style: HmStyle,
   config: ConvertHarmonyBasicStyleConfig,
 ) => {
@@ -742,7 +748,7 @@ const removePx = (str: string | number) => {
     return str;
   }
   if (/px$/.test(str)) {
-    return parseFloat(str);
+    return parseFloat(str) || 0;
   }
   return `"${str}"`;
 };

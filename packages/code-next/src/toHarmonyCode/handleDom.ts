@@ -68,6 +68,7 @@ const handleDom = (dom: Dom, config: HandleDomConfig): HandleDomResult => {
   props.style.zIndex = getMaxZIndex(children);
 
   const ui = convertHarmonyFlexComponent(props.style, {
+    scope: false,
     child: uiCode,
     indentSize: config.codeStyle!.indent,
     initialIndent: config.codeStyle!.indent * config.depth,

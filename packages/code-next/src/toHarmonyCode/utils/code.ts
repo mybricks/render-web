@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getPaddingCode } from "./index";
+import { getPaddingCode, convertHarmonyBasicStyle } from "./index";
 import { ToSpaCodeConfig } from "../index";
 type ImportType = "default" | "named";
 type DependencyImport = Record<
@@ -315,7 +315,14 @@ export const getUiComponentCode = (params: any, config: any) => {
 
   if (paddingCode) {
     const indent = indentation(config.codeStyle!.indent * config.depth);
-    ui = `${indent}Column() {\n` + ui + `\n${indent}}` + paddingCode;
+    const zIndexCode = convertHarmonyBasicStyle(resultStyle.root, {
+      key: "zIndex",
+      useQuotes: false,
+      initialIndent: config.codeStyle!.indent * config.depth,
+      indentSize: config.codeStyle!.indent,
+    });
+    ui =
+      `${indent}Column() {\n` + ui + `\n${indent}}` + paddingCode + zIndexCode;
   }
 
   return ui;
