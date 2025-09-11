@@ -592,8 +592,14 @@ export const handleProcess = (
                 `${indent}/** 调用 ${props.meta.title} */` +
                 `\n${indent}this.events.${pinProxy.pinId}?.(${nextValue})`;
             }
+          } else if (scene.type === "popup") {
+            const pinProxy = scene.pinProxies[`${props.meta.id}-${props.id}`];
+            const id = pinProxy.frameId;
+            code +=
+              `${indent}/** 调用页面输出 ${props.meta.title} */` +
+              `\n${indent}page.${pinProxy.pinId}("${config.getPageId?.(id) || id}", ${nextValue})`;
           } else {
-            console.log("[frameOutput 当前场景非区块]");
+            console.log("[frameOutput 待处理场景]");
           }
         } else {
           console.log("[frameOutput 非当前场景]");
@@ -1073,7 +1079,7 @@ const getNextValue = (props: any, config: HandleProcessConfig, event: any) => {
     return `${next}.${id}`;
   });
 
-  return nextValue;
+  return nextValue.join(", ");
 };
 
 const getNextValueWithParam = (

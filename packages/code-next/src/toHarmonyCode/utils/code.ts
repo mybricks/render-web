@@ -321,8 +321,16 @@ export const getUiComponentCode = (params: any, config: any) => {
       initialIndent: config.codeStyle!.indent * config.depth,
       indentSize: config.codeStyle!.indent,
     });
+    let useRow = false;
+    if (resultStyle.root.marginTop || resultStyle.root.marginBottom) {
+      useRow = true;
+    }
     ui =
-      `${indent}Column() {\n` + ui + `\n${indent}}` + paddingCode + zIndexCode;
+      `${indent}${useRow ? "Row" : "Column"}() {\n` +
+      ui +
+      `\n${indent}}` +
+      paddingCode +
+      zIndexCode;
   }
 
   return ui;

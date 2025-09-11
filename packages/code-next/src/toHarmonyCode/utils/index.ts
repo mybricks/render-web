@@ -176,25 +176,48 @@ export const convertComponentStyle = (style: Style) => {
     // 有flex，设置宽度100%
     rootStyle["width"] = "100%";
   }
-  if ("flex" in rootStyle) {
-    // 如果是填充状态，将padding转margin，hm和web行为不一致
-    if ("paddingTop" in rootStyle) {
-      rootStyle.marginTop = rootStyle.paddingTop;
-      Reflect.deleteProperty(rootStyle, "paddingTop");
+
+  if (rootStyle.width === "100%") {
+    if ("marginLeft" in rootStyle) {
+      rootStyle.paddingLeft = rootStyle.marginLeft;
+      Reflect.deleteProperty(rootStyle, "marginLeft");
     }
-    if ("paddingRight" in rootStyle) {
-      rootStyle.marginRight = rootStyle.paddingRight;
-      Reflect.deleteProperty(rootStyle, "paddingRight");
-    }
-    if ("paddingBottom" in rootStyle) {
-      rootStyle.marginBottom = rootStyle.paddingBottom;
-      Reflect.deleteProperty(rootStyle, "paddingBottom");
-    }
-    if ("paddingLeft" in rootStyle) {
-      rootStyle.marginLeft = rootStyle.paddingLeft;
-      Reflect.deleteProperty(rootStyle, "paddingLeft");
+    if ("marginRight" in rootStyle) {
+      rootStyle.paddingRight = rootStyle.marginRight;
+      Reflect.deleteProperty(rootStyle, "marginRight");
     }
   }
+
+  if (rootStyle.height === "100%") {
+    if ("marginTop" in rootStyle) {
+      rootStyle.paddingTop = rootStyle.marginTop;
+      Reflect.deleteProperty(rootStyle, "marginTop");
+    }
+    if ("marginBottom" in rootStyle) {
+      rootStyle.paddingBottom = rootStyle.marginBottom;
+      Reflect.deleteProperty(rootStyle, "marginBottom");
+    }
+  }
+
+  // if ("flex" in rootStyle) {
+  //   // 如果是填充状态，将padding转margin，hm和web行为不一致
+  //   if ("paddingTop" in rootStyle) {
+  //     rootStyle.marginTop = rootStyle.paddingTop;
+  //     Reflect.deleteProperty(rootStyle, "paddingTop");
+  //   }
+  //   if ("paddingRight" in rootStyle) {
+  //     rootStyle.marginRight = rootStyle.paddingRight;
+  //     Reflect.deleteProperty(rootStyle, "paddingRight");
+  //   }
+  //   if ("paddingBottom" in rootStyle) {
+  //     rootStyle.marginBottom = rootStyle.paddingBottom;
+  //     Reflect.deleteProperty(rootStyle, "paddingBottom");
+  //   }
+  //   if ("paddingLeft" in rootStyle) {
+  //     rootStyle.marginLeft = rootStyle.paddingLeft;
+  //     Reflect.deleteProperty(rootStyle, "paddingLeft");
+  //   }
+  // }
 
   return resultStyle;
 };

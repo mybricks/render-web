@@ -41,7 +41,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
     const res = handleProcess(event, {
       ...config,
-      depth: 1,
+      depth: 2,
       getParams: () => {
         return {
           [event.paramId]: "value",
@@ -57,15 +57,17 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       getComponentMeta: config.getComponentMeta,
     } as any);
 
-    const constantName = `globalVar${firstCharToUpperCase(com.title)}Params`;
+    const initFunctionName = `init${firstCharToUpperCase(com.title)}`;
 
     globalVarsParamsCode +=
-      `const ${constantName} = [${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {` +
+      `\nconst ${initFunctionName} = () => {` +
+      `\n${indent}return createVariable(${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {` +
       `\n${res}` +
-      "\n}]\n";
+      `\n${indent}}) as MyBricks.Controller` +
+      `\n}\n`;
 
-    globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = createVariable(...${constantName})\n`;
-    globalVarsResetCode += `${indent2}this.${com.title} = createVariable(...${constantName})\n`;
+    globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = ${initFunctionName}()\n`;
+    globalVarsResetCode += `${indent2}this.${com.title} = ${initFunctionName}()\n`;
   });
 
   let globalFxsInitCode = "";
@@ -135,7 +137,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
   const varCode =
     "/** 全局变量 */" +
-    `\n${globalVarsParamsCode}` +
+    `${globalVarsParamsCode}` +
     `\nclass GlobalVars {` +
     `\n${globalVarsInitCode}` +
     `\n${indent}reset() {` +
