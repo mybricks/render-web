@@ -331,7 +331,7 @@ export const getUiComponentCode = (params: any, config: any) => {
       `\n${indent}}` +
       paddingCode +
       zIndexCode +
-      `\n${indent}.flexShrink(0)`;
+      (!resultStyle.root.flex ? `\n${indent}.flexShrink(0)` : "");
   }
 
   return ui;
