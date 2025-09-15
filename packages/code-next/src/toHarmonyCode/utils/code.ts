@@ -246,6 +246,9 @@ export const genObjectCode = (
     } else if (value && typeof value === "object") {
       return genObjectCode(value, { initialIndent: level, indentSize });
     } else if (typeof value === "string") {
+      if (value.startsWith("$r(")) {
+        return value;
+      }
       return JSON.stringify(value);
     } else {
       return String(value);
