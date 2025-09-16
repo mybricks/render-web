@@ -1364,7 +1364,19 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
-      if (pinId === "_setStyle") {
+      if (pinId === "_config_") {
+        const { configBindWith } = inReg;
+        if (configBindWith?.bindWith.startsWith("style:")) {
+          const selector = configBindWith.bindWith.replace("style:", "")
+          const { scopeId } = props
+          const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${comId}` : `${rootId}-${comId}`) : (scopeId ? `${scopeId}-${comId}` : comId)
+          _context?.options?.stylization?.setStyle(styleId, {
+            [selector]: val
+          });
+        } else {
+          console.error("[core - executor] exeInputForCom 未实现的绑定类型，请联系开发者", inReg)
+        }
+      } else if (pinId === "_setStyle") {
         const { scopeId } = props
         // const styleId = rootId ? `${rootId}-${comId}` : comId;
         const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${comId}` : `${rootId}-${comId}`) : (scopeId ? `${scopeId}-${comId}` : comId)
