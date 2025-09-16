@@ -4,6 +4,7 @@ import {
   getName,
   convertComponentStyle,
   getModuleComponentCode,
+  indentation,
 } from "./utils";
 import { handleProcess } from "./handleCom";
 
@@ -22,6 +23,8 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
   const name = config.getFileName?.(moduleId) || getName(moduleScene.title);
   let comEventCode = "";
 
+  const indent = indentation(config.codeStyle!.indent * (config.depth + 2));
+
   Object.entries(events).forEach(([eventId, { diagramId }]) => {
     if (!diagramId) {
       // 没有添加事件
@@ -37,17 +40,33 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
 
     const defaultValue = "value";
 
-    comEventCode += `${eventId}: (${defaultValue}: MyBricks.EventValue) => {
-      ${handleProcess(event, {
-        ...config,
-        addParentDependencyImport: config.addParentDependencyImport,
-        getParams: () => {
-          return {
-            [eventId]: defaultValue,
-          };
-        },
-      })}
-    },`;
+    let process = handleProcess(event, {
+      ...config,
+      depth: config.depth + 3,
+      addParentDependencyImport: config.addParentDependencyImport,
+      getParams: () => {
+        return {
+          [eventId]: defaultValue,
+        };
+      },
+    });
+
+    if (process.includes("pageParams")) {
+      config.addParentDependencyImport({
+        packageName: config.getComponentPackageName(),
+        dependencyNames: ["page"],
+        importType: "named",
+      });
+      process =
+        indentation(config.codeStyle!.indent * (config.depth + 3)) +
+        `const pageParams: MyBricks.Any = page.getParams("${config.getCurrentScene().id}");\n` +
+        process;
+    }
+
+    comEventCode +=
+      `${indent}${eventId}: (${defaultValue}: MyBricks.EventValue) => {\n` +
+      process +
+      `\n${indent}},\n`;
   });
 
   config.addParentDependencyImport({
@@ -59,6 +78,8 @@ const handleModule = (module: Module, config: HandleModuleConfig): string => {
   const configs = module.meta.model.data.configs;
   const currentProvider = config.getCurrentProvider();
   currentProvider.coms.add(module.meta.id);
+  // 解决深浅色模式切换，数据重制等问题
+  currentProvider.controllers.add(module.meta.id);
   const resultStyle = convertComponentStyle(module.props.style);
   const componentController =
     config.getComponentController?.({
