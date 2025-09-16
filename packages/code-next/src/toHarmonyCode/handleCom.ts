@@ -517,7 +517,7 @@ export const handleProcess = (
   process.nodesInvocation.forEach((props: any) => {
     const { componentType, category, runType } = props;
     // 参数
-    const nextValue = getNextValue(props, config, event);
+    let nextValue = getNextValue(props, config, event);
 
     const isSameScope = checkIsSameScope(event, props);
     // 节点执行后的返回值（输出）
@@ -834,9 +834,20 @@ export const handleProcess = (
           scene: config.getCurrentScene(),
         }) || `controller_${props.meta.id}`;
 
+      let inputId = props.id;
+      if (inputId === "_config_") {
+        const { configBindWith } = props;
+        if (configBindWith?.bindWith.startsWith("style:")) {
+          inputId = "_setStyle";
+          nextValue = `${JSON.stringify(configBindWith.bindWith.replace("style:", ""))}, ${nextValue}`;
+        } else {
+          console.log("[出码] 其它ui配置类型");
+        }
+      }
+
       code +=
         `${indent}/** 调用 ${props.meta.title} 的 ${props.title} */` +
-        `\n${indent}${nextCode}this.${currentProvider.name}.${componentController}.${props.id}(${nextValue})`;
+        `\n${indent}${nextCode}this.${currentProvider.name}.${componentController}.${inputId}(${nextValue})`;
     }
   });
   if (["fx", "extension-api", "extension-bus"].includes(event.type)) {

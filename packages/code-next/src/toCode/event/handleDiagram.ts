@@ -427,7 +427,7 @@ const handleProcess = (
     // 执行类型
     const runType = config.getRunType();
     // 调用信息
-    const invocation = {
+    const invocation: any = {
       type: "exe", // 调用类型
       id: con.to.id, // 调用输入id
       title: con.to.title, // 调用输入标题
@@ -444,6 +444,21 @@ const handleProcess = (
         };
       }),
     };
+
+    if (con.to.id === "_config_") {
+      const scene = config.getScene();
+      const nextCon = scene.cons[`${con.from.parent.id}-${con.from.id}`]?.find(
+        (nextCon) => {
+          return (
+            nextCon.comId === con.to.parent.id && nextCon.pinId === con.to.id
+          );
+        },
+      );
+
+      if (nextCon) {
+        invocation.configBindWith = nextCon.configBindWith;
+      }
+    }
 
     if (componentType === "js") {
       if (category === "normal") {

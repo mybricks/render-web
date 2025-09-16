@@ -125,6 +125,12 @@ export interface Scene {
       id: string;
       frameKey: string;
       targetFrameKey?: string;
+      comId: string;
+      pinId: string;
+      configBindWith?: {
+        title: string;
+        bindWith: string;
+      };
     }>
   >;
 }
