@@ -179,23 +179,39 @@ export const convertComponentStyle = (style: Style) => {
 
   if (rootStyle.width === "100%") {
     if ("marginLeft" in rootStyle) {
-      rootStyle.paddingLeft = rootStyle.marginLeft;
-      Reflect.deleteProperty(rootStyle, "marginLeft");
+      if ((rootStyle.marginLeft as number) > 0) {
+        rootStyle.paddingLeft = rootStyle.marginLeft;
+        Reflect.deleteProperty(rootStyle, "marginLeft");
+      }
     }
     if ("marginRight" in rootStyle) {
-      rootStyle.paddingRight = rootStyle.marginRight;
-      Reflect.deleteProperty(rootStyle, "marginRight");
+      if ((rootStyle.marginRight as number) > 0) {
+        rootStyle.paddingRight = rootStyle.marginRight;
+        Reflect.deleteProperty(rootStyle, "marginRight");
+      }
     }
   }
 
   if (rootStyle.height === "100%") {
     if ("marginTop" in rootStyle) {
-      rootStyle.paddingTop = rootStyle.marginTop;
-      Reflect.deleteProperty(rootStyle, "marginTop");
+      if ((rootStyle.marginTop as number) > 0) {
+        rootStyle.paddingTop = rootStyle.marginTop;
+        Reflect.deleteProperty(rootStyle, "marginTop");
+      }
     }
     if ("marginBottom" in rootStyle) {
-      rootStyle.paddingBottom = rootStyle.marginBottom;
-      Reflect.deleteProperty(rootStyle, "marginBottom");
+      if ((rootStyle.marginBottom as number) > 0) {
+        rootStyle.paddingBottom = rootStyle.marginBottom;
+        Reflect.deleteProperty(rootStyle, "marginBottom");
+      }
+    }
+  }
+
+  if (rootStyle.position) {
+    if (rootStyle.position === "fixed") {
+      rootStyle.zIndex = 1000;
+    } else if (rootStyle.position === "absolute") {
+      rootStyle.zIndex = 1;
     }
   }
 
