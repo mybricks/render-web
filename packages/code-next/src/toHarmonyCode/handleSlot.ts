@@ -318,21 +318,38 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           importType: "named",
         });
 
+        const indent2 = indentation(2);
+        const indent4 = indentation(4);
+        const indent6 = indentation(6);
+
+        const todo =
+          `${indent4}(this.controller.hide as MyBricks.Any).subscribe(() => {` +
+          `\n${indent6}this.columnVisibilityController.visibility = Visibility.None` +
+          `\n${indent4}});` +
+          `\n${indent4}(this.controller.show as MyBricks.Any).subscribe(() => {` +
+          `\n${indent6}this.columnVisibilityController.visibility = Visibility.Visible` +
+          `\n${indent4}});` +
+          `\n${indent4}(this.controller.showOrHide as MyBricks.Any).subscribe((value: MyBricks.EventValue) => {` +
+          `\n${indent6}this.columnVisibilityController.visibility = !!value ? Visibility.Visible : Visibility.None` +
+          `\n${indent4}});`;
+
         if (effectEventCode) {
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
             `@MyBricksDescriptor({\n` +
-              `${indentation(4)}provider: "${currentProvider.name}",\n` +
-              `${indentation(2)}})\n` +
-              `${indentation(2)}aboutToAppear(): void {`,
+              `${indent4}provider: "${currentProvider.name}",\n` +
+              `${indent2}})\n` +
+              `${indent2}aboutToAppear(): void {` +
+              `\n${todo}`,
           );
         } else {
           effectEventCode =
-            `${indentation(2)}@MyBricksDescriptor({\n` +
-            `${indentation(4)}provider: "${currentProvider.name}",\n` +
-            `${indentation(2)}})\n` +
-            `${indentation(2)}aboutToAppear(): void {\n` +
-            `${indentation(2)}}`;
+            `${indent2}@MyBricksDescriptor({\n` +
+            `${indent4}provider: "${currentProvider.name}",\n` +
+            `${indent2}})\n` +
+            `${indent2}aboutToAppear(): void {\n` +
+            todo +
+            `\n${indent2}}`;
         }
       }
 
