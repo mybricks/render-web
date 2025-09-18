@@ -910,6 +910,14 @@ const checkIsSameScope = (event: any, props: any) => {
     event.meta.frameId === props.meta.frameId
   ) {
     return true;
+  } else if (
+    event.type === "listener" &&
+    event.meta.proxy.parentComId === props.meta.parentComId &&
+    event.meta.proxy.frameId === props.meta.frameId
+  ) {
+    return true;
+  } else {
+    console.log("[出码] 其它事件类型", event);
   }
 
   return false;

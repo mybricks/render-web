@@ -310,14 +310,20 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       getVarEvents: (params) => {
         if (!params) {
           return event.filter((event) => {
-            return event.type === "var" && !event.meta.parentComId;
+            return (
+              (event.type === "var" && !event.meta.parentComId) ||
+              (event.type === "listener" && !event.meta.proxy.parentComId)
+            );
           });
         }
         return event.filter((event) => {
           return (
-            event.type === "var" &&
-            params.comId === event.meta.parentComId &&
-            params.slotId === event.meta.frameId
+            (event.type === "var" &&
+              params.comId === event.meta.parentComId &&
+              params.slotId === event.meta.frameId) ||
+            (event.type === "listener" &&
+              params.comId === event.meta.proxy.parentComId &&
+              params.slotId === event.meta.proxy.frameId)
           );
         });
       },
@@ -400,14 +406,20 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       getVarEvents: (params) => {
         if (!params) {
           return event.filter((event) => {
-            return event.type === "var" && !event.meta.parentComId;
+            return (
+              (event.type === "var" && !event.meta.parentComId) ||
+              (event.type === "listener" && !event.meta.proxy.parentComId)
+            );
           });
         }
         return event.filter((event) => {
           return (
-            event.type === "var" &&
-            params.comId === event.meta.parentComId &&
-            params.slotId === event.meta.frameId
+            (event.type === "var" &&
+              params.comId === event.meta.parentComId &&
+              params.slotId === event.meta.frameId) ||
+            (event.type === "listener" &&
+              params.comId === event.meta.proxy.parentComId &&
+              params.slotId === event.meta.proxy.frameId)
           );
         });
       },

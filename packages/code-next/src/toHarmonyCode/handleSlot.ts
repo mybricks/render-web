@@ -6,6 +6,7 @@ import {
   getSlotComponentCode,
   indentation,
   getProviderCode,
+  firstCharToUpperCase,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
@@ -152,6 +153,27 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
       );
     }
 
+    if (vars) {
+      const indent = indentation(config.codeStyle!.indent);
+      if (effectEventCode) {
+        effectEventCode = effectEventCode.replace(
+          "aboutToAppear(): void {",
+          `${vars.varsChangeCode}\n\n` +
+            `aboutToAppear(): void {` +
+            `\n${vars.varsRegisterChangeCode}`,
+        );
+      } else {
+        effectEventCode =
+          `${indent}aboutToAppear(): void {` +
+          `${vars.varsRegisterChangeCode}\n${indent}}`;
+      }
+
+      effectEventCode +=
+        `\n${indent}aboutToDisappear(): void {` +
+        `\n${vars.varsUnRegisterChangeCode}` +
+        `\n${indent}}`;
+    }
+
     const indent = indentation(config.codeStyle!.indent * 2);
 
     return {
@@ -270,6 +292,27 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
               `\n${indent}const pageParams: MyBricks.Any = page.getParams("${config.getPageId?.(slotId) || slotId}")`,
           );
         }
+      }
+
+      if (vars) {
+        const indent = indentation(config.codeStyle!.indent);
+        if (effectEventCode) {
+          effectEventCode = effectEventCode.replace(
+            "aboutToAppear(): void {",
+            `${vars.varsChangeCode}\n\n` +
+              `aboutToAppear(): void {` +
+              `\n${vars.varsRegisterChangeCode}`,
+          );
+        } else {
+          effectEventCode =
+            `${indent}aboutToAppear(): void {` +
+            `${vars.varsRegisterChangeCode}\n${indent}}`;
+        }
+
+        effectEventCode +=
+          `\n${indent}aboutToDisappear(): void {` +
+          `\n${vars.varsUnRegisterChangeCode}` +
+          `\n${indent}}`;
       }
     }
 
@@ -547,8 +590,11 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
         }
       : undefined,
   );
+  // 声明
   let varsDeclarationCode = "";
-  let varsImplementCode = "";
+  let varsRegisterChangeCode = "";
+  let varsUnRegisterChangeCode = "";
+  let varsChangeCode = "";
 
   const indent = indentation(config.codeStyle!.indent);
   const indent2 = indentation(config.codeStyle!.indent * 2);
@@ -568,25 +614,62 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
       },
     });
 
-    varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable()\n`;
+    if (varEvent.type === "var") {
+      varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)})\n`;
+    }
 
-    varsImplementCode +=
-      `${indent2}${varEvent.title}: createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)}, (value: MyBricks.EventValue) => {\n` +
-      code +
-      `\n${indent2}}),\n`;
+    if (varEvent.type === "listener") {
+      const providerMap = config.getProviderMap();
+      const meta = varEvent.meta;
+      const { parentComId, frameId } = meta;
+      const providerName =
+        config.getProviderName?.({
+          com: meta,
+          scene: config.getCurrentScene(),
+        }) ||
+        (!parentComId
+          ? "slot_Index"
+          : `slot_${frameId[0].toUpperCase() + frameId.slice(1)}_${parentComId}`);
+
+      const provider = providerMap[providerName];
+
+      config.addConsumer({
+        ...provider,
+        name: `${provider.name}_Vars`,
+        class: `${provider.class}_Vars`,
+      });
+      const changeEventFunctionName = `${provider.name}_Vars${firstCharToUpperCase(varEvent.title)}Change`;
+      varsRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.registerChange(this.${changeEventFunctionName})\n`;
+      varsUnRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.unregisterChange(this.${changeEventFunctionName})\n`;
+      varsChangeCode +=
+        `\n${indent}${changeEventFunctionName} = (value: MyBricks.EventValue) => {` +
+        `\n${code}` +
+        `\n${indent}}`;
+    } else {
+      const changeEventFunctionName = `${currentProvider.name}_Vars${firstCharToUpperCase(varEvent.title)}Change`;
+      varsRegisterChangeCode += `${indent2}this.${currentProvider.name}_Vars.${varEvent.title}.registerChange(this.${changeEventFunctionName})\n`;
+      varsUnRegisterChangeCode += `${indent2}this.${currentProvider.name}_Vars.${varEvent.title}.unregisterChange(this.${changeEventFunctionName})\n`;
+      varsChangeCode +=
+        `\n${indent}${changeEventFunctionName} = (value: MyBricks.EventValue) => {` +
+        `\n${code}` +
+        `\n${indent}}`;
+    }
   });
 
-  if (!varsDeclarationCode) {
+  if (!varsChangeCode) {
     return null;
   }
 
   return {
-    varsDeclarationCode:
-      `class ${currentProvider.class}_Vars {\n` + varsDeclarationCode + "}",
-    varsImplementCode:
-      `${indent}@Provider() ${currentProvider.name}_Vars: ${currentProvider.class}_Vars = {\n` +
-      varsImplementCode +
-      `${indent}}`,
+    varsChangeCode,
+    varsRegisterChangeCode,
+    varsUnRegisterChangeCode,
+    varsDeclarationCode: varsDeclarationCode
+      ? `class ${currentProvider.class}_Vars {\n` + varsDeclarationCode + "}"
+      : "",
+    varsImplementCode: varsDeclarationCode
+      ? `${indent}@Provider() ${currentProvider.name}_Vars: ${currentProvider.class}_Vars = new ${currentProvider.class}_Vars()`
+      : "",
   };
 };
 

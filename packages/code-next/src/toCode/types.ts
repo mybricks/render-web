@@ -171,7 +171,13 @@ export interface Diagram {
     frameId: string;
     pinId: string;
     pinAry: PinAry;
-    type: "com" | "frame" | "var";
+    /**
+     * - com      组件
+     * - frame    fx、插槽、api、bus
+     * - var      变量
+     * - listener 变量监听
+     */
+    type: "com" | "frame" | "var" | "listener";
   };
   conAry: DiagramCon[];
 }

@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import toCode from "../toCode";
-import { ImportManager, firstCharToUpperCase, indentation } from "./utils";
+import { ImportManager, indentation } from "./utils";
 import { handleProcess } from "./handleCom";
 import type { ToJSON } from "../toCode/types";
 import type { ToSpaCodeConfig, Result } from "./index";
@@ -22,8 +22,9 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     globalImportManager.addImport.bind(globalImportManager);
 
   let globalVarsInitCode = "";
-  let globalVarsResetCode = "";
-  let globalVarsParamsCode = "";
+  // let globalVarsResetCode = "";
+  // let globalVarsParamsCode = "";
+  let globalVarsRegisterChangeCode = "";
 
   const indent = indentation(config.codeStyle!.indent);
   const indent2 = indentation(config.codeStyle!.indent * 2);
@@ -57,17 +58,23 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       getComponentMeta: config.getComponentMeta,
     } as any);
 
-    const initFunctionName = `init${firstCharToUpperCase(com.title)}`;
+    // const initFunctionName = `init${firstCharToUpperCase(com.title)}`;
 
-    globalVarsParamsCode +=
-      `\nconst ${initFunctionName} = () => {` +
-      `\n${indent}return createVariable(${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {` +
+    // globalVarsParamsCode +=
+    //   `\nconst ${initFunctionName} = () => {` +
+    //   `\n${indent}return createVariable(${JSON.stringify(com.model.data.initValue)}, (value: MyBricks.EventValue) => {` +
+    //   `\n${res}` +
+    //   `\n${indent}}) as MyBricks.Controller` +
+    //   `\n}\n`;
+
+    globalVarsRegisterChangeCode +=
+      `\n${indent2}this.${com.title}.registerChange((value: MyBricks.EventValue) => {` +
       `\n${res}` +
-      `\n${indent}}) as MyBricks.Controller` +
-      `\n}\n`;
+      `\n${indent2}})`;
 
-    globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = ${initFunctionName}()\n`;
-    globalVarsResetCode += `${indent2}this.${com.title} = ${initFunctionName}()\n`;
+    globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = createVariable(${JSON.stringify(com.model.data.initValue)})\n`;
+    // globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = ${initFunctionName}()\n`;
+    // globalVarsResetCode += `${indent2}this.${com.title} = ${initFunctionName}()\n`;
   });
 
   let globalFxsInitCode = "";
@@ -137,12 +144,15 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
 
   const varCode =
     "/** 全局变量 */" +
-    `${globalVarsParamsCode}` +
+    // `${globalVarsParamsCode}` +
     `\nclass GlobalVars {` +
     `\n${globalVarsInitCode}` +
-    `\n${indent}reset() {` +
-    `\n${globalVarsResetCode}` +
-    `${indent}}` +
+    `\n${indent}constructor() {` +
+    `${globalVarsRegisterChangeCode}` +
+    `\n${indent}}` +
+    // `\n${indent}reset() {` +
+    // `\n${globalVarsResetCode}` +
+    // `${indent}}` +
     `\n}` +
     `\n\nexport const globalVars = new GlobalVars()`;
 

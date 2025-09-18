@@ -164,6 +164,20 @@ const handleDiagram = (
         ...result,
         initValue: meta.model.data.initValue,
       };
+    } else if (type === "listener") {
+      const parentCom = config.getComInfo("");
+      const frame = config.getFrame();
+
+      return {
+        ...result,
+        meta: {
+          ...meta,
+          proxy: {
+            parentComId: parentCom.id,
+            frameId: frame.id,
+          },
+        },
+      };
     }
 
     return result;
