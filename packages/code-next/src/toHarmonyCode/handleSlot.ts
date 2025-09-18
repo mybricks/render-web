@@ -622,29 +622,48 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
       const providerMap = config.getProviderMap();
       const meta = varEvent.meta;
       const { parentComId, frameId } = meta;
-      const providerName =
-        config.getProviderName?.({
-          com: meta,
-          scene: config.getCurrentScene(),
-        }) ||
-        (!parentComId
-          ? "slot_Index"
-          : `slot_${frameId[0].toUpperCase() + frameId.slice(1)}_${parentComId}`);
 
-      const provider = providerMap[providerName];
+      if (meta.global) {
+        const packageName = config.getComponentPackageName(varEvent);
+        if (packageName) {
+          config.addParentDependencyImport({
+            packageName,
+            dependencyNames: ["globalVars"],
+            importType: "named",
+          });
+        }
+        const changeEventFunctionName = `globalVars${firstCharToUpperCase(varEvent.title)}Change`;
+        varsRegisterChangeCode += `${indent2}globalVars.${varEvent.title}.registerChange(this.${changeEventFunctionName})\n`;
+        varsUnRegisterChangeCode += `${indent2}globalVars.${varEvent.title}.unregisterChange(this.${changeEventFunctionName})\n`;
+        varsChangeCode +=
+          `\n${indent}${changeEventFunctionName} = (value: MyBricks.EventValue) => {` +
+          `\n${code}` +
+          `\n${indent}}`;
+      } else {
+        const providerName =
+          config.getProviderName?.({
+            com: meta,
+            scene: config.getCurrentScene(),
+          }) ||
+          (!parentComId
+            ? "slot_Index"
+            : `slot_${frameId[0].toUpperCase() + frameId.slice(1)}_${parentComId}`);
 
-      config.addConsumer({
-        ...provider,
-        name: `${provider.name}_Vars`,
-        class: `${provider.class}_Vars`,
-      });
-      const changeEventFunctionName = `${provider.name}_Vars${firstCharToUpperCase(varEvent.title)}Change`;
-      varsRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.registerChange(this.${changeEventFunctionName})\n`;
-      varsUnRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.unregisterChange(this.${changeEventFunctionName})\n`;
-      varsChangeCode +=
-        `\n${indent}${changeEventFunctionName} = (value: MyBricks.EventValue) => {` +
-        `\n${code}` +
-        `\n${indent}}`;
+        const provider = providerMap[providerName];
+
+        config.addConsumer({
+          ...provider,
+          name: `${provider.name}_Vars`,
+          class: `${provider.class}_Vars`,
+        });
+        const changeEventFunctionName = `${provider.name}_Vars${firstCharToUpperCase(varEvent.title)}Change`;
+        varsRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.registerChange(this.${changeEventFunctionName})\n`;
+        varsUnRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.unregisterChange(this.${changeEventFunctionName})\n`;
+        varsChangeCode +=
+          `\n${indent}${changeEventFunctionName} = (value: MyBricks.EventValue) => {` +
+          `\n${code}` +
+          `\n${indent}}`;
+      }
     } else {
       const changeEventFunctionName = `${currentProvider.name}_Vars${firstCharToUpperCase(varEvent.title)}Change`;
       varsRegisterChangeCode += `${indent2}this.${currentProvider.name}_Vars.${varEvent.title}.registerChange(this.${changeEventFunctionName})\n`;
