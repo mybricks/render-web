@@ -207,13 +207,13 @@ export const convertComponentStyle = (style: Style) => {
     }
   }
 
-  if (rootStyle.position) {
-    if (rootStyle.position === "fixed") {
-      rootStyle.zIndex = 1000;
-    } else if (rootStyle.position === "absolute") {
-      rootStyle.zIndex = 1;
-    }
-  }
+  // if (rootStyle.position) {
+  //   if (rootStyle.position === "fixed") {
+  //     rootStyle.zIndex = 1000;
+  //   } else if (rootStyle.position === "absolute") {
+  //     rootStyle.zIndex = 1;
+  //   }
+  // }
 
   // if ("flex" in rootStyle) {
   //   // 如果是填充状态，将padding转margin，hm和web行为不一致
