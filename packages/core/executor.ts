@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal, getLogInputVal, getLogOutVal} from './logger';
-import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy, getValueByPath} from "./utils";
+import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy, getValueByPath, setDeepProps} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -1380,6 +1380,15 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               path: configBindWith.xpath ? configBindWith.xpath.slice(1).split("/") : []
             })
           });
+        } else if (configBindWith?.bindWith.startsWith("data.")) {
+          setDeepProps({
+            props,
+            path: configBindWith.bindWith.split("."),
+            value: getValueByPath({
+              value: val,
+              path: configBindWith.xpath ? configBindWith.xpath.slice(1).split("/") : []
+            })
+          })
         } else {
           console.error("[core - executor] exeInputForCom 未实现的绑定类型，请联系开发者", inReg)
         }

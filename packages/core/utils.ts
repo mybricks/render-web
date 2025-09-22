@@ -266,3 +266,27 @@ export const getValueByPath = (params) => {
   }
   return current
 }
+
+export const setDeepProps = (params) => {
+  const { props, path, value } = params;
+  let current = props;
+  const nextIndex = path.length - 1;
+  let errorFlag = false;
+  for (let i = 0; i < nextIndex; i++) {
+    try {
+      current = current[path[i]];
+    } catch (error) {
+      errorFlag = true;
+      console.error(
+        "[core - executor] exeInputForCom 设置data属性失败，请检查绑定路径是否正确", 
+        params,
+        error,
+      );
+      break;
+    }
+  }
+
+  if (!errorFlag) {
+    current[path[nextIndex]] = value;
+  }
+};
