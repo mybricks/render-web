@@ -412,7 +412,7 @@ function RenderCom({
   }
 
   if (['fixed', 'absolute'].includes(style.position)) {
-    const { top, left, right, bottom } = style
+    const { top, left, right, bottom, transform } = style
     if (top || isNumber(top)) {
       otherStyle.top = isNumber(top) ? top + 'px' : top
     }
@@ -424,6 +424,9 @@ function RenderCom({
     }
     if (right || isNumber(right)) {
       otherStyle.right = isNumber(right) ? right + 'px' : right
+    }
+    if (transform) {
+      otherStyle.transform = transform
     }
     // if (style.position === 'fixed') {
     //   // --- 2023.3.22 只有固定布局才需要通过设置zIndex达到置顶效果，自由布局不需要设置zIndex，否则永远在最上层

@@ -511,15 +511,24 @@ function transformSlotComAry(
         }
       } else if (style.heightFull) {
         // 高度等比缩放 - 设置height: 100%
-        // @ts-ignore
-        style.height = "100%"
         // style.flexShrink = 1 // TODO: 之后去掉，完成高度填充后即可实现
         if (!isAbsolute) {
+          // @ts-ignore
+          style.height = "100%"
           if (isFlexColumn) {
             flexPX.push(calculateStyle.height)
             flexSumPX += calculateStyle.height
             flexPXIndexToStyleMap[flexPX.length - 1] = com.id;
           }
+        } else {
+          Reflect.deleteProperty(style, "heightFull")
+          if (isNumber(style.bottom)) {
+            style.top = slot.style.height - style.height - style.bottom
+          } else {
+            style.bottom = slot.style.height - style.height - style.top
+          }
+          
+          Reflect.deleteProperty(style, "height")
         }
       } else {
         if ("height" in style) {
@@ -534,14 +543,23 @@ function transformSlotComAry(
         style.width = "fit-content"
       } else if (style.widthFull) {
         // 宽度等比缩放 - 设置height: 100%
-        // @ts-ignore
-        style.width = "100%"
         if (!isAbsolute) {
+          // @ts-ignore
+          style.width = "100%"
           if (!isFlexColumn) {
             flexPX.push(calculateStyle.width)
             flexSumPX += calculateStyle.width
             flexPXIndexToStyleMap[flexPX.length - 1] = com.id;
           }
+        } else {
+          Reflect.deleteProperty(style, "widthFull")
+
+          if (isNumber(style.right)) {
+            style.left = slot.style.width - style.width - style.right
+          } else {
+            style.right = slot.style.width - style.width - style.left
+          }
+          Reflect.deleteProperty(style, "width")
         }
       } else {
         if ("width" in style) {
@@ -560,6 +578,15 @@ function transformSlotComAry(
 
       // 对组件样式做处理，去除运行时无关的内容
       component.model.style = getComponentStyle(style);
+
+      if (isAbsolute) {
+        if (component.model.style.xCenter && isNumber(component.model.style.width)) {
+          Reflect.deleteProperty(component.model.style, "xCenter");
+          Reflect.deleteProperty(component.model.style, "right");
+          component.model.style.left = "50%";
+          component.model.style.transform = "translate(-50%, 0)";
+        }
+      }
 
       // 删除用于计算的具体宽高值
       Reflect.deleteProperty(component, "style")
@@ -785,7 +812,9 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
     remover("bottom");
   } else {
     if (isNumber(style.bottom)) {
-      remover("top");
+      if ("height" in style) {
+        remover("top");
+      }
       // if (isNumber(style.bottomAsFixed)) {
       //   style.bottom = style.bottomAsFixed
       //   remover("bottomAsFixed")
@@ -797,7 +826,9 @@ function getComponentStyle(style: any) { // toJSON定义的样式，会被修改
       // }
     }
     if (isNumber(style.right)) {
-      remover("left");
+      if ("width" in style) {
+        remover("left");
+      }
       // if (isNumber(style.rightAsFixed)) {
       //   style.right = style.rightAsFixed
       //   remover("rightAsFixed")
