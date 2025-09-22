@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal, getLogInputVal, getLogOutVal} from './logger';
-import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy} from "./utils";
+import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy, getValueByPath} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -1308,7 +1308,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             frameId: com.frameId,
             parentComId: com.parentComId,
           })
-        }
+        },
+      com
     }
 
     frameProps[key] = rtn
@@ -1365,13 +1366,19 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === "_config_") {
-        const { configBindWith } = inReg;
+        const configBindWith = props.com.model.configBindWith?.find(({ conId }) => {
+          return conId === inReg.id
+        })
+
         if (configBindWith?.bindWith.startsWith("style:")) {
           const selector = configBindWith.bindWith.replace("style:", "")
           const { scopeId } = props
           const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${comId}` : `${rootId}-${comId}`) : (scopeId ? `${scopeId}-${comId}` : comId)
           _context?.options?.stylization?.setStyle(styleId, {
-            [selector]: val
+            [selector]: getValueByPath({
+              value: val,
+              path: configBindWith.xpath ? configBindWith.xpath.slice(1).split("/") : []
+            })
           });
         } else {
           console.error("[core - executor] exeInputForCom 未实现的绑定类型，请联系开发者", inReg)

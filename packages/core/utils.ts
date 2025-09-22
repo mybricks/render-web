@@ -254,3 +254,15 @@ export const fillProxy = (obj: any, handler: any) => {
     console.log("环境内没有Proxy")
   }
 }
+
+export const getValueByPath = (params) => {
+  const { value, path } = params
+  let current = value
+  for (const key of path) {
+    if (current === null || current === undefined) {
+      return undefined
+    }
+    current = current[key]
+  }
+  return current
+}
