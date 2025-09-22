@@ -1366,8 +1366,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
       if (pinId === "_config_") {
-        const configBindWith = props.com.model.configBindWith?.find(({ conId }) => {
-          return conId === inReg.id
+        const configBindWith = props.com.model.configBindWith?.find(({ toplKey }) => {
+          return toplKey === inReg.configBindWith?.toplKey
         })
 
         if (configBindWith?.bindWith.startsWith("style:")) {
@@ -1390,7 +1390,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             })
           })
         } else {
-          console.error("[core - executor] exeInputForCom 未实现的绑定类型，请联系开发者", inReg)
+          console.error("[core - executor] exeInputForCom 未实现的绑定类型，请联系开发者", inReg, props.com.model.configBindWith)
         }
       } else if (pinId === "_setStyle") {
         const { scopeId } = props
