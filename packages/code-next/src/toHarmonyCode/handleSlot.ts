@@ -164,6 +164,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         );
       } else {
         effectEventCode =
+          `${vars.varsChangeCode}\n\n` +
           `${indent}aboutToAppear(): void {` +
           `${vars.varsRegisterChangeCode}\n${indent}}`;
       }
@@ -305,6 +306,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           );
         } else {
           effectEventCode =
+            `${vars.varsChangeCode}\n\n` +
             `${indent}aboutToAppear(): void {` +
             `${vars.varsRegisterChangeCode}\n${indent}}`;
         }
