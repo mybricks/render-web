@@ -658,7 +658,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
           name: `${provider.name}_Vars`,
           class: `${provider.class}_Vars`,
         });
-        const changeEventFunctionName = `${provider.name}_Vars${firstCharToUpperCase(varEvent.title)}Change`;
+        const changeEventFunctionName = `${provider.name}_Vars${firstCharToUpperCase(varEvent.title)}Change_${varEvent.diagramId}`;
         varsRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.registerChange(this.${changeEventFunctionName})\n`;
         varsUnRegisterChangeCode += `${indent2}this.${provider.name}_Vars.${varEvent.title}.unregisterChange(this.${changeEventFunctionName})\n`;
         varsChangeCode +=

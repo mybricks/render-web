@@ -839,7 +839,7 @@ export const handleProcess = (
         const { configBindWith } = props;
         if (configBindWith?.bindWith.startsWith("style:")) {
           inputId = "_setStyle";
-          nextValue = `${JSON.stringify(configBindWith.bindWith.replace("style:", ""))}, ${nextValue}`;
+          nextValue = `${JSON.stringify(configBindWith.bindWith.replace("style:", ""))}, ${nextValue}${configBindWith.xpath.split("/").join("?.")}`;
         } else {
           console.log("[出码] 其它ui配置类型");
         }
@@ -916,8 +916,6 @@ const checkIsSameScope = (event: any, props: any) => {
     event.meta.proxy.frameId === props.meta.frameId
   ) {
     return true;
-  } else {
-    console.log("[出码] 其它事件类型", event);
   }
 
   return false;

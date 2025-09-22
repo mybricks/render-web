@@ -173,7 +173,7 @@ const handleDiagram = (
         meta: {
           ...meta,
           proxy: {
-            parentComId: parentCom.id,
+            parentComId: parentCom?.id,
             frameId: frame.id,
           },
         },
@@ -470,7 +470,11 @@ const handleProcess = (
       );
 
       if (nextCon) {
-        invocation.configBindWith = nextCon.configBindWith;
+        invocation.configBindWith = scene.coms[
+          nextCon.comId
+        ].model.configBindWith?.find(({ conId }) => {
+          return conId === nextCon.id;
+        });
       }
     }
 

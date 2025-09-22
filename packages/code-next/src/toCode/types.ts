@@ -60,6 +60,11 @@ export interface ComInfo {
         };
       }[]
     >;
+    configBindWith: Array<{
+      bindWith: string;
+      conId: string;
+      xpath: string;
+    }>;
   };
   /** 插槽ID，有值时，组件在作用域插槽内 */
   frameId?: string;
@@ -127,10 +132,6 @@ export interface Scene {
       targetFrameKey?: string;
       comId: string;
       pinId: string;
-      configBindWith?: {
-        title: string;
-        bindWith: string;
-      };
     }>
   >;
 }
