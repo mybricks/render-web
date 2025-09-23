@@ -1142,6 +1142,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                       }
                       break
                     case 'defined':
+                    case 'isAbstract':
                       break
                     default:
                       cons = []
@@ -1936,6 +1937,29 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
   function exeForFrame(opts) {
     const {comId, frameId, scope} = opts
     const idPre = comId ? `${comId}-${frameId}` : `${frameId}`
+
+    const frameKey = frameId === ROOT_FRAME_KEY ? ROOT_FRAME_KEY : `${comId}-${frameId}`
+    Object.values(coms).forEach(com => {
+      if (com.def?.namespace === "mybricks.core-comlib.var" && (!com.parentComId || com.frameId === frameId)) {
+        // 配置了默认值的变量默认触发一次
+        if ("initValue" in com.model.data) {
+          const cons = Cons[`${com.id}-changed`]?.filter((con) => {
+            return (con.targetFrameKey || con.frameKey) === frameKey
+          })
+          if (cons?.length) {
+            const props = getComProps(com.id, scope)
+            if (com.global) {
+              const globalProps = scenesOperate?.getGlobalComProps(com.id)
+              if (globalProps) {
+                props.data.val = globalProps.data.val
+              }
+            }
+            exeCons({logProps: null, cons, val: "val" in props.data ? props.data.val : props.data.initValue, curScope: scope})
+          }
+          
+        }
+      }
+    })
 
     const autoAry = ComsAutoRun[idPre]
     if (autoAry) {
