@@ -364,7 +364,8 @@ const handleProcess = (
           },
           componentType: "ui",
           // category: "module",
-          category: config.getSceneType(), // 区分弹窗、页面、模块
+          category:
+            config.getFrame().type === "com" ? "normal" : config.getSceneType(), // 区分弹窗、页面、模块
           runType: "input",
           nextParam: [],
           paramSource: [config.getParamSource()],
@@ -463,17 +464,17 @@ const handleProcess = (
       const scene = config.getScene();
       const nextCon = scene.cons[`${con.from.parent.id}-${con.from.id}`]?.find(
         (nextCon) => {
-          return (
-            nextCon.comId === con.to.parent.id && nextCon.pinId === con.to.id
-          );
+          return nextCon.comId === con.to.parent.id && nextCon.id === con.id;
         },
       );
 
       if (nextCon) {
         invocation.configBindWith = scene.coms[
           nextCon.comId
-        ].model.configBindWith?.find(({ conId }) => {
-          return conId === nextCon.id;
+        ].model.configBindWith?.find(({ toplKey }) => {
+          return (
+            nextCon.configBindWith && nextCon.configBindWith.toplKey === toplKey
+          );
         });
       }
     }

@@ -840,6 +840,9 @@ export const handleProcess = (
         if (configBindWith?.bindWith.startsWith("style:")) {
           inputId = "_setStyle";
           nextValue = `${JSON.stringify(configBindWith.bindWith.replace("style:", ""))}, ${nextValue}${configBindWith.xpath.split("/").join("?.")}`;
+        } else if (configBindWith?.bindWith.startsWith("data.")) {
+          inputId = "_setData";
+          nextValue = `${JSON.stringify(configBindWith.bindWith.slice(5))}, ${nextValue}${configBindWith.xpath.split("/").join("?.")}`;
         } else {
           console.log("[出码] 其它ui配置类型");
         }

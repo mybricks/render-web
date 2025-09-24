@@ -11,6 +11,10 @@ type HandleSlotResult = {
     comId?: string;
     namespace?: string;
     title: string;
+    frame?: {
+      inputs: Array<{ id: string; title: string }>;
+      outputs: Array<{ id: string; title: string }>;
+    };
   };
   props: {
     style: Style;
@@ -20,12 +24,17 @@ type HandleSlotResult = {
 
 const handleSlot = (slot: Slot, config: UiBaseConfig): HandleSlotResult => {
   const comInfo = config.getParentComInfo();
+  const scope = slot.type === "scope";
+
   const meta = {
-    scope: slot.type === "scope",
+    scope,
     slotId: slot.id,
     comId: comInfo?.id,
     namespace: comInfo?.def.namespace,
     title: slot.title,
+    frame: scope
+      ? comInfo?.frames?.find((frame) => frame.id === slot.id)
+      : undefined,
   };
 
   if (slot.style.layout === "smart") {

@@ -147,7 +147,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     // `${globalVarsParamsCode}` +
     `\nclass GlobalVars {` +
     `\n${globalVarsInitCode}` +
-    `\n${indent}constructor() {` +
+    `\n${indent}init() {` +
     `${globalVarsRegisterChangeCode}` +
     `\n${indent}}` +
     // `\n${indent}reset() {` +

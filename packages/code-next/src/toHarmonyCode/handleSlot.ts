@@ -7,6 +7,7 @@ import {
   indentation,
   getProviderCode,
   firstCharToUpperCase,
+  genObjectCode,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
@@ -176,6 +177,55 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     }
 
     const indent = indentation(config.codeStyle!.indent * 2);
+    let myBricksDescriptorCode = "@MyBricksDescriptor()\n";
+
+    if (ui.meta.frame) {
+      const { inputs, outputs } = ui.meta.frame;
+      const inputNameMap = inputs.reduce<Record<string, string>>((pre, cur) => {
+        pre[cur.title] = cur.id;
+        return pre;
+      }, {});
+
+      const outputNameMap = outputs.reduce<Record<string, string>>(
+        (pre, cur) => {
+          pre[cur.title] = cur.id;
+          return pre;
+        },
+        {},
+      );
+
+      myBricksDescriptorCode = `@MyBricksDescriptor({
+        type: 'slot',
+        ${
+          inputNameMap
+            ? `inputNameMap: ${genObjectCode(inputNameMap, {
+                initialIndent: 4,
+                indentSize: config.codeStyle!.indent,
+              })},`
+            : ""
+        }
+        ${
+          outputNameMap
+            ? `outputNameMap: ${genObjectCode(outputNameMap, {
+                initialIndent: 4,
+                indentSize: config.codeStyle!.indent,
+              })},`
+            : ""
+        }
+      })\n`;
+    }
+
+    if (effectEventCode) {
+      effectEventCode = effectEventCode.replace(
+        "aboutToAppear(): void {",
+        myBricksDescriptorCode + `${indent}aboutToAppear(): void {`,
+      );
+    } else {
+      effectEventCode =
+        myBricksDescriptorCode +
+        `${indent}aboutToAppear(): void {\n` +
+        `\n${indent}}`;
+    }
 
     return {
       js: (effectEventCode || "") + jsCode,
@@ -316,6 +366,56 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           `\n${vars.varsUnRegisterChangeCode}` +
           `\n${indent}}`;
       }
+
+      const indent = indentation(config.codeStyle!.indent * 2);
+      const inputNameMap = scene.inputs.reduce<Record<string, string>>(
+        (pre, cur) => {
+          pre[cur.title] = cur.id;
+          return pre;
+        },
+        {},
+      );
+
+      const outputNameMap =
+        scene.type === "module" || scene.type === "popup"
+          ? scene.outputs.reduce<Record<string, string>>((pre, cur) => {
+              pre[cur.title] = cur.id;
+              return pre;
+            }, {})
+          : null;
+
+      const myBricksDescriptorCode = `@MyBricksDescriptor({
+        type: '${scene.type || "page"}',
+        ${scene.type === "module" ? "" : `pageId: "${config.getPageId?.(ui.meta.slotId) || ui.meta.slotId}",`}
+        ${
+          inputNameMap
+            ? `inputNameMap: ${genObjectCode(inputNameMap, {
+                initialIndent: 4,
+                indentSize: config.codeStyle!.indent,
+              })},`
+            : ""
+        }
+        ${
+          outputNameMap
+            ? `outputNameMap: ${genObjectCode(outputNameMap, {
+                initialIndent: 4,
+                indentSize: config.codeStyle!.indent,
+              })},`
+            : ""
+        }
+      })\n`;
+
+      if (effectEventCode) {
+        effectEventCode = effectEventCode.replace(
+          "aboutToAppear(): void {",
+          myBricksDescriptorCode + `${indent}aboutToAppear(): void {`,
+        );
+      } else {
+        effectEventCode =
+          myBricksDescriptorCode +
+          `${indent}aboutToAppear(): void {\n` +
+          `\n${indent}}`;
+      }
     }
 
     const level0Slots: string[] = [];
@@ -349,16 +449,15 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
 
     if (config.checkIsRoot()) {
       // 非模块，由于页面默认都有一个root组件，所以直接简单地Column设置宽高100%铺满即可
+      addDependencyImport({
+        dependencyNames: ["MyBricksDescriptor"],
+        packageName: config.getUtilsPackageName(),
+        importType: "named",
+      });
 
       if (isModule) {
         addDependencyImport({
           dependencyNames: ["ModuleController"],
-          packageName: config.getUtilsPackageName(),
-          importType: "named",
-        });
-
-        addDependencyImport({
-          dependencyNames: ["MyBricksDescriptor"],
           packageName: config.getUtilsPackageName(),
           importType: "named",
         });
@@ -381,20 +480,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         if (effectEventCode) {
           effectEventCode = effectEventCode.replace(
             "aboutToAppear(): void {",
-            `@MyBricksDescriptor({\n` +
-              `${indent4}provider: "${currentProvider.name}",\n` +
-              `${indent2}})\n` +
-              `${indent2}aboutToAppear(): void {` +
-              `\n${todo}`,
+            `${indent2}aboutToAppear(): void {` + `\n${todo}`,
           );
-        } else {
-          effectEventCode =
-            `${indent2}@MyBricksDescriptor({\n` +
-            `${indent4}provider: "${currentProvider.name}",\n` +
-            `${indent2}})\n` +
-            `${indent2}aboutToAppear(): void {\n` +
-            todo +
-            `\n${indent2}}`;
         }
       }
 
@@ -433,7 +520,10 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         filterControllers,
         currentProvider,
         scene,
-        config,
+        config: {
+          ...config,
+          addParentDependencyImport: addDependencyImport,
+        },
         title: "根组件控制器",
       });
 
@@ -617,7 +707,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
     });
 
     if (varEvent.type === "var") {
-      varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable(${JSON.stringify(varEvent.meta.model.data.initValue)})\n`;
+      varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable(${"initValue" in varEvent.meta.model.data ? JSON.stringify(varEvent.meta.model.data.initValue) : ""})\n`;
     }
 
     if (varEvent.type === "listener") {
@@ -681,12 +771,20 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
     return null;
   }
 
+  config.addParentDependencyImport({
+    packageName: config.getUtilsPackageName(),
+    dependencyNames: ["Vars"],
+    importType: "named",
+  });
+
   return {
     varsChangeCode,
     varsRegisterChangeCode,
     varsUnRegisterChangeCode,
     varsDeclarationCode: varsDeclarationCode
-      ? `class ${currentProvider.class}_Vars {\n` + varsDeclarationCode + "}"
+      ? `class ${currentProvider.class}_Vars extends Vars {\n` +
+        varsDeclarationCode +
+        "}"
       : "",
     varsImplementCode: varsDeclarationCode
       ? `${indent}@Provider() ${currentProvider.name}_Vars: ${currentProvider.class}_Vars = new ${currentProvider.class}_Vars()`

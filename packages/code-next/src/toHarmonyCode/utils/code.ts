@@ -145,8 +145,15 @@ export const getClassCode = (params: any) => {
       }, "");
     }
 
+    config.addParentDependencyImport({
+      packageName: config.getUtilsPackageName(),
+      dependencyNames: ["BaseController"],
+      importType: "named",
+    });
+
     return (
-      `/** ${title} */\n` + `class ${currentProvider.class} {\n${classCode}}\n`
+      `/** ${title} */\n` +
+      `class ${currentProvider.class} extends BaseController {\n${classCode}}\n`
     );
   }
 

@@ -62,8 +62,8 @@ export interface ComInfo {
     >;
     configBindWith: Array<{
       bindWith: string;
-      conId: string;
       xpath: string;
+      toplKey: string;
     }>;
   };
   /** 插槽ID，有值时，组件在作用域插槽内 */
@@ -81,6 +81,14 @@ export interface ComInfo {
   frames?: Array<{
     id: string;
     title: string;
+    inputs: {
+      id: string;
+      title: string;
+    }[];
+    outputs: {
+      id: string;
+      title: string;
+    }[];
   }>;
 }
 
@@ -119,6 +127,7 @@ export interface Scene {
     id: string;
     type: "normal" | "config";
     pinId: string;
+    title: string;
   }[];
   outputs: {
     id: string;
@@ -132,6 +141,9 @@ export interface Scene {
       targetFrameKey?: string;
       comId: string;
       pinId: string;
+      configBindWith: {
+        toplKey: string;
+      };
     }>
   >;
 }
