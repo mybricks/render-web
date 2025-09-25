@@ -378,6 +378,20 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
         if (fromCon && fromCon.finishPinParentKey !== inReg.startPinParentKey) {
           return
         }
+        if (proxyDesc.type === "extension") {
+          const comProps = getComProps(inReg.comId, nextScope)
+
+          scenesOperate?.open({
+            frameId: proxyDesc.frameId,
+            todo: {
+              pinId: proxyDesc.pinId,
+              value: val,
+            },
+            comProps,
+            parentScope: comProps,
+          });
+          return;
+        }
   
         if (proxyDesc.type === 'frame') {//call fx frame
           // const isFrameOutput = inReg.def.namespace === 'mybricks.core-comlib.frame-output'
