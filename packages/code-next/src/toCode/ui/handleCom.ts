@@ -16,7 +16,7 @@ interface Result {
   events: Record<
     string,
     {
-      type: "comEvent";
+      type: ComInfo["model"]["outputEvents"][string][0]["type"];
       diagramId: string;
     }
   >;
@@ -60,12 +60,10 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
     >((pre, [eventId, events]) => {
       const event = events.find((event) => event.active)!;
 
-      if (event.type === "defined") {
-        pre[eventId] = {
-          type: "comEvent",
-          diagramId: event.options.id,
-        };
-      }
+      pre[eventId] = {
+        type: event.type,
+        diagramId: event.options.id,
+      };
       // [TODO] 事件可以直接调用fx
 
       return pre;

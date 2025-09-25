@@ -44,6 +44,15 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     const addDependencyImport =
       config.addParentDependencyImport ||
       importManager.addImport.bind(importManager);
+
+    const typeDef = Object.assign({}, config.getTypeDef());
+
+    ui.meta.frame!.inputs.forEach((input) => {
+      typeDef.inputs[input.title] = input;
+    });
+    ui.meta.frame!.outputs.forEach((output) => {
+      typeDef.outputs[output.title] = output;
+    });
     const nextConfig = {
       ...config,
       depth: config.depth + 3, // [TODO 看情况的]
@@ -179,22 +188,23 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     const indent = indentation(config.codeStyle!.indent * 2);
     let myBricksDescriptorCode = "@MyBricksDescriptor()\n";
 
-    if (ui.meta.frame) {
-      const { inputs, outputs } = ui.meta.frame;
-      const inputNameMap = inputs.reduce<Record<string, string>>((pre, cur) => {
+    const inputNameMap = ui.meta.frame!.inputs.reduce<Record<string, string>>(
+      (pre, cur) => {
         pre[cur.title] = cur.id;
         return pre;
-      }, {});
+      },
+      {},
+    );
 
-      const outputNameMap = outputs.reduce<Record<string, string>>(
-        (pre, cur) => {
-          pre[cur.title] = cur.id;
-          return pre;
-        },
-        {},
-      );
+    const outputNameMap = ui.meta.frame!.outputs.reduce<Record<string, string>>(
+      (pre, cur) => {
+        pre[cur.title] = cur.id;
+        return pre;
+      },
+      {},
+    );
 
-      myBricksDescriptorCode = `@MyBricksDescriptor({
+    myBricksDescriptorCode = `@MyBricksDescriptor({
         type: 'slot',
         ${
           inputNameMap
@@ -213,7 +223,6 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
             : ""
         }
       })\n`;
-    }
 
     if (effectEventCode) {
       effectEventCode = effectEventCode.replace(
@@ -253,6 +262,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     // 调用上层组件
     const consumers = new Set<{ name: string; class: string }>();
 
+    const typeDef = Object.assign({}, config.getTypeDef());
+
     const addDependencyImport =
       config.addParentDependencyImport ||
       importManager.addImport.bind(importManager);
@@ -270,6 +281,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         ((provider: ReturnType<BaseConfig["getCurrentProvider"]>) => {
           consumers.add(provider);
         }),
+      getTypeDef: () => typeDef,
     };
 
     let vars = null;
@@ -365,6 +377,16 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           `\n${indent}aboutToDisappear(): void {` +
           `\n${vars.varsUnRegisterChangeCode}` +
           `\n${indent}}`;
+      }
+
+      scene.inputs.forEach((input) => {
+        typeDef.inputs[input.title] = input;
+      });
+
+      if (isModule) {
+        scene.outputs.forEach((output) => {
+          typeDef.outputs[output.title] = output;
+        });
       }
 
       const indent = indentation(config.codeStyle!.indent * 2);
@@ -690,6 +712,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
 
   const indent = indentation(config.codeStyle!.indent);
   const indent2 = indentation(config.codeStyle!.indent * 2);
+  const typeDef = config.getTypeDef();
 
   varEvents.forEach((varEvent) => {
     config.addParentDependencyImport({
@@ -707,6 +730,7 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
     });
 
     if (varEvent.type === "var") {
+      typeDef.vars[varEvent.title] = varEvent.meta;
       varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable(${"initValue" in varEvent.meta.model.data ? JSON.stringify(varEvent.meta.model.data.initValue) : ""})\n`;
     }
 

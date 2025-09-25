@@ -43,6 +43,8 @@ export interface Slot {
   title: string;
 }
 
+export type ComEventType = "defined" | "isAbstract";
+
 export interface ComInfo {
   id: string;
   title: string;
@@ -54,7 +56,7 @@ export interface ComInfo {
       string,
       {
         active: boolean;
-        type: "defined";
+        type: ComEventType;
         options: {
           id: string;
         };
@@ -84,12 +86,16 @@ export interface ComInfo {
     inputs: {
       id: string;
       title: string;
+      schema: any;
     }[];
     outputs: {
       id: string;
       title: string;
+      schema: any;
     }[];
   }>;
+  // 变量一定有schema
+  schema?: any;
 }
 
 export interface Scene {
@@ -128,10 +134,12 @@ export interface Scene {
     type: "normal" | "config";
     pinId: string;
     title: string;
+    schema: any;
   }[];
   outputs: {
     id: string;
     title: string;
+    schema: any;
   }[];
   cons: Record<
     string,
@@ -191,6 +199,8 @@ export interface Diagram {
      * - listener 变量监听
      */
     type: "com" | "frame" | "var" | "listener";
+    // 只有type为com时才有schema
+    schema?: any;
   };
   conAry: DiagramCon[];
 }

@@ -157,6 +157,7 @@ const handleDiagram = (
         nodesDeclaration: process.nodesDeclaration,
         nodesInvocation: process.nodesInvocation,
       },
+      schema: diagram.starter.schema,
     };
 
     if (type === "var") {

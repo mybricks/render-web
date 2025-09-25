@@ -1,5 +1,5 @@
 import type { Style } from "../../toCode/types";
-import { indentation } from "./code";
+import { indentation } from "./string";
 
 const HM_STYLE_MAP: Record<string, Record<string, string>> = {
   layout: {

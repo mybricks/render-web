@@ -11,6 +11,7 @@ import {
 import handleGlobal from "./handleGlobal";
 import handleExtension from "./handleExtension";
 import ai, { AIConfig } from "./withAI";
+import abstractEventTypeDef from "./abstractEventTypeDef";
 
 export interface ToSpaCodeConfig {
   getComponentMeta: (
@@ -73,7 +74,9 @@ export type Result = Array<{
     | "global"
     | "extension-config"
     | "extension-api"
-    | "extension-bus";
+    | "extension-bus"
+    // 抽象事件类型定义
+    | "abstractEventTypeDef";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
   name: string;
 }>;
@@ -259,6 +262,17 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
     ),
   );
 
+  const globalVarTypeDef: any = {};
+
+  Object.entries(tojson.global.comsReg).forEach(([, com]) => {
+    if (com.def.namespace !== "mybricks.core-comlib.var") {
+      // 非变量，不需要初始化
+      return;
+    }
+
+    globalVarTypeDef[com.title] = com;
+  });
+
   result.push(
     handleGlobal(
       {
@@ -274,6 +288,8 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       },
     ),
   );
+
+  const abstractEventTypeDefMap: any = {};
 
   scenes.forEach(({ scene, ui, event }) => {
     const providerMap: ReturnType<BaseConfig["getProviderMap"]> = {};
@@ -291,6 +307,16 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
     };
 
     providerMap[currentProvider.name] = currentProvider;
+
+    /** 类型定义 */
+    const typeDef = {
+      // 变量
+      vars: Object.assign({}, globalVarTypeDef),
+      // 输入
+      inputs: {},
+      // 输出
+      outputs: {},
+    };
 
     handleSlot(ui, {
       ...config,
@@ -369,6 +395,19 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       getExtensionEventById,
       getSceneById,
       depth: 0,
+      getTypeDef: () => {
+        return typeDef;
+      },
+      setAbstractEventTypeDefMap: (params) => {
+        const { comId, eventId, typeDef, schema } = params;
+        if (!abstractEventTypeDefMap[comId]) {
+          abstractEventTypeDefMap[comId] = {
+            typeDef,
+            eventIdMap: {},
+          };
+        }
+        abstractEventTypeDefMap[comId].eventIdMap[eventId] = schema;
+      },
     });
   });
 
@@ -387,6 +426,16 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       useData: false,
     };
     providerMap[currentProvider.name] = currentProvider;
+
+    /** 类型定义 */
+    const typeDef = {
+      // 变量
+      vars: Object.assign({}, globalVarTypeDef),
+      // 输入
+      inputs: {},
+      // 输出
+      outputs: {},
+    };
 
     handleSlot(ui, {
       ...config,
@@ -465,7 +514,27 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       getExtensionEventById,
       getSceneById,
       depth: 0,
+      getTypeDef() {
+        return typeDef;
+      },
+      setAbstractEventTypeDefMap: (params) => {
+        const { comId, eventId, typeDef, schema } = params;
+        if (!abstractEventTypeDefMap[comId]) {
+          abstractEventTypeDefMap[comId] = {
+            typeDef,
+            eventIdMap: {},
+          };
+        }
+        abstractEventTypeDefMap[comId].eventIdMap[eventId] = schema;
+      },
     });
+  });
+
+  result.push({
+    type: "abstractEventTypeDef",
+    content: abstractEventTypeDef(abstractEventTypeDefMap, config),
+    importManager: new ImportManager(config),
+    name: "abstractEventTypeDef",
   });
 
   return result;
@@ -538,6 +607,17 @@ export interface BaseConfig extends ToSpaCodeConfig {
   getSceneById: (id: string) => ReturnType<typeof toCode>["scenes"][0]["scene"];
   /** 层级，用于格式化代码 */
   depth: number;
+  getTypeDef: () => {
+    vars: Record<string, any>;
+    inputs: Record<string, any>;
+    outputs: Record<string, any>;
+  };
+  setAbstractEventTypeDefMap: (params: {
+    comId: string;
+    eventId: string;
+    typeDef: any;
+    schema: any;
+  }) => void;
 }
 
 export default toHarmonyCode;

@@ -1,6 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { getPaddingCode, convertHarmonyBasicStyle } from "./index";
-import { ToSpaCodeConfig } from "../index";
+import {
+  getPaddingCode,
+  convertHarmonyBasicStyle,
+  indentation,
+} from "../index";
+import { ToSpaCodeConfig } from "../../index";
 type ImportType = "default" | "named";
 type DependencyImport = Record<
   string,
@@ -91,11 +95,6 @@ export class ImportManager {
     );
   }
 }
-
-/** 缩进 */
-export const indentation = (level: number) => {
-  return " ".repeat(level);
-};
 
 /**
  * 各种类声明
@@ -441,3 +440,5 @@ export const getSlotScopeComponentCode = (params: any, config: any) => {
     "\n}"
   );
 };
+
+export * from "./type";

@@ -28,9 +28,15 @@ const getName = (text: string) => {
   }, "");
 };
 
+/** 缩进 */
+const indentation = (level: number) => {
+  return " ".repeat(level);
+};
+
 export {
   cleanAndSplitString,
   getName,
   firstCharToUpperCase,
   firstCharToLowerCase,
+  indentation,
 };
