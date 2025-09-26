@@ -35,15 +35,15 @@ export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
         if (comsReg && fxFrame.coms) {
           Object.assign(fxFrame.coms, comsReg)
         }
-        if (consReg && fxFrame.cons) {
-          Object.assign(fxFrame.cons, consReg)
-        }
-        if (pinRels && fxFrame.pinRels) {
-          Object.assign(fxFrame.pinRels, pinRels)
-        }
-        if (pinProxies && fxFrame.pinProxies) {
-          Object.assign(fxFrame.pinProxies, pinProxies)
-        }
+        // if (consReg && fxFrame.cons) {
+        //   Object.assign(fxFrame.cons, consReg)
+        // }
+        // if (pinRels && fxFrame.pinRels) {
+        //   Object.assign(fxFrame.pinRels, pinRels)
+        // }
+        // if (pinProxies && fxFrame.pinProxies) {
+        //   Object.assign(fxFrame.pinProxies, pinProxies)
+        // }
       })
     }
 
