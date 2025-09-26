@@ -17,6 +17,7 @@ interface Result {
     string,
     {
       type: ComInfo["model"]["outputEvents"][string][0]["type"];
+      isAbstract?: boolean;
       diagramId: string;
     }
   >;
@@ -62,6 +63,7 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
 
       pre[eventId] = {
         type: event.type,
+        isAbstract: event.isAbstract,
         diagramId: event.options.id,
       };
       // [TODO] 事件可以直接调用fx

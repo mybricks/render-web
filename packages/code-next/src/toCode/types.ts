@@ -60,6 +60,7 @@ export interface ComInfo {
         options: {
           id: string;
         };
+        isAbstract?: boolean;
       }[]
     >;
     configBindWith: Array<{

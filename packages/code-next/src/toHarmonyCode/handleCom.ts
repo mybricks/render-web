@@ -55,67 +55,69 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
     },
   );
 
-  Object.entries(events).forEach(([eventId, { type, diagramId }]) => {
-    if (!diagramId) {
-      // 没有添加事件
-      return;
-    }
+  Object.entries(events).forEach(
+    ([eventId, { type, isAbstract, diagramId }]) => {
+      if (!diagramId) {
+        // 没有添加事件
+        return;
+      }
 
-    const event = config.getEventByDiagramId(diagramId)!;
+      const event = config.getEventByDiagramId(diagramId)!;
 
-    if (!event) {
-      // 在引擎内新建了事件后删除，存在脏数据
-      return;
-    }
-    if (type === "isAbstract") {
-      config.setAbstractEventTypeDefMap({
-        comId: com.meta.id,
-        eventId,
-        typeDef: config.getTypeDef(),
-        schema: event.schema,
+      if (!event) {
+        // 在引擎内新建了事件后删除，存在脏数据
+        return;
+      }
+      if (isAbstract) {
+        config.setAbstractEventTypeDefMap({
+          comId: com.meta.id,
+          eventId,
+          typeDef: config.getTypeDef(),
+          schema: event.schema,
+        });
+        return;
+      }
+      if (type !== "defined") {
+        // TODO: 后续支持直接调用fx
+        return;
+      }
+
+      const defaultValue = "value";
+      const indent = indentation(
+        config.codeStyle!.indent * (config.depth + (paddingCode ? 3 : 2)),
+      );
+
+      let process = handleProcess(event, {
+        ...config,
+        depth: config.depth + (paddingCode ? 4 : 3),
+        addParentDependencyImport: config.addParentDependencyImport,
+        getParams: () => {
+          return {
+            [eventId]: defaultValue,
+          };
+        },
       });
-      return;
-    }
-    if (type !== "defined") {
-      // TODO: 后续支持直接调用fx
-      return;
-    }
 
-    const defaultValue = "value";
-    const indent = indentation(
-      config.codeStyle!.indent * (config.depth + (paddingCode ? 3 : 2)),
-    );
+      if (process.includes("pageParams")) {
+        config.addParentDependencyImport({
+          packageName: config.getComponentPackageName(),
+          dependencyNames: ["page"],
+          importType: "named",
+        });
+        process =
+          indentation(
+            config.codeStyle!.indent * (config.depth + (paddingCode ? 4 : 3)),
+          ) +
+          `const pageParams: MyBricks.Any = page.getParams("${config.getCurrentScene().id}");\n` +
+          process;
+      }
 
-    let process = handleProcess(event, {
-      ...config,
-      depth: config.depth + (paddingCode ? 4 : 3),
-      addParentDependencyImport: config.addParentDependencyImport,
-      getParams: () => {
-        return {
-          [eventId]: defaultValue,
-        };
-      },
-    });
-
-    if (process.includes("pageParams")) {
-      config.addParentDependencyImport({
-        packageName: config.getComponentPackageName(),
-        dependencyNames: ["page"],
-        importType: "named",
-      });
-      process =
-        indentation(
-          config.codeStyle!.indent * (config.depth + (paddingCode ? 4 : 3)),
-        ) +
-        `const pageParams: MyBricks.Any = page.getParams("${config.getCurrentScene().id}");\n` +
-        process;
-    }
-
-    comEventCode +=
-      `${indent}${eventId}: (${defaultValue}: MyBricks.EventValue) => {\n` +
-      process +
-      `\n${indent}},\n`;
-  });
+      comEventCode +=
+        `${indent}${eventId}: (${defaultValue}: MyBricks.EventValue) => {\n` +
+        process +
+        `\n${indent}},\n`;
+    },
+  );
 
   const currentProvider = config.getCurrentProvider();
   currentProvider.coms.add(meta.id);
