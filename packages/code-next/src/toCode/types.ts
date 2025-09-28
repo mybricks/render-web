@@ -61,6 +61,8 @@ export interface ComInfo {
           id: string;
         };
         isAbstract?: boolean;
+        /** isAbstract为true时，会有schema */
+        schema?: any;
       }[]
     >;
     configBindWith: Array<{

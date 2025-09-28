@@ -56,7 +56,20 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
   );
 
   Object.entries(events).forEach(
-    ([eventId, { type, isAbstract, diagramId }]) => {
+    ([eventId, { type, isAbstract, diagramId, schema }]) => {
+      if (isAbstract) {
+        config.setAbstractEventTypeDefMap({
+          comId: com.meta.id,
+          eventId,
+          typeDef: config.getTypeDef(),
+          schema,
+        });
+        return;
+      }
+      if (type !== "defined") {
+        // TODO: 后续支持直接调用fx
+        return;
+      }
       if (!diagramId) {
         // 没有添加事件
         return;
@@ -66,19 +79,6 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
 
       if (!event) {
         // 在引擎内新建了事件后删除，存在脏数据
-        return;
-      }
-      if (isAbstract) {
-        config.setAbstractEventTypeDefMap({
-          comId: com.meta.id,
-          eventId,
-          typeDef: config.getTypeDef(),
-          schema: event.schema,
-        });
-        return;
-      }
-      if (type !== "defined") {
-        // TODO: 后续支持直接调用fx
         return;
       }
 

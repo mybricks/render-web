@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Com, ComInfo, Style } from "../types";
 import type { UiBaseConfig } from "../index";
 import handleSlot from "./handleSlot";
@@ -19,6 +20,7 @@ interface Result {
       type: ComInfo["model"]["outputEvents"][string][0]["type"];
       isAbstract?: boolean;
       diagramId: string;
+      schema?: any;
     }
   >;
 }
@@ -65,6 +67,7 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
         type: event.type,
         isAbstract: event.isAbstract,
         diagramId: event.options.id,
+        schema: event.schema,
       };
       // [TODO] 事件可以直接调用fx
 
