@@ -45,6 +45,12 @@ export interface Slot {
 
 export type ComEventType = "defined" | "isAbstract";
 
+export interface FrameIO {
+  id: string;
+  title: string;
+  schema: any;
+}
+
 export interface ComInfo {
   id: string;
   title: string;
@@ -86,16 +92,8 @@ export interface ComInfo {
   frames?: Array<{
     id: string;
     title: string;
-    inputs: {
-      id: string;
-      title: string;
-      schema: any;
-    }[];
-    outputs: {
-      id: string;
-      title: string;
-      schema: any;
-    }[];
+    inputs: FrameIO[];
+    outputs: FrameIO[];
   }>;
   // 变量一定有schema
   schema?: any;

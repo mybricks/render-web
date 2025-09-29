@@ -123,7 +123,7 @@ interface GetOutputResult<T> {
 interface GetInputResult<T> {
   getValue: () => T
 }` +
-    interfaceCode.join("\n") +
+    (interfaceCode ? `\n${interfaceCode.join("\n")}` : "") +
     `\ninterface ComEvent {` +
     `\n${comEvent.join("\n")}` +
     `\n}`

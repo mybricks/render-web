@@ -1,6 +1,4 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-import type { Slot, Style } from "../types";
+import type { Slot, Style, ComInfo } from "../types";
 import type { UiBaseConfig } from "../index";
 import handleCom from "./handleCom";
 import handleDom from "./handleDom";
@@ -14,10 +12,7 @@ type HandleSlotResult = {
     namespace?: string;
     title: string;
     // 作用域插槽一定有
-    frame?: {
-      inputs: Array<{ id: string; title: string; schema: any }>;
-      outputs: Array<{ id: string; title: string; schema: any }>;
-    };
+    frame?: NonNullable<ComInfo["frames"]>[number];
   };
   props: {
     style: Style;

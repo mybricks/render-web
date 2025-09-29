@@ -526,7 +526,7 @@ export const handleProcess = (
       (props.outputs
         ? `\n${indent2}outputs: [${props.outputs.map((output: string) => `"${output}"`).join(", ")}],`
         : "") +
-      `\n${indent}})\n`;
+      `\n${indent}}, appContext)\n`;
   });
 
   process.nodesInvocation.forEach((props: any) => {

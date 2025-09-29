@@ -7,7 +7,7 @@ import {
   indentation,
   getProviderCode,
   firstCharToUpperCase,
-  genObjectCode,
+  genMyBricksDescriptorCode,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
@@ -186,53 +186,35 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     }
 
     const indent = indentation(config.codeStyle!.indent * 2);
-    let myBricksDescriptorCode = "@MyBricksDescriptor()\n";
 
-    const inputNameMap = ui.meta.frame!.inputs.reduce<Record<string, string>>(
-      (pre, cur) => {
-        pre[cur.title] = cur.id;
-        return pre;
+    addDependencyImport({
+      packageName: config.getComponentPackageName(),
+      dependencyNames: ["appContext"],
+      importType: "named",
+    });
+
+    const myBricksDescriptorCode = genMyBricksDescriptorCode(
+      {
+        type: "slot",
+        appContext: "appContext",
+        inputs: ui.meta.frame!.inputs,
+        outputs: ui.meta.frame!.outputs,
       },
-      {},
-    );
-
-    const outputNameMap = ui.meta.frame!.outputs.reduce<Record<string, string>>(
-      (pre, cur) => {
-        pre[cur.title] = cur.id;
-        return pre;
+      {
+        initialIndent: 0,
+        indentSize: config.codeStyle!.indent,
       },
-      {},
     );
-
-    myBricksDescriptorCode = `@MyBricksDescriptor({
-        type: 'slot',
-        ${
-          inputNameMap
-            ? `inputNameMap: ${genObjectCode(inputNameMap, {
-                initialIndent: 4,
-                indentSize: config.codeStyle!.indent,
-              })},`
-            : ""
-        }
-        ${
-          outputNameMap
-            ? `outputNameMap: ${genObjectCode(outputNameMap, {
-                initialIndent: 4,
-                indentSize: config.codeStyle!.indent,
-              })},`
-            : ""
-        }
-      })\n`;
 
     if (effectEventCode) {
       effectEventCode = effectEventCode.replace(
         "aboutToAppear(): void {",
-        myBricksDescriptorCode + `${indent}aboutToAppear(): void {`,
+        myBricksDescriptorCode + `\n${indent}aboutToAppear(): void {`,
       );
     } else {
       effectEventCode =
         myBricksDescriptorCode +
-        `${indent}aboutToAppear(): void {\n` +
+        `\n${indent}aboutToAppear(): void {\n` +
         `\n${indent}}`;
     }
 
@@ -383,59 +365,47 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         typeDef.inputs[input.title] = input;
       });
 
-      if (isModule) {
+      if (isModule || scene.type === "popup") {
         scene.outputs.forEach((output) => {
           typeDef.outputs[output.title] = output;
         });
       }
 
       const indent = indentation(config.codeStyle!.indent * 2);
-      const inputNameMap = scene.inputs.reduce<Record<string, string>>(
-        (pre, cur) => {
-          pre[cur.title] = cur.id;
-          return pre;
+      addDependencyImport({
+        packageName: config.getComponentPackageName(),
+        dependencyNames: ["appContext"],
+        importType: "named",
+      });
+      const myBricksDescriptorCode = genMyBricksDescriptorCode(
+        {
+          type: scene.type || "page",
+          appContext: "appContext",
+          pageId:
+            scene.type === "module"
+              ? undefined
+              : config.getPageId?.(ui.meta.slotId) || ui.meta.slotId,
+          inputs: scene.inputs,
+          outputs:
+            scene.type === "module" || scene.type === "popup"
+              ? scene.outputs
+              : [],
         },
-        {},
+        {
+          initialIndent: 0,
+          indentSize: config.codeStyle!.indent,
+        },
       );
-
-      const outputNameMap =
-        scene.type === "module" || scene.type === "popup"
-          ? scene.outputs.reduce<Record<string, string>>((pre, cur) => {
-              pre[cur.title] = cur.id;
-              return pre;
-            }, {})
-          : null;
-
-      const myBricksDescriptorCode = `@MyBricksDescriptor({
-        type: '${scene.type || "page"}',
-        ${scene.type === "module" ? "" : `pageId: "${config.getPageId?.(ui.meta.slotId) || ui.meta.slotId}",`}
-        ${
-          inputNameMap
-            ? `inputNameMap: ${genObjectCode(inputNameMap, {
-                initialIndent: 4,
-                indentSize: config.codeStyle!.indent,
-              })},`
-            : ""
-        }
-        ${
-          outputNameMap
-            ? `outputNameMap: ${genObjectCode(outputNameMap, {
-                initialIndent: 4,
-                indentSize: config.codeStyle!.indent,
-              })},`
-            : ""
-        }
-      })\n`;
 
       if (effectEventCode) {
         effectEventCode = effectEventCode.replace(
           "aboutToAppear(): void {",
-          myBricksDescriptorCode + `${indent}aboutToAppear(): void {`,
+          myBricksDescriptorCode + `\n${indent}aboutToAppear(): void {`,
         );
       } else {
         effectEventCode =
           myBricksDescriptorCode +
-          `${indent}aboutToAppear(): void {\n` +
+          `\n${indent}aboutToAppear(): void {\n` +
           `\n${indent}}`;
       }
     }

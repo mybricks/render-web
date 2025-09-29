@@ -142,16 +142,10 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       `\n${indent}})\n`;
   });
 
-  globalAddDependencyImport({
-    packageName: config.getUtilsPackageName(),
-    importType: "named",
-    dependencyNames: ["BaseGlobalVars"],
-  });
-
   const varCode =
     "/** 全局变量 */" +
     // `${globalVarsParamsCode}` +
-    `\nclass GlobalVars extends BaseGlobalVars {` +
+    `\nclass GlobalVars {` +
     `\n${globalVarsInitCode}` +
     `\n${indent}init() {` +
     `${globalVarsRegisterChangeCode}` +
