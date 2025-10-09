@@ -7,7 +7,7 @@
  * mybricks@126.com
  */
 import {logInputVal, logOutputVal, getLogInputVal, getLogOutVal} from './logger';
-import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy, getValueByPath, setDeepProps} from "./utils";
+import {uuid, dataSlim, easyClone, deepCopy, easyDeepCopy, fillProxy, getValueByPath, isVariableNamespace, setValueByPath} from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
 const ROOT_FRAME_KEY = '_rootFrame_'
@@ -1396,8 +1396,8 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
             })
           });
         } else if (configBindWith?.bindWith.startsWith("data.")) {
-          setDeepProps({
-            props,
+          setValueByPath({
+            data: props,
             path: configBindWith.bindWith.split("."),
             value: getValueByPath({
               value: val,
@@ -1551,6 +1551,22 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
           const fn = props._inputRegs[pinId]
           if (typeof fn === 'function') {
+            const isVariableNS = isVariableNamespace(def.namespace)
+
+            if (isVariableNS && pinId === "set") {
+              const xpath = inReg.extData?.xpath
+
+              if (xpath) {
+                setValueByPath({
+                  data: props.data.val !== void 0 ? props.data.val : props.data.initValue,
+                  path: xpath.split("/").slice(1),
+                  value: val
+                })
+
+                val = props.data.val
+              }
+            }
+
             fn(easyDeepCopy(val), fillProxy({}, {//relOutputs
               get(target, name) {
                 return function (val: any) {
@@ -1569,6 +1585,17 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                       }
                     }
                   }
+
+                  if (isVariableNS && pinId === "get") {
+                    const xpath = inReg.extData?.xpath
+                    if (xpath) {
+                      val = getValueByPath({
+                        value: val,
+                        path: xpath.split("/").slice(1)
+                      })
+                    }
+                  }
+
                   if (_getComProps) {
                     // 说明在里面
                     const comProps = getComProps(comId, scope, true)

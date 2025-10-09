@@ -267,9 +267,9 @@ export const getValueByPath = (params) => {
   return current
 }
 
-export const setDeepProps = (params) => {
-  const { props, path, value } = params;
-  let current = props;
+export const setValueByPath = (params) => {
+  const { data, value, path } = params;
+  let current = data;
   const nextIndex = path.length - 1;
   let errorFlag = false;
   for (let i = 0; i < nextIndex; i++) {
@@ -278,7 +278,7 @@ export const setDeepProps = (params) => {
     } catch (error) {
       errorFlag = true;
       console.error(
-        "[core - executor] exeInputForCom 设置data属性失败，请检查绑定路径是否正确", 
+        "[core - executor] setValueByPath 设置属性失败，请检查绑定路径是否正确", 
         params,
         error,
       );
@@ -289,4 +289,8 @@ export const setDeepProps = (params) => {
   if (!errorFlag) {
     current[path[nextIndex]] = value;
   }
+}
+
+export const isVariableNamespace = (namespace: string) => {
+  return namespace === "mybricks.core-comlib.var";
 };
