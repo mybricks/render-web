@@ -532,6 +532,16 @@ const handleProcess = (
             : [config.getParamSource()],
         });
       } else if (category === "var") {
+        const nextCon = config
+          .getScene()
+          .cons[`${con.from.parent.id}-${con.from.id}`]?.find((nextCon) => {
+            return nextCon.comId === con.to.parent.id && nextCon.id === con.id;
+          });
+
+        if (nextCon) {
+          invocation.extData = nextCon.extData;
+        }
+
         // 变量
         nodesInvocation.push({
           ...invocation,

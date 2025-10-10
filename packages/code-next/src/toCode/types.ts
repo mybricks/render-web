@@ -150,8 +150,11 @@ export interface Scene {
       targetFrameKey?: string;
       comId: string;
       pinId: string;
-      configBindWith: {
+      configBindWith?: {
         toplKey: string;
+      };
+      extData?: {
+        xpath: string;
       };
     }>
   >;

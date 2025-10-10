@@ -620,6 +620,12 @@ export const handleProcess = (
           console.log("[frameOutput 非当前场景]");
         }
       } else if (category === "var") {
+        const xpath = props.extData?.xpath;
+
+        if (xpath) {
+          nextValue = `${nextValue}, '${xpath.replace(/\//g, ".").slice(1)}'`;
+        }
+
         if (props.meta.global) {
           const packageName = config.getComponentPackageName(props);
 
