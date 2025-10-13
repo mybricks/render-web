@@ -21,6 +21,12 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
   const globalAddDependencyImport =
     globalImportManager.addImport.bind(globalImportManager);
 
+  globalAddDependencyImport({
+    packageName: config.getComponentPackageName(),
+    dependencyNames: ["appContext"],
+    importType: "named",
+  });
+
   let globalVarsInitCode = "";
   // let globalVarsResetCode = "";
   // let globalVarsParamsCode = "";
