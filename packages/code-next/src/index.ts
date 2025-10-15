@@ -288,10 +288,18 @@ const toCode = (tojson: ToJSON, config: Config) => {
           addCanvasImport: (canvasId) => {
             if (!canvasImport.has(canvasId)) {
               // 避免重复导入
-              canvasImport.set(canvasId, {
-                from: scene,
-                to: scenes.find((scene) => scene.id === canvasId)!,
-              });
+              const to = scenes.find((scene) => scene.id === canvasId);
+              if (to) {
+                canvasImport.set(canvasId, {
+                  from: scene,
+                  to: to,
+                });
+              } else {
+                console.warn("找不到对应的场景信息 => ", {
+                  scenes,
+                  canvasId,
+                });
+              }
             }
           },
           disableSceneVisible: false,
@@ -432,7 +440,11 @@ const toCode = (tojson: ToJSON, config: Config) => {
         addDependencyImport("@mybricks/render-react-hoc", "createVar");
         const code = new Code(
           scenes[0],
-          { ...globalVarFrames, diagrams: [diagram] }!,
+          {
+            ...globalVarFrames,
+            diagrams: [diagram],
+            frames: globalFxFrames,
+          }!,
           global,
           {
             comsAutoRunKey: "",
@@ -482,14 +494,22 @@ const toCode = (tojson: ToJSON, config: Config) => {
         const scene = global.fxFrames.find(
           (fxFrame) => fxFrame.id === frame.id,
         );
-        const code = new Code(scene!, frame, global, {
-          comsAutoRunKey: "",
-          ignoreUI: true,
-          namespaceToMetaDataMap,
-          addDependencyImport,
-          addCanvasImport() {},
-          disableSceneVisible: false,
-        });
+        const code = new Code(
+          scene!,
+          {
+            ...frame,
+            frames: frame!.frames.concat(globalFxFrames),
+          },
+          global,
+          {
+            comsAutoRunKey: "",
+            ignoreUI: true,
+            namespaceToMetaDataMap,
+            addDependencyImport,
+            addCanvasImport() {},
+            disableSceneVisible: false,
+          },
+        );
 
         const { js } = code.toCode();
 
@@ -869,7 +889,11 @@ const toMpaCode = (tojson: ToJSON, config: Config) => {
       addDependencyImport("@mybricks/render-react-hoc", "createVar");
       const code = new Code(
         scenes[0],
-        { ...globalVarFrames, diagrams: [diagram] }!,
+        {
+          ...globalVarFrames,
+          diagrams: [diagram],
+          frames: globalFxFrames,
+        }!,
         global,
         {
           comsAutoRunKey: "",
@@ -917,14 +941,22 @@ const toMpaCode = (tojson: ToJSON, config: Config) => {
       const addDependencyImport =
         createDependencyImportCollector(dependencyImport);
       const scene = global.fxFrames.find((fxFrame) => fxFrame.id === frame.id);
-      const code = new Code(scene!, frame, global, {
-        comsAutoRunKey: "",
-        ignoreUI: true,
-        namespaceToMetaDataMap,
-        addDependencyImport,
-        addCanvasImport() {},
-        disableSceneVisible: false,
-      });
+      const code = new Code(
+        scene!,
+        {
+          ...frame,
+          frames: frame!.frames.concat(globalFxFrames),
+        },
+        global,
+        {
+          comsAutoRunKey: "",
+          ignoreUI: true,
+          namespaceToMetaDataMap,
+          addDependencyImport,
+          addCanvasImport() {},
+          disableSceneVisible: false,
+        },
+      );
 
       const { js } = code.toCode();
 
@@ -2086,10 +2118,15 @@ class Code {
     if (validateUiModule(def.namespace)) {
       this.config.addDependencyImport("../module", `Module_${data.definedId}`);
     } else {
-      this.config.addDependencyImport(
-        this.config.namespaceToMetaDataMap[def.namespace].npmPackageName,
-        componentName,
-      );
+      const metaData = this.config.namespaceToMetaDataMap[def.namespace];
+      if (!metaData) {
+        console.warn("找不到对应的组件库 => ", {
+          com,
+          namespaceToMetaDataMap: this.config.namespaceToMetaDataMap,
+        });
+        return;
+      }
+      this.config.addDependencyImport(metaData.npmPackageName, componentName);
     }
 
     const eventsCode = Object.entries(outputEvents).reduce(
