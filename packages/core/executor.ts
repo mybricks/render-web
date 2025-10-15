@@ -1380,6 +1380,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
     if (pinType === 'ext') {
       const props = _Props[comId] || getComProps(comId, scope)
+
+      if (!props) {
+        console.warn("[core - executor] exeInputForCom 未找到组件实例", inReg)
+        return
+      }
+
       if (pinId === "_config_") {
         const configBindWith = props.com.model.configBindWith?.find(({ toplKey }) => {
           return toplKey === inReg.configBindWith?.toplKey
