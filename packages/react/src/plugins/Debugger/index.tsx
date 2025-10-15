@@ -187,7 +187,13 @@ class Debugger {
 
         this.open();
         this._pending = true;
-        if (connection.isBreakpoint) {
+        if (
+          (connection.isBreakpoint &&
+            !this.brokenBreakpoints.has(connection.id)) ||
+          // 原始未标记断点 & 被标记
+          (!connection.isBreakpoint &&
+            this.effectiveBreakpoints.has(connection.id))
+        ) {
           if (waiting) {
             const lastId = this._waitBreakpointIds[0];
             this._waitIdToResolvesMap[lastId].push(cb);
