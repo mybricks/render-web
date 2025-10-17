@@ -62,6 +62,9 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       },
       addParentDependencyImport: globalAddDependencyImport,
       getComponentMeta: config.getComponentMeta,
+      getCurrentScene: () => {
+        return tojson.global;
+      },
     } as any);
 
     // const initFunctionName = `init${firstCharToUpperCase(com.title)}`;
