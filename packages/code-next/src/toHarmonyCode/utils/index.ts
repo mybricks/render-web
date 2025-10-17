@@ -269,7 +269,7 @@ export const convertHarmonyFlexComponent = (
           indentSize,
           scope,
         })}\n`
-      : "") +
+      : convertHarmonyFlexGap(hmStyle, convertHarmonyStyleConfig)) +
     `${indentation(initialIndent)}}) {\n` +
     `${child}\n` +
     `${indentation(initialIndent)}}` +
@@ -293,6 +293,28 @@ export const convertHarmonyFlexComponent = (
     convertHarmonyBorder(hmStyle, convertHarmonyStyleConfig) +
     convertHarmonyBoxShadow(hmStyle, convertHarmonyStyleConfig)
   );
+};
+
+const convertHarmonyFlexGap = (
+  style: HmStyle,
+  config: ConvertHarmonyStyleConfig,
+) => {
+  const { indentSize, initialIndent } = config;
+
+  // 目前智能布局实现，只有主轴方向的gap，所以取其一使用space.main即可
+  const gap = style.columnGap || style.rowGap;
+
+  if (gap) {
+    const indent = indentation(initialIndent);
+    const indent2 = indentation(initialIndent + indentSize);
+    return (
+      `\n${indent}space: {` +
+      `\n${indent2}main: LengthMetrics.vp(${gap}),` +
+      `\n${indent}}`
+    );
+  }
+
+  return "";
 };
 
 interface GetExtraFlexCodeConfig extends ConvertHarmonyStyleConfig {
