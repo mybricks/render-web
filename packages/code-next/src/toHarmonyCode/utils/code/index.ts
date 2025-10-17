@@ -225,6 +225,36 @@ export const getSlotComponentCode = (params: any, config: any) => {
   );
 };
 
+export const formatValue = (
+  value: any,
+  level: number,
+  config: GenObjectCodeConfig,
+): string => {
+  const { indentSize } = config;
+  if (Array.isArray(value)) {
+    if (value.length === 0) return "[]";
+    let arrStr = "[\n";
+    value.forEach((item, idx) => {
+      arrStr +=
+        indentation(level + indentSize) +
+        formatValue(item, level + indentSize, config);
+      if (idx < value.length - 1) arrStr += ",";
+      arrStr += "\n";
+    });
+    arrStr += indentation(level) + "]";
+    return arrStr;
+  } else if (value && typeof value === "object") {
+    return genObjectCode(value, { initialIndent: level, indentSize });
+  } else if (typeof value === "string") {
+    if (value.startsWith("$r(")) {
+      return value;
+    }
+    return JSON.stringify(value);
+  } else {
+    return String(value);
+  }
+};
+
 interface GenObjectCodeConfig {
   initialIndent: number;
   indentSize: number;
@@ -235,44 +265,18 @@ export const genObjectCode = (
   config: GenObjectCodeConfig,
 ): string => {
   const { initialIndent, indentSize } = config;
-  const indent = (level: number) => " ".repeat(level);
-
-  const formatValue = (value: any, level: number): string => {
-    if (Array.isArray(value)) {
-      if (value.length === 0) return "[]";
-      let arrStr = "[\n";
-      value.forEach((item, idx) => {
-        arrStr +=
-          indent(level + indentSize) + formatValue(item, level + indentSize);
-        if (idx < value.length - 1) arrStr += ",";
-        arrStr += "\n";
-      });
-      arrStr += indent(level) + "]";
-      return arrStr;
-    } else if (value && typeof value === "object") {
-      return genObjectCode(value, { initialIndent: level, indentSize });
-    } else if (typeof value === "string") {
-      if (value.startsWith("$r(")) {
-        return value;
-      }
-      return JSON.stringify(value);
-    } else {
-      return String(value);
-    }
-  };
-
   const keys = Object.keys(object);
   if (keys.length === 0) return "{}";
 
   let result = "{\n";
   keys.forEach((key, idx) => {
     result +=
-      indent(initialIndent + indentSize) +
-      `${JSON.stringify(key)}: ${formatValue(object[key], initialIndent + indentSize)}`;
+      indentation(initialIndent + indentSize) +
+      `${JSON.stringify(key)}: ${formatValue(object[key], initialIndent + indentSize, config)}`;
     if (idx < keys.length - 1) result += ",";
     result += "\n";
   });
-  result += indent(initialIndent) + "}";
+  result += indentation(initialIndent) + "}";
   return result;
 };
 
