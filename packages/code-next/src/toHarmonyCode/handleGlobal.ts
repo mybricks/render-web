@@ -174,6 +174,14 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
     `}` +
     `\n\nexport const globalFxs = new GlobalFxs()`;
 
+  if (fxCode.includes("merge(")) {
+    globalAddDependencyImport({
+      packageName: config.getUtilsPackageName(),
+      dependencyNames: ["merge"],
+      importType: "named",
+    });
+  }
+
   return {
     type: "global",
     content: varCode + "\n\n" + fxCode,
