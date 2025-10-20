@@ -1612,9 +1612,19 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                   }
                 }
               }
-            }))
+            }), {
+              onError: (error) => {
+                return debug ? onError({ comId, error, title: jsCom.title, conId: inReg.id}) : onError(error, {
+                  id: com.id,
+                  title: com.title,
+                  frameId: com.frameId,
+                  parentComId: com.parentComId,
+                  conId: inReg.id,
+                })
+              }
+            })
           } else {
-            console.log("计算组件的addInputTodo: ", def)
+            console.error("[core - executor] exeInputForCom 未实现该输入，请联系开发者", { inReg, def })
             props.addInputTodo(pinId, easyDeepCopy(val), inReg, scope)
           }
         }
