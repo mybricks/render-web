@@ -1563,8 +1563,12 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               const xpath = inReg.extData?.xpath
 
               if (xpath) {
+                if (!("val" in props.data)) {
+                  props.data.val = props.data.initValue
+                }
+
                 setValueByPath({
-                  data: props.data.val !== void 0 ? props.data.val : props.data.initValue,
+                  data: props.data.val,
                   path: xpath.split("/").slice(1),
                   value: val
                 })
