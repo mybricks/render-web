@@ -14,10 +14,16 @@ export const ioTypeCode = (
   statement: string | null;
   typeName: string;
 } => {
-  const { typeName, schema } = params;
+  const { typeName, schema, promote } = params;
 
   if (!schema) {
     // 兼容处理，正常不应该没有schema
+    if (promote) {
+      return {
+        statement: `/** 未声明schema */\n` + `type ${typeName} = MyBricks.Any;`,
+        typeName,
+      };
+    }
     return {
       statement: null,
       typeName: "MyBricks.Any",
@@ -25,8 +31,20 @@ export const ioTypeCode = (
   }
 
   const { type } = schema;
+  const description = genDescription(schema.description, {
+    initialIndent: 0,
+  });
+
   if (type === "any") {
     // 任意
+    if (promote) {
+      return {
+        statement:
+          (description ? `${description}\n` : "") +
+          `type ${typeName} = MyBricks.Any;`,
+        typeName,
+      };
+    }
     return {
       statement: null,
       typeName: "MyBricks.Any",
@@ -35,6 +53,15 @@ export const ioTypeCode = (
 
   if (["number", "string", "boolean"].includes(type)) {
     // 数字，字符，布尔
+    if (promote) {
+      return {
+        statement:
+          (description ? `${description}\n` : "") +
+          `type ${typeName} = ${type};`,
+        typeName,
+      };
+    }
+
     return {
       statement: null,
       typeName: type,
@@ -60,6 +87,7 @@ export const ioTypeCode = (
     return {
       statement:
         (statement ? `${statement}\n` : "") +
+        (description ? `${description}\n` : "") +
         `interface ${typeName} {` +
         (!code ? "}" : code + `\n${indent}}`),
       typeName,
@@ -82,6 +110,7 @@ export const ioTypeCode = (
     return {
       statement:
         (type.statement ? `${type.statement}\n` : "") +
+        (description ? `${description}\n` : "") +
         `type ${typeName} = ${type.typeName}[]`,
       typeName,
     };
@@ -124,7 +153,18 @@ export const ioTypeCode = (
 
     return {
       statement:
-        (statement ? `${statement}\n` : "") + `type ${typeName} = ${code}`,
+        (statement ? `${statement}\n` : "") +
+        (description ? `${description}\n` : "") +
+        `type ${typeName} = ${code}`,
+      typeName,
+    };
+  }
+
+  if (promote) {
+    return {
+      statement:
+        `/** 未处理的类型「${type}」，请联系平台开发者 */\n` +
+        `type ${typeName} = MyBricks.Any;`,
       typeName,
     };
   }
@@ -141,7 +181,7 @@ const objectTypeCode = (params: any, config: any) => {
   let code = "";
   let statement = "";
   const indent = indentation(initialIndent);
-  Object.entries(properties).forEach(([key, schema]) => {
+  Object.entries(properties).forEach(([key, schema]: any) => {
     const type = ioTypeCode(
       {
         typeName: `${typeName}_${key}`,
@@ -159,11 +199,38 @@ const objectTypeCode = (params: any, config: any) => {
         : `${type.statement}\n${statement}`;
     }
 
-    code += `\n${indent}${key}: ${type.typeName}`;
+    const description = genDescription(schema.description, {
+      initialIndent,
+    });
+
+    code +=
+      (description ? `\n${description}` : "") +
+      `\n${indent}${key}: ${type.typeName}`;
   });
 
   return {
     statement,
     code,
   };
+};
+
+export const genDescription = (description: string, config: any) => {
+  if (!description) {
+    return;
+  }
+  const descriptions = description.split("\n");
+  const { initialIndent } = config;
+  if (descriptions.length === 1) {
+    return `${indentation(initialIndent)}/** ${description} */`;
+  }
+
+  const indent2 = indentation(initialIndent + 1);
+
+  return (
+    `${indentation(initialIndent)}/**` +
+    descriptions.reduce((pre, description) => {
+      return pre + `\n${indent2}* ${description}`;
+    }, "") +
+    `\n${indent2}*/`
+  );
 };

@@ -12,6 +12,7 @@ import handleGlobal from "./handleGlobal";
 import handleExtension from "./handleExtension";
 import ai, { AIConfig } from "./withAI";
 import abstractEventTypeDef from "./abstractEventTypeDef";
+import extensionEventTypeDef from "./extensionEventTypeDef";
 
 export interface ToSpaCodeConfig {
   getComponentMeta: (
@@ -70,12 +71,13 @@ export type Result = Array<{
     | "normal"
     | "popup"
     | "module"
-    | "extensionEvent"
+    // 扩展事件类型定义
+    | "extensionEventTypeDef"
     | "global"
     | "extension-config"
     | "extension-api"
     | "extension-bus"
-    // 抽象事件类型定义
+    // 组件抽象事件类型定义
     | "abstractEventTypeDef";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
   name: string;
@@ -535,6 +537,13 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
     content: abstractEventTypeDef(abstractEventTypeDefMap, config),
     importManager: new ImportManager(config),
     name: "abstractEventTypeDef",
+  });
+
+  result.push({
+    type: "extensionEventTypeDef",
+    content: extensionEventTypeDef(tojson, config),
+    importManager: new ImportManager(config),
+    name: "extensionEventTypeDef",
   });
 
   return result;

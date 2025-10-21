@@ -207,6 +207,7 @@ export interface Diagram {
     schema?: any;
   };
   conAry: DiagramCon[];
+  description: string;
 }
 
 export interface Frame {
@@ -218,6 +219,7 @@ export interface Frame {
     | {
         type: "normal";
         pinId: string;
+        schema: any;
       }
     | {
         type: "config";
@@ -227,11 +229,13 @@ export interface Frame {
             defaultValue: any;
           };
         };
+        schema: any;
       }
   >;
   outputs: {
     id: string;
     title: string;
+    schema: any;
   }[];
   coms: Record<string, Frame>;
   /**
