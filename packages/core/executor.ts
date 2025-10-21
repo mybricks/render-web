@@ -1998,8 +1998,9 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
     const frameKey = frameId === ROOT_FRAME_KEY ? ROOT_FRAME_KEY : `${comId}-${frameId}`
     Object.values(coms).forEach(com => {
       if (com.def?.namespace === "mybricks.core-comlib.var" && (!com.parentComId || com.frameId === frameId)) {
-        // 配置了默认值的变量默认触发一次
-        if ("initValue" in com.model.data) {
+        const props = getComProps(com.id, scope)
+        // 「配置了默认值」或「设置过值」的变量默认触发一次
+        if ("initValue" in com.model.data || "val" in props.data) {
           const cons = Cons[`${com.id}-changed`]?.filter((con) => {
             return (con.targetFrameKey || con.frameKey) === frameKey
           })
