@@ -78,7 +78,9 @@ export type Result = Array<{
     | "extension-api"
     | "extension-bus"
     // 组件抽象事件类型定义
-    | "abstractEventTypeDef";
+    | "abstractEventTypeDef"
+    // TODO: 忽略，类型定义没写完整，到这一步的处理不会存在fx类型
+    | "fx";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
   name: string;
 }>;
@@ -275,6 +277,25 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
     globalVarTypeDef[com.title] = com;
   });
 
+  /** 向下记录组件可调用的fx，id唯一，所以直接key-value即可 */
+  const defaultFxsMap = tojson.global.fxFrames
+    .filter((fxFrame) => {
+      return fxFrame.type === "fx";
+    })
+    .reduce<Record<string, Provider>>((pre, fxFrame) => {
+      pre[fxFrame.id] = {
+        name: "global",
+        class: "global",
+        controllers: new Set(),
+        useParams: false,
+        useEvents: false,
+        coms: new Set(),
+        useController: false,
+        useData: false,
+      };
+      return pre;
+    }, {});
+
   result.push(
     handleGlobal(
       {
@@ -319,6 +340,8 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       // 输出
       outputs: {},
     };
+
+    const fxsMap = Object.assign({}, defaultFxsMap);
 
     handleSlot(ui, {
       ...config,
@@ -400,6 +423,9 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       getTypeDef: () => {
         return typeDef;
       },
+      getFxsMap: () => {
+        return fxsMap;
+      },
       setAbstractEventTypeDefMap: (params) => {
         const { comId, eventId, typeDef, schema } = params;
         if (!abstractEventTypeDefMap[comId]) {
@@ -438,6 +464,8 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       // 输出
       outputs: {},
     };
+
+    const fxsMap = Object.assign({}, defaultFxsMap);
 
     handleSlot(ui, {
       ...config,
@@ -518,6 +546,9 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
       depth: 0,
       getTypeDef() {
         return typeDef;
+      },
+      getFxsMap: () => {
+        return fxsMap;
       },
       setAbstractEventTypeDefMap: (params) => {
         const { comId, eventId, typeDef, schema } = params;
@@ -621,6 +652,7 @@ export interface BaseConfig extends ToSpaCodeConfig {
     inputs: Record<string, any>;
     outputs: Record<string, any>;
   };
+  getFxsMap: () => Record<string, Provider>;
   setAbstractEventTypeDefMap: (params: {
     comId: string;
     eventId: string;

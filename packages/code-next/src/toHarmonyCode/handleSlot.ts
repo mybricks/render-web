@@ -246,6 +246,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     const consumers = new Set<{ name: string; class: string }>();
 
     const typeDef = Object.assign({}, config.getTypeDef());
+    const fxsMap = Object.assign({}, config.getFxsMap());
 
     const addDependencyImport =
       config.addParentDependencyImport ||
@@ -265,6 +266,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
           consumers.add(provider);
         }),
       getTypeDef: () => typeDef,
+      getFxsMap: () => fxsMap,
     };
 
     let vars = null;
@@ -813,7 +815,10 @@ export const handleFxsEvent = (ui: UI, config: HandleFxsEventConfig) => {
   const indent3 = indentation(config.codeStyle!.indent * 3);
   const indent4 = indentation(config.codeStyle!.indent * 4);
 
+  const fxsMap = config.getFxsMap();
+
   fxEvents.forEach((fxEvent) => {
+    fxsMap[fxEvent.frameId] = currentProvider;
     config.addParentDependencyImport({
       packageName: config.getUtilsPackageName(),
       dependencyNames: ["createFx"],

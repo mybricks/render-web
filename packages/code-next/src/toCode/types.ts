@@ -43,7 +43,12 @@ export interface Slot {
   title: string;
 }
 
-export type ComEventType = "defined" | "isAbstract";
+/**
+ * defined    默认
+ * isAbstract 外部实现，出码不做实现
+ * fx         调用fx
+ */
+export type ComEventType = "defined" | "isAbstract" | "fx";
 
 export interface FrameIO {
   id: string;
@@ -112,8 +117,9 @@ export interface Scene {
    * popup - 弹窗
    * module - 模块
    * extension-bus - 总线fx
+   * fx - 全局fx
    */
-  type: "normal" | "popup" | "module" | "extension-bus";
+  type: "normal" | "popup" | "module" | "extension-bus" | "fx";
   name: string;
   pinProxies: Record<
     string,

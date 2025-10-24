@@ -66,6 +66,33 @@ const handleCom = (com: Com, config: HandleComConfig): HandleComResult => {
         });
         return;
       }
+      if (type === "fx") {
+        const fxsMap = config.getFxsMap();
+        const currentProvider = config.getCurrentProvider();
+        const scene = config.getCurrentScene();
+        const pinProxy = scene.pinProxies[`${props.id}-${eventId}`];
+        const fxProvider = fxsMap[pinProxy.frameId];
+        const isGlobal = fxProvider.name === "global";
+
+        if (fxProvider.name !== currentProvider.name) {
+          if (isGlobal) {
+            config.addParentDependencyImport({
+              packageName: config.getComponentPackageName(),
+              dependencyNames: ["globalFxs"],
+              importType: "named",
+            });
+          } else {
+            config.addConsumer(fxProvider);
+          }
+        }
+
+        const indent = indentation(
+          config.codeStyle!.indent * (config.depth + (paddingCode ? 3 : 2)),
+        );
+
+        comEventCode += `${indent}${eventId}: ${isGlobal ? `globalFxs` : `this.${fxProvider.name}_Fxs`}.${pinProxy.frameId},\n`;
+        return;
+      }
       if (type !== "defined") {
         // TODO: 后续支持直接调用fx
         return;
