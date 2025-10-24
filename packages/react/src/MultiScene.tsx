@@ -391,7 +391,7 @@ export default function MultiScene ({json, options}) {
               fxFrame.outputs.forEach((output) => {
                 outputs(output.id, (value) => {
                   // 输出对应到fx组件的输出
-                  parentScope.outputs[output.id](value);
+                  parentScope?.outputs[output.id](value);
                 });
               });
 
@@ -418,9 +418,12 @@ export default function MultiScene ({json, options}) {
             observable: _context.observable//传递获取响应式的方法
           })
         } else {
-          env.callServiceFx?.(frameId, todo.value).then(({ id, value }: any) => {
-            parentScope.outputs[id](value);
-          })
+          if (parentScope) {
+            // 没有parentScope说明不是组件执行，就不可能走到serviceFx
+            env.callServiceFx?.(frameId, todo.value).then(({ id, value }: any) => {
+              parentScope.outputs[id](value);
+            })
+          }
         }
       },
       inputs({frameId: pageId, parentScope, value, pinId}, configs) {

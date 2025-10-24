@@ -1135,6 +1135,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
 
             const evts = model.outputEvents
             let cons
+            let proxyDesc
             if (evts) {
               const eAry = evts[name]
               if (eAry && Array.isArray(eAry)) {
@@ -1146,7 +1147,7 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
                       cons = []
                       break
                     case 'fx':
-                      const proxyDesc = PinProxies[comId + '-' + name]
+                      proxyDesc = PinProxies[comId + '-' + name]
                       if (proxyDesc?.type === 'frame') {
                         const key = `${proxyDesc.frameId}-${proxyDesc.pinId}`
                         cons = Cons[key] || []
@@ -1186,6 +1187,16 @@ export default function executor(opts: ExecutorProps, config: ExecutorConfig = {
               }
             } else {
               _logOutputVal('com', {com, pinHostId: name, val, fromCon, notifyAll, comDef})
+              if (proxyDesc?.type === 'frame') {
+                // fx没有cons，尝试调用全局fx
+                scenesOperate?.open({
+                  frameId: proxyDesc.frameId,
+                  todo: {
+                    pinId: proxyDesc.pinId,
+                    value: val
+                  },
+                })
+              }
             }
           }
 
