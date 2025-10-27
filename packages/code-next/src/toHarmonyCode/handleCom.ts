@@ -892,7 +892,7 @@ export const handleProcess = (
           inputId = "_setData";
           nextValue = `${JSON.stringify(configBindWith.bindWith.slice(5))}, ${nextValue}${configBindWith.xpath.split("/").join("?.")}`;
         } else {
-          console.log("[出码] 其它ui配置类型");
+          console.log("[出码] 其它ui配置类型", props);
         }
       }
 

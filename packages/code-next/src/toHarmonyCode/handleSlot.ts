@@ -8,7 +8,7 @@ import {
   getProviderCode,
   firstCharToUpperCase,
   genMyBricksDescriptorCode,
-  formatValue,
+  genCreateVariableFirstParams,
 } from "./utils";
 import handleCom, { handleProcess } from "./handleCom";
 import handleDom from "./handleDom";
@@ -704,9 +704,8 @@ export const handleVarsEvent = (ui: UI, config: HandleVarsEventConfig) => {
 
     if (varEvent.type === "var") {
       typeDef.vars[varEvent.title] = varEvent.meta;
-      const initValue = varEvent.meta.model.data.initValue;
 
-      varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable(${initValue && typeof initValue === "object" ? formatValue(initValue, 0, { indentSize: config.codeStyle!.indent, initialIndent: config.codeStyle!.indent }) : JSON.stringify(initValue)})\n`;
+      varsDeclarationCode += `${indent}${varEvent.title}: MyBricks.Controller = createVariable(${genCreateVariableFirstParams({ data: varEvent.meta.model.data }, { indentSize: config.codeStyle!.indent, initialIndent: config.codeStyle!.indent })})\n`;
     }
 
     if (varEvent.type === "listener") {

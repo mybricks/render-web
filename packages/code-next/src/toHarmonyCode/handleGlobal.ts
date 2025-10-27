@@ -4,7 +4,11 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import toCode from "../toCode";
-import { formatValue, ImportManager, indentation } from "./utils";
+import {
+  ImportManager,
+  indentation,
+  genCreateVariableFirstParams,
+} from "./utils";
 import { handleProcess } from "./handleCom";
 import type { ToJSON } from "../toCode/types";
 import type { ToSpaCodeConfig, Result } from "./index";
@@ -81,9 +85,7 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
       `\n${res}` +
       `\n${indent2}})`;
 
-    const initValue = com.model.data.initValue;
-
-    globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = createVariable(${initValue && typeof initValue === "object" ? formatValue(initValue, 0, { indentSize: config.codeStyle!.indent, initialIndent: config.codeStyle!.indent }) : JSON.stringify(initValue)})\n`;
+    globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = createVariable(${genCreateVariableFirstParams({ data: com.model.data }, { indentSize: config.codeStyle!.indent, initialIndent: config.codeStyle!.indent })})\n`;
     // globalVarsInitCode += `${indent}${com.title}: MyBricks.Controller = ${initFunctionName}()\n`;
     // globalVarsResetCode += `${indent2}this.${com.title} = ${initFunctionName}()\n`;
   });

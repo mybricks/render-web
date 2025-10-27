@@ -447,3 +447,4 @@ export const getSlotScopeComponentCode = (params: any, config: any) => {
 
 export * from "./type";
 export * from "./myBricksDescriptor";
+export * from "./createVariableFirstParams";

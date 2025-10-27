@@ -463,12 +463,13 @@ const handleProcess = (
 
     if (con.to.id === "_config_") {
       const scene = config.getScene();
-      const conKey =
-        comInfo.parentComId && comInfo.frameId
-          ? `${comInfo.parentComId}-${comInfo.frameId}-${con.from.id}`
-          : `${con.from.parent.id}-${con.from.id}`;
-
-      const nextCon = scene.cons[conKey]?.find((nextCon) => {
+      const cons =
+        scene.cons[
+          comInfo.parentComId && comInfo.frameId
+            ? `${comInfo.parentComId}-${comInfo.frameId}-${con.from.id}`
+            : `${con.from.parent.id}-${con.from.id}`
+        ] || scene.cons[`${con.from.parent.id}-${con.from.id}`];
+      const nextCon = cons?.find((nextCon) => {
         return nextCon.comId === con.to.parent.id && nextCon.id === con.id;
       });
 
