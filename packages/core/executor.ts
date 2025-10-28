@@ -1883,20 +1883,22 @@ export default function executor(
             }),
           });
         } else if (configBindWith?.bindWith.startsWith("data.")) {
+          const value = getValueByPath({
+            value: val,
+            path: configBindWith.xpath
+              ? configBindWith.xpath.slice(1).split("/")
+              : [],
+          });
+
           setValueByPath({
             data: props,
             path: configBindWith.bindWith.split("."),
-            value: getValueByPath({
-              value: isBindVar
-                ? {
-                    [CONFIG_SET_VALUE_TAB]: true,
-                    value: val,
-                  }
-                : val,
-              path: configBindWith.xpath
-                ? configBindWith.xpath.slice(1).split("/")
-                : [],
-            }),
+            value: isBindVar
+              ? {
+                  [CONFIG_SET_VALUE_TAB]: true,
+                  value,
+                }
+              : value,
           });
         } else {
           console.error(
