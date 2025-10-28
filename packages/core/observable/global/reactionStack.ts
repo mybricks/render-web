@@ -1,9 +1,12 @@
+/* eslint-disable prefer-const */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 import { globalTaskEmitter } from ".";
 
 class ReactionStack {
   private reactionStack: Function[] = [];
 
-  regist(operation) {
+  regist(operation: any) {
     let reaction = this.getCurrentReaction();
 
     if (reaction) {
@@ -11,7 +14,7 @@ class ReactionStack {
     }
   }
 
-  autoRun(reaction, fn) {
+  autoRun(reaction: any, fn: any) {
     const { reactionStack } = this;
     if (reactionStack.indexOf(reaction) === -1) {
       try {

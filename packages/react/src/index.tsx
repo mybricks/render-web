@@ -1,3 +1,7 @@
+/* eslint-disable @typescript-eslint/no-this-alias */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /**
  * MyBricks Opensource
  * https://mybricks.world
@@ -7,31 +11,52 @@
  * mybricks@126.com
  */
 
-import React, { useEffect, useContext, createContext, useRef, useLayoutEffect } from "react";
+import React, {
+  useEffect,
+  useContext,
+  createContext,
+  useRef,
+  useLayoutEffect,
+} from "react";
 import ReactDOM from "react-dom";
 
 import Main from "./Main";
 import pkg from "../package.json";
 import MultiScene from "./MultiScene";
 import Debugger from "./plugins/Debugger";
-import { hijackReactcreateElement, observable as defaultObservable } from "../../core/observable"
-import RenderSlotLess from './RenderSlot.lazy.less';
-import MultiSceneLess from './MultiScene.lazy.less';
-import ErrorBoundaryLess from './ErrorBoundary/style.lazy.less';
-import NotificationLess from './Notification/style.lazy.less';
-import { setLoggerSilent } from '../../core/logger';
-import Notification from './Notification';
-import executor from '../../core/executor'
-import { compareVersion, deepCopy, getStylesheetMountNode, getPxToVw, convertCamelToHyphen, pxToRem } from '../../core/utils';
+import {
+  hijackReactcreateElement,
+  observable as defaultObservable,
+} from "../../core/observable";
+import RenderSlotLess from "./RenderSlot.lazy.less";
+import MultiSceneLess from "./MultiScene.lazy.less";
+import ErrorBoundaryLess from "./ErrorBoundary/style.lazy.less";
+import NotificationLess from "./Notification/style.lazy.less";
+import { setLoggerSilent } from "../../core/logger";
+import Notification from "./Notification";
+import executor from "../../core/executor";
+import {
+  compareVersion,
+  deepCopy,
+  getStylesheetMountNode,
+  getPxToVw,
+  convertCamelToHyphen,
+  pxToRem,
+} from "../../core/utils";
 import type { ToJSON, MultiSceneToJSON } from "./types";
 // @ts-ignore
-import coreLib from '@mybricks/comlib-core';
+import coreLib from "@mybricks/comlib-core";
 import RenderModuleComponent from "./RenderModuleComponent";
 import renderModuleJs from "./renderModuleJs";
 
-console.log(`%c ${pkg.name} %c@${pkg.version}`, `color:#FFF;background:#fa6400`, ``, ``);
+console.log(
+  `%c ${pkg.name} %c@${pkg.version}`,
+  `color:#FFF;background:#fa6400`,
+  ``,
+  ``,
+);
 
-function loadCSSLazy (css: typeof RenderSlotLess, root: Node) {
+function loadCSSLazy(css: typeof RenderSlotLess, root: Node) {
   css.use({ target: root });
 }
 
@@ -44,13 +69,13 @@ interface RenderOptions {
 }
 
 const mybricksSdk = {
-  comRef: (fn) => fn,
-  comDef: (fn) => fn,
-  renderCom: (Fn, props = {}) => {
+  comRef: (fn: any) => fn,
+  comDef: (fn: any) => fn,
+  renderCom: (Fn: any, props: any = {}) => {
     const { props: nextProps = {} } = props;
-    return <Fn {...nextProps}/>
-  }
-}
+    return <Fn {...nextProps} />;
+  },
+};
 
 class Context {
   // TODO: 性能面板，作为插件注入，加一个开关（例如localStorage
@@ -62,34 +87,34 @@ class Context {
       // 结束
       end: null,
       // 耗时
-      time: null
+      time: null,
     },
     // 连接器数据收集（耗时，配置信息）
-    callConnectorTimes: []
-  }
+    callConnectorTimes: [],
+  };
 
-  onCompleteCallBacks: Array<() => void> = []
+  onCompleteCallBacks: Array<() => void> = [];
 
   /**
    * - development - 引擎环境
    * - production - 生产环境
    */
-  mode: 'development' | 'production'
-  
-  /** 
-   * toJSON版本 
+  mode: "development" | "production";
+
+  /**
+   * toJSON版本
    * 2024-diff - toJSON api 传入 onlyDiff: true 得到，说明是压缩版的toJSON，需要处理组件的data、inputs、outputs
    */
   _v: string;
-  
+
   // 组件信息 namespace-version => {runtime}
   comDefs: {
     [key: string]: {
       namespace: string;
       version: string;
-      runtime: React.FC<any>
-    }
-  } = {}
+      runtime: React.FC<any>;
+    };
+  } = {};
   // 组件runtime入参
   // onError: (error: Error | string) => void = (e) => {
   //   console.error(e);
@@ -97,24 +122,28 @@ class Context {
   // }
   // onError: (params: Error | string) => null
   // 组件runtime入参
-  logger: any
+  logger: any;
 
   // 将对象转换为响应式对象的方法
-  observable = defaultObservable
+  observable = defaultObservable;
 
   // 传入的配置项
-  constructor(public options: RenderOptions, json: any) {
-    const { errorHandler } = options
+  constructor(
+    public options: RenderOptions,
+    json: any,
+  ) {
+    const { errorHandler } = options;
+    // @ts-ignore
     this.onError = (e, comInfo) => {
       console.error(e);
       Notification.error(e);
       if (comInfo) {
-        errorHandler?.(e, comInfo)
+        errorHandler?.(e, comInfo);
       }
-    }
-    this._v = json._v
-    const { env, debug, observable, onError, plugins = [], rootId } = options
-    const { onCompleteCallBacks } = this
+    };
+    this._v = json._v;
+    const { env, debug, observable, onError, plugins = [], rootId } = options;
+    const { onCompleteCallBacks } = this;
     /** 一些默认值 */
     // 运行时，默认为runtime模式
     if (!env.runtime) {
@@ -126,76 +155,77 @@ class Context {
         // },
         onComplete(fn: any) {
           if (debug) {
-            onCompleteCallBacks.push(fn)
+            onCompleteCallBacks.push(fn);
           }
-        }
-      }
+        },
+      };
     }
     if ((!env.mybricksSdk || env.runtime) && env.mybricksSdk !== mybricksSdk) {
-      env.mybricksSdk = mybricksSdk
+      env.mybricksSdk = mybricksSdk;
     }
     // 样式加载dom节点
-    const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode()
+    const LOAD_CSS_LAZY_ROOT = getStylesheetMountNode();
     options.stylization = new Stylization({
       rootId,
       root: LOAD_CSS_LAZY_ROOT,
       options,
-      onCompleteCallBacks
+      onCompleteCallBacks,
     });
-    this.mode = debug ? 'development' : 'production'
+    this.mode = debug ? "development" : "production";
 
     let handlePxToVw;
     // px转vw响应式相关
-    const pxToVw = options?.pxToVw
+    const pxToVw = options?.pxToVw;
     if (pxToVw) {
-      handlePxToVw = getPxToVw(pxToVw)
-      options.handlePxToVw = handlePxToVw
-      env.pxToVw = handlePxToVw
+      handlePxToVw = getPxToVw(pxToVw);
+      options.handlePxToVw = handlePxToVw;
+      env.pxToVw = handlePxToVw;
     } else {
       env.pxToVw = (v: any) => v;
     }
 
     // px转rem响应式相关
-    const pxToRem = env?.pxToRem
+    const pxToRem = env?.pxToRem;
     if (pxToRem) {
       const {
         // 是否开启自适应
         enableAdaptive = false,
         // 基准宽度，例如在引擎搭建时基于1440px的画布搭建
-        landscapeWidth = 1440
-      } = pxToRem
-      const rootDom = document.documentElement
+        landscapeWidth = 1440,
+      } = pxToRem;
+      const rootDom = document.documentElement;
       if (enableAdaptive) {
         const calculateFontSize = () => {
-          rootDom.style.fontSize = (rootDom.clientWidth / (landscapeWidth / 12)) + 'px'
-        }
-        calculateFontSize()
+          rootDom.style.fontSize =
+            rootDom.clientWidth / (landscapeWidth / 12) + "px";
+        };
+        calculateFontSize();
         // 监听页面resize，修改font-size
-        window.addEventListener('resize', calculateFontSize)
+        window.addEventListener("resize", calculateFontSize);
       } else {
         // 默认12px，与引擎同步
-        rootDom.style.fontSize = '12px';
+        rootDom.style.fontSize = "12px";
       }
     }
 
     if (!observable) {
       /** 未传入observable，使用内置observable配合对React.createElement的劫持 */
-      hijackReactcreateElement({pxToRem: env.pxToRem, pxToVw: handlePxToVw});
+      hijackReactcreateElement({ pxToRem: env.pxToRem, pxToVw: handlePxToVw });
     } else {
-      this.observable = observable
+      this.observable = observable;
     }
     // 各种lazycss加载
     if (json.scenes || json.slot) {
-      loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT)
-      loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT)
-      loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT)
+      loadCSSLazy(RenderSlotLess, LOAD_CSS_LAZY_ROOT);
+      loadCSSLazy(MultiSceneLess, LOAD_CSS_LAZY_ROOT);
+      loadCSSLazy(ErrorBoundaryLess, LOAD_CSS_LAZY_ROOT);
       loadCSSLazy(NotificationLess, LOAD_CSS_LAZY_ROOT);
     }
 
     // 国际化，是否可以去除？？，PC通用组件库内使用
     // TODO: 去除
     if (!env.i18n) {
-      env.i18n = (text: unknown) => text
+      env.i18n = (text: unknown) => text;
     }
     // 渲染模块，提供的默认能力，引擎环境内引擎提供
     // if (!env.renderModule) {
@@ -224,18 +254,23 @@ class Context {
     //   }
     // }
     if (!env.renderModuleComponent) {
-      env.renderModuleComponent = (json, options2) => {
+      env.renderModuleComponent = (json: any, options2: any) => {
         const env = deepCopy(options.env);
-        return <RenderModuleComponent json={json} options={{
-          ...options,
-          ...options2,
-          _isModuleCom: true,
-          env,
-        }} />
-      }
+        return (
+          <RenderModuleComponent
+            json={json}
+            options={{
+              ...options,
+              ...options2,
+              _isModuleCom: true,
+              env,
+            }}
+          />
+        );
+      };
     }
     if (!env.renderModuleJs) {
-      env.renderModuleJs = (json, options2) => {
+      env.renderModuleJs = (json: any, options2: any) => {
         const env = deepCopy(options.env);
         return renderModuleJs({
           json,
@@ -244,66 +279,87 @@ class Context {
             ...options2,
             env,
           },
-          _context: this
-        })
-      }
+          _context: this,
+        });
+      };
     }
 
     env.renderModule = (json: any, options2: any) => {
-      const rootId1 = options.rootId
-      const rootId2 = options2.rootId
+      const rootId1 = options.rootId;
+      const rootId2 = options2.rootId;
       let rootId = rootId1 || rootId2;
       if (rootId1 && rootId2) {
-        rootId = rootId1 + '_' + rootId2
+        rootId = rootId1 + "_" + rootId2;
       }
       // 最终还是调render-wen提供的render函数，渲染toJSON
-      return render(json, { ...options, ...options2, rootId, env, _isNestedRender: true, _context: this })
-    }
+      return render(json, {
+        ...options,
+        ...options2,
+        rootId,
+        env,
+        _isNestedRender: true,
+        _context: this,
+      });
+    };
     if (!env.renderCom) {
       env.renderCom = (json: any, options2: any) => {
-        const rootId1 = options.rootId
-        const rootId2 = options2.rootId
+        const rootId1 = options.rootId;
+        const rootId2 = options2.rootId;
         let rootId = rootId1 || rootId2;
         if (rootId1 && rootId2) {
-          rootId = rootId1 + '_' + rootId2
+          rootId = rootId1 + "_" + rootId2;
         }
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return render(json, { ...options, ...options2, rootId, _isNestedRender: true, _isNestCom: true, _context: this })
-      }
+        return render(json, {
+          ...options,
+          ...options2,
+          rootId,
+          _isNestedRender: true,
+          _isNestCom: true,
+          _context: this,
+        });
+      };
     } else {
-      const renderCom = env.renderCom
+      const renderCom = env.renderCom;
       env.renderCom = (json: any, options2: any) => {
-        const rootId1 = options.rootId
-        const rootId2 = options2.rootId
+        const rootId1 = options.rootId;
+        const rootId2 = options2.rootId;
         let rootId = rootId1 || rootId2;
         if (rootId1 && rootId2) {
-          rootId = rootId1 + '_' + rootId2
+          rootId = rootId1 + "_" + rootId2;
         }
         // 最终还是调render-wen提供的render函数，渲染toJSON
-        return renderCom(json, { ...options, ...options2, rootId, _isNestedRender: true, _isNestCom: true, _context: this })
-      }
+        return renderCom(json, {
+          ...options,
+          ...options2,
+          rootId,
+          _isNestedRender: true,
+          _isNestCom: true,
+          _context: this,
+        });
+      };
     }
-    const body = document.body
+    const body = document.body;
     // 用于判断是mobile或pc，组件响应式，目前通用pc组件库内有使用
     if (!env.canvas) {
       // 引擎环境内引擎提供，非引擎环境默认body的clientWidth与414对比
       env.canvas = {
         get type() {
-          return body.clientWidth <= 414 ? 'mobile' : 'pc'
-        }
-      }
+          return body.clientWidth <= 414 ? "mobile" : "pc";
+        },
+      };
     }
     if (!env.canvas.css) {
       env.canvas.css = {
         set: (id: string, content: string) => {
           const el = document.getElementById(id);
           if (el) {
-            el.innerText = content
-            return
+            el.innerText = content;
+            return;
           }
-          const styleEle = document.createElement('style')
+          const styleEle = document.createElement("style");
           styleEle.id = id;
-          styleEle.innerText = content
+          styleEle.innerText = content;
           document.head.appendChild(styleEle);
         },
         remove: (id: string) => {
@@ -312,13 +368,13 @@ class Context {
           // if (el && el.parentElement) {
           //   el.parentElement.removeChild(el)
           // }
-        }
-      }
+        },
+      };
     }
     // 用于调试时弹窗类挂载
-    if (!('canvasElement' in env)) {
+    if (!("canvasElement" in env)) {
       // 引擎环境内引擎提供，非引擎环境默认body
-      env.canvasElement = body
+      env.canvasElement = body;
     }
 
     /** 函数劫持 */
@@ -353,32 +409,32 @@ class Context {
     //     })
     //   }
     // }
-    const that = this
+    const that = this;
     // @ts-ignore
     // TODO: 性能面板，作为插件注入
     window["RENDER_WEB_PERFORMANCE"] = {
-      getPerformance: this.getPerformance.bind(that)
-    }
+      getPerformance: this.getPerformance.bind(that),
+    };
 
     // 初始化其它信息
-    this.initOther()
+    this.initOther();
     // 收集页面组件信息
-    this.initComdefs()
+    this.initComdefs();
 
     // 执行安装的插件
     // 暂时内置前面的插件
-    const arr = [new Debugger()]
+    const arr = [new Debugger()];
     arr.concat(plugins).forEach((plugin) => {
-      plugin.apply(this)
-    })
+      plugin.apply(this);
+    });
   }
 
   // 初始化其它信息
   initOther() {
-    const { env } = this.options
+    const { env } = this.options;
     // 是否打印IO输入输出的数据信息
     // TODO: 通过options传入，而非env
-    if (!!env.silent) {
+    if (env.silent) {
       // 调试模式下有debugger，所以无论silent设置，都没有影响
       if (!localStorage.getItem("MYBRICKS_LOG")) {
         setLoggerSilent();
@@ -396,8 +452,8 @@ class Context {
       error: (e: any) => {
         console.error(e);
         Notification.error(e);
-      }
-    }
+      },
+    };
   }
 
   // 初始化组件信息
@@ -409,8 +465,8 @@ class Context {
         } else {
           comDefs[`${comDef.namespace}-${comDef.version}`] = comDef;
         }
-      })
-    }
+      });
+    };
     const { comDefs: defaultComdefs } = this.options;
     const { comDefs } = this;
 
@@ -420,49 +476,57 @@ class Context {
     }
 
     /** 默认从window上查找组件库，是否考虑如果传入了comDefs就不去window上再找一遍了 */
-    let comLibs = [...((window as any)["__comlibs_edit_"] || []), ...((window as any)["__comlibs_rt_"] || [])];
+    const comLibs = [
+      ...((window as any)["__comlibs_edit_"] || []),
+      ...((window as any)["__comlibs_rt_"] || []),
+    ];
 
     /** 插入核心组件库(fn,var等) */
-    comLibs.push(coreLib)
-    comLibs.forEach(lib => {
+    comLibs.push(coreLib);
+    comLibs.forEach((lib) => {
       const comAray = lib.comAray;
       if (comAray && Array.isArray(comAray)) {
         regAry(comAray, comDefs);
       }
-    })
+    });
   }
 
-  /** 
+  /**
    * 通过namespace-version查找组件
-   * 
+   *
    * TODO: 优化查询方式，目前每个找不到的组件都重复全量查，找不到的组件在第一次使用最新版本后做好记录，后面不会重复查找
    */
-  getComDef(def: { namespace: string, version: string }) {
-    const { comDefs } = this
-    const rtn = comDefs[def.namespace + '-' + def.version] || comDefs[def.namespace]
+  getComDef(def: { namespace: string; version: string }) {
+    const { comDefs } = this;
+    const rtn =
+      comDefs[def.namespace + "-" + def.version] || comDefs[def.namespace];
     if (!rtn) {
-      const ary = []
-      for (let ns in comDefs) {
-        if (ns.startsWith(def.namespace + '-')) {
-          ary.push(comDefs[ns])
+      const ary = [];
+      for (const ns in comDefs) {
+        if (ns.startsWith(def.namespace + "-")) {
+          ary.push(comDefs[ns]);
         }
       }
 
       if (ary && ary.length > 0) {
         ary.sort((a, b) => {
-          return compareVersion(a.version, b.version)
-        })
+          return compareVersion(a.version, b.version);
+        });
 
-        const rtn0 = ary[0]
-        console.warn(`【Mybricks】组件${def.namespace + '@' + def.version}未找到，使用${rtn0.namespace}@${rtn0.version}代替.`)
+        const rtn0 = ary[0];
+        console.warn(
+          `【Mybricks】组件${def.namespace + "@" + def.version}未找到，使用${rtn0.namespace}@${rtn0.version}代替.`,
+        );
 
-        return rtn0
+        return rtn0;
       } else {
-        console.error(`组件${def.namespace + '@' + def.version}未找到，请确定是否存在该组件以及对应的版本号.`)
-        return null
+        console.error(
+          `组件${def.namespace + "@" + def.version}未找到，请确定是否存在该组件以及对应的版本号.`,
+        );
+        return null;
       }
     }
-    return rtn
+    return rtn;
   }
 
   // 模块相关，目前仅用于全局变量发生变化后，对全局变量的监听，目前没有变量的监听了，先注释掉，在使用模块的场景可以优化部分性能
@@ -476,17 +540,17 @@ class Context {
 
   // TODO: 性能面板，作为插件注入
   getPerformance() {
-    return this.performance
+    return this.performance;
   }
   setPerformanceRender(type: "start" | "end", time: number) {
-    const render = this.performance.render
-    render[type] = time
+    const render = this.performance.render;
+    render[type] = time;
     if (type === "end") {
-      render["time"] = time - render["start"]
+      render["time"] = time - render["start"];
     }
   }
   setPerformanceCallConnectorTimes(connectorTime: any) {
-    this.performance.callConnectorTimes.push(connectorTime)
+    this.performance.callConnectorTimes.push(connectorTime);
   }
 }
 
@@ -504,17 +568,17 @@ class Stylization {
 
   constructor({ rootId, root, options, onCompleteCallBacks }: any) {
     this.root = root;
-    this.rootId = rootId
-    this.options = options
+    this.rootId = rootId;
+    this.options = options;
     const { _cssMap } = this;
 
-    let destory = () => {
+    const destory = () => {
       Object.entries(_cssMap).forEach(([_, style]) => {
         root.removeChild(style.tag);
-      })
-    }
+      });
+    };
 
-    onCompleteCallBacks.push(destory)
+    onCompleteCallBacks.push(destory);
   }
 
   /** 是否添加过默认样式 */
@@ -526,7 +590,7 @@ class Stylization {
   // setComId(id: any) {
   //   this.comMap[id] = true;
   // }
-  
+
   // /** 添加style标签 */
   // add(id: any, style: any) {
   //   this.styleMap[id] = style;
@@ -620,11 +684,8 @@ class Stylization {
   //   }
   // }
 
-
-
-
   /** 查找是否添加过组件的默认风格化配置 */
-  private _defaultStyleMap: Record<string, boolean> = {}
+  private _defaultStyleMap: Record<string, boolean> = {};
 
   /** 判断是否添加过默认风格化配置 */
   hasDefaultStyle(id: string) {
@@ -636,7 +697,7 @@ class Stylization {
     this._defaultStyleMap[id] = true;
   }
 
-  /** 
+  /**
    * styleId到样式信息的映射
    * @example
    * const _cssMap = {
@@ -651,12 +712,17 @@ class Stylization {
    *  }
    * }
    */
-  private _cssMap: Record<string, Record<string, Record<string, any>>> = {}
-  
+  private _cssMap: Record<string, Record<string, Record<string, any>>> = {};
+
   /** 设置样式 */
-  setStyle(id: string, style: any, notOverwrite: boolean = false, config = { isDefault: false, }) {
+  setStyle(
+    id: string,
+    style: any,
+    notOverwrite: boolean = false,
+    config = { isDefault: false },
+  ) {
     const { isDefault } = config;
-    let styleAry = [] as {css: string, selector: string, global?: boolean }[];
+    let styleAry = [] as { css: string; selector: string; global?: boolean }[];
 
     // TODO: 处理global
     // const obj = {
@@ -675,66 +741,82 @@ class Stylization {
       Object.entries(style).forEach(([selector, css]: any) => {
         styleAry.push({
           selector,
-          css
-        })
-      })
+          css,
+        });
+      });
     }
 
-    const splitIds = id.split("-")
-    const comId = splitIds[splitIds.length - 1]
+    const splitIds = id.split("-");
+    const comId = splitIds[splitIds.length - 1];
 
     if (styleAry.length) {
       const { root, options } = this;
-      const { env, handlePxToVw, debug } = options
-      const { pxToRem: configPxToRem } = env
-      const prefix = debug ? "#_geoview-wrapper_ ": ""
+      const { env, handlePxToVw, debug } = options;
+      const { pxToRem: configPxToRem } = env;
+      const prefix = debug ? "#_geoview-wrapper_ " : "";
 
       const styleMap: any = {};
-      styleAry.forEach(({css, selector, global}) => {
-        if (selector === ':root') {
-          selector = '> *:first-child'
+      styleAry.forEach(({ css, selector, global }) => {
+        if (selector === ":root") {
+          selector = "> *:first-child";
         }
-        (Array.isArray(selector) ? selector : [selector]).forEach((selector) => {
-          // isDefault 默认的风格化配置，不需要拼接作用域ID
-          const cssSelector = isDefault ? `${prefix}${global ? '' : `#${comId} `}${selector.replace(/\{id\}/g, `${comId}`)}` : `${prefix}${global ? '' : `#${comId}[data-nested-id="${id}"] `}${selector.replace(/\{id\}/g, `${comId}`)}`
-          const style: Record<string, any> = {};
-          Object.entries(css).forEach(([key, value]) => {
-            if (configPxToRem && typeof value === 'string' && value.indexOf('px') !== -1) {
-              value = pxToRem(value)
-            } else if (handlePxToVw && typeof value === 'string' && value.indexOf('px') !== -1) {
-              value = handlePxToVw(value)
+        (Array.isArray(selector) ? selector : [selector]).forEach(
+          (selector) => {
+            // isDefault 默认的风格化配置，不需要拼接作用域ID
+            const cssSelector = isDefault
+              ? `${prefix}${global ? "" : `#${comId} `}${selector.replace(/\{id\}/g, `${comId}`)}`
+              : `${prefix}${global ? "" : `#${comId}[data-nested-id="${id}"] `}${selector.replace(/\{id\}/g, `${comId}`)}`;
+            const style: Record<string, any> = {};
+            Object.entries(css).forEach(([key, value]) => {
+              if (
+                configPxToRem &&
+                typeof value === "string" &&
+                value.indexOf("px") !== -1
+              ) {
+                value = pxToRem(value);
+              } else if (
+                handlePxToVw &&
+                typeof value === "string" &&
+                value.indexOf("px") !== -1
+              ) {
+                value = handlePxToVw(value);
+              }
+              style[convertCamelToHyphen(key)] = value;
+            });
+            // styleMap[cssSelector] = style;
+            // 如果有同名，后添加的权重更高，覆盖前者
+            if (!styleMap[cssSelector]) {
+              styleMap[cssSelector] = style;
+            } else {
+              styleMap[cssSelector] = Object.assign(
+                styleMap[cssSelector],
+                style,
+              );
             }
-            style[convertCamelToHyphen(key)] = value
-          })
-          // styleMap[cssSelector] = style;
-          // 如果有同名，后添加的权重更高，覆盖前者
-          if (!styleMap[cssSelector]) {
-            styleMap[cssSelector] = style
-          } else {
-            styleMap[cssSelector] = Object.assign(styleMap[cssSelector], style)
-          }
-        })
-      })
+          },
+        );
+      });
 
       const _css = this._cssMap[id];
 
       if (!_css) {
-        const styleTag = document.createElement('style');
+        const styleTag = document.createElement("style");
         this._cssMap[id] = {
           tag: styleTag,
-          css: styleMap
-        }
+          css: styleMap,
+        };
         root.appendChild(styleTag);
-        
+
         let innerHTML = "";
 
         Object.entries(styleMap).forEach(([key, value]: any) => {
-          innerHTML += `${key} {${Object.entries(value).map(([key, value]) => {
-            return `${key}: ${value};`
-          }).join("")}}`
-        })
-        styleTag.innerHTML = innerHTML
-
+          innerHTML += `${key} {${Object.entries(value)
+            .map(([key, value]) => {
+              return `${key}: ${value};`;
+            })
+            .join("")}}`;
+        });
+        styleTag.innerHTML = innerHTML;
       } else {
         const { tag: styleTag, css } = _css;
         Object.entries(styleMap).forEach(([key, value]: any) => {
@@ -744,23 +826,25 @@ class Stylization {
             Object.entries(value).forEach(([key, value]) => {
               if (notOverwrite && style[key]) {
                 // 不允许覆盖，并且已经有相同的key了
-                return
+                return;
               }
               style[key] = value;
-            })
+            });
           } else {
             css[key] = value;
           }
-        })
+        });
 
         let innerHTML = "";
 
         Object.entries(css).forEach(([key, value]: any) => {
-          innerHTML += `${key} {${Object.entries(value).map(([key, value]) => {
-            return `${key}: ${value};`
-          }).join("")}}`
-        })
-        styleTag.innerHTML = innerHTML
+          innerHTML += `${key} {${Object.entries(value)
+            .map(([key, value]) => {
+              return `${key}: ${value};`;
+            })
+            .join("")}}`;
+        });
+        styleTag.innerHTML = innerHTML;
       }
     }
   }
@@ -781,53 +865,55 @@ class Stylization {
 //   `;
 // }
 
-const MyBricksRenderContext = createContext<any>({})
+const MyBricksRenderContext = createContext<any>({});
 
-export function MyBricksRenderProvider ({ children, value }: any) {
+export function MyBricksRenderProvider({ children, value }: any) {
   useEffect(() => {
     return () => {
       value.onCompleteCallBacks.forEach((cb: any) => {
-        cb()
-      })
-    }
-  }, [])
+        cb();
+      });
+    };
+  }, []);
   return (
     <MyBricksRenderContext.Provider value={value}>
       {children}
     </MyBricksRenderContext.Provider>
-  )
+  );
 }
 
-export function useMyBricksRenderContext () {
-  const context = useContext(MyBricksRenderContext)
+export function useMyBricksRenderContext() {
+  const context = useContext(MyBricksRenderContext);
 
-  return context
+  return context;
 }
 
-const ModuleContext = createContext<any>({})
-export function ModuleContextProvider ({ children, value }: any) {
+const ModuleContext = createContext<any>({});
+export function ModuleContextProvider({ children, value }: any) {
   return (
-    <ModuleContext.Provider value={value}>
-      {children}
-    </ModuleContext.Provider>
-  )
+    <ModuleContext.Provider value={value}>{children}</ModuleContext.Provider>
+  );
 }
-export function useModuleContext () {
-  return useContext(ModuleContext)
+export function useModuleContext() {
+  return useContext(ModuleContext);
 }
 
-import { transformToJSON } from "../../utils/src"
+import { transformToJSON } from "../../utils/src";
 
-export { transformToJSON }
+export { transformToJSON };
 
-export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions) {
+export function render(
+  toJson: ToJSON | MultiSceneToJSON,
+  options: RenderOptions,
+) {
+  console.log("[render toJson]", JSON.parse(JSON.stringify(toJson)));
   if (options.moduleId) {
-    options.env.edit = true
+    options.env.edit = true;
   }
 
-  let json = toJson
+  const json: any = toJson;
   if (!options.sceneOpenType) {
-    options.sceneOpenType = "redirect"
+    options.sceneOpenType = "redirect";
   }
 
   // 调试或搭建态需要处理
@@ -835,10 +921,10 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
     // json = JSON.parse(JSON.stringify(toJson))
   }
   if (!json) {
-    return null
+    return null;
   } else {
-    let jsx = null
-    if ("scenes" in json)  {
+    let jsx = null;
+    if ("scenes" in json) {
       // TODO: 测试一下多场景的云组件
       // if (options._isNestedRender || options.debug) {
       //   options.env = deepCopy(options.env)
@@ -847,99 +933,121 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
       // console.time("xxx")
       // transformToJSON(json);
       // console.timeEnd("xxx")
-      jsx = <MultiScene key={options.reRenderKey} json={json} options={options}/>
+      jsx = (
+        <MultiScene key={options.reRenderKey} json={json} options={options} />
+      );
     } else {
       if (json.slot) {
         // 检查一下这个json.type的判断能否去掉
-        if (options.env.edit && json.type === 'module') {
+        if (options.env.edit && json.type === "module") {
           // transformSingleToJSON(json)
         }
-        jsx = <Main json={json} options={options} root={json.type === 'module' ? false : true}/>
+        jsx = (
+          <Main
+            json={json}
+            options={options}
+            root={json.type === "module" ? false : true}
+          />
+        );
       }
     }
     if (!jsx) {
       // TODO: 这里是运行纯函数的模版
       // const _context = new Context(options, json)
-      const _context = options._isNestedRender ? options._context : new Context({
-        ...options,
-        observable: (value) => value
-      }, json)
+      const _context = options._isNestedRender
+        ? options._context
+        : new Context(
+            {
+              ...options,
+              observable: (value: any) => value,
+            },
+            json,
+          );
 
-      executor({
-        json,
-        getComDef: (def: any) => _context.getComDef(def),
-        // @ts-ignore
-        events: options.events,
-        env: options.env,
-        ref(_refs: any) {
-          if (typeof options.ref === 'function') {
-            options.ref(_refs)
-          } else {
-            const { inputs } = _refs
-            const jsonInputs = (json as ToJSON).inputs
-            if (inputs && Array.isArray(jsonInputs)) {
-              jsonInputs.forEach((input) => {
-                const { id, mockData, type, extValues } = input
-                let value = void 0
-                if (options.debug) {
-                  if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
-                    try {
-                      value = JSON.parse(decodeURIComponent(extValues.config.defaultValue))
-                    } catch {
-                      value = extValues.config.defaultValue
-                    }
-                  } else {
-                    try {
-                      value = JSON.parse(decodeURIComponent(mockData))
-                    } catch {
-                      value = mockData
+      executor(
+        {
+          json,
+          getComDef: (def: any) => _context.getComDef(def),
+          // @ts-ignore
+          events: options.events,
+          env: options.env,
+          ref(_refs: any) {
+            if (typeof options.ref === "function") {
+              options.ref(_refs);
+            } else {
+              const { inputs } = _refs;
+              const jsonInputs = (json as ToJSON).inputs;
+              if (inputs && Array.isArray(jsonInputs)) {
+                jsonInputs.forEach((input) => {
+                  const { id, mockData, type, extValues } = input;
+                  let value = void 0;
+                  if (options.debug) {
+                    if (
+                      type === "config" &&
+                      extValues?.config &&
+                      "defaultValue" in extValues.config
+                    ) {
+                      try {
+                        value = JSON.parse(
+                          decodeURIComponent(extValues.config.defaultValue),
+                        );
+                      } catch {
+                        value = extValues.config.defaultValue;
+                      }
+                    } else {
+                      try {
+                        value = JSON.parse(decodeURIComponent(mockData));
+                      } catch {
+                        value = mockData;
+                      }
                     }
                   }
-                }
-                inputs[id](value)
-              })
+                  inputs[id](value);
+                });
+              }
+              _refs.run();
             }
-            _refs.run()
-          }
+          },
+          onError: _context.onError,
+          debug: options.debug,
+          debugLogger: options.debugLogger,
+          logger: _context.logger,
+          scenesOperate: options.scenesOperate,
+          _isNestedRender: options._isNestedRender,
+          _isNestCom: options._isNestCom,
+          _context,
         },
-        onError: _context.onError,
-        debug: options.debug,
-        debugLogger: options.debugLogger,
-        logger: _context.logger,
-        scenesOperate: options.scenesOperate,
-        _isNestedRender: options._isNestedRender,
-        _isNestCom: options._isNestCom,
-        _context
-      }, {
-        observable: _context.observable
-      }) 
-      return null
+        {
+          observable: _context.observable,
+        },
+      );
+      return null;
     }
 
     if (options._isNestCom) {
       // rendercom渲染，是个画布，需要将当前env透传
       const env = deepCopy(options.env);
       let modules;
-      const jsonModules = json.modules
+      const jsonModules = json.modules;
       if (jsonModules) {
-        modules = new Modules(jsonModules)
+        modules = new Modules(jsonModules);
       }
       jsx = (
-        <ModuleContextProvider value={{env, modules}}>
+        <ModuleContextProvider value={{ env, modules }}>
           {jsx}
         </ModuleContextProvider>
-      )
+      );
     }
-    
+
     // 如果是嵌套渲染，不再重复嵌套Provider
     if (options._isNestedRender) {
       // 嵌套渲染，直接return即可
-      return jsx
+      return jsx;
     }
     let modules;
-    const jsonModules = json.modules
+    const jsonModules = json.modules;
     if (jsonModules) {
-      modules = new Modules(jsonModules)
+      modules = new Modules(jsonModules);
     }
 
     if (!("scenes" in json) && json.type === "module") {
@@ -953,16 +1061,17 @@ export function render(toJson: ToJSON | MultiSceneToJSON, options: RenderOptions
 
     return (
       <MyBricksRenderProvider value={new Context(options, json)}>
-        <ModuleContextProvider value={{env: options.env, modules}}>
-           {jsx}
+        <ModuleContextProvider value={{ env: options.env, modules }}>
+          {jsx}
         </ModuleContextProvider>
       </MyBricksRenderProvider>
-    )
+    );
   }
 }
 
 export class Modules {
-  private _isReact18 = !!ReactDOM.createRoot
+  // @ts-ignore
+  private _isReact18 = !!ReactDOM.createRoot;
   private _renderMap: any = {};
   constructor(private _jsons: any) {}
 
@@ -989,27 +1098,27 @@ export class Modules {
                   {_moduleContext.env.renderModule(moduleJson, {})}
                 </ModuleContextProvider>
               </MyBricksRenderProvider>
-            )
+            );
 
             if (_isReact18) {
               // @ts-ignore
               const root = ReactDOM.createRoot(dom);
               root.render(module);
             } else {
-              ReactDOM.render(module, dom)
+              ReactDOM.render(module, dom);
             }
             _renderMap[moduleId] = dom;
             divRef.current.appendChild(dom);
           }
-        }, [])
+        }, []);
 
-        return <div ref={divRef} style={{ height: "100%", width: "100%" }}/>
-      }
-    }
+        return <div ref={divRef} style={{ height: "100%", width: "100%" }} />;
+      },
+    };
   }
 }
 
-/** 
+/**
  * 提前处理全局变量、全局FX相关数据，渲染时不再需要关心，
  * 这段逻辑有没有可能再生成tojson的时候调一下，渲染时能够更轻
  * 向外暴露 transformJSON 函数？
@@ -1075,5 +1184,5 @@ export class Modules {
 //   }
 // }
 
-export * from "../../core/observable"
-export { executor }
+export * from "../../core/observable";
+export { executor };

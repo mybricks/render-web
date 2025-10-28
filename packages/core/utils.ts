@@ -292,6 +292,7 @@ interface DataProxyParams {
   };
 }
 const DATA_PROXY_TAG = Symbol("DATA_PROXY_TAG");
+export const CONFIG_SET_VALUE_TAB = Symbol("CONFIG_SET_VALUE_TAB");
 export const dataProxy = (params: DataProxyParams) => {
   const { data, path, config } = params;
   return new Proxy(data, {
@@ -314,11 +315,17 @@ export const dataProxy = (params: DataProxyParams) => {
       return value;
     },
     set(target, key: any, value, receiver) {
-      Reflect.set(target, key, value, receiver);
-      config?.set?.({
-        value,
-        path: path ? `${path}.${key}` : key,
-      });
+      if (value?.[CONFIG_SET_VALUE_TAB]) {
+        // 通过config设置值，不需要走set
+        // 目前只有组件内赋值和config赋值
+        Reflect.set(target, key, value.value, receiver);
+      } else {
+        Reflect.set(target, key, value, receiver);
+        config?.set?.({
+          value,
+          path: path ? `${path}.${key}` : key,
+        });
+      }
       return true;
     },
   });

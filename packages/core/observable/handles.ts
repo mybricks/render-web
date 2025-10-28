@@ -1,23 +1,27 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { observable } from "./";
 import { isObject } from "../utils";
 import {
   rawToProxy,
   proxyToRaw,
   globalTaskEmitter,
-  globalReactionStack
+  globalReactionStack,
 } from "./global";
 
-function get (target, key) {
+function get(target: any, key: any) {
   const result = target[key];
 
-  if (["$$typeof", "constructor"].includes(key) || (target['__model_style__'] && !['display', 'visibility'].includes(key))) {
+  if (
+    ["$$typeof", "constructor"].includes(key) ||
+    (target["__model_style__"] && !["display", "visibility"].includes(key))
+  ) {
     return result;
   }
 
   globalReactionStack.regist({ target, key });
 
   if (result instanceof FormData) {
-    return result
+    return result;
   }
 
   const observableResult = rawToProxy.get(result);
@@ -34,7 +38,7 @@ function get (target, key) {
   return observableResult || result;
 }
 
-function set (target, key, value) {
+function set(target: any, key: any, value: any) {
   // 观察对象和原始对象隔离
   if (isObject(value)) {
     value = proxyToRaw.get(value) || value;
@@ -50,7 +54,7 @@ function set (target, key, value) {
   let runTask = false;
 
   switch (true) {
-    case (!hasOwnProperty || (Array.isArray(target) && key === "length")):
+    case !hasOwnProperty || (Array.isArray(target) && key === "length"):
       runTask = true;
       break;
     case value !== preValue:
@@ -70,5 +74,5 @@ function set (target, key, value) {
 
 export default {
   get,
-  set
+  set,
 };

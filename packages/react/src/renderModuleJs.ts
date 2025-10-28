@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import executor, { Var } from "../../core/executor";
 import { globalVariables } from "./RenderModuleComponent";
@@ -32,14 +33,14 @@ const renderModuleJs = ({ json, options, _context }: any) => {
   }
 
   options.env.scenesOperate.var = globalVariables[moduleId];
-  options.env.scenesOperate.getGlobalComProps = (comId) => {
+  options.env.scenesOperate.getGlobalComProps = (comId: any) => {
     return {
       data: {
         val: globalVariables[moduleId].getValueById(comId),
       },
     };
   };
-  options.env.scenesOperate.exeGlobalCom = ({ com, value }) => {
+  options.env.scenesOperate.exeGlobalCom = ({ com, value }: any) => {
     globalVariables[moduleId].changed({ com, value });
   };
   const scenesOperate = options.env.scenesOperate;
@@ -85,7 +86,7 @@ const renderModuleJs = ({ json, options, _context }: any) => {
     {
       json: json.scenes[0],
       getComDef: (def: any) => _context.getComDef(def),
-      // @ts-expect-error 忽略即可
+      // @ts-ignore
       events: options.events,
       env: options.env,
       ref(_refs: any) {

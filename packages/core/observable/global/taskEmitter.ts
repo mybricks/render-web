@@ -1,3 +1,6 @@
+/* eslint-disable prefer-const */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { isObject } from "../../utils";
 import { proxyToRaw, rawToProxy } from ".";
 
@@ -6,11 +9,11 @@ class TaskEmitter {
 
   private reactionToTaskMap = new WeakMap();
 
-  addTask(obj) {
+  addTask(obj: any) {
     this.taskMap.set(obj, new Map());
   }
 
-  deleteTask(obj) {
+  deleteTask(obj: any) {
     if (!isObject(obj)) {
       return;
     }
@@ -35,7 +38,7 @@ class TaskEmitter {
     // }
   }
 
-  deleteReaction(reaction) {
+  deleteReaction(reaction: any) {
     let reactionToTask = this.reactionToTaskMap.get(reaction);
 
     if (!reactionToTask) {
@@ -44,14 +47,14 @@ class TaskEmitter {
 
     this.reactionToTaskMap.delete(reaction);
 
-    reactionToTask.forEach(task => {
-      task.forEach((value) => {
+    reactionToTask.forEach((task: any) => {
+      task.forEach((value: any) => {
         value.delete(reaction);
       });
     });
   }
 
-  registReaction(reaction, { target, key }) {
+  registReaction(reaction: any, { target, key }: any) {
     const task = this.taskMap.get(target);
 
     if (task) {
@@ -59,29 +62,29 @@ class TaskEmitter {
 
       if (!reactions) {
         reactions = new Set();
-  
+
         task.set(key, reactions);
       }
-  
+
       if (!reactions.has(reaction)) {
         reactions.add(reaction);
       }
-  
+
       let reactionToTask = this.reactionToTaskMap.get(reaction);
-  
+
       if (!reactionToTask) {
         reactionToTask = new Set();
-  
+
         this.reactionToTaskMap.set(reaction, reactionToTask);
       }
-  
+
       if (!reactionToTask.has(task)) {
         reactionToTask.add(task);
       }
     }
   }
 
-  getReactions({target, key}) {
+  getReactions({ target, key }: any) {
     const task = this.taskMap.get(target);
 
     if (!task) {
@@ -93,7 +96,7 @@ class TaskEmitter {
     return reactions;
   }
 
-  runTask(operation) {
+  runTask(operation: any) {
     const reactions = this.getReactions(operation);
 
     if (reactions.size) {
@@ -102,7 +105,7 @@ class TaskEmitter {
   }
 }
 
-function run(fn) {
+function run(fn: any) {
   fn();
 }
 

@@ -1,23 +1,38 @@
-import React, { isValidElement, cloneElement, createContext, useContext, Component, forwardRef, useMemo, useCallback, Children } from "react";
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import React, {
+  isValidElement,
+  cloneElement,
+  createContext,
+  useContext,
+  Component,
+  forwardRef,
+  useMemo,
+  useCallback,
+  Children,
+} from "react";
 import type { PropsWithChildren, ReactElement } from "react";
 
-const REACT_ELEMENT_TYPE = Symbol.for('react.element');
-const REACT_PORTAL_TYPE = Symbol.for('react.portal');
-const REACT_FRAGMENT_TYPE = Symbol.for('react.fragment');
-const REACT_STRICT_MODE_TYPE = Symbol.for('react.strict_mode');
-const REACT_PROFILER_TYPE = Symbol.for('react.profiler');
-const REACT_PROVIDER_TYPE = Symbol.for('react.provider');
-const REACT_CONTEXT_TYPE = Symbol.for('react.context');
-const REACT_FORWARD_REF_TYPE = Symbol.for('react.forward_ref');
-const REACT_SUSPENSE_TYPE = Symbol.for('react.suspense');
-const REACT_SUSPENSE_LIST_TYPE = Symbol.for('react.suspense_list');
-const REACT_MEMO_TYPE = Symbol.for('react.memo');
-const REACT_LAZY_TYPE = Symbol.for('react.lazy');
-const REACT_OFFSCREEN_TYPE = Symbol.for('react.offscreen');
+const REACT_ELEMENT_TYPE = Symbol.for("react.element");
+const REACT_PORTAL_TYPE = Symbol.for("react.portal");
+const REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
+const REACT_STRICT_MODE_TYPE = Symbol.for("react.strict_mode");
+const REACT_PROFILER_TYPE = Symbol.for("react.profiler");
+const REACT_PROVIDER_TYPE = Symbol.for("react.provider");
+const REACT_CONTEXT_TYPE = Symbol.for("react.context");
+const REACT_FORWARD_REF_TYPE = Symbol.for("react.forward_ref");
+const REACT_SUSPENSE_TYPE = Symbol.for("react.suspense");
+const REACT_SUSPENSE_LIST_TYPE = Symbol.for("react.suspense_list");
+const REACT_MEMO_TYPE = Symbol.for("react.memo");
+const REACT_LAZY_TYPE = Symbol.for("react.lazy");
+const REACT_OFFSCREEN_TYPE = Symbol.for("react.offscreen");
 
-const proKey = `data-com-id`
+const proKey: any = `data-com-id`;
 
-const Context = createContext<{_key?: string | null, _data?: any}>({ _key: null, _data: null });
+const Context = createContext<{ _key?: string | null; _data?: any }>({
+  _key: null,
+  _data: null,
+});
 const Provider = Context.Provider;
 
 const Next = ({ children }: PropsWithChildren) => {
@@ -33,70 +48,69 @@ const Next = ({ children }: PropsWithChildren) => {
       case "[object Function]":
         return <FunctionNext>{children}</FunctionNext>;
       case "[object Symbol]":
-        return <SymbolNext>{children}</SymbolNext>
+        return <SymbolNext>{children}</SymbolNext>;
       default:
         //console.log("Next 未处理: ", typeString, children);
         return children;
     }
   }
   return children;
-}
+};
 
 /** 解决响应式，多嵌套一层 */
 const ProxyNext = ({ children, mergeProps }: any) => {
-  const oriProps = {...children.props};
-  Object.entries(mergeProps).forEach(([key, value]) => {
+  const oriProps = { ...children.props };
+  Object.entries(mergeProps).forEach(([key, value]: any) => {
     if (!(key in oriProps)) {
       // 没有key，直接写
-      oriProps[key] = value
+      oriProps[key] = value;
     } else {
-      const valueType = Object.prototype.toString.call(value)
-      if (valueType === '[object Array]') {
+      const valueType = Object.prototype.toString.call(value);
+      if (valueType === "[object Array]") {
         // 数组，遍历合并
-        const oriValue = oriProps[key]
-        value.forEach((item, index) => {
+        const oriValue = oriProps[key];
+        value.forEach((item: any, index: any) => {
           if (item) {
-            oriValue[index] = item
+            oriValue[index] = item;
           }
-        })
-        oriProps[key] = [...oriValue]
-      } else if (valueType === '[object Object]') {
+        });
+        oriProps[key] = [...oriValue];
+      } else if (valueType === "[object Object]") {
         // 对象，合并
         oriProps[key] = {
           ...oriProps[key],
-          ...value
-        }
+          ...value,
+        };
       } else {
         // 覆盖
-        oriProps[key] = value
+        oriProps[key] = value;
       }
     }
-  })
-  
-  return (
-    <Next>
-      {cloneElement(children, oriProps)}
-    </Next>
-  )
-}
+  });
 
-const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any }>) => {
+  return <Next>{cloneElement(children, oriProps)}</Next>;
+};
+
+const Render = ({
+  _data: _initData,
+  children,
+}: PropsWithChildren<{ _data?: any }>) => {
   if (_initData) {
     return (
       <Provider value={{ _data: _initData }}>
         <Render>{children}</Render>
       </Provider>
-    )
+    );
   }
   const { _key: _contextKey, _data } = useContext(Context);
   if (!_data) {
     return children;
   }
-  
+
   if (Array.isArray(children)) {
     return Children.map(children, (child) => {
-      return <Render>{child}</Render>
-    })
+      return <Render>{child}</Render>;
+    });
     // return children.map((child) => {
     //   console.log("child?.key => ", child?.key)
     //   return <Render key={child?.key}>{child}</Render>;
@@ -105,7 +119,7 @@ const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any 
 
   if (isValidElement(children)) {
     const { props } = children;
-    const _key = props[proKey]
+    const _key = props[proKey];
     if (_key) {
       // const { _key: _contextKey, _data } = useContext(Context);
 
@@ -114,31 +128,31 @@ const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any 
           <Provider value={{ _key, _data }}>
             <Next>{children}</Next>
           </Provider>
-        )
+        );
         // 新的key
         const mergeProps = _data[_key];
 
         return (
           <Provider value={{ _key, _data }}>
             {mergeProps ? (
-              <ProxyNext mergeProps={mergeProps}>
-               {children}
-              </ProxyNext>
+              <ProxyNext mergeProps={mergeProps}>{children}</ProxyNext>
             ) : (
               <Next>{children}</Next>
             )}
           </Provider>
-        )
+        );
       } else {
         return (
-          <Next>{cloneElement(children, {
-            [proKey]: null
-          })}</Next>
-        )
+          <Next>
+            {cloneElement(children, {
+              [proKey]: null,
+            })}
+          </Next>
+        );
       }
     }
 
-    return <Next>{children}</Next>
+    return <Next>{children}</Next>;
   }
 
   // if (isValidElement(children)) {
@@ -154,7 +168,7 @@ const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any 
   //     if (_contextKey?.startsWith(_key)) {
   //       _key = _contextKey;
   //     }
-      
+
   //     const mergeProps = props._data;
   //     // 有新的key，使用Provider注入，断开上层嵌套
   //     if (mergeProps) {
@@ -172,7 +186,7 @@ const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any 
   //           </Provider>
   //         )
   //       }, [])
-        
+
   //       return <ProxyNext props={props}/>
   //     }
 
@@ -189,51 +203,51 @@ const Render = ({ _data: _initData, children }: PropsWithChildren<{ _data?: any 
   // }
 
   return children;
-}
+};
 
 export default Render;
 
-const renderFunctionHijack = ({
-  type,
-  render,
-  next
-}) => {
+const renderFunctionHijack = ({ type, render, next }: any) => {
   if (type.__airender__) {
     // 编辑态覆盖了render，需要替换回来
     type.__airender__ = null;
     const oriRender = type.__ori__;
-    
-    next(oriRender)
+
+    next(oriRender);
 
     type.__runairender__ = true;
   } else if (!type.__runairender__) {
-    const oriRender = render
+    const oriRender = render;
 
-    next(oriRender)
+    next(oriRender);
 
     type.__runairender__ = true;
   }
-}
+};
 
 interface NextProps {
   children: ReactElement | any;
 }
 
 const StringNext = ({ children }: NextProps) => {
-  const { _key, _data } = useContext(Context)
+  const { _key, _data } = useContext(Context);
   const { props } = children;
   const { children: nextChildren } = props;
 
   if (_key) {
     return cloneElement(children, {
       [proKey]: _key,
-      children: nextChildren ? <Provider value={{ _key: null, _data }}><Render>{nextChildren}</Render></Provider> : null
-    })
+      children: nextChildren ? (
+        <Provider value={{ _key: null, _data }}>
+          <Render>{nextChildren}</Render>
+        </Provider>
+      ) : null,
+    });
   }
 
   return cloneElement(children, {
-    children: nextChildren ? <Render>{nextChildren}</Render> : null
-  })
+    children: nextChildren ? <Render>{nextChildren}</Render> : null,
+  });
 
   // const next = cloneElement(children, {
   //   [proKey]: _key,
@@ -241,7 +255,7 @@ const StringNext = ({ children }: NextProps) => {
   // })
 
   // return next;
-}
+};
 
 const ObjectNext = ({ children }: NextProps) => {
   const { type } = children;
@@ -257,26 +271,26 @@ const ObjectNext = ({ children }: NextProps) => {
       //console.log("ObjectNext 未处理: ", children)
       return children;
   }
-}
+};
 
 const ForwardRefNext = ({ children }: NextProps) => {
   const { props, ref, type } = children as any;
 
-  const nextChildren = props.children
+  const nextChildren = props.children;
 
   if (nextChildren) {
     if (typeof nextChildren === "function") {
       const oriNextChildren = nextChildren;
       return cloneElement(children, {
-        children: (...args) => {
-          return <Render>{oriNextChildren(...args)}</Render>
-        }
-      })
+        children: (...args: any) => {
+          return <Render>{oriNextChildren(...args)}</Render>;
+        },
+      });
     }
     // return cloneElement(children, {
     //   children: Array.isArray(nextChildren) ? nextChildren.map((child) => {
     //     return <Render>{child}</Render>
-    //   }) : <Render>{nextChildren}</Render> 
+    //   }) : <Render>{nextChildren}</Render>
     // })
   }
 
@@ -284,17 +298,17 @@ const ForwardRefNext = ({ children }: NextProps) => {
     renderFunctionHijack({
       type,
       render: type.render,
-      next: (oriRender) => {
-        type.render = (...args) => {
-          const res = oriRender(...args)
-          return <Render>{res}</Render>
+      next: (oriRender: any) => {
+        type.render = (...args: any) => {
+          const res = oriRender(...args);
+          return <Render>{res}</Render>;
         };
-      }
-    })
+      },
+    });
   }
 
   return children;
-}
+};
 
 const ProviderNext = ({ children }: NextProps) => {
   const { props } = children as any;
@@ -302,29 +316,30 @@ const ProviderNext = ({ children }: NextProps) => {
 
   if (nextChildren) {
     return cloneElement(children, {
-      children: <Render>{nextChildren}</Render>
-    })
+      children: <Render>{nextChildren}</Render>,
+    });
   }
 
   return children;
-}
+};
 
 const MemoNext = ({ children }: NextProps) => {
   const { type, props } = children as any;
 
-  if (typeof type.type === 'function') {
-    const next = type.type(props)
-    return <Render>{next}</Render>
-  } if (type.type["$$typeof"] === REACT_FORWARD_REF_TYPE) {
-    const next = type.type.render(props, children.ref)
+  if (typeof type.type === "function") {
+    const next = type.type(props);
+    return <Render>{next}</Render>;
+  }
+  if (type.type["$$typeof"] === REACT_FORWARD_REF_TYPE) {
+    const next = type.type.render(props, children.ref);
 
-    return <Render>{next}</Render>
+    return <Render>{next}</Render>;
   } else {
     //console.log("MemoNext 未处理: ", children);
   }
 
   return children;
-}
+};
 
 const FunctionNext = ({ children }: NextProps) => {
   const { type, props } = children as any;
@@ -334,19 +349,19 @@ const FunctionNext = ({ children }: NextProps) => {
       renderFunctionHijack({
         type,
         render: type.prototype.render,
-        next: (oriRender) => {
+        next: (oriRender: any) => {
           type.prototype.render = function () {
-            const res = oriRender.call(this)
-            return <Render>{res}</Render>
+            const res = oriRender.call(this);
+            return <Render>{res}</Render>;
           };
-        }
-      })
+        },
+      });
     }
-    return children
+    return children;
   }
 
-  return <Render>{type(props)}</Render>
-}
+  return <Render>{type(props)}</Render>;
+};
 
 const ClassNext = (Component: any) => {
   return class WrapComponent extends Component {
@@ -354,38 +369,37 @@ const ClassNext = (Component: any) => {
       super(props);
     }
 
-    render(){
+    render() {
       const children = super.render();
       if (!children) {
         return children;
       }
       if (Array.isArray(children)) {
-        return <Render>{children}</Render>
+        return <Render>{children}</Render>;
       }
       const { props } = children;
       const { children: nextChildren } = props;
 
       if (nextChildren) {
         return cloneElement(children, {
-          children: <Render>{nextChildren}</Render>
-        })
+          children: <Render>{nextChildren}</Render>,
+        });
       }
 
       return children;
     }
   } as any;
-}
+};
 
-const SymbolNext = ({ children }: NextProps) =>  {
+const SymbolNext = ({ children }: NextProps) => {
   const { props } = children;
   const { children: nextChildren } = props;
 
   if (nextChildren) {
     return cloneElement(children, {
-      children: <Render>{nextChildren}</Render>
-    })
+      children: <Render>{nextChildren}</Render>,
+    });
   }
 
   return children;
-}
-
+};

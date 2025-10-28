@@ -1,8 +1,8 @@
-import React, {
-  memo,
-  useState,
-  useEffect,
-} from "react";
+/* eslint-disable no-empty */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { memo, useState, useEffect } from "react";
 import { isObject, pxToRem, fillProxy } from "../utils";
 
 const globalKey = "__render-web-createElement__";
@@ -12,50 +12,56 @@ let createElement: any;
  * 劫持 React.createElement 函数
  */
 export function hijackReactcreateElement(props: any) {
-  const { pxToRem: configPxToRem, pxToVw: handlePxToVw } = props
+  const { pxToRem: configPxToRem, pxToVw: handlePxToVw } = props;
   // @ts-ignore
   if (!React[globalKey]) {
     // @ts-ignore
     React[globalKey] = true;
     createElement = React.createElement;
 
-    React.createElement = function(...args: any) {
-      let [fn, props] = args;
+    React.createElement = function (...args: any) {
+      const [fn, props] = args;
       if (props) {
         // if (!props._mybricks_ob && !Object.entries(props).find(([_, value]) => {
         //   return value?._ob
         // })) {
         //   return createElement(...args)
         // }
-        const style = props.style
+        const style = props.style;
         if (configPxToRem && style) {
           Object.keys(style).forEach((key) => {
-            const value = style[key]
-  
-            if (typeof value === 'string' && value.indexOf('px') !== -1) {
-              style[key] = pxToRem(value)
+            const value = style[key];
+
+            if (typeof value === "string" && value.indexOf("px") !== -1) {
+              style[key] = pxToRem(value);
             }
-          })
+          });
         } else if (handlePxToVw && style) {
           Object.keys(style).forEach((key) => {
-            const value = style[key]
-            if (typeof value === 'string' && value.indexOf('px') !== -1) {
-              style[key] = handlePxToVw(value)
+            const value = style[key];
+            if (typeof value === "string" && value.indexOf("px") !== -1) {
+              style[key] = handlePxToVw(value);
             }
-          })
+          });
         }
         if (props.__no_hijack__) {
-          return createElement(...args)
+          return createElement(...args);
         }
 
         if (args.length > 0 && typeof fn === "function") {
-          if (!fn.prototype ||
-            !(fn.prototype instanceof React.Component) && fn.prototype.isReactComponent === void 0) {
-              const enCom = enhanceComponent(fn)
-              args.splice(0, 1, enCom)
-            }
-            return createElement(...args)
-        } else if (typeof fn === 'object' && fn.$$typeof === Symbol.for('react.forward_ref')) {
+          if (
+            !fn.prototype ||
+            (!(fn.prototype instanceof React.Component) &&
+              fn.prototype.isReactComponent === void 0)
+          ) {
+            const enCom = enhanceComponent(fn);
+            args.splice(0, 1, enCom);
+          }
+          return createElement(...args);
+        } else if (
+          typeof fn === "object" &&
+          fn.$$typeof === Symbol.for("react.forward_ref")
+        ) {
           // const enCom = enhanceComponent(fn, true)
           // args.splice(0, 1, enCom)
 
@@ -65,71 +71,70 @@ export function hijackReactcreateElement(props: any) {
         }
       }
 
-      return createElement(...args); 
+      return createElement(...args);
     };
   }
 }
 
-const PROP_ENHANCED = `__enhanced__`
+const PROP_ENHANCED = `__enhanced__`;
 
 function enhanceComponent(fn: any, isRefCom = false) {
-  let obFn = fn[PROP_ENHANCED]
+  let obFn = fn[PROP_ENHANCED];
 
   if (!obFn) {
     if (isRefCom) {
-      obFn = memo(fn)
-      obFn.render = enhance(fn.render, false)
+      obFn = memo(fn);
+      obFn.render = enhance(fn.render, false);
     } else {
-      obFn = enhance(fn)
+      obFn = enhance(fn);
     }
 
     try {
-      fn[PROP_ENHANCED] = obFn
-    } catch (ex) {
-
-    }
+      fn[PROP_ENHANCED] = obFn;
+    } catch (ex) {}
   }
 
-  const props = Object.getOwnPropertyNames(fn)
-  props && props.forEach(prop => {
-    try {
-      if (!(isRefCom && prop === 'render')) {
-        obFn[prop] = fn[prop]
+  const props = Object.getOwnPropertyNames(fn);
+  props &&
+    props.forEach((prop) => {
+      try {
+        if (!(isRefCom && prop === "render")) {
+          obFn[prop] = fn[prop];
+        }
+      } catch (ex) {
+        console.error(ex);
       }
-    } catch (ex) {
-      console.error(ex)
-    }
-  })
+    });
 
-  return obFn
+  return obFn;
 }
 
 function enhance(component: any, memoIt = true) {
-  function hoc (props: any, refs: any) {
+  function hoc(props: any, refs: any) {
     const [, setState] = useState([]);
-  
+
     useEffect(() => {
       return () => {
         // TODO: 这里有个奇怪的销毁问题
         destroy(setState);
       };
     }, []);
-  
+
     let render;
 
     run({
       update: setState,
       run: () => {
         render = component(props, refs);
-      }
-    })
-  
+      },
+    });
+
     return render;
   }
 
-  hoc.displayName = component.displayName || component.name
+  hoc.displayName = component.displayName || component.name;
 
-  return memoIt ? memo(hoc) : hoc
+  return memoIt ? memo(hoc) : hoc;
 }
 
 let obId = 0;
@@ -141,7 +146,7 @@ const updates: any[] = [];
 
 const run = ({
   update, // 依赖变更触发的事件
-  run // 执行收集依赖
+  run, // 执行收集依赖
 }: any) => {
   updates.unshift(update);
   run();
@@ -149,16 +154,16 @@ const run = ({
   if (index !== -1) {
     updates.splice(index, 1);
   }
-}
+};
 
 const destroy = (update: any) => {
   dep.destroy(update);
-}
+};
 
-let _obRegex = /^_ob\d+_/;
+const _obRegex = /^_ob\d+_/;
 
 const dep: any = {
-  _obToKey: {}, 
+  _obToKey: {},
   event: {},
   reverse: new WeakMap(),
   on(_ob: any, key: any, fn: any) {
@@ -212,11 +217,11 @@ const dep: any = {
             Reflect.deleteProperty(_obToKey, _ob);
           }
         }
-        events.delete(fn)
+        events.delete(fn);
         if (!events.size) {
-          Reflect.deleteProperty(event, eventKey)
+          Reflect.deleteProperty(event, eventKey);
         }
-      })
+      });
       reverse.delete(fn);
     }
   },
@@ -229,17 +234,17 @@ const dep: any = {
         events.forEach((fn: any) => {
           const keys = reverse.get(fn);
           if (keys) {
-            keys.delete(key)
+            keys.delete(key);
             if (!keys.size) {
-              reverse.delete(fn)
+              reverse.delete(fn);
             }
           }
-        })
-        Reflect.deleteProperty(event, key)
-      })
+        });
+        Reflect.deleteProperty(event, key);
+      });
       Reflect.deleteProperty(_obToKey, _ob);
     }
-  }
+  },
 };
 
 // const dep: any = {
@@ -303,15 +308,18 @@ const destroy2 = (value: any) => {
     dep.destroy2(value._ob);
     Object.entries(value).forEach(([, value]) => {
       destroy2(value);
-    })
+    });
   }
-}
+};
 
 const handler: ProxyHandler<any> = {
   set(target: any, prop: any, newValue: any, receiver: any) {
     const previousValue = Reflect.get(target, prop, receiver);
     const result = Reflect.set(target, prop, newValue, receiver);
-    if (previousValue !== newValue || (Array.isArray(target) && prop === "length")) {
+    if (
+      previousValue !== newValue ||
+      (Array.isArray(target) && prop === "length")
+    ) {
       dep.emit(target._ob + prop, []);
       destroy2(previousValue);
     }
@@ -320,8 +328,16 @@ const handler: ProxyHandler<any> = {
   get(target: any, prop: any, receiver: any) {
     const result = Reflect.get(target, prop, receiver);
 
-    if (["_ob", "constructor", Symbol.toPrimitive, Symbol.toStringTag, Symbol.iterator].includes(prop)) {
-      return result
+    if (
+      [
+        "_ob",
+        "constructor",
+        Symbol.toPrimitive,
+        Symbol.toStringTag,
+        Symbol.iterator,
+      ].includes(prop)
+    ) {
+      return result;
     }
 
     const currentRun = updates[0];
@@ -329,38 +345,38 @@ const handler: ProxyHandler<any> = {
     if (currentRun) {
       if (Reflect.get(target, "__model_style__", receiver)) {
         if (prop === "display") {
-          dep.on(target._ob, prop, currentRun)
+          dep.on(target._ob, prop, currentRun);
         } else if (prop === "styleAry") {
-          return result
+          return result;
         }
       } else {
-        dep.on(target._ob, prop, currentRun)
+        dep.on(target._ob, prop, currentRun);
       }
     }
     if (isObject(result)) {
       if (result._ob) {
-        return result
+        return result;
       } else {
         const observableResult = observable(result);
         Reflect.set(target, prop, observableResult, receiver);
-        return observableResult
+        return observableResult;
       }
     }
 
-    return result
-  }
-}
+    return result;
+  },
+};
 
-export function observable<T extends object & {_ob: string}>(obj: T): T {
+export function observable<T extends object & { _ob: string }>(obj: T): T {
   if (obj._ob) {
-    return obj
+    return obj;
   } else {
     // obj._ob = `_ob${++obId}_`;
-    Object.defineProperty(obj, '_ob', {
+    Object.defineProperty(obj, "_ob", {
       value: `_ob${++obId}_`,
       enumerable: false, // 不允许枚举
       writable: false, // 不允许修改
-      configurable: false // 不允许配置
+      configurable: false, // 不允许配置
     });
     return fillProxy(obj, handler);
   }

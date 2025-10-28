@@ -37,14 +37,14 @@ const RenderModuleComponent = ({ json, options, style = {} }: any) => {
     }
 
     options.env.scenesOperate.var = globalVariables[moduleId];
-    options.env.scenesOperate.getGlobalComProps = (comId) => {
+    options.env.scenesOperate.getGlobalComProps = (comId: any) => {
       return {
         data: {
           val: globalVariables[moduleId].getValueById(comId),
         },
       };
     };
-    options.env.scenesOperate.exeGlobalCom = ({ com, value }) => {
+    options.env.scenesOperate.exeGlobalCom = ({ com, value }: any) => {
       globalVariables[moduleId].changed({ com, value });
     };
     const scenesOperate = options.env.scenesOperate;
@@ -89,7 +89,11 @@ const RenderModuleComponent = ({ json, options, style = {} }: any) => {
     const callConnector = options.env.callConnector;
 
     if (callConnector) {
-      options.env.callConnector = (connector, params, config) => {
+      options.env.callConnector = (
+        connector: any,
+        params: any,
+        config: any,
+      ) => {
         return callConnector(connector, params, config, {
           globalVars: new Proxy(
             {},

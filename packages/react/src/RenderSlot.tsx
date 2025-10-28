@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /**
  * MyBricks Opensource
  * https://mybricks.world
@@ -7,137 +10,317 @@
  * mybricks@126.com
  */
 
-import React, { useEffect, useMemo, useRef, useLayoutEffect, useState } from "react";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useLayoutEffect,
+  useState,
+} from "react";
 
-import {isNumber, uuid, pxToRem, pxToVw, convertCamelToHyphen, getStylesheetMountNode, fillProxy} from "../../core/utils";
-import { useModuleContext } from './index'
+import {
+  isNumber,
+  uuid,
+  pxToRem,
+  pxToVw,
+  convertCamelToHyphen,
+  getStylesheetMountNode,
+  fillProxy,
+} from "../../core/utils";
+import { useModuleContext } from "./index";
 import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
 import AiRender from "./AiRender";
 
-const css = lazyCss.locals
+const css = lazyCss.locals;
 
-function renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options}) {
-
-  const { id, elements, style } = com
+function renderRstTraverseCom2({
+  com,
+  index,
+  env,
+  getComDef,
+  context,
+  scope,
+  inputs,
+  outputs,
+  _inputs,
+  _outputs,
+  _env,
+  template,
+  onError,
+  logger,
+  createPortal,
+  options,
+}: any) {
+  const { id, elements, style } = com;
 
   if (elements) {
-    let finalStyle
-    const { handlePxToVw } = options
+    let finalStyle: any;
+    const { handlePxToVw } = options;
     if (handlePxToVw) {
-      finalStyle = {}
-      Object.entries(style).forEach(([key, value]) => {
-        const valueType = typeof value
-        if ((valueType === 'string' && value.indexOf('px') !== -1)) {
-          finalStyle[key] = handlePxToVw(value)
-        } else if (valueType === 'number') {
-          finalStyle[key] = handlePxToVw(`${value}px`)
+      finalStyle = {};
+      Object.entries(style).forEach(([key, value]: any) => {
+        const valueType = typeof value;
+        if (valueType === "string" && value.indexOf("px") !== -1) {
+          finalStyle[key] = handlePxToVw(value);
+        } else if (valueType === "number") {
+          finalStyle[key] = handlePxToVw(`${value}px`);
         } else {
-          finalStyle[key] = value
+          finalStyle[key] = value;
         }
-      })
+      });
     } else {
-      finalStyle = style
+      finalStyle = style;
     }
     return (
-      <div
-        key={id}
-        style={finalStyle}
-      >
+      <div key={id} style={finalStyle}>
         {elements.map((com: any) => {
-          return renderRstTraverseCom2({com, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
+          return renderRstTraverseCom2({
+            com,
+            index,
+            env,
+            getComDef,
+            context,
+            scope,
+            inputs,
+            outputs,
+            _inputs,
+            _outputs,
+            _env,
+            template,
+            onError,
+            logger,
+            createPortal,
+            options,
+          });
         })}
       </div>
-    )
+    );
   } else {
-    const jsx: any = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: index, _env, template, onError, logger, createPortal, options })
+    const jsx: any = getRenderComJSX({
+      com,
+      env,
+      getComDef,
+      context,
+      scope,
+      inputs,
+      outputs,
+      _inputs,
+      _outputs,
+      index: index,
+      _env,
+      template,
+      onError,
+      logger,
+      createPortal,
+      options,
+    });
 
-    return jsx?.jsx
+    return jsx?.jsx;
   }
-
 }
 
 export default function RenderSlot({
-                                     scope,
-                                     root,
-                                     slot,
-                                     style: propsStyle = {},
-                                     createPortal,
-                                     className,
-                                     params,
-                                     inputs,
-                                     outputs,
-                                     _inputs,
-                                     _outputs,
-                                     wrapper,
-                                     template,
-                                     env,
-                                     _env,
-                                     getComDef,
-                                     context,
-                                     onError,
-                                     logger,
-                                     options,
-                                     onClick
-                                   }) {
-  const {style, comAry, layoutTemplate, showType } = slot
+  scope,
+  root,
+  slot,
+  style: propsStyle = {},
+  createPortal,
+  className,
+  params,
+  inputs,
+  outputs,
+  _inputs,
+  _outputs,
+  wrapper,
+  template,
+  env,
+  _env,
+  getComDef,
+  context,
+  onError,
+  logger,
+  options,
+  onClick,
+}: any) {
+  const { style, comAry, layoutTemplate, showType } = slot;
 
   if (style.layout === "smart" && layoutTemplate) {
-    const { rowGap, layout, position, justifyContent, flexWrap, flexDirection, display, columnGap, alignItems, ...paramsStyle} = params?.style || {};
+    const {
+      rowGap,
+      layout,
+      position,
+      justifyContent,
+      flexWrap,
+      flexDirection,
+      display,
+      columnGap,
+      alignItems,
+      ...paramsStyle
+    } = params?.style || {};
     // const slotStyle = paramsStyle || style;
-    const slotStyle = Object.assign(paramsStyle || {}, style)
+    const slotStyle = Object.assign(paramsStyle || {}, style);
     // 智能布局不接受组件传入的样式，后续看是否放开，一些默认的如display、flexDeriction等不能被覆盖
     // const slotStyle = style
     // 智能布局下，默认flex布局，方向为column
     return (
-      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{ ...calSlotStyles(slotStyle, !!paramsStyle, root, slot.type === "module", options), ...propsStyle, display: propsStyle?.display === "none" ? "none" : 'flex', flexDirection: "column"}}>
+      <div
+        data-isslot="1"
+        data-slot-id={slot.id}
+        onClick={onClick}
+        className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ""}`}
+        style={{
+          ...calSlotStyles(
+            slotStyle,
+            !!paramsStyle,
+            root,
+            slot.type === "module",
+            options,
+          ),
+          ...propsStyle,
+          display: propsStyle?.display === "none" ? "none" : "flex",
+          flexDirection: "column",
+        }}
+      >
         {layoutTemplate.map((rstTraverseElement: any, index: any) => {
-          return renderRstTraverseCom2({com: rstTraverseElement, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
+          return renderRstTraverseCom2({
+            com: rstTraverseElement,
+            index,
+            env,
+            getComDef,
+            context,
+            scope,
+            inputs,
+            outputs,
+            _inputs,
+            _outputs,
+            _env,
+            template,
+            onError,
+            logger,
+            createPortal,
+            options,
+          });
         })}
       </div>
-    )
+    );
   }
 
-  const itemAry = []
-  comAry.forEach((com, idx) => {//组件逐个渲染
-    const jsx = getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index: idx, _env, template, onError, logger, createPortal, options })
+  const itemAry: any = [];
+  comAry.forEach((com: any, idx: any) => {
+    //组件逐个渲染
+    const jsx = getRenderComJSX({
+      com,
+      env,
+      getComDef,
+      context,
+      scope,
+      inputs,
+      outputs,
+      _inputs,
+      _outputs,
+      index: idx,
+      _env,
+      template,
+      onError,
+      logger,
+      createPortal,
+      options,
+    });
     if (jsx) {
-      itemAry.push(jsx)
+      itemAry.push(jsx);
     }
-  })
+  });
 
-  if (typeof wrapper === 'function') {
-    return wrapper(itemAry.map((item) => {
-      item.getJsx = ({ index, id }) => {
-        return getRenderComJSX({ com: {...item.com, dynamicId: id}, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options })
-      }
-      return item
-    }))
+  if (typeof wrapper === "function") {
+    return wrapper(
+      itemAry.map((item: any) => {
+        item.getJsx = ({ index, id }: any) => {
+          return getRenderComJSX({
+            com: { ...item.com, dynamicId: id },
+            env,
+            getComDef,
+            context,
+            scope,
+            inputs,
+            outputs,
+            _inputs,
+            _outputs,
+            index,
+            _env,
+            template,
+            onError,
+            logger,
+            createPortal,
+            options,
+          });
+        };
+        return item;
+      }),
+    );
   } else {
     const paramsStyle = params?.style;
     // const slotStyle = paramsStyle || style;
-    const slotStyle = Object.assign(style, paramsStyle || {})
+    const slotStyle = Object.assign(style, paramsStyle || {});
 
     return (
-      <div data-isslot='1' data-slot-id={slot.id} onClick={onClick} className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ''}`} style={{...calSlotStyles(slotStyle, !!paramsStyle || slot.type === "module", root, slot.type === "module", options), ...propsStyle}}>
-        {itemAry.map(item => item.jsx)}
+      <div
+        data-isslot="1"
+        data-slot-id={slot.id}
+        onClick={onClick}
+        className={`${calSlotClasses(slotStyle)}${root && className ? ` ${className}` : ""}`}
+        style={{
+          ...calSlotStyles(
+            slotStyle,
+            !!paramsStyle || slot.type === "module",
+            root,
+            slot.type === "module",
+            options,
+          ),
+          ...propsStyle,
+        }}
+      >
+        {itemAry.map((item: any) => item.jsx)}
       </div>
-    )
+    );
   }
 }
 
-function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, index, _env, template, onError, logger, createPortal, options }) {
-  const {id, def, name, child, brother, dynamicId} = com
-  const comInfo = context.getComInfo(id)
-  const { hasPermission, permissions: envPermissions } = env
-  const permissionsId = comInfo?.model?.permissions?.id
-  if (permissionsId && typeof hasPermission === 'function') {
-    const permissionInfo = hasPermission(permissionsId)
-    if (!permissionInfo || (typeof permissionInfo !== 'boolean' && !permissionInfo.permission)) {
+function getRenderComJSX({
+  com,
+  env,
+  getComDef,
+  context,
+  scope,
+  inputs,
+  outputs,
+  _inputs,
+  _outputs,
+  index,
+  _env,
+  template,
+  onError,
+  logger,
+  createPortal,
+  options,
+}: any) {
+  const { id, def, name, child, brother, dynamicId } = com;
+  const comInfo = context.getComInfo(id);
+  const { hasPermission, permissions: envPermissions } = env;
+  const permissionsId = comInfo?.model?.permissions?.id;
+  if (permissionsId && typeof hasPermission === "function") {
+    const permissionInfo = hasPermission(permissionsId);
+    if (
+      !permissionInfo ||
+      (typeof permissionInfo !== "boolean" && !permissionInfo.permission)
+    ) {
       // 没有权限信息或权限信息里的permission为false
-      const envPermissionInfo = envPermissions.find((p: any) => p.id === permissionsId)
-      const type = permissionInfo?.type || envPermissionInfo?.register.noPrivilege
-      if (type === 'hintLink') {
+      const envPermissionInfo = envPermissions.find(
+        (p: any) => p.id === permissionsId,
+      );
+      const type =
+        permissionInfo?.type || envPermissionInfo?.register.noPrivilege;
+      if (type === "hintLink") {
         return {
           id,
           name,
@@ -146,48 +329,105 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
               <a
                 href={permissionInfo?.hintLinkUrl || envPermissionInfo.hintLink}
                 target="_blank"
-                style={{textDecoration: 'underline'}}
-                >{permissionInfo?.hintLinkTitle || envPermissionInfo.register.title}</a>
+                style={{ textDecoration: "underline" }}
+              >
+                {permissionInfo?.hintLinkTitle ||
+                  envPermissionInfo.register.title}
+              </a>
             </div>
           ),
-          style: {}
-        }
+          style: {},
+        };
       }
-      return
+      return;
     }
   }
-  const comDef = getComDef(def)
+  const comDef = getComDef(def);
 
   if (comDef) {
-    const props = context.get({comId: id, dynamicId, scope: scope ? {
-      ...scope,
-      id: dynamicId ? scope.id + '-' + dynamicId : scope.id,
+    const props = context.get({
+      comId: id,
       dynamicId,
-    } : null, _ioProxy: {
-      inputs, outputs, _inputs, _outputs
-    }})
+      scope: scope
+        ? {
+            ...scope,
+            id: dynamicId ? scope.id + "-" + dynamicId : scope.id,
+            dynamicId,
+          }
+        : null,
+      _ioProxy: {
+        inputs,
+        outputs,
+        _inputs,
+        _outputs,
+      },
+    });
 
     if (props) {
-      const comKey = id + (scope ? scope.id : '') + index//考虑到scope变化的情况，驱动组件强制刷新
+      const comKey = id + (scope ? scope.id : "") + index; //考虑到scope变化的情况，驱动组件强制刷新
       return {
         id,
-        jsx: <RenderCom key={comKey} com={com} comInfo={comInfo} index={index} _mybricks_ob
-                        getComDef={getComDef}
-                        context={context}
-                        scope={scope}
-                        props={props}
-                        env={env}
-                        _env={_env}
-                        template={template}
-                        onError={onError}
-                        logger={logger}
-                        createPortal={createPortal}
-                        options={options}>
-                          {brother?.map((brother, index) => {
-                            return renderRstTraverseCom2({com: brother, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options})
-                          })}
-                          {child ? renderRstTraverseCom2({com: child, index, env, getComDef, context, scope, inputs, outputs, _inputs, _outputs, _env, template, onError, logger, createPortal, options}) : null}
-                          {/* {children?.length ? (
+        jsx: (
+          <RenderCom
+            key={comKey}
+            com={com}
+            comInfo={comInfo}
+            index={index}
+            // @ts-ignore
+            _mybricks_ob
+            getComDef={getComDef}
+            context={context}
+            scope={scope}
+            props={props}
+            env={env}
+            _env={_env}
+            template={template}
+            onError={onError}
+            logger={logger}
+            createPortal={createPortal}
+            options={options}
+          >
+            {brother?.map((brother: any, index: any) => {
+              return renderRstTraverseCom2({
+                com: brother,
+                index,
+                env,
+                getComDef,
+                context,
+                scope,
+                inputs,
+                outputs,
+                _inputs,
+                _outputs,
+                _env,
+                template,
+                onError,
+                logger,
+                createPortal,
+                options,
+              });
+            })}
+            {child
+              ? renderRstTraverseCom2({
+                  com: child,
+                  index,
+                  env,
+                  getComDef,
+                  context,
+                  scope,
+                  inputs,
+                  outputs,
+                  _inputs,
+                  _outputs,
+                  _env,
+                  template,
+                  onError,
+                  logger,
+                  createPortal,
+                  options,
+                })
+              : null}
+            {/* {children?.length ? (
                             <div style={{position: 'absolute', top: 0, left: 0, width: "100%", height: "100%"}}>
                              {children.map((child, index) => {
                               console.log(child, "child")
@@ -195,51 +435,58 @@ function getRenderComJSX({ com, env, getComDef, context, scope, inputs, outputs,
                             })}
                             </div>
                           ) : null} */}
-                          </RenderCom>,
+          </RenderCom>
+        ),
         name,
         inputs: props.inputsCallable,
         style: props.style,
-        com
-      }
+        com,
+      };
     } else {
       return {
-        id, jsx: (
+        id,
+        jsx: (
           <div className={css.error}>
             未找到组件({def.namespace}@{def.version} - {id})定义.
           </div>
-        ), name, style: {}
-      }
+        ),
+        name,
+        style: {},
+      };
     }
   } else {
     return {
-      id, jsx: (
+      id,
+      jsx: (
         <div className={css.error}>
           未找到组件({def.namespace}@{def.version})定义.
         </div>
-      ), name, style: {}
-    }
+      ),
+      name,
+      style: {},
+    };
   }
 }
 
 function RenderCom({
-                     com,
-                     comInfo,
-                     index,
-                     props,
-                     scope,
-                     template,
-                     env,
-                     createPortal,
-                     _env,
-                     getComDef,
-                     context,
-                     onError,
-                     logger,
-                     children,
-                     options
-                   }) {
+  com,
+  comInfo,
+  index,
+  props,
+  scope,
+  template,
+  env,
+  createPortal,
+  _env,
+  getComDef,
+  context,
+  onError,
+  logger,
+  children,
+  options,
+}: any) {
   const _moduleContext = useModuleContext();
-  const {id, def, name, slots = {}, dynamicId}: Com = com
+  const { id, def, name, slots = {}, dynamicId }: any = com;
   const {
     scopeId,
     data,
@@ -249,13 +496,20 @@ function RenderCom({
     outputs: myOutputs,
     _inputs: _myInputs,
     _outputs: _myOutputs,
-    _notifyBindings: _myNotifyBindings
-  } = props
-  const { rootId } = options
-  const [, setShow] = useState(false)
+    _notifyBindings: _myNotifyBindings,
+  } = props;
+  const { rootId } = options;
+  const [, setShow] = useState(false);
 
   useMemo(() => {
-    const { handlePxToVw, debug, disableStyleInjection, rootId, stylization, _isNestCom } = options
+    const {
+      handlePxToVw,
+      debug,
+      disableStyleInjection,
+      rootId,
+      stylization,
+      _isNestCom,
+    } = options;
     // TODO: 后续看，是否应该嵌套组件干掉debug？目前是主应用透传下来的 !debug
     // const styleId = rootId ? `${rootId}-${id}` : id;
     // const styleId = rootId ? (scopeId ? `${rootId}-${scopeId}-${id}` : `${rootId}-${id}`) : (scopeId ? `${scopeId}-${id}` : id)
@@ -267,7 +521,7 @@ function RenderCom({
       // context.styleMap[id] = true
       // stylization.setComId(styleId);
       // const { pxToRem: configPxToRem } = env
-      const styleAry = getStyleAry({ env, def, style })
+      const styleAry = getStyleAry({ env, def, style });
 
       if (Array.isArray(styleAry)) {
         // stylization.setStyle(id, styleAry);
@@ -297,7 +551,7 @@ function RenderCom({
         //       innerText = innerText + getStyleInnerText({id, css, selector, global, configPxToRem, handlePxToVw})
         //     }
         //   }
-          
+
         // })
         // styleTag.innerHTML = innerText
         // if (root) {
@@ -307,38 +561,47 @@ function RenderCom({
         // }
       }
       // TODO
-      Reflect.deleteProperty(style, 'styleAry')
-      Reflect.deleteProperty(style, 'themesId')
+      Reflect.deleteProperty(style, "styleAry");
+      Reflect.deleteProperty(style, "themesId");
     }
-  }, [])
+  }, []);
 
-  const comDef = getComDef(def)
+  const comDef = getComDef(def);
 
   const slotsProxy = fillProxy(slots, {
-    get(target, slotId: string) {
-      const slot = slots[slotId]
+    get(target: any, slotId: string) {
+      const slot = slots[slotId];
       if (!slot) {
-        return
+        return;
       }
       // const props = context.get({comId: id, slotId, scope: null})
 
-      let currentScope;
+      let currentScope: any;
 
       // const slot = slots[slotId]
 
       // if (slot?.type === 'scope') {
-        if (scope) {
-          currentScope = {
-            id: scope.id + '-' + scope.frameId + `${dynamicId ? '-' + dynamicId : ''}`,
-            frameId: slotId,
-            parentComId: id,
-            parent: scope,
-            dynamicId
-          }
-        }
+      if (scope) {
+        currentScope = {
+          id:
+            scope.id +
+            "-" +
+            scope.frameId +
+            `${dynamicId ? "-" + dynamicId : ""}`,
+          frameId: slotId,
+          parentComId: id,
+          parent: scope,
+          dynamicId,
+        };
+      }
       // }
 
-      const props = context.get({comId: id, slotId, slot, scope: currentScope})
+      const props = context.get({
+        comId: id,
+        slotId,
+        slot,
+        scope: currentScope,
+      });
 
       // const errorStringPrefix = `组件(namespace=${def.namespace}）的插槽(id=${slotId})`
 
@@ -347,86 +610,113 @@ function RenderCom({
       // }
 
       return {
-        render(params: { key, inputValues, inputs, outputs, _inputs, _outputs, wrap, itemWrap, style, scope }) {
-          const paramsScope = params?.scope
+        render(params: {
+          key: any;
+          inputValues: any;
+          inputs: any;
+          outputs: any;
+          _inputs: any;
+          _outputs: any;
+          wrap: any;
+          itemWrap: any;
+          style: any;
+          scope: any;
+        }) {
+          const paramsScope = params?.scope;
           if (paramsScope) {
             currentScope = {
-              id: paramsScope.id + '-' + paramsScope.frameId,
+              id: paramsScope.id + "-" + paramsScope.frameId,
               frameId: slotId,
               parentComId: id,
-              parent: paramsScope
-            }
+              parent: paramsScope,
+            };
           }
-            return <SlotRender 
-                               key={params?.key}
-                               props={props}
-                               currentScope={currentScope}
-                               slotId={slotId}
-                               slot={slot}
-                               params={params}
-                               style={style}
-                               onError={onError}
-                               createPortal={createPortal}
-                               parentComId={id}
-                               logger={logger} env={env} _env={_env} scope={scope} getComDef={getComDef} context={context} options={options}/>
+          return (
+            <SlotRender
+              key={params?.key}
+              props={props}
+              currentScope={currentScope}
+              slotId={slotId}
+              slot={slot}
+              params={params}
+              style={style}
+              onError={onError}
+              createPortal={createPortal}
+              parentComId={id}
+              logger={logger}
+              env={env}
+              _env={_env}
+              scope={scope}
+              getComDef={getComDef}
+              context={context}
+              options={options}
+            />
+          );
         },
         get size() {
-          return !!slots[slotId]?.comAry?.length
+          return !!slots[slotId]?.comAry?.length;
         },
         _inputs: props._inputs,
         inputs: props.inputs,
-        outputs: props.outputs
-      }
-    }
-  })
+        outputs: props.outputs,
+      };
+    },
+  });
 
   const parentSlot = useMemo(() => {
     if (props.frameId && props.parentComId) {
       // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope})
       // 取slot就行
-      let finalScope = scope?.parentScope || scope
-      const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: finalScope?.parent ? finalScope : null})
+      const finalScope = scope?.parentScope || scope;
+      const slotProps = context.get({
+        comId: props.parentComId,
+        slotId: props.frameId,
+        scope: finalScope?.parent ? finalScope : null,
+      });
       // const slotProps = context.get({comId: props.parentComId, slotId: props.frameId, scope: scope?.parent})
       // const slotProps = context.get(props.parentComId, props.frameId, scope?.parent)
       if (slotProps) {
         return {
           get _inputs() {
-            return fillProxy({}, {
-              get(target, name) {
-                const fn = slotProps._inputRegs[name]
-                return fn
-              }
-            })
-          }
-        }
+            return fillProxy(
+              {},
+              {
+                get(target: any, name: any) {
+                  const fn = slotProps._inputRegs[name];
+                  return fn;
+                },
+              },
+            );
+          },
+        };
       }
     }
-  }, [])
+  }, []);
 
-  const classes = getClasses({style, id, rootId})
-  const sizeStyle = getSizeStyle({style})
-  const marginStyle = getMarginStyle({style})
+  const classes = getClasses({ style, id, rootId });
+  const sizeStyle = getSizeStyle({ style });
+  const marginStyle = getMarginStyle({ style });
 
   const otherStyle: any = {
-    zIndex: style.zIndex
-  }
+    zIndex: style.zIndex,
+  };
 
-  if (['fixed', 'absolute'].includes(style.position)) {
-    const { top, left, right, bottom, transform } = style
+  if (["fixed", "absolute"].includes(style.position)) {
+    const { top, left, right, bottom, transform } = style;
     if (top || isNumber(top)) {
-      otherStyle.top = isNumber(top) ? top + 'px' : top
+      otherStyle.top = isNumber(top) ? top + "px" : top;
     }
     if (bottom || isNumber(bottom)) {
-      otherStyle.bottom = isNumber(bottom) ? bottom + 'px' : bottom
+      otherStyle.bottom = isNumber(bottom) ? bottom + "px" : bottom;
     }
     if (left || isNumber(left)) {
-      otherStyle.left = isNumber(left) ? left + 'px' : left
+      otherStyle.left = isNumber(left) ? left + "px" : left;
     }
     if (right || isNumber(right)) {
-      otherStyle.right = isNumber(right) ? right + 'px' : right
+      otherStyle.right = isNumber(right) ? right + "px" : right;
     }
     if (transform) {
-      otherStyle.transform = transform
+      otherStyle.transform = transform;
     }
     // if (style.position === 'fixed') {
     //   // --- 2023.3.22 只有固定布局才需要通过设置zIndex达到置顶效果，自由布局不需要设置zIndex，否则永远在最上层
@@ -437,52 +727,62 @@ function RenderCom({
     // }
   }
 
-  const Runtime = comDef.runtime
+  const Runtime = comDef.runtime;
 
-  let jsx = <Runtime
-    id={dynamicId || id}
-    // _id={rootId ? `${rootId}-${id}` : id}
-    _id={rootId ? (scopeId ? `${rootId}-${scopeId}-${id}` : `${rootId}-${id}`) : (scopeId ? `${scopeId}-${id}` : id)}
-    env={env}
-    _env={_env}
-    data={data}
-    name={name}
-    title={title}
-    style={style}
-    inputs={myInputs}
-    outputs={myOutputs}
-    _inputs={_myInputs}
-    _outputs={_myOutputs}
-    _notifyBindings={_myNotifyBindings}
-    slots={slotsProxy}
-    createPortal={createPortal}
-    parentSlot={parentSlot}
-    onError={onError}
-    logger={logger}
-    _onError_={(e) => {
-      throw new Error(e)
-    }}
-    modules={_moduleContext.modules}
-  />
+  let jsx: any = (
+    <Runtime
+      id={dynamicId || id}
+      // _id={rootId ? `${rootId}-${id}` : id}
+      _id={
+        rootId
+          ? scopeId
+            ? `${rootId}-${scopeId}-${id}`
+            : `${rootId}-${id}`
+          : scopeId
+            ? `${scopeId}-${id}`
+            : id
+      }
+      env={env}
+      _env={_env}
+      data={data}
+      name={name}
+      title={title}
+      style={style}
+      inputs={myInputs}
+      outputs={myOutputs}
+      _inputs={_myInputs}
+      _outputs={_myOutputs}
+      _notifyBindings={_myNotifyBindings}
+      slots={slotsProxy}
+      createPortal={createPortal}
+      parentSlot={parentSlot}
+      onError={onError}
+      logger={logger}
+      _onError_={(e: any) => {
+        throw new Error(e);
+      }}
+      modules={_moduleContext.modules}
+    />
+  );
 
   if (comInfo?.model?.isAICode) {
-    jsx = <AiRender _data={data}>{jsx}</AiRender>
+    jsx = <AiRender _data={data}>{jsx}</AiRender>;
   }
 
   useLayoutEffect(() => {
-    setShow(true) // 在子组件写入前触发状态更新，会执行上次等待的useEffect，内部inputs是同步执行，最终挂载dom
-  }, [])
+    setShow(true); // 在子组件写入前触发状态更新，会执行上次等待的useEffect，内部inputs是同步执行，最终挂载dom
+  }, []);
 
   // --- end
 
-  if (typeof template === 'function') {
+  if (typeof template === "function") {
     jsx = template({
       id,
       jsx,
       name,
       scope,
       index,
-    })
+    });
   }
 
   // --- 2023.2.21 兼容小程序
@@ -494,7 +794,15 @@ function RenderCom({
       data-title={title}
       data-namespace={def.namespace}
       // data-nested-id={rootId ? `${rootId}-${id}` : id}
-      data-nested-id={rootId ? (scopeId ? `${rootId}-${scopeId}-${id}` : `${rootId}-${id}`) : (scopeId ? `${scopeId}-${id}` : id)}
+      data-nested-id={
+        rootId
+          ? scopeId
+            ? `${rootId}-${scopeId}-${id}`
+            : `${rootId}-${id}`
+          : scopeId
+            ? `${scopeId}-${id}`
+            : id
+      }
       style={{
         display: style.display,
         visibility: style.visibility,
@@ -507,23 +815,27 @@ function RenderCom({
         ...otherStyle,
         ...sizeStyle,
         ...marginStyle,
-        ...(style.ext || {})
+        ...(style.ext || {}),
       }}
       className={classes}
     >
-      <ErrorBoundary errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`} options={options}>
+      <ErrorBoundary
+        errorTip={`组件 (namespace = ${def.namespace}@${def.version}）渲染错误`}
+        // @ts-ignore
+        options={options}
+      >
         {jsx}
         {children}
       </ErrorBoundary>
     </div>
-  ) : null
+  ) : null;
 
   // --- end
 
-  return jsx
+  return jsx;
 }
 
-function SlotRender ({
+function SlotRender({
   slotId,
   parentComId,
   props,
@@ -539,77 +851,93 @@ function SlotRender ({
   context,
   onError,
   logger,
-  options
-}) {
-  const preInputValues = useRef(null)
+  options,
+}: any) {
+  const preInputValues = useRef(null);
   const { curScope, curProps, isRuntime } = useMemo(() => {
-    const isRuntime = !env.edit
-    let finalScope = currentScope
-    let finalProps = props
-    let hasNewScope = false
+    const isRuntime = !env.edit;
+    let finalScope = currentScope;
+    let finalProps = props;
+    let hasNewScope = false;
 
     if (!finalScope) {
-      if (slot?.type === 'scope') {
+      if (slot?.type === "scope") {
         finalScope = {
           id: uuid(10, 16),
           frameId: slotId,
-          parentComId
-        }
+          parentComId,
+        };
 
-        hasNewScope = true
+        hasNewScope = true;
       }
     }
 
     if (params) {
-      const ivs = params.inputValues
-      if (typeof ivs === 'object') {
+      const ivs = params.inputValues;
+      if (typeof ivs === "object") {
         if (hasNewScope) {
-          finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
+          finalProps = context.get({
+            comId: parentComId,
+            slotId,
+            scope: finalScope,
+          });
         } else {
-          finalScope = {...finalScope, id: finalScope.id + '-' + uuid(10, 16), parentScope: finalScope}
-          finalProps = context.get({comId: parentComId, slotId, scope: finalScope})
+          finalScope = {
+            ...finalScope,
+            id: finalScope.id + "-" + uuid(10, 16),
+            parentScope: finalScope,
+          };
+          finalProps = context.get({
+            comId: parentComId,
+            slotId,
+            scope: finalScope,
+          });
         }
 
         if (isRuntime) {
-          finalProps.setSlotValue(ivs)
-          for (let pro in ivs) {
-            finalProps.inputs[pro](ivs[pro], finalScope)
+          finalProps.setSlotValue(ivs);
+          for (const pro in ivs) {
+            finalProps.inputs[pro](ivs[pro], finalScope);
           }
         }
       }
     }
-    finalProps.run(finalScope)
+    finalProps.run(finalScope);
 
-    return { curScope: finalScope, curProps: finalProps, isRuntime }
-  }, [])
+    return { curScope: finalScope, curProps: finalProps, isRuntime };
+  }, []);
 
   useEffect(() => {
     if (isRuntime) {
-      const paramsInputValues = params?.inputValues
+      const paramsInputValues = params?.inputValues;
       if (paramsInputValues) {
         if (!preInputValues.current) {
-          preInputValues.current = paramsInputValues
-          curProps.run(null, true)
-        } else if (typeof paramsInputValues === 'object' && (JSON.stringify(preInputValues.current) !== JSON.stringify(paramsInputValues))) {
-          preInputValues.current = paramsInputValues
-          curProps.setSlotValue(paramsInputValues)
-          for (let pro in paramsInputValues) {
-            curProps.inputs[pro](paramsInputValues[pro], curScope)
+          preInputValues.current = paramsInputValues;
+          curProps.run(null, true);
+        } else if (
+          typeof paramsInputValues === "object" &&
+          JSON.stringify(preInputValues.current) !==
+            JSON.stringify(paramsInputValues)
+        ) {
+          preInputValues.current = paramsInputValues;
+          curProps.setSlotValue(paramsInputValues);
+          for (const pro in paramsInputValues) {
+            curProps.inputs[pro](paramsInputValues[pro], curScope);
           }
-          curProps.run()
+          curProps.run();
         }
       } else {
         // 没有inputValues，默认触发一次
-        curProps.run(null, true)
+        curProps.run(null, true);
       }
     }
-  }, [params?.inputValues])
+  }, [params?.inputValues]);
 
   useEffect(() => {
     return () => {
-      curProps.destroy()
-    }
-  }, [])
+      curProps.destroy();
+    };
+  }, []);
 
   const render = useMemo(() => {
     return (
@@ -632,16 +960,22 @@ function SlotRender ({
         logger={logger}
         options={options}
       />
-    )
-  }, [])
+    );
+  }, []);
 
-  return render
+  return render;
 }
 
 //-----------------------------------------------------------------------
 
-function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
-  const { handlePxToVw } = options
+function calSlotStyles(
+  style: any,
+  hasParamsStyle: any,
+  root: any,
+  isModule: any,
+  options: any,
+) {
+  const { handlePxToVw } = options;
   // isModule 模块特殊处理
   // isEdit 模块兼容编辑态和调试态
   // 兼容旧的style
@@ -702,7 +1036,7 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
     paddingRight: paddingRight || 0,
     paddingBottom: paddingBottom || 0,
     //height: style.customHeight || '100%'
-    backgroundColor: backgroundColor || (root ? '#ffffff' : void 0),
+    backgroundColor: backgroundColor || (root ? "#ffffff" : void 0),
     backgroundImage,
     backgroundPosition,
     backgroundRepeat,
@@ -726,30 +1060,30 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
     boxShadow,
     overflowX,
     overflowY,
-  } as any
+  } as any;
   // 兼容旧的style
   if (background) {
-    const isOldBackground = typeof background === 'object'
+    const isOldBackground = typeof background === "object";
     if (isOldBackground) {
       const {
         background: bg,
         backgroundImage,
         backgroundColor,
         backgroundRepeat,
-        backgroundSize
+        backgroundSize,
       } = background;
-  
-      slotStyle.backgroundRepeat = backgroundRepeat
-      slotStyle.backgroundSize = backgroundSize
-  
+
+      slotStyle.backgroundRepeat = backgroundRepeat;
+      slotStyle.backgroundSize = backgroundSize;
+
       if (bg) {
-        slotStyle.background = bg
+        slotStyle.background = bg;
       } else {
-        slotStyle.backgroundImage = backgroundImage
-        slotStyle.backgroundColor = backgroundColor
+        slotStyle.backgroundImage = backgroundImage;
+        slotStyle.backgroundColor = backgroundColor;
       }
     } else {
-      slotStyle.background = background
+      slotStyle.background = background;
     }
   }
 
@@ -757,153 +1091,154 @@ function calSlotStyles(style, hasParamsStyle, root, isModule, options) {
   if (isModule) {
     // slotStyle.transform = 'scale(1)';
     if (heightAuto) {
-      slotStyle.height = "fit-content"
+      slotStyle.height = "fit-content";
     } else if (heightFull) {
       // if (isEdit) {
       //   slotStyle.height = style.height
       // } else {
       //   slotStyle.height = "100%"
       // }
-      slotStyle.height = "100%"
+      slotStyle.height = "100%";
     } else {
-      slotStyle.height = height
+      slotStyle.height = height;
     }
 
     if (widthAuto) {
-      slotStyle.width = "fit-content"
+      slotStyle.width = "fit-content";
     } else if (widthFull) {
-      slotStyle.width = "100%"
+      slotStyle.width = "100%";
       // if (isEdit) {
       //   slotStyle.width = style.width
       // } else {
       //   slotStyle.width = "100%"
       // }
     } else {
-      slotStyle.width = width
+      slotStyle.width = width;
     }
   }
 
   if (hasParamsStyle) {
-    slotStyle = Object.assign(slotStyle, otherStyle)
+    slotStyle = Object.assign(slotStyle, otherStyle);
   }
 
   if (handlePxToVw) {
-    Object.entries(slotStyle).forEach(([key, value]) => {
-      const valueType = typeof value
-      if ((valueType === 'string' && value.indexOf('px') !== -1)) {
-        slotStyle[key] = handlePxToVw(value)
-      } else if (valueType === 'number') {
-        slotStyle[key] = handlePxToVw(`${value}px`)
+    Object.entries(slotStyle).forEach(([key, value]: any) => {
+      const valueType = typeof value;
+      if (valueType === "string" && value.indexOf("px") !== -1) {
+        slotStyle[key] = handlePxToVw(value);
+      } else if (valueType === "number") {
+        slotStyle[key] = handlePxToVw(`${value}px`);
       } else {
-        slotStyle[key] = value
+        slotStyle[key] = value;
       }
-    })
+    });
   }
 
-  return slotStyle
+  return slotStyle;
 }
 
-function calSlotClasses(slotStyle) {
-  const rtn = [css.slot, 'slot']
+function calSlotClasses(slotStyle: any) {
+  const rtn = [css.slot, "slot"];
 
-  const style = slotStyle
+  const style = slotStyle;
   if (style) {
-    if (style.layout?.toLowerCase() == 'flex-column') {
-      rtn.push(css.lyFlexColumn)
-    } else if (style.layout?.toLowerCase() == 'flex-row') {
-      rtn.push(css.lyFlexRow)
+    if (style.layout?.toLowerCase() == "flex-column") {
+      rtn.push(css.lyFlexColumn);
+    } else if (style.layout?.toLowerCase() == "flex-row") {
+      rtn.push(css.lyFlexRow);
     }
 
-    const justifyContent = style.justifyContent
+    const justifyContent = style.justifyContent;
     if (justifyContent) {
-      if (justifyContent.toUpperCase() === 'FLEX-START') {
-        rtn.push(css.justifyContentFlexStart)
-      } else if (justifyContent.toUpperCase() === 'CENTER') {
-        rtn.push(css.justifyContentFlexCenter)
-      } else if (justifyContent.toUpperCase() === 'FLEX-END') {
-        rtn.push(css.justifyContentFlexFlexEnd)
-      } else if (justifyContent.toUpperCase() === 'SPACE-AROUND') {
-        rtn.push(css.justifyContentFlexSpaceAround)
-      } else if (justifyContent.toUpperCase() === 'SPACE-BETWEEN') {
-        rtn.push(css.justifyContentFlexSpaceBetween)
+      if (justifyContent.toUpperCase() === "FLEX-START") {
+        rtn.push(css.justifyContentFlexStart);
+      } else if (justifyContent.toUpperCase() === "CENTER") {
+        rtn.push(css.justifyContentFlexCenter);
+      } else if (justifyContent.toUpperCase() === "FLEX-END") {
+        rtn.push(css.justifyContentFlexFlexEnd);
+      } else if (justifyContent.toUpperCase() === "SPACE-AROUND") {
+        rtn.push(css.justifyContentFlexSpaceAround);
+      } else if (justifyContent.toUpperCase() === "SPACE-BETWEEN") {
+        rtn.push(css.justifyContentFlexSpaceBetween);
       }
     }
 
-    const alignItems = style.alignItems
+    const alignItems = style.alignItems;
     if (alignItems) {
-      if (alignItems.toUpperCase() === 'FLEX-START') {
-        rtn.push(css.alignItemsFlexStart)
-      } else if (alignItems.toUpperCase() === 'CENTER') {
-        rtn.push(css.alignItemsFlexCenter)
-      } else if (alignItems.toUpperCase() === 'FLEX-END') {
-        rtn.push(css.alignItemsFlexFlexEnd)
+      if (alignItems.toUpperCase() === "FLEX-START") {
+        rtn.push(css.alignItemsFlexStart);
+      } else if (alignItems.toUpperCase() === "CENTER") {
+        rtn.push(css.alignItemsFlexCenter);
+      } else if (alignItems.toUpperCase() === "FLEX-END") {
+        rtn.push(css.alignItemsFlexFlexEnd);
       }
     }
   }
 
-  return rtn.join(' ')
+  return rtn.join(" ");
 }
 
-function getClasses({style, id, rootId}) {
+function getClasses({ style, id, rootId }: any) {
   // const classes = [rootId ? `${rootId}-${id}` : id, css.com]
-  const classes = [id, css.com]
+  const classes = [id, css.com];
 
   // 临时兼容
   // style._new 说明是新数据结构，不再需要css.flex
   if (style.flex === 1 && !style._new) {
-    classes.push(css.flex)
+    classes.push(css.flex);
   }
 
   if (style.heightAuto) {
-    classes.push(css.comHeightAuto)
+    classes.push(css.comHeightAuto);
   }
   // 暂时去除，应该没有这个属性了
   // if (style.flex === 1) {
   //   classes.push(css.flex)
   // }
 
-  return classes.join(" ")
+  return classes.join(" ");
 }
 
-function getSizeStyle({style}) {
-  const sizeStyle: any = {}
-  const {width, height, maxWidth, flexX, minWidth, minHeight, rotation} = style
+function getSizeStyle({ style }: any) {
+  const sizeStyle: any = {};
+  const { width, height, maxWidth, flexX, minWidth, minHeight, rotation } =
+    style;
 
   if (!width && !flexX) {
     // sizeStyle.width = "100%"
   } else if (isNumber(width)) {
-    sizeStyle.width = width + "px"
+    sizeStyle.width = width + "px";
   } else if (width) {
-    sizeStyle.width = width
+    sizeStyle.width = width;
   }
 
   if (isNumber(height)) {
-    sizeStyle.height = height + "px"
+    sizeStyle.height = height + "px";
   } else if (height) {
-    sizeStyle.height = height
+    sizeStyle.height = height;
   }
 
   if (maxWidth) {
-    sizeStyle.maxWidth = maxWidth
+    sizeStyle.maxWidth = maxWidth;
   }
 
   if (minWidth) {
-    sizeStyle.minWidth = minWidth
+    sizeStyle.minWidth = minWidth;
   }
 
   if (minHeight) {
-    sizeStyle.minHeight = minHeight
+    sizeStyle.minHeight = minHeight;
   }
 
   if (isNumber(rotation)) {
     sizeStyle.transform = `rotate(${rotation}deg)`;
-    sizeStyle.transformOrigin = 'center center';
+    sizeStyle.transformOrigin = "center center";
   }
 
-  return sizeStyle
+  return sizeStyle;
 }
 
-function getMarginStyle({style}) {
+function getMarginStyle({ style }: any) {
   const {
     margin, // TODO: 这里智能布局为了方便用到margin，后面看去掉
     marginTop,
@@ -913,13 +1248,13 @@ function getMarginStyle({style}) {
     paddingTop,
     paddingLeft,
     paddingRight,
-    paddingBottom
-  } = style
+    paddingBottom,
+  } = style;
 
   if (margin) {
     return {
-      margin
-    }
+      margin,
+    };
   }
 
   return {
@@ -930,41 +1265,41 @@ function getMarginStyle({style}) {
     paddingTop,
     paddingLeft,
     paddingRight,
-    paddingBottom
-  }
+    paddingBottom,
+  };
 }
 
-function getStyleAry ({ env, style, def }) {
-  const comThemes = env?.themes?.comThemes
+function getStyleAry({ env, style, def }: any) {
+  const comThemes = env?.themes?.comThemes;
 
   if (!comThemes) {
-    return style.styleAry
+    return style.styleAry;
   }
 
-  let styleAry = style.styleAry
+  let styleAry = style.styleAry;
 
-  const { themesId } = style
-  const { namespace } = def
+  const { themesId } = style;
+  const { namespace } = def;
 
   // if (!themesId && !styleAry) {
   if (!themesId) {
     // 没有themesId，查找默认值
-    const comThemeAry = comThemes[namespace]
+    const comThemeAry = comThemes[namespace];
     if (Array.isArray(comThemeAry)) {
-      const comTheme = comThemeAry.find(({ isDefault }) => isDefault)
+      const comTheme = comThemeAry.find(({ isDefault }) => isDefault);
       if (comTheme) {
-        styleAry = comTheme.styleAry
+        styleAry = comTheme.styleAry;
       }
     }
-  } else if (themesId === '_defined') {
+  } else if (themesId === "_defined") {
     // 说明用户修改过风格化样式，读当前styleAry即可
   } else {
     // 根据themesId查找相应的内容
-    const comThemeAry = comThemes[namespace]
+    const comThemeAry = comThemes[namespace];
     if (Array.isArray(comThemeAry)) {
-      const comTheme = comThemeAry.find(({ id }) => id === themesId)
+      const comTheme = comThemeAry.find(({ id }) => id === themesId);
       if (comTheme) {
-        styleAry = comTheme.styleAry
+        styleAry = comTheme.styleAry;
       }
     }
   }
@@ -974,7 +1309,7 @@ function getStyleAry ({ env, style, def }) {
   //   return style.styleAry
   // }
 
-  return styleAry
+  return styleAry;
 }
 
 // function getStyleInnerText ({id, css, selector, global, configPxToRem, handlePxToVw}) {

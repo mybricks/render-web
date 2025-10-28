@@ -1,22 +1,21 @@
-import React, {
-  useMemo,
-  useState,
-  useCallback,
-  useEffect,
-} from 'react'
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* eslint-disable no-empty */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import React, { useMemo, useState, useCallback, useEffect } from "react";
 
-import Main from './Main'
-import { useModuleContext, useMyBricksRenderContext } from '.'
-import executor, { Var } from '../../core/executor'
-import RenderModuleComponent from "./RenderModuleComponent"
-import { deepCopy } from '../../core/utils';
+import Main from "./Main";
+import { useModuleContext, useMyBricksRenderContext } from ".";
+import executor, { Var } from "../../core/executor";
+import RenderModuleComponent from "./RenderModuleComponent";
+import { deepCopy } from "../../core/utils";
 
-import lazyCss from './MultiScene.lazy.less'
+import lazyCss from "./MultiScene.lazy.less";
 
 class DebugHistory {
   history: {
     id: string;
-    todo: any[]
+    todo: any[];
   }[] = [];
   index = -1;
 
@@ -24,7 +23,7 @@ class DebugHistory {
     if (scene.type !== "popup") {
       this.history[++this.index] = {
         id: scene.id,
-        todo: []
+        todo: [],
       };
     }
   }
@@ -33,11 +32,11 @@ class DebugHistory {
     // 打开
     this.history = this.history.slice(0, ++this.index).concat({
       id,
-      todo: []
+      todo: [],
     });
   }
 
-  back(num) {
+  back(num: any) {
     const nextIndex = this.index - num;
 
     this.index = nextIndex < 0 ? 0 : nextIndex;
@@ -57,89 +56,99 @@ class DebugHistory {
     if (this.index > -1) {
       this.history = this.history.slice(0, this.index).concat({
         id,
-        todo: []
+        todo: [],
       });
     }
   }
 
   setTodo(todo: any) {
-    this.history[this.index].todo = todo
+    this.history[this.index].todo = todo;
   }
-
 }
 
-const css = lazyCss.locals
+const css = lazyCss.locals;
 
-export default function MultiScene ({json, options}) {
-  const _context = useMyBricksRenderContext()
-  const _moduleContext = useModuleContext()
-  const [count, setCount] = useState(0)
-  const [popupIds, setPopupIds] = useState<any>([])
-  const [pageScenes, setPageScenes] = useState<any>([])
+export default function MultiScene({ json, options }: any) {
+  const _context = useMyBricksRenderContext();
+  const _moduleContext = useModuleContext();
+  const [count, setCount] = useState(0);
+  const [popupIds, setPopupIds] = useState<any>([]);
+  const [pageScenes, setPageScenes] = useState<any>([]);
 
-  const {scenesMap, scenesOperateInputsTodo, globalVarMap, debugHistory, env} = useMemo(() => {
+  const {
+    scenesMap,
+    scenesOperateInputsTodo,
+    globalVarMap,
+    debugHistory,
+    env,
+  } = useMemo(() => {
     const { sceneId, disableAutoRun, globalVariable } = options;
     const { env } = _moduleContext;
     if (sceneId) {
-      const index = json.scenes.findIndex((scenes) => scenes.id === sceneId)
+      const index = json.scenes.findIndex(
+        (scenes: any) => scenes.id === sceneId,
+      );
       if (index !== -1) {
-        const scene = json.scenes.splice(index, 1)
-        json.scenes.unshift(...scene)
-        if (scene[0].type === 'popup') {
-          setPopupIds([scene[0].id])
+        const scene = json.scenes.splice(index, 1);
+        json.scenes.unshift(...scene);
+        if (scene[0].type === "popup") {
+          setPopupIds([scene[0].id]);
         }
       }
     }
-    const pageScenes: any = []
+    const pageScenes: any = [];
 
-    json.scenes.forEach((scene, index) => {
-      if (scene.type === 'popup') {
+    json.scenes.forEach((scene: any, index: any) => {
+      if (scene.type === "popup") {
         if (!index) {
-          setPopupIds([scene.id])
+          setPopupIds([scene.id]);
         }
       } else {
-        pageScenes.push(scene)
+        pageScenes.push(scene);
       }
-    })
+    });
 
-    setPageScenes(pageScenes)
+    setPageScenes(pageScenes);
 
-    const { modules, definedComs, global } = json
+    const { modules, definedComs, global } = json;
 
     if (!env.getDefinedComJSON) {
       env.getDefinedComJSON = (definedId: string) => {
-        return definedComs[definedId].json
-      }
+        return definedComs[definedId].json;
+      };
     }
     env.getModuleJSON = (moduleId: string) => {
-      return modules?.[moduleId]?.json
-    }
-    const permissions = json.permissions || []
-    env.themes = json.themes
-    env.permissions = permissions
+      return modules?.[moduleId]?.json;
+    };
+    const permissions = json.permissions || [];
+    env.themes = json.themes;
+    env.permissions = permissions;
     const hasPermission = env.hasPermission;
-    if (typeof hasPermission === 'function') {
-      Object.defineProperty(env, 'hasPermission', {
-        get: function() {
-          return (value) => {
+    if (typeof hasPermission === "function") {
+      Object.defineProperty(env, "hasPermission", {
+        get: function () {
+          return (value: any) => {
             // TODO 兼容老的组件用法
-            if (typeof value === 'string') {
-              const permission = permissions.find((permission) => permission.id === value)
-              return hasPermission({ permission })
+            if (typeof value === "string") {
+              const permission = permissions.find(
+                (permission: any) => permission.id === value,
+              );
+              return hasPermission({ permission });
             }
-            return hasPermission(value)
-          }
-        }
-      })
+            return hasPermission(value);
+          };
+        },
+      });
     }
 
     /** 便于通过id查找全局FX信息 */
-    const globalFxIdToFrame = {};
-    const globalExtensionFxIdToFrame = {}
-    let configFx;
-    global.fxFrames.forEach((fx) => {
+    const globalFxIdToFrame: any = {};
+    const globalExtensionFxIdToFrame: any = {};
+    let configFx: any;
+    global.fxFrames.forEach((fx: any) => {
       globalFxIdToFrame[fx.id] = fx;
-      if (fx.type === "extension-bus") { // [TODO] 引擎定义个新的字段
+      if (fx.type === "extension-bus") {
+        // [TODO] 引擎定义个新的字段
         globalExtensionFxIdToFrame[fx.name] = fx;
       }
       if (fx.type === "extension-config") {
@@ -149,36 +158,44 @@ export default function MultiScene ({json, options}) {
 
     const firstScene = json.scenes[0];
     const normalStatus = {
-      lastSceneId: firstScene.type === 'popup' ? null : firstScene.id,
+      lastSceneId: firstScene.type === "popup" ? null : firstScene.id,
     };
 
-    env.canvas.open = async (pageId, params, openType, historyType, configs) => {
-      const sceneId = configs?.moduleId ?`${configs?.moduleId}-${pageId}` : pageId
+    env.canvas.open = async (
+      pageId: any,
+      params: any,
+      openType: any,
+      historyType: any,
+      configs: any,
+    ) => {
+      const sceneId = configs?.moduleId
+        ? `${configs?.moduleId}-${pageId}`
+        : pageId;
       // console.log(`打开场景 -> ${sceneId}`)
-      let scenes = scenesMap[sceneId]
+      let scenes = scenesMap[sceneId];
 
       if (!scenes) {
-        if (typeof options?.module?.loadPage !== 'function') {
+        if (typeof options?.module?.loadPage !== "function") {
           if (env.history) {
             env.history.go(sceneId, params, openType);
           } else {
-            console.error(`缺少场景信息: ${sceneId}`)
+            console.error(`缺少场景信息: ${sceneId}`);
           }
-          return
+          return;
         }
-        const json = await options.module.loadPage({pageId, ...configs})
-        let mergeToJson = json
+        const json = await options.module.loadPage({ pageId, ...configs });
+        let mergeToJson = json;
 
         if (configs?.mergeToJson) {
           mergeToJson = {
             ...configs.mergeToJson,
-            scenes: [json]
-          }
+            scenes: [json],
+          };
         }
 
-        json.moduleId = configs?.moduleId
-        mergeToJson.moduleId = configs?.moduleId
-        mergeToJson.id = json.id
+        json.moduleId = configs?.moduleId;
+        mergeToJson.moduleId = configs?.moduleId;
+        mergeToJson.id = json.id;
 
         scenes = {
           disableAutoRun: false,
@@ -187,65 +204,69 @@ export default function MultiScene ({json, options}) {
           parentScope: null,
           todo: [],
           type: json.slot?.showType || json.type,
-          useEntryAnimation: false
-        }
+          useEntryAnimation: false,
+        };
 
-        scenesMap[sceneId] = scenes
-        if (json.type === 'popup') {
+        scenesMap[sceneId] = scenes;
+        if (json.type === "popup") {
         } else {
-          setPageScenes((pageScenes) => {
-            return [...pageScenes, mergeToJson]
-          })
+          setPageScenes((pageScenes: any) => {
+            return [...pageScenes, mergeToJson];
+          });
         }
         if (scenesOperateInputsTodo[sceneId]) {
-          const { parentScope, todo } = scenesOperateInputsTodo[sceneId]
-          scenes.parentScope = parentScope
-          todo.forEach(({value, pinId, parentScope}) => {
-            scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-              pinId,
-              value
-            }})
-          })
+          const { parentScope, todo } = scenesOperateInputsTodo[sceneId];
+          scenes.parentScope = parentScope;
+          todo.forEach(({ value, pinId, parentScope }: any) => {
+            scenes.todo = scenes.todo.concat({
+              type: "inputs",
+              todo: {
+                pinId,
+                value,
+              },
+            });
+          });
         }
       }
 
-      options.scenesLoaded?.(scenes.json)
+      options.scenesLoaded?.(scenes.json);
 
       if (!openType) {
         // 对话框
-        options.router?.(pageId, "open")
+        options.router?.(pageId, "open");
       } else {
         // 页面
-        options.router?.(pageId, "direct")
+        options.router?.(pageId, "direct");
       }
 
       if (openType) {
-        if (openType === "popup") { // 兼容小程序场景的标签页打开
-          scenes.disableAutoRun = false
+        if (openType === "popup") {
+          // 兼容小程序场景的标签页打开
+          scenes.disableAutoRun = false;
         }
         if (openType === "none") {
           scenesMap[sceneId].show = true;
-          setCount((count) => count+1)
+          setCount((count) => count + 1);
         } else {
           if (!historyType) {
             // 没有历史类型，需要记录打开和重定向
             if (openType === "blank") {
-              debugHistory.go(sceneId)
+              debugHistory.go(sceneId);
             } else if (openType === "redirect") {
-              debugHistory.redirect(sceneId)
+              debugHistory.redirect(sceneId);
             }
           }
 
           const lastScene = scenesMap[normalStatus.lastSceneId];
           const scene = scenesMap[sceneId];
 
-          if (openType === 'blank' && options.sceneOpenType !== 'redirect') {
-            scene.useEntryAnimation = true
+          if (openType === "blank" && options.sceneOpenType !== "redirect") {
+            scene.useEntryAnimation = true;
           } else {
-            scene.useEntryAnimation = false
+            scene.useEntryAnimation = false;
           }
-          scene.show = true
-          scene.hidden = false
+          scene.show = true;
+          scene.hidden = false;
 
           if (lastScene) {
             if (lastScene.json.id !== scene.json.id) {
@@ -254,76 +275,79 @@ export default function MultiScene ({json, options}) {
                 // 主动调用env.canvas.open
                 if (openType === "redirect") {
                   // 重定向 销毁
-                  lastScene.show = false
-                  lastScene._refs = null
-                  lastScene.alreadyOpened = false
+                  lastScene.show = false;
+                  lastScene._refs = null;
+                  lastScene.alreadyOpened = false;
                 } else {
-                  lastScene.hidden = true
-                  lastScene.alreadyOpened = true
+                  lastScene.hidden = true;
+                  lastScene.alreadyOpened = true;
                 }
               } else {
                 // 调用后退或前进
                 if (historyType === "back") {
                   // 后退销毁
-                  lastScene.show = false
-                  lastScene._refs = null
-                  lastScene.alreadyOpened = false
+                  lastScene.show = false;
+                  lastScene._refs = null;
+                  lastScene.alreadyOpened = false;
                 } else {
                   // 前进不销毁吧
-                  lastScene.hidden = true
-                  lastScene.alreadyOpened = true
+                  lastScene.hidden = true;
+                  lastScene.alreadyOpened = true;
                 }
               }
             }
           }
-          setCount((count) => count+1)
-          normalStatus.lastSceneId = sceneId
+          setCount((count) => count + 1);
+          normalStatus.lastSceneId = sceneId;
         }
       } else {
         if (!scenes.show) {
-          scenes.show = true
-          setPopupIds((popupIds) => {
-            return [...popupIds, sceneId]
-          })
+          scenes.show = true;
+          setPopupIds((popupIds: any) => {
+            return [...popupIds, sceneId];
+          });
         }
       }
       if (configs) {
         if (configs.callInputs) {
-          configs.callInputs.forEach(({ frameId, value, pinId }) => {
-            scenesOperate.inputs({ frameId, value, pinId }, {
-              moduleId: configs?.moduleId,
-              ...configs
-            })
-          })
+          configs.callInputs.forEach(({ frameId, value, pinId }: any) => {
+            scenesOperate.inputs(
+              { frameId, value, pinId },
+              {
+                moduleId: configs?.moduleId,
+                ...configs,
+              },
+            );
+          });
         }
       }
-    }
+    };
 
     // 回退
-    env.canvas.back = (num) => {
+    env.canvas.back = (num: any) => {
       const back = debugHistory.back(Math.abs(num) || 1);
       if (back) {
         const { id, todo } = back;
-        env.canvas.open(id, null, "blank", "back")
-        const scenes = scenesMap[id]
-        scenes.todo = todo
+        env.canvas.open(id, null, "blank", "back");
+        const scenes = scenesMap[id];
+        scenes.todo = todo;
       }
-    }
+    };
 
     // 前进
     env.canvas.forward = () => {
       const forward = debugHistory.forward();
       if (forward) {
         const { id, todo } = forward;
-        env.canvas.open(id, null, "blank", "forward")
-        const scenes = scenesMap[id]
-        scenes.todo = todo
+        env.canvas.open(id, null, "blank", "forward");
+        const scenes = scenesMap[id];
+        scenes.todo = todo;
       }
-    }
+    };
 
-    const globalVarMap = {}
-    const scenesOperateInputsTodo = {}
-    const scenesMap = json.scenes.reduce((acc, json, index) => {
+    const globalVarMap: any = {};
+    const scenesOperateInputsTodo: any = {};
+    const scenesMap = json.scenes.reduce((acc: any, json: any, index: any) => {
       return {
         ...acc,
         [json.id]: {
@@ -333,30 +357,34 @@ export default function MultiScene ({json, options}) {
           disableAutoRun: !!(disableAutoRun || index),
           useEntryAnimation: false,
           type: json.slot?.showType || json.type,
-          main: index === 0
-        }
-      }
-    }, {})
+          main: index === 0,
+        },
+      };
+    }, {});
 
     const currentGlobalVariable = new Var();
 
-    Object.entries(json.global.comsReg).forEach(([, com]) => {
+    Object.entries(json.global.comsReg).forEach(([, com]: any) => {
       if (com.global) {
-        const initValue = com.model.data.initValue
+        const initValue = com.model.data.initValue;
         currentGlobalVariable.changed({ com, value: initValue });
-        globalVarMap[com.id] = initValue
+        globalVarMap[com.id] = initValue;
       }
-    })
+    });
 
     const callConnector = options.env.callConnector;
 
     if (callConnector) {
-      options.env.callConnector = (connector, params, config) => {
+      options.env.callConnector = (
+        connector: any,
+        params: any,
+        config: any,
+      ) => {
         return callConnector(connector, params, config, {
           globalVars: new Proxy(
             {},
             {
-              get(_, key) {
+              get(_, key: any) {
                 return currentGlobalVariable.getValueByTitle(key);
               },
             },
@@ -367,124 +395,154 @@ export default function MultiScene ({json, options}) {
 
     // TODO:挪出去，优化一下
     const scenesOperate = {
-      open({todo, frameId, busName, parentScope, comProps}, configs) {
+      open(
+        { todo, frameId, busName, parentScope, comProps }: any,
+        configs: any,
+      ) {
         let fxFrame;
 
         // 目前这里仅用于调用全局fx
         if (busName) {
           // 有busName认为是bus
-          fxFrame = globalExtensionFxIdToFrame[busName]
+          fxFrame = globalExtensionFxIdToFrame[busName];
         } else {
-          fxFrame = configs?.getFxFrame?.(frameId) || globalFxIdToFrame[frameId];
+          fxFrame =
+            configs?.getFxFrame?.(frameId) || globalFxIdToFrame[frameId];
         }
 
         if (fxFrame) {
-          executor({
-            json: fxFrame,
-            getComDef: (def) => _context.getComDef(def),
-            events: options.events,
-            env,
-            ref(refs) {
-              const { inputs, outputs } = refs;
+          executor(
+            {
+              json: fxFrame,
+              getComDef: (def) => _context.getComDef(def),
+              events: options.events,
+              env,
+              ref(refs) {
+                const { inputs, outputs } = refs;
 
-              // 注册fx输出
-              fxFrame.outputs.forEach((output) => {
-                outputs(output.id, (value) => {
-                  // 输出对应到fx组件的输出
-                  parentScope?.outputs[output.id](value);
+                // 注册fx输出
+                fxFrame.outputs.forEach((output: any) => {
+                  outputs(output.id, (value: any) => {
+                    // 输出对应到fx组件的输出
+                    parentScope?.outputs[output.id](value);
+                  });
                 });
-              });
 
-              /** 配置项 */
-              const configs = comProps?.data?.configs;
-              if (configs) {
-                // 先触发配置项
-                Object.entries(configs).forEach(([key, value]) => {
-                  inputs[key](value, void 0, false);
-                });
-              }
-              // 调用inputs
-              inputs[todo.pinId](todo.value, void 0, false);
-              // 执行自执行组件
-              refs.run();
+                /** 配置项 */
+                const configs = comProps?.data?.configs;
+                if (configs) {
+                  // 先触发配置项
+                  Object.entries(configs).forEach(([key, value]) => {
+                    inputs[key](value, void 0, false);
+                  });
+                }
+                // 调用inputs
+                inputs[todo.pinId](todo.value, void 0, false);
+                // 执行自执行组件
+                refs.run();
+              },
+              onError: _context.onError,
+              debug: options.debug,
+              debugLogger: options.debugLogger,
+              logger: _context.logger,
+              scenesOperate,
+              _context,
             },
-            onError: _context.onError,
-            debug: options.debug,
-            debugLogger: options.debugLogger,
-            logger: _context.logger,
-            scenesOperate,
-            _context
-          }, {//////TODO goon
-            observable: _context.observable//传递获取响应式的方法
-          })
+            {
+              //////TODO goon
+              observable: _context.observable, //传递获取响应式的方法
+            },
+          );
         } else {
           if (parentScope) {
             // 没有parentScope说明不是组件执行，就不可能走到serviceFx
-            env.callServiceFx?.(frameId, todo.value).then(({ id, value }: any) => {
-              parentScope.outputs[id](value);
-            })
+            env
+              .callServiceFx?.(frameId, todo.value)
+              .then(({ id, value }: any) => {
+                parentScope.outputs[id](value);
+              });
           }
         }
       },
-      inputs({frameId: pageId, parentScope, value, pinId}, configs) {
+      inputs(
+        { frameId: pageId, parentScope, value, pinId }: any,
+        configs: any,
+      ) {
         // console.log('场景触发inputs: ', {
         //   frameId, parentScope, value, pinId
         // })
-        const frameId = configs?.moduleId ?`${configs?.moduleId}-${pageId}` : pageId
-        const scenes = scenesMap[frameId]
+        const frameId = configs?.moduleId
+          ? `${configs?.moduleId}-${pageId}`
+          : pageId;
+        const scenes = scenesMap[frameId];
         if (!scenes) {
           if (!scenesOperateInputsTodo[frameId]) {
             scenesOperateInputsTodo[frameId] = {
               parentScope,
-              todo: [{value, pinId}]
-            }
+              todo: [{ value, pinId }],
+            };
           } else {
-            scenesOperateInputsTodo[frameId].todo.push({frameId, parentScope, value, pinId})
+            scenesOperateInputsTodo[frameId].todo.push({
+              frameId,
+              parentScope,
+              value,
+              pinId,
+            });
           }
         } else {
           if (scenes.alreadyOpened && !configs?.moduleId) {
             if (pinId !== "open" && scenes._refs) {
               // 写死判断id不是open（约定这是打开），触发输入
-              scenes._refs.inputs[pinId](value)
+              scenes._refs.inputs[pinId](value);
             }
-            return
+            return;
           }
-          scenes.parentScope = parentScope
+          scenes.parentScope = parentScope;
           if (scenes._refs) {
-            scenes._refs.inputs[pinId](value)
+            scenes._refs.inputs[pinId](value);
           } else {
-            scenes.todo = scenes.todo.concat({type: 'inputs', todo: {
-              pinId,
-              value
-            }})
+            scenes.todo = scenes.todo.concat({
+              type: "inputs",
+              todo: {
+                pinId,
+                value,
+              },
+            });
           }
         }
       },
-      _notifyBindings(val, com) {
-        const { bindingsTo } = com.model
+      _notifyBindings(val: any, com: any) {
+        const { bindingsTo } = com.model;
         if (bindingsTo) {
-          for (let comId in bindingsTo) {
-            for (let i in scenesMap) {
-              const scenes = scenesMap[i]
-              const com = scenes.json.coms[comId]
-              
+          for (const comId in bindingsTo) {
+            for (const i in scenesMap) {
+              const scenes = scenesMap[i];
+              const com = scenes.json.coms[comId];
+
               if (com) {
                 if (scenes._refs) {
-                  _notifyBindings(scenes._refs, comId, bindingsTo[comId], val)
+                  _notifyBindings(scenes._refs, comId, bindingsTo[comId], val);
                 } else {
-                  const bindings = bindingsTo[comId]
-                  scenes.todo = scenes.todo.concat({type: 'globalVar', todo: {comId, bindings, value: val}})
+                  const bindings = bindingsTo[comId];
+                  scenes.todo = scenes.todo.concat({
+                    type: "globalVar",
+                    todo: { comId, bindings, value: val },
+                  });
                 }
               }
             }
           }
         }
       },
-      getGlobalComProps(comId) {
+      getGlobalComProps(comId: any) {
         // 从主场景获取真实数据
         // const val = options.globalVariable?.get(comId) || globalVarMap[comId]
-        const val = globalVariable ? {data:{val: globalVariable.get(comId)}} : (comId in globalVarMap ? {data:{val: globalVarMap[comId]}} : scenesMap[json.scenes[0].id]._refs?.get({comId}))
-        
+        const val = globalVariable
+          ? { data: { val: globalVariable.get(comId) } }
+          : comId in globalVarMap
+            ? { data: { val: globalVarMap[comId] } }
+            : scenesMap[json.scenes[0].id]._refs?.get({ comId });
+
         return val;
         // return scenesMap[json.scenes[0].id]._refs?.get({comId}) || {
         //   data: {
@@ -492,19 +550,19 @@ export default function MultiScene ({json, options}) {
         //   }
         // }
       },
-      exeGlobalCom({ com, value, pinId }) {
-        const globalComId = com.id
-        globalVarMap[globalComId] = value
-        globalVariable?.set(globalComId, value)
+      exeGlobalCom({ com, value, pinId }: any) {
+        const globalComId = com.id;
+        globalVarMap[globalComId] = value;
+        globalVariable?.set(globalComId, value);
         Object.keys(scenesMap).forEach((key) => {
-          const scenes = scenesMap[key]
+          const scenes = scenesMap[key];
           if (scenes.show && scenes._refs) {
-            const globalCom = scenes._refs.get({comId: globalComId})
+            const globalCom = scenes._refs.get({ comId: globalComId });
             if (globalCom) {
-              globalCom.outputs[pinId](value, true, null, true)
+              globalCom.outputs[pinId](value, true, null, true);
             }
           }
-        })
+        });
         // const refsMap = _context.getRefsMap()
         // Object.entries(refsMap).forEach(([id, refs]: any) => {
         //   const globalCom = refs.get({comId: globalComId})
@@ -514,16 +572,74 @@ export default function MultiScene ({json, options}) {
         // })
       },
       var: currentGlobalVariable,
-      callExtension({pinId, value, moduleId}) {
-        const fxFrame = global.fxFrames.find((fx) => fx.name === moduleId);
-        executor({
-          json: fxFrame,
+      callExtension({ pinId, value, moduleId }: any) {
+        const fxFrame = global.fxFrames.find((fx: any) => fx.name === moduleId);
+        executor(
+          {
+            json: fxFrame,
+            getComDef: (def) => _context.getComDef(def),
+            events: options.events,
+            env,
+            ref(refs) {
+              const { inputs } = refs;
+              inputs[pinId](value, void 0, false);
+              refs.run();
+            },
+            onError: _context.onError,
+            debug: options.debug,
+            debugLogger: options.debugLogger,
+            logger: _context.logger,
+            scenesOperate,
+            _context,
+          },
+          {
+            observable: _context.observable,
+          },
+        );
+      },
+      ...options.extend?.env?.scenesOperate,
+    };
+
+    env.scenesOperate = scenesOperate;
+
+    if (configFx) {
+      executor(
+        {
+          json: configFx,
           getComDef: (def) => _context.getComDef(def),
           events: options.events,
           env,
           ref(refs) {
             const { inputs } = refs;
-            inputs[pinId](value, void 0, false);
+            const jsonInputs = configFx.inputs;
+            if (inputs && Array.isArray(jsonInputs)) {
+              jsonInputs.forEach((input) => {
+                const { id, mockData, type, extValues } = input;
+                let value = void 0;
+                if (options.debug) {
+                  if (
+                    type === "config" &&
+                    extValues?.config &&
+                    "defaultValue" in extValues.config
+                  ) {
+                    try {
+                      value = JSON.parse(
+                        decodeURIComponent(extValues.config.defaultValue),
+                      );
+                    } catch {
+                      value = extValues.config.defaultValue;
+                    }
+                  } else {
+                    try {
+                      value = JSON.parse(decodeURIComponent(mockData));
+                    } catch {
+                      value = mockData;
+                    }
+                  }
+                }
+                inputs[id](value);
+              });
+            }
             refs.run();
           },
           onError: _context.onError,
@@ -531,58 +647,13 @@ export default function MultiScene ({json, options}) {
           debugLogger: options.debugLogger,
           logger: _context.logger,
           scenesOperate,
-          _context
-        }, {
-          observable: _context.observable
-        })
-      },
-      ...options.extend?.env?.scenesOperate,
-    }
-
-    env.scenesOperate = scenesOperate
-
-    if (configFx) {
-      executor({
-        json: configFx,
-        getComDef: (def) => _context.getComDef(def),
-        events: options.events,
-        env,
-        ref(refs) {
-          const { inputs } = refs
-          const jsonInputs = configFx.inputs
-          if (inputs && Array.isArray(jsonInputs)) {
-            jsonInputs.forEach((input) => {
-              const { id, mockData, type, extValues } = input
-              let value = void 0
-              if (options.debug) {
-                if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
-                  try {
-                    value = JSON.parse(decodeURIComponent(extValues.config.defaultValue))
-                  } catch {
-                    value = extValues.config.defaultValue
-                  }
-                } else {
-                  try {
-                    value = JSON.parse(decodeURIComponent(mockData))
-                  } catch {
-                    value = mockData
-                  }
-                }
-              }
-              inputs[id](value)
-            })
-          }
-          refs.run()
+          _context,
         },
-        onError: _context.onError,
-        debug: options.debug,
-        debugLogger: options.debugLogger,
-        logger: _context.logger,
-        scenesOperate,
-        _context
-      }, {//////TODO goon
-        observable: _context.observable//传递获取响应式的方法
-      })
+        {
+          //////TODO goon
+          observable: _context.observable, //传递获取响应式的方法
+        },
+      );
     }
 
     return {
@@ -591,285 +662,325 @@ export default function MultiScene ({json, options}) {
       globalVarMap,
       debugHistory: new DebugHistory(json.scenes[0]),
       globalFxIdToFrame,
-      env
-    }
-  }, [])
+      env,
+    };
+  }, []);
 
   useMemo(() => {
     if (options.ref) {
-      const ref = options.ref
-      options.ref = (cb) => (_refs, json) => {
-        cb(_refs, json)
-        return ref.call(options, _refs, json)
-      }
+      const ref = options.ref;
+      options.ref = (cb: any) => (_refs: any, json: any) => {
+        cb(_refs, json);
+        return ref.call(options, _refs, json);
+      };
     } else {
-      options.ref = (cb) => (_refs, json) => {
-        cb(_refs, json)
-      }
+      options.ref = (cb: any) => (_refs: any, json: any) => {
+        cb(_refs, json);
+      };
     }
-  }, [])
+  }, []);
 
-  const getOptions = useCallback((id) => {
-    const scenes = scenesMap[id]
+  const getOptions = useCallback((id: any) => {
+    const scenes = scenesMap[id];
     return {
       ...options,
       env,
       get disableAutoRun() {
-        return scenes.disableAutoRun
+        return scenes.disableAutoRun;
       },
-      ref: options.ref((_refs) => {
+      ref: options.ref((_refs: any) => {
         // console.log(`场景注册_refs -> ${id}`)
         /** 整站搭建需求 */
-        _refs.canvas = env.canvas
-        scenes._refs = _refs
-        const todo = scenes.todo
-        const { inputs, outputs } = _refs
+        _refs.canvas = env.canvas;
+        scenes._refs = _refs;
+        const todo = scenes.todo;
+        const { inputs, outputs } = _refs;
         const disableAutoRun = scenes.disableAutoRun;
 
-        (scenes.json.outputs || scenes.json.scenes?.[0]?.outputs)?.forEach((output) => {
-          outputs(output.id, (value) => {
-            // TODO: 临时，后续应该给场景一个回调
-            if (output.id === 'apply') {
-              scenes.parentScope?.outputs[output.id](value)
-            } else {
-              if ((scenes.type !== 'module' && disableAutoRun) || scenes.type === "popup") {
-                scenes.show = false
-                scenes.todo = []
-                scenes._refs = null
-                scenes.parentScope?.outputs[output.id](value)
-                scenes.parentScope = null
-                if (scenes.type === 'popup') {
-                  setPopupIds((popupIds) => {
-                    return popupIds.filter((popupId) => {
-                      return id !== popupId
-                    })
-                  })
-                } else {
-                  setCount((count) => count+1)
-                }
+        (scenes.json.outputs || scenes.json.scenes?.[0]?.outputs)?.forEach(
+          (output: any) => {
+            outputs(output.id, (value: any) => {
+              // TODO: 临时，后续应该给场景一个回调
+              if (output.id === "apply") {
+                scenes.parentScope?.outputs[output.id](value);
               } else {
-                scenes.parentScope?.outputs[output.id](value)
+                if (
+                  (scenes.type !== "module" && disableAutoRun) ||
+                  scenes.type === "popup"
+                ) {
+                  scenes.show = false;
+                  scenes.todo = [];
+                  scenes._refs = null;
+                  scenes.parentScope?.outputs[output.id](value);
+                  scenes.parentScope = null;
+                  if (scenes.type === "popup") {
+                    setPopupIds((popupIds: any) => {
+                      return popupIds.filter((popupId: any) => {
+                        return id !== popupId;
+                      });
+                    });
+                  } else {
+                    setCount((count) => count + 1);
+                  }
+                } else {
+                  scenes.parentScope?.outputs[output.id](value);
+                }
               }
-            }
-          })
-        })
+            });
+          },
+        );
 
         if (todo.length) {
-          todo.forEach(({type, todo}) => {
-            if (type === 'inputs') {
+          todo.forEach(({ type, todo }: any) => {
+            if (type === "inputs") {
               Promise.resolve().then(() => {
-                inputs[todo.pinId](todo.value,id)
-              })
-            } else if (type === 'globalVar') {
-              const { comId, value, bindings } = todo
-              _notifyBindings(_refs, comId, bindings, value)
+                inputs[todo.pinId](todo.value, id);
+              });
+            } else if (type === "globalVar") {
+              const { comId, value, bindings } = todo;
+              _notifyBindings(_refs, comId, bindings, value);
             }
-          })
+          });
           if (!scenes.type) {
             // 页面记录历史todo
             debugHistory.setTodo(todo);
           }
-  
-          scenes.todo = []
+
+          scenes.todo = [];
         } else if (!disableAutoRun) {
-          scenes.disableAutoRun = true
+          scenes.disableAutoRun = true;
           Promise.resolve().then(() => {
-            const todo = [];
-            (scenes.json.inputs || scenes.json.scenes?.[0]?.inputs)?.forEach?.((input) => {
-              const { id, mockData, type, extValues } = input
+            const todo: any = [];
+            (scenes.json.inputs || scenes.json.scenes?.[0]?.inputs)?.forEach?.(
+              (input: any) => {
+                const { id, mockData, type, extValues } = input;
 
-              if (type === "ext") {
-                return;
-              }
+                if (type === "ext") {
+                  return;
+                }
 
-              let value = void 0;
-              if (options.debug) {
-                if (type === "config" && extValues?.config && "defaultValue" in extValues.config) {
-                  try {
-                    value = JSON.parse(decodeURIComponent(extValues.config.defaultValue))
-                  } catch {
-                    value = extValues.config.defaultValue
-                  }
-                } else {
-                  try {
-                    value = JSON.parse(decodeURIComponent(mockData))
-                  } catch {
-                    value = mockData
+                let value = void 0;
+                if (options.debug) {
+                  if (
+                    type === "config" &&
+                    extValues?.config &&
+                    "defaultValue" in extValues.config
+                  ) {
+                    try {
+                      value = JSON.parse(
+                        decodeURIComponent(extValues.config.defaultValue),
+                      );
+                    } catch {
+                      value = extValues.config.defaultValue;
+                    }
+                  } else {
+                    try {
+                      value = JSON.parse(decodeURIComponent(mockData));
+                    } catch {
+                      value = mockData;
+                    }
                   }
                 }
-              }
-              // 记录历史todo
-              todo.push({
-                type: "inputs",
-                todo: {
-                  pinId: id,
-                  value
-                }
-              })
-              inputs[id](value)
-            })
+                // 记录历史todo
+                todo.push({
+                  type: "inputs",
+                  todo: {
+                    pinId: id,
+                    value,
+                  },
+                });
+                inputs[id](value);
+              },
+            );
             if (!scenes.type) {
               // 页面记录历史todo
               debugHistory.setTodo(todo);
             }
-          })
+          });
         }
 
         if (disableAutoRun) {
           Promise.resolve().then(() => {
-            _refs.run()
-          })
+            _refs.run();
+          });
         }
       }),
       _env: {
         loadCSSLazy() {},
         currentScenes: {
           close() {
-            scenes.show = false
-            scenes.todo = []
-            scenes._refs = null
+            scenes.show = false;
+            scenes.todo = [];
+            scenes._refs = null;
             // scenes.parentScope = null
-            if (scenes.type === 'popup') {
-              setPopupIds((popupIds) => {
-                return popupIds.filter((popupId) => {
-                  return id !== popupId
-                })
-              })
+            if (scenes.type === "popup") {
+              setPopupIds((popupIds: any) => {
+                return popupIds.filter((popupId: any) => {
+                  return id !== popupId;
+                });
+              });
             } else {
-              setCount((count) => count+1)
+              setCount((count) => count + 1);
             }
-          }
+          },
         },
         destroyAllPopup() {
-          setPopupIds((popupIds) => {
-            popupIds.forEach((id) => {
-              const scenes = scenesMap[id]
+          setPopupIds((popupIds: any) => {
+            popupIds.forEach((id: any) => {
+              const scenes = scenesMap[id];
               if (scenes) {
-                scenes.show = false
-                scenes.todo = []
-                scenes._refs = null
+                scenes.show = false;
+                scenes.todo = [];
+                scenes._refs = null;
               }
-            })
-            return []
-          })
-        }
+            });
+            return [];
+          });
+        },
       },
-      scenesOperate: env.scenesOperate
-    }
-  }, [])
+      scenesOperate: env.scenesOperate,
+    };
+  }, []);
 
   const scenes = useMemo(() => {
     if (!pageScenes.length) {
-      return null
+      return null;
     }
-    return pageScenes.map((json) => {
-      const { id, moduleId } = json
-      const sceneId = moduleId ? `${moduleId}-${id}` : id
-      const scene = scenesMap[sceneId]
+    return pageScenes.map((json: any) => {
+      const { id, moduleId } = json;
+      const sceneId = moduleId ? `${moduleId}-${id}` : id;
+      const scene = scenesMap[sceneId];
 
       if (scene.show) {
-        let className = scene.useEntryAnimation ? css.main : ''
-        let style = {}
+        let className = scene.useEntryAnimation ? css.main : "";
+        let style: any = {};
         if (scene.main) {
           // 主场景
-          const { className: optsClassName, style: optsStyle  } = options
+          const { className: optsClassName, style: optsStyle } = options;
           if (optsClassName) {
             className = className + ` ${optsClassName}`;
           }
           if (optsStyle) {
-            style = Object.assign(style, optsStyle)
+            style = Object.assign(style, optsStyle);
           }
         }
         if (scene.hidden) {
-          style.display = "none"
+          style.display = "none";
         }
-        
-        return scene.show && (
-          <Scene
-            key={id}
-            json={{...json, scenesMap}}
-            options={getOptions(sceneId)}
-            className={className}
-            style={style}
-          />
-        )
+
+        return (
+          scene.show && (
+            <Scene
+              key={id}
+              json={{ ...json, scenesMap }}
+              options={getOptions(sceneId)}
+              className={className}
+              style={style}
+            />
+          )
+        );
       }
 
-      return null
-    })
-  }, [count, pageScenes])
+      return null;
+    });
+  }, [count, pageScenes]);
 
   const popups = useMemo(() => {
     if (popupIds.length) {
-      return popupIds.map((sceneId) => {
-        const scene = scenesMap[sceneId]
-        const json = scene.json
+      return popupIds.map((sceneId: any) => {
+        const scene = scenesMap[sceneId];
+        const json = scene.json;
 
-        let className = ''
-        let style = {position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 999}
+        let className = "";
+        let style = {
+          position: options.debug ? "fixed" : "absolute",
+          top: 0,
+          left: 0,
+          backgroundColor: "#ffffff00",
+          zIndex: 999,
+        };
 
         if (scene.main) {
           // 主场景
-          const { className: optsClassName, style: optsStyle  } = options
+          const { className: optsClassName, style: optsStyle } = options;
           if (optsClassName) {
-            className = optsClassName
+            className = optsClassName;
           }
           if (optsStyle) {
-            style = Object.assign(style, optsStyle)
+            style = Object.assign(style, optsStyle);
           }
         }
-        
+
         return (
           <Scene
             key={sceneId}
-            json={{...json, scenesMap}}
+            json={{ ...json, scenesMap }}
             options={getOptions(sceneId)}
-            style={{position: options.debug ? 'fixed' : 'absolute', top: 0, left: 0, backgroundColor: '#ffffff00', zIndex: 999}}
+            style={{
+              position: options.debug ? "fixed" : "absolute",
+              top: 0,
+              left: 0,
+              backgroundColor: "#ffffff00",
+              zIndex: 999,
+            }}
           />
-        )
-      })
+        );
+      });
     }
-   
-    return null
-  }, [popupIds])
+
+    return null;
+  }, [popupIds]);
 
   useEffect(() => {
-    _context.setPerformanceRender("end", new Date().getTime())
-  }, [])
+    _context.setPerformanceRender("end", new Date().getTime());
+  }, []);
 
   return (
     <>
       {scenes}
       {popups}
     </>
-  )
+  );
 }
 
-function Scene({json, options, style = {}, className = ''}) {
+function Scene({ json, options, style = {}, className = "" }: any) {
   if (json.moduleId) {
     const env = deepCopy(options.env);
-    return <RenderModuleComponent json={json} style={style} options={{...options, env, _isModuleCom: true,}}/>
+    return (
+      <RenderModuleComponent
+        json={json}
+        style={style}
+        options={{ ...options, env, _isModuleCom: true }}
+      />
+    );
   }
   return (
-    <Main json={json} options={options} style={style} className={className} from={"scene"}/>
-  )
+    // @ts-ignore
+    <Main
+      json={json}
+      options={options}
+      style={style}
+      className={className}
+      from={"scene"}
+    />
+  );
 }
 
-function _notifyBindings(_refs, comId, bindings, value) {
-  const com = _refs.get({comId})
+function _notifyBindings(_refs: any, comId: any, bindings: any, value: any) {
+  const com = _refs.get({ comId });
   if (com) {
     if (Array.isArray(bindings)) {
       bindings.forEach((binding) => {
-        let nowObj = com
-        const ary = binding.split('.')
-        ary.forEach((nkey, idx) => {
+        let nowObj = com;
+        const ary = binding.split(".");
+        ary.forEach((nkey: any, idx: any) => {
           if (idx !== ary.length - 1) {
-            nowObj = nowObj[nkey]
+            nowObj = nowObj[nkey];
           } else {
-            nowObj[nkey] = value
+            nowObj[nkey] = value;
           }
-        })
-      })
+        });
+      });
     }
   }
 }

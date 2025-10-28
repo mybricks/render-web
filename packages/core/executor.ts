@@ -27,6 +27,8 @@ import {
   getValueByPath,
   isVariableNamespace,
   setValueByPath,
+  dataProxy,
+  CONFIG_SET_VALUE_TAB,
 } from "./utils";
 import { canNextHackForSameOutputsAndRelOutputs } from "./hack";
 
@@ -1227,7 +1229,7 @@ export default function executor(
     // let nModel = opts ? JSON.parse(JSON.stringify(model)) : model
     // const obsModel = observable(nModel)
 
-    const modelData = JSON.parse(JSON.stringify(model.data));
+    let modelData = JSON.parse(JSON.stringify(model.data));
     const modelStyle = JSON.parse(JSON.stringify(model.style));
     modelStyle.__model_style__ = true;
 
@@ -1493,6 +1495,22 @@ export default function executor(
 
               cons = cons || Cons[comId + "-" + name];
               if (cons?.length) {
+                if (notifyAll) {
+                  const comDataChanged = modelData.comDataChangedStack?.pop();
+                  if (comDataChanged) {
+                    const { comId, bindWith } = comDataChanged;
+                    cons = cons.filter((con: any) => {
+                      if (
+                        con.comId === comId &&
+                        con.configBindWith?.toplKey === bindWith.toplKey.in
+                      ) {
+                        return false;
+                      }
+                      return true;
+                    });
+                  }
+                }
+
                 if (args.length >= 3 && typeof isCurrent === "undefined") {
                   //明确参数的个数，属于 ->in(com)->out
                   exeCons({
@@ -1641,12 +1659,73 @@ export default function executor(
 
     // const isJS = def.rtType?.match(/^js/gi)
 
+    if (!isJS) {
+      const { configBindWith } = com.model;
+      if (configBindWith?.length) {
+        modelData = dataProxy({
+          data: observable(modelData),
+          path: "data",
+          config: {
+            set: (params) => {
+              const bindWith = configBindWith.find(
+                (configBindWith: any) =>
+                  configBindWith.bindWith === params.path,
+              );
+              if (!bindWith) {
+                return;
+              }
+              const { toplKey } = bindWith;
+              if (toplKey?.out) {
+                const { out } = toplKey;
+                // 目前认为有toplKey.out的一定是变量
+                const con = Cons[`${com.id}-_dataChanged_`]?.find(
+                  (con: any) => con.configBindWith?.toplKey === out,
+                );
+
+                if (con) {
+                  const props = getComProps(con.comId, scope);
+                  const comDataChanged = {
+                    comId: com.id,
+                    bindWith,
+                  };
+
+                  if (!props.data.comDataChangedStack) {
+                    props.data.comDataChangedStack = [comDataChanged];
+                  } else {
+                    props.data.comDataChangedStack.push(comDataChanged);
+                  }
+
+                  exeCons({
+                    logProps: [
+                      "com",
+                      {
+                        com,
+                        pinHostId: "_dataChanged_",
+                        val: params.value,
+                        comDef: getComDef(def),
+                      },
+                    ],
+                    cons: [con],
+                    val: params.value,
+                    curScope,
+                    // fromCon,
+                    // notifyAll,
+                    fromCom: com,
+                  });
+                }
+              }
+            },
+          },
+        });
+      }
+    }
+
     let rtn: any = {
       id: com.id,
       title: com.title,
       frameId: com.frameId,
       parentComId: com.parentComId,
-      data: isJS ? modelData : observable(modelData),
+      data: modelData,
       style: isJS ? modelStyle : observable(modelStyle),
       _inputRegs: inputRegs,
       scopeId: storeScopeId,
@@ -1761,9 +1840,27 @@ export default function executor(
       }
 
       if (pinId === "_config_") {
+        let isBindVar = false;
         const configBindWith = props.com.model.configBindWith?.find(
           ({ toplKey }: any) => {
-            return toplKey === inReg.configBindWith?.toplKey;
+            const isString = typeof toplKey === "string";
+
+            if (isString) {
+              return toplKey === inReg.configBindWith?.toplKey;
+            } else {
+              if (toplKey.in === inReg.configBindWith?.toplKey) {
+                // toplKey 有 in 认为是变量
+                isBindVar = true;
+                return true;
+              }
+            }
+
+            return false;
+
+            // return (
+            //   (typeof toplKey === "string" ? toplKey : toplKey.in) ===
+            //   inReg.configBindWith?.toplKey
+            // );
           },
         );
 
@@ -1790,7 +1887,12 @@ export default function executor(
             data: props,
             path: configBindWith.bindWith.split("."),
             value: getValueByPath({
-              value: val,
+              value: isBindVar
+                ? {
+                    [CONFIG_SET_VALUE_TAB]: true,
+                    value: val,
+                  }
+                : val,
               path: configBindWith.xpath
                 ? configBindWith.xpath.slice(1).split("/")
                 : [],
