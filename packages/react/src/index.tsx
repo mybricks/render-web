@@ -906,7 +906,6 @@ export function render(
   toJson: ToJSON | MultiSceneToJSON,
   options: RenderOptions,
 ) {
-  console.log("[render toJson]", JSON.parse(JSON.stringify(toJson)));
   if (options.moduleId) {
     options.env.edit = true;
   }
