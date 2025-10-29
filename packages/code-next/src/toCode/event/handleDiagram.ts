@@ -161,6 +161,52 @@ const handleDiagram = (
     };
 
     if (type === "var") {
+      const dataChangedResult: HandleProcessResult = {
+        nodesDeclaration: [],
+        nodesDeclarationSet: new Set(),
+        nodesInvocation: [],
+        multipleInputsNodes: {},
+        frameOutputs: {},
+      };
+
+      // 处理变量「双向绑定」，过滤出组件的_dataChanged_
+      conAry
+        .filter((con) => {
+          return con.from.id === "_dataChanged_";
+        })
+        .forEach((node) => {
+          handleProcess(
+            [
+              {
+                ...node,
+                finishPinParentKey: node.startPinParentKey,
+                to: {
+                  id: node.from.id,
+                  title: node.from.title,
+                  parent: {
+                    id: node.from.parent.id,
+                    type: "com",
+                  },
+                },
+              },
+            ],
+            {
+              ...config,
+              getParamSource: () => {
+                return {
+                  type: "params", // 来自入参
+                  id, // 对应事件id
+                };
+              },
+              getRunType: () => "auto",
+              getConAry: () => conAry,
+            },
+            dataChangedResult,
+          );
+        });
+
+      result.process.nodesInvocation.push(...dataChangedResult.nodesInvocation);
+
       return {
         ...result,
         initValue: meta.model.data.initValue,
@@ -429,7 +475,9 @@ const handleProcess = (
           nextCon.from.parent.id === comInfo.id &&
           (componentType === "js" && category !== "var"
             ? true
-            : con.finishPinParentKey === nextCon.startPinParentKey)
+            : con.finishPinParentKey && nextCon.startPinParentKey
+              ? con.finishPinParentKey === nextCon.startPinParentKey
+              : false)
         ) {
           if (!nextMap[nextCon.from.id]) {
             nextMap[nextCon.from.id] = [nextCon];
@@ -477,9 +525,9 @@ const handleProcess = (
         invocation.configBindWith = scene.coms[
           nextCon.comId
         ].model.configBindWith?.find(({ toplKey }) => {
-          return (
-            nextCon.configBindWith && nextCon.configBindWith.toplKey === toplKey
-          );
+          if (!nextCon.configBindWith) return false;
+          const key = typeof toplKey === "string" ? toplKey : toplKey.in;
+          return nextCon.configBindWith.toplKey === key;
         });
       }
     }
@@ -609,6 +657,33 @@ const handleProcess = (
       }
     } else {
       // ui组件
+
+      if (con.to.id === "_dataChanged_") {
+        // 组件配置项绑定变量场景
+        const scene = config.getScene();
+        const nextCon = (
+          scene.cons[
+            comInfo.parentComId && comInfo.frameId
+              ? `${comInfo.parentComId}-${comInfo.frameId}-${con.from.id}`
+              : `${con.from.parent.id}-${con.from.id}`
+          ] || scene.cons[`${con.from.parent.id}-${con.from.id}`]
+        )?.find((nextCon) => {
+          return nextCon.id === con.id;
+        });
+
+        if (nextCon) {
+          invocation.configBindWith = scene.coms[
+            comInfo.id
+          ].model.configBindWith?.find(({ toplKey }) => {
+            if (!nextCon.configBindWith) return false;
+            return (
+              nextCon.configBindWith.toplKey ===
+              (typeof toplKey === "string" ? toplKey : toplKey.out)
+            );
+          });
+        }
+      }
+
       if (category === "normal") {
         nodesInvocation.push({
           ...invocation,

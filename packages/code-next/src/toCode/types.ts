@@ -79,7 +79,7 @@ export interface ComInfo {
     configBindWith: Array<{
       bindWith: string;
       xpath: string;
-      toplKey: string;
+      toplKey: string | { in: string; out: string };
     }>;
   };
   /** 插槽ID，有值时，组件在作用域插槽内 */

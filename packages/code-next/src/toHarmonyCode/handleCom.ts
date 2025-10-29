@@ -882,6 +882,8 @@ export const handleProcess = (
           scene: config.getCurrentScene(),
         }) || `controller_${props.meta.id}`;
 
+      let excuteMethodCn = "调用";
+
       let inputId = props.id;
       if (inputId === "_config_") {
         const { configBindWith } = props;
@@ -894,10 +896,16 @@ export const handleProcess = (
         } else {
           console.log("[出码] 其它ui配置类型", props);
         }
+      } else if (inputId === "_dataChanged_") {
+        // _dataChanged_一定是data绑定，暂时不需要判断
+        const { configBindWith } = props;
+        inputId = "_dataChanged";
+        nextValue = `"${configBindWith.bindWith.slice(5)}"`;
+        excuteMethodCn = "监听";
       }
 
       code +=
-        `${indent}/** 调用 ${props.meta.title} 的 ${props.title} */` +
+        `${indent}/** ${excuteMethodCn} ${props.meta.title} 的 ${props.title} */` +
         `\n${indent}${nextCode}this.${currentProvider.name}.${componentController}.${inputId}(${nextValue})`;
     }
   });
@@ -1127,6 +1135,10 @@ const getNextValue = (props: any, config: HandleProcessConfig, event: any) => {
           type: "call",
         }) || `${param.meta.id}_${param.id}_${param.connectId}`;
       // ui
+      if (param.id === "_dataChanged_") {
+        // 值更新的监听直接返回即可，这里和真机配合实现
+        return next;
+      }
       return `${next}.${param.id}`;
     }
     if (param.category === "frameOutput") {
