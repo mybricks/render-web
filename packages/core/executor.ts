@@ -1717,6 +1717,8 @@ export default function executor(
             },
           },
         });
+      } else {
+        modelData = observable(modelData);
       }
     }
 
