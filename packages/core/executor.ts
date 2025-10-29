@@ -1842,7 +1842,6 @@ export default function executor(
       }
 
       if (pinId === "_config_") {
-        let isBindVar = false;
         const configBindWith = props.com.model.configBindWith?.find(
           ({ toplKey }: any) => {
             const isString = typeof toplKey === "string";
@@ -1851,8 +1850,6 @@ export default function executor(
               return toplKey === inReg.configBindWith?.toplKey;
             } else {
               if (toplKey.in === inReg.configBindWith?.toplKey) {
-                // toplKey 有 in 认为是变量
-                isBindVar = true;
                 return true;
               }
             }
@@ -1895,12 +1892,13 @@ export default function executor(
           setValueByPath({
             data: props,
             path: configBindWith.bindWith.split("."),
-            value: isBindVar
-              ? {
-                  [CONFIG_SET_VALUE_TAB]: true,
-                  value,
-                }
-              : value,
+            value:
+              inReg.configBindWith.type === "var"
+                ? {
+                    [CONFIG_SET_VALUE_TAB]: true,
+                    value,
+                  }
+                : value,
           });
         } else {
           console.error(
