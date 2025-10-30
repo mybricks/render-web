@@ -295,32 +295,34 @@ const DATA_PROXY_TAG = Symbol("DATA_PROXY_TAG");
 export const CONFIG_SET_VALUE_TAB = Symbol("CONFIG_SET_VALUE_TAB");
 export const dataProxy = (params: DataProxyParams) => {
   const { data, path, config } = params;
-  return new Proxy(data, {
-    get(target, key: any, receiver) {
-      if (key === DATA_PROXY_TAG) {
-        return true;
+  const obj: any = {};
+  return new Proxy(obj, {
+    get(_, key: any) {
+      if (key in obj) {
+        return obj[key];
       }
-      const value = Reflect.get(target, key, receiver);
-      if (isObject(value)) {
-        if (value[DATA_PROXY_TAG]) {
-          return value;
-        }
 
-        return dataProxy({
+      const value = data[key];
+
+      if (isObject(value)) {
+        return (obj[key] = dataProxy({
           data: value,
           path: path ? `${path}.${key}` : key,
           config,
-        });
+        }));
+      } else {
+        return (obj[key] = value);
       }
-      return value;
     },
-    set(target, key: any, value, receiver) {
+    set(_, key: any, value) {
       if (value?.[CONFIG_SET_VALUE_TAB]) {
         // 通过config设置值，不需要走set
         // 目前只有组件内赋值和config赋值
-        Reflect.set(target, key, value.value, receiver);
+        data[key] = value.value;
+        obj[key] = value.value;
       } else {
-        Reflect.set(target, key, value, receiver);
+        data[key] = value;
+        obj[key] = value;
         config?.set?.({
           value,
           path: path ? `${path}.${key}` : key,
