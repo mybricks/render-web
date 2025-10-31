@@ -933,7 +933,7 @@ export const handleProcess = (
             .join(", ")}`;
 
           if (wrap) {
-            return pre + `${indent2}${id}: merge(` + next + `\n${indent2})\n`;
+            return pre + `${indent2}${id}: merge(` + next + `\n${indent2}),\n`;
           }
 
           return pre + `${indent2}${id}: ${next},\n`;
