@@ -761,7 +761,7 @@ export const handleProcess = (
             code +=
               `${indent}/** 调用获取当前输入值 ${props.title} */` +
               `\n${indent}${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
-          } else {
+          } else if (slotId) {
             // 跨作用域
             const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${comId}`;
             const providerMap = config.getProviderMap();
@@ -773,6 +773,15 @@ export const handleProcess = (
             code +=
               `${indent}/** 调用获取当前输入值 ${props.title} */` +
               `\n${indent}${nextCode}join(${nextValue}, this.slot_${scopeSlotComponentName}.params.inputValues.${pinValueProxy.pinId})`;
+          } else if (event.type === "fx" && event.frameId === frameKey) {
+            // fx调用自己的输入
+            const index = event.paramPins.findIndex((paramPin) => {
+              return paramPin.id === pinValueProxy.pinId;
+            });
+
+            code +=
+              `${indent}/** 调用获取当前输入值 ${props.title} */` +
+              `\n${indent}${nextCode}join(${nextValue}, value${index})`;
           }
         }
       } else if (category === "event") {
