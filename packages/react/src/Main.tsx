@@ -10,7 +10,7 @@
  * mybricks@126.com
  */
 
-import React, { useMemo, useLayoutEffect } from "react";
+import React, { useMemo, useLayoutEffect, useEffect } from "react";
 
 import { useModuleContext, useMyBricksRenderContext } from "./index";
 import executor from "../../core/executor";
@@ -196,6 +196,19 @@ export default function Main({
       }
       refs.run();
     }
+  }, []);
+
+  useEffect(() => {
+    const isModule = slot?.type === "module";
+    if (isModule) {
+      _context.moduleRefs?.add(refs);
+    }
+
+    return () => {
+      if (isModule) {
+        _context.moduleRefs?.delete(refs);
+      }
+    };
   }, []);
 
   return (

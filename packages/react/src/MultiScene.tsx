@@ -563,6 +563,12 @@ export default function MultiScene({ json, options }: any) {
             }
           }
         });
+        _context.moduleRefs?.forEach((moduleRef: any) => {
+          const globalCom = moduleRef.get({ comId: globalComId });
+          if (globalCom) {
+            globalCom.outputs[pinId](value, true, null, true);
+          }
+        });
         // const refsMap = _context.getRefsMap()
         // Object.entries(refsMap).forEach(([id, refs]: any) => {
         //   const globalCom = refs.get({comId: globalComId})

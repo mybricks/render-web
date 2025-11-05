@@ -127,6 +127,8 @@ class Context {
   // 将对象转换为响应式对象的方法
   observable = defaultObservable;
 
+  moduleRefs = new Set();
+
   // 传入的配置项
   constructor(
     public options: RenderOptions,
