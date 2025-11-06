@@ -537,6 +537,12 @@ export const handleProcess = (
         event,
       }) || `${componentName}_${meta.id}`;
 
+    config.addParentDependencyImport({
+      packageName: config.getComponentPackageName(),
+      dependencyNames: ["appContext"],
+      importType: "named",
+    });
+
     code +=
       `${indent}/** ${meta.title} */` +
       `\n${indent}const ${componentNameWithId} = ${callName || componentName}({` +
