@@ -410,7 +410,7 @@ const genEvent = (params: HandleExtensionParams, config: GenConfig) => {
     `class Events {` +
     `\n${eventCreateCode}}` +
     `\n\nexport const events = new Events();` +
-    `interface OnEventParams {` +
+    `\n\ninterface OnEventParams {` +
     `\n${eventCode}}` +
     `\n\nexport const onEvent: (events: OnEventParams) => void = transformEvents(events);`
   );

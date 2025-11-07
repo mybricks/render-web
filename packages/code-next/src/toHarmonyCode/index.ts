@@ -70,8 +70,6 @@ export type Result = Array<{
     | "normal"
     | "popup"
     | "module"
-    // 扩展事件类型定义
-    | "extensionEventTypeDef"
     | "global"
     | "extension-config"
     | "extension-api"
