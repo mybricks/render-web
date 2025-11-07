@@ -118,7 +118,21 @@ const handleGlobal = (params: HandleGlobalParams, config: ToSpaCodeConfig) => {
         }
         return config.getComponentPackageName(props);
       },
-      addParentDependencyImport: globalAddDependencyImport,
+      addParentDependencyImport: (params: any) => {
+        const { dependencyNames } = params;
+        const filterDependencyNames = dependencyNames.filter(
+          (dependencyName: string) => {
+            return !["globalVars", "globalFxs"].includes(dependencyName);
+          },
+        );
+
+        if (filterDependencyNames.length) {
+          globalAddDependencyImport({
+            ...params,
+            dependencyNames: filterDependencyNames,
+          });
+        }
+      },
       getComponentMeta: config.getComponentMeta,
     } as any);
 

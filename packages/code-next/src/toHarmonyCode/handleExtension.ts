@@ -111,7 +111,6 @@ const genConfig = (params: HandleExtensionParams, config: GenConfig) => {
   // config一定只有一个
   const extensionEvent = extensionEvents[0];
   const event = extensionEvent.events[0];
-  let useParams = false;
 
   const eventParams = event.paramPins.reduce<Record<string, string>>(
     (pre, cur) => {
@@ -124,7 +123,6 @@ const genConfig = (params: HandleExtensionParams, config: GenConfig) => {
     ...config,
     depth: 2,
     getParams: () => {
-      useParams = true;
       return eventParams;
     },
     getComponentPackageName: () => {
@@ -146,7 +144,7 @@ const genConfig = (params: HandleExtensionParams, config: GenConfig) => {
   });
 
   return (
-    `export const config = (${useParams ? "value: MyBricks.Any" : ""}) => {` +
+    `export const config = (${event.paramPins?.length ? "value: MyBricks.Any" : ""}) => {` +
     (code ? `\n${code}` : "") +
     `\n}`
   );
