@@ -400,7 +400,7 @@ const genEvent = (params: HandleExtensionParams, config: GenConfig) => {
     eventCreateCode +=
       `${indent}${extensionEvent.title}: MyBricks.Event = createEvent((value: ${typeParams}${interfaceCallBackCode ? `, callBack: ${interfaceCallBack}` : ""}) => {` +
       code +
-      "\n})";
+      `\n${indent}})\n`;
   });
 
   return (
@@ -408,7 +408,7 @@ const genEvent = (params: HandleExtensionParams, config: GenConfig) => {
     `\ntype EventWithCallBack<ParamsType, CallbackType> = (value: ParamsType, callBack: CallbackType) => void;` +
     `\n${typeCode}` +
     `class Events {` +
-    `\n${eventCreateCode}\n}` +
+    `\n${eventCreateCode}}` +
     `\n\nexport const events = new Events();` +
     `interface OnEventParams {` +
     `\n${eventCode}}` +
