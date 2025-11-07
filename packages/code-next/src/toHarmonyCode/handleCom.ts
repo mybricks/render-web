@@ -858,6 +858,13 @@ export const handleProcess = (
           return;
         }
 
+        if (props.category === "extension-event") {
+          code +=
+            `${indent}/** 调用事件输出 ${props.title} */` +
+            `\n${indent}callBack.${props.id}(${nextValue})`;
+          return;
+        }
+
         code +=
           `${indent}/** 调用插槽输出 ${props.title} */` +
           `\n${indent}this.params.outputs.${props.id}(${nextValue})`;

@@ -119,7 +119,16 @@ export interface Scene {
    * extension-bus - 总线fx
    * fx - 全局fx
    */
-  type: "normal" | "popup" | "module" | "extension-bus" | "fx";
+  type:
+    | "normal"
+    | "popup"
+    | "module"
+    | "extension-bus"
+    | "fx"
+    | "extension-event"
+    | "extension-api"
+    | "extension-config"
+    | "extension-bus";
   name: string;
   pinProxies: Record<
     string,

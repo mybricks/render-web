@@ -55,9 +55,12 @@ const toCode = (
 
   const extensionEvents = tojson.frames
     .filter((frame) => {
-      return ["extension-config", "extension-api", "extension-bus"].includes(
-        frame.type,
-      );
+      return [
+        "extension-config",
+        "extension-api",
+        "extension-bus",
+        "extension-event",
+      ].includes(frame.type);
     })
     .reduce(
       (pre, frame) => {

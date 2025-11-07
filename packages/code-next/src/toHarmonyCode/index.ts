@@ -12,7 +12,6 @@ import handleGlobal from "./handleGlobal";
 import handleExtension from "./handleExtension";
 import ai, { AIConfig } from "./withAI";
 import abstractEventTypeDef from "./abstractEventTypeDef";
-import extensionEventTypeDef from "./extensionEventTypeDef";
 
 export interface ToSpaCodeConfig {
   getComponentMeta: (
@@ -80,7 +79,11 @@ export type Result = Array<{
     // 组件抽象事件类型定义
     | "abstractEventTypeDef"
     // TODO: 忽略，类型定义没写完整，到这一步的处理不会存在fx类型
-    | "fx";
+    | "fx"
+    // api归类，包含 event、api、config
+    | "api"
+    // 目前不会有，归类到api，不需要分文件
+    | "extension-event";
   meta?: ReturnType<typeof toCode>["scenes"][0]["scene"];
   name: string;
 }>;
@@ -256,6 +259,7 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
     ...handleExtension(
       {
         extensionEvents,
+        tojson,
       },
       {
         ...config,
@@ -568,13 +572,6 @@ const getCode = (params: GetCodeParams, config: ToSpaCodeConfig): Result => {
     content: abstractEventTypeDef(abstractEventTypeDefMap, config),
     importManager: new ImportManager(config),
     name: "abstractEventTypeDef",
-  });
-
-  result.push({
-    type: "extensionEventTypeDef",
-    content: extensionEventTypeDef(tojson, config),
-    importManager: new ImportManager(config),
-    name: "extensionEventTypeDef",
   });
 
   return result;
