@@ -186,7 +186,8 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         `\n${indent}}`;
     }
 
-    const indent = indentation(config.codeStyle!.indent * 2);
+    const indent = indentation(config.codeStyle!.indent);
+    const indent2 = indentation(config.codeStyle!.indent * 2);
 
     addDependencyImport({
       packageName: config.getComponentPackageName(),
@@ -202,7 +203,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         outputs: ui.meta.frame!.outputs,
       },
       {
-        initialIndent: 0,
+        initialIndent: config.codeStyle!.indent,
         indentSize: config.codeStyle!.indent,
       },
     );
@@ -222,7 +223,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
     return {
       js: (effectEventCode || "") + jsCode,
       ui: !props.style.layout
-        ? `${indent}Column() {\n` + uiCode + `\n${indent}}`
+        ? `${indent2}Column() {\n` + uiCode + `\n${indent2}}`
         : convertHarmonyFlexComponent(props.style, {
             scope: true,
             child: uiCode,
@@ -374,7 +375,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
         });
       }
 
-      const indent = indentation(config.codeStyle!.indent * 2);
+      const indent = indentation(config.codeStyle!.indent);
       addDependencyImport({
         packageName: config.getComponentPackageName(),
         dependencyNames: ["appContext"],
@@ -395,7 +396,7 @@ const handleSlot = (ui: UI, config: HandleSlotConfig) => {
               : [],
         },
         {
-          initialIndent: 0,
+          initialIndent: config.codeStyle!.indent,
           indentSize: config.codeStyle!.indent,
         },
       );
