@@ -263,7 +263,12 @@ export const setValueByPath = (params: any) => {
   let errorFlag = false;
   for (let i = 0; i < nextIndex; i++) {
     try {
-      current = current[path[i]];
+      if (path[i] in current) {
+        current = current[path[i]];
+      } else {
+        current[path[i]] = {};
+        current = current[path[i]];
+      }
     } catch (error) {
       errorFlag = true;
       console.error(

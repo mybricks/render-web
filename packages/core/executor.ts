@@ -2107,7 +2107,8 @@ export default function executor(
 
               if (xpath) {
                 if (!("val" in props.data)) {
-                  props.data.val = props.data.initValue;
+                  // 可以引擎中能选中path的，一定是对象，如果没有默认值可以直接给默认空对象
+                  props.data.val = props.data.initValue || {};
                 }
 
                 setValueByPath({
