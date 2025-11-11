@@ -2641,19 +2641,18 @@ export default function executor(
         (!com.parentComId || com.frameId === frameId)
       ) {
         const props = getComProps(com.id, scope);
+        if (com.global) {
+          const globalProps = scenesOperate?.getGlobalComProps(com.id);
+          if (globalProps && "val" in globalProps.data) {
+            props.data.val = globalProps.data.val;
+          }
+        }
         // 「配置了默认值」或「设置过值」的变量默认触发一次
         if ("initValue" in com.model.data || "val" in props.data) {
           const cons = Cons[`${com.id}-changed`]?.filter((con: any) => {
             return (con.targetFrameKey || con.frameKey) === frameKey;
           });
           if (cons?.length) {
-            const props = getComProps(com.id, scope);
-            if (com.global) {
-              const globalProps = scenesOperate?.getGlobalComProps(com.id);
-              if (globalProps) {
-                props.data.val = globalProps.data.val;
-              }
-            }
             exeCons({
               logProps: null,
               cons,

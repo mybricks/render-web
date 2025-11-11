@@ -368,7 +368,11 @@ export default function MultiScene({ json, options }: any) {
       if (com.global) {
         const initValue = com.model.data.initValue;
         currentGlobalVariable.changed({ com, value: initValue });
-        globalVarMap[com.id] = initValue;
+
+        if ("initValue" in com.model.data) {
+          // 是否有默认值
+          globalVarMap[com.id] = initValue;
+        }
       }
     });
 
@@ -541,7 +545,7 @@ export default function MultiScene({ json, options }: any) {
           ? { data: { val: globalVariable.get(comId) } }
           : comId in globalVarMap
             ? { data: { val: globalVarMap[comId] } }
-            : scenesMap[json.scenes[0].id]._refs?.get({ comId });
+            : { data: {} };
 
         return val;
         // return scenesMap[json.scenes[0].id]._refs?.get({comId}) || {
