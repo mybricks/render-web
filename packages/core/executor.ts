@@ -622,25 +622,26 @@ export default function executor(
     }
 
     if (inReg.type === "com") {
-      if (
-        inReg.def.namespace === "mybricks.core-comlib.bus-getUser" &&
-        opts.moduleId
-      ) {
-        const comProps = getComProps(inReg.comId, nextScope);
-        const busInfo =
-          COMPONENT_NAMESPACE_TO_BUS_INFO_MAP[inReg.def.namespace];
-        scenesOperate?.open({
-          // frameId,
-          busName: busInfo.name,
-          todo: {
-            pinId: busInfo.pinId,
-            value: val,
-          },
-          comProps,
-          parentScope: comProps,
-        });
-        return;
-      }
+      // if (
+      //   inReg.def.namespace === "mybricks.core-comlib.bus-getUser" &&
+      //   opts.moduleId
+      // ) {
+      //   console.log("走到这里了");
+      //   const comProps = getComProps(inReg.comId, nextScope);
+      //   const busInfo =
+      //     COMPONENT_NAMESPACE_TO_BUS_INFO_MAP[inReg.def.namespace];
+      //   scenesOperate?.open({
+      //     // frameId,
+      //     busName: busInfo.name,
+      //     todo: {
+      //       pinId: busInfo.pinId,
+      //       value: val,
+      //     },
+      //     comProps,
+      //     parentScope: comProps,
+      //   });
+      //   return;
+      // }
 
       if (fromCon) {
         if (fromCon.finishPinParentKey === inReg.startPinParentKey) {

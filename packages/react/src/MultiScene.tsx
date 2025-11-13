@@ -666,6 +666,47 @@ export default function MultiScene({ json, options }: any) {
       );
     }
 
+    if (!env.getBusData) {
+      const bus = {
+        user: {
+          name: "bus-getUser",
+          pinId: "call",
+        },
+      };
+      env.getBusData = (type: "user", value: any) => {
+        return new Promise((resolve, reject) => {
+          if (options.moduleId && typeof options.debug === "boolean") {
+            return;
+          }
+          if (type === "user") {
+            const user = bus[type];
+            const busFx = globalExtensionFxIdToFrame[user.name];
+            if (!busFx) {
+              reject(`未实现系统总线「${user.name}」`);
+              return;
+            }
+
+            scenesOperate?.open({
+              // frameId,
+              busName: user.name,
+              todo: {
+                pinId: user.pinId,
+                value,
+              },
+              parentScope: {
+                outputs: {
+                  then: resolve,
+                  catch: reject,
+                },
+              },
+            });
+          } else {
+            reject(`未实现「${type}」系统总线`);
+          }
+        });
+      };
+    }
+
     return {
       scenesMap,
       scenesOperateInputsTodo,

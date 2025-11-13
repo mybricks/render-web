@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@mybricks/comlib-core':
-        specifier: ^0.0.57
-        version: 0.0.57
+        specifier: ^0.0.58
+        version: 0.0.58
     devDependencies:
       '@types/node':
         specifier: ^20.8.3
@@ -84,8 +84,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@mybricks/comlib-core@0.0.57':
-    resolution: {integrity: sha512-U5Pqz586nRS4rzxS/QirB4TAgD97oNY2N6YzztgVJMpwAwYZqqvmsQgKvP7P8N8mYuaHp9k5OuoK7H+u5OzlTA==}
+  '@mybricks/comlib-core@0.0.58':
+    resolution: {integrity: sha512-sMKNTNhHVe5+fS9KkJ/pRskIfUDqSDFx4K/oZECD61Z/EHTJz12a0QjlW1Wh1zXsEo4aInqT8hFfKVauffA4Nw==}
 
   '@types/eslint-scope@3.7.7':
     resolution: {integrity: sha512-MzMFlSLBqNF2gcHWO0G1vP/YQyfvrxZ0bF+u7mzUdZ1/xK4A4sru+nraZz5i3iEIk1l1uyicaDVTB4QbbEkAYg==}
@@ -1403,7 +1403,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@mybricks/comlib-core@0.0.57':
+  '@mybricks/comlib-core@0.0.58':
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
