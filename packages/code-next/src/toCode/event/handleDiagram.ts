@@ -515,8 +515,11 @@ const handleProcess = (
         scene.cons[
           comInfo.parentComId && comInfo.frameId
             ? `${comInfo.parentComId}-${comInfo.frameId}-${con.from.id}`
-            : `${con.from.parent.id}-${con.from.id}`
-        ] || scene.cons[`${con.from.parent.id}-${con.from.id}`];
+            : `${con.from.parent.id === scene.id ? "_rootFrame_" : con.from.parent.id}-${con.from.id}`
+        ] ||
+        scene.cons[
+          `${con.from.parent.id === scene.id ? "_rootFrame_" : con.from.parent.id}-${con.from.id}`
+        ];
       const nextCon = cons?.find((nextCon) => {
         return nextCon.comId === con.to.parent.id && nextCon.id === con.id;
       });
