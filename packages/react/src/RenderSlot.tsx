@@ -497,6 +497,7 @@ function RenderCom({
     _inputs: _myInputs,
     _outputs: _myOutputs,
     _notifyBindings: _myNotifyBindings,
+    haveBindings,
   } = props;
   const { rootId } = options;
   const [, setShow] = useState(false);
@@ -762,6 +763,7 @@ function RenderCom({
         throw new Error(e);
       }}
       modules={_moduleContext.modules}
+      haveBindings={haveBindings}
     />
   );
 

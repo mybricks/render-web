@@ -1659,6 +1659,18 @@ export default function executor(
     const varBindings = new Set();
 
     // const isJS = def.rtType?.match(/^js/gi)
+    const haveBindings = (bindWith: string) => {
+      const { configBindWith } = com.model;
+      if (!configBindWith) {
+        return false;
+      }
+
+      const findBindWith = configBindWith.find(
+        (configBindWith: any) => configBindWith.bindWith === bindWith,
+      );
+
+      return findBindWith ? true : false;
+    };
 
     if (!isJS) {
       const { configBindWith } = com.model;
@@ -1775,6 +1787,7 @@ export default function executor(
             });
           },
       com,
+      haveBindings,
     };
 
     frameProps[key] = rtn;
