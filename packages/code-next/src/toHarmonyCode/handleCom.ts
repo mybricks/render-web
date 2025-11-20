@@ -721,73 +721,80 @@ export const handleProcess = (
           `${indent}/** 调用 ${props.meta.title} */` +
           `\n${indent}${nextCode}${componentNameWithId}(${runType === "input" ? nextValue : ""})`;
       } else if (category === "frameInput") {
-        const scene = config.getCurrentScene();
-        const pinValueProxy =
-          scene.pinValueProxies[`${props.meta.id}-${props.id}`];
-        // const params = config.getParams();
-        const { frameKey } = props;
-        if (frameKey === "_rootFrame_") {
-          // 场景输入
+        if (event.type === "extension-event") {
+          // 事件只有一个输入，value
+          code +=
+            `${indent}/** 调用获取当前参数 ${props.title} */` +
+            `\n${indent}${nextCode}join(${nextValue}, value)`;
+        } else {
+          const scene = config.getCurrentScene();
+          const pinValueProxy =
+            scene.pinValueProxies[`${props.meta.id}-${props.id}`];
+          // const params = config.getParams();
+          const { frameKey } = props;
+          if (frameKey === "_rootFrame_") {
+            // 场景输入
 
-          if (scene.type === "module") {
-            const title = `${indent}/** 调用获取当前输入值 ${props.title} */`;
-            const input = scene.inputs.find(
-              (input) => input.id === pinValueProxy.pinId,
-            );
-            const joinNext = `${input?.type === "config" ? "data" : "controller"}.${pinValueProxy.pinId}`;
+            if (scene.type === "module") {
+              const title = `${indent}/** 调用获取当前输入值 ${props.title} */`;
+              const input = scene.inputs.find(
+                (input) => input.id === pinValueProxy.pinId,
+              );
+              const joinNext = `${input?.type === "config" ? "data" : "controller"}.${pinValueProxy.pinId}`;
 
-            if (props.meta.parentComId) {
-              const rootProvider = config.getRootProvider();
-              config.addConsumer(rootProvider);
+              if (props.meta.parentComId) {
+                const rootProvider = config.getRootProvider();
+                config.addConsumer(rootProvider);
 
-              if (input?.type === "config") {
-                rootProvider.useData = true;
+                if (input?.type === "config") {
+                  rootProvider.useData = true;
+                } else {
+                  rootProvider.useController = true;
+                }
+
+                code +=
+                  title +
+                  `\n${indent}${nextCode}join(${nextValue}, this.${rootProvider.name}.${joinNext})`;
               } else {
-                rootProvider.useController = true;
+                code +=
+                  title +
+                  `\n${indent}${nextCode}join(${nextValue}, this.${joinNext})`;
               }
-
-              code +=
-                title +
-                `\n${indent}${nextCode}join(${nextValue}, this.${rootProvider.name}.${joinNext})`;
             } else {
               code +=
-                title +
-                `\n${indent}${nextCode}join(${nextValue}, this.${joinNext})`;
+                `${indent}/** 调用获取当前输入值 ${props.title} */` +
+                `\n${indent}${nextCode}join(${nextValue}, pageParams)`;
             }
           } else {
-            code +=
-              `${indent}/** 调用获取当前输入值 ${props.title} */` +
-              `\n${indent}${nextCode}join(${nextValue}, pageParams)`;
-          }
-        } else {
-          const [comId, slotId] = frameKey.split("-");
+            const [comId, slotId] = frameKey.split("-");
 
-          if (comId === props.meta.parentComId) {
-            // 同作用域
-            code +=
-              `${indent}/** 调用获取当前输入值 ${props.title} */` +
-              `\n${indent}${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
-          } else if (slotId) {
-            // 跨作用域
-            const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${comId}`;
-            const providerMap = config.getProviderMap();
-            const provider = providerMap[`slot_${scopeSlotComponentName}`];
-            provider.useParams = true;
+            if (comId === props.meta.parentComId) {
+              // 同作用域
+              code +=
+                `${indent}/** 调用获取当前输入值 ${props.title} */` +
+                `\n${indent}${nextCode}join(${nextValue}, this.params.inputValues.${pinValueProxy.pinId})`;
+            } else if (slotId) {
+              // 跨作用域
+              const scopeSlotComponentName = `${slotId[0].toUpperCase() + slotId.slice(1)}_${comId}`;
+              const providerMap = config.getProviderMap();
+              const provider = providerMap[`slot_${scopeSlotComponentName}`];
+              provider.useParams = true;
 
-            config.addConsumer(provider);
+              config.addConsumer(provider);
 
-            code +=
-              `${indent}/** 调用获取当前输入值 ${props.title} */` +
-              `\n${indent}${nextCode}join(${nextValue}, this.slot_${scopeSlotComponentName}.params.inputValues.${pinValueProxy.pinId})`;
-          } else if (event.type === "fx" && event.frameId === frameKey) {
-            // fx调用自己的输入
-            const index = event.paramPins.findIndex((paramPin) => {
-              return paramPin.id === pinValueProxy.pinId;
-            });
+              code +=
+                `${indent}/** 调用获取当前输入值 ${props.title} */` +
+                `\n${indent}${nextCode}join(${nextValue}, this.slot_${scopeSlotComponentName}.params.inputValues.${pinValueProxy.pinId})`;
+            } else if (event.type === "fx" && event.frameId === frameKey) {
+              // fx调用自己的输入
+              const index = event.paramPins.findIndex((paramPin) => {
+                return paramPin.id === pinValueProxy.pinId;
+              });
 
-            code +=
-              `${indent}/** 调用获取当前输入值 ${props.title} */` +
-              `\n${indent}${nextCode}join(${nextValue}, value${index})`;
+              code +=
+                `${indent}/** 调用获取当前输入值 ${props.title} */` +
+                `\n${indent}${nextCode}join(${nextValue}, value${index})`;
+            }
           }
         }
       } else if (category === "event") {

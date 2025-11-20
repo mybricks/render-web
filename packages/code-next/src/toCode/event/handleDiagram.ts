@@ -34,6 +34,7 @@ const handleDiagram = (
       "extension-api",
       "extension-config",
       "extension-bus",
+      "extension-event",
     ].includes(frameType)
   ) {
     const { paramPins, nodesDeclaration, nodesInvocation } =
@@ -51,7 +52,12 @@ const handleDiagram = (
     };
   } else if (
     diagram.starter.type === "frame" &&
-    ["extension-api", "extension-config", "extension-bus"].includes(frameType)
+    [
+      "extension-api",
+      "extension-config",
+      "extension-bus",
+      "extension-event",
+    ].includes(frameType)
   ) {
     const { paramPins, nodesDeclaration, nodesInvocation, frameOutputs } =
       handleDiagramWidthMultipleInputs(diagram, config);
@@ -160,7 +166,7 @@ const handleDiagram = (
       schema: diagram.starter.schema,
     };
 
-    if (type === "var") {
+    if (["var", "listener"].includes(type)) {
       const dataChangedResult: HandleProcessResult = {
         nodesDeclaration: [],
         nodesDeclarationSet: new Set(),
@@ -206,7 +212,9 @@ const handleDiagram = (
         });
 
       result.process.nodesInvocation.push(...dataChangedResult.nodesInvocation);
+    }
 
+    if (type === "var") {
       return {
         ...result,
         initValue: meta.model.data.initValue,
