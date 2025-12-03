@@ -304,7 +304,7 @@ export const dataProxy = (params: DataProxyParams) => {
   return new Proxy(obj, {
     get(_, key: any) {
       if (key in obj) {
-        return obj[key];
+        return data[key];
       }
 
       const value = data[key];
