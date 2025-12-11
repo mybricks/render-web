@@ -118,7 +118,10 @@ export default function MultiScene({ json, options }: any) {
       };
     }
     env.getModuleJSON = (moduleId: string) => {
-      return modules?.[moduleId]?.json;
+      return (
+        modules?.[moduleId]?.json ||
+        json.scenes.find((scene: any) => scene.id === moduleId)
+      );
     };
     const permissions = json.permissions || [];
     env.themes = json.themes;
