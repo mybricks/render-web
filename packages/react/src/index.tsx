@@ -814,7 +814,7 @@ class Stylization {
         Object.entries(styleMap).forEach(([key, value]: any) => {
           innerHTML += `${key} {${Object.entries(value)
             .map(([key, value]) => {
-              return `${key}: ${value};`;
+              return `${key}: ${value} !important;`;
             })
             .join("")}}`;
         });
@@ -842,7 +842,7 @@ class Stylization {
         Object.entries(css).forEach(([key, value]: any) => {
           innerHTML += `${key} {${Object.entries(value)
             .map(([key, value]) => {
-              return `${key}: ${value};`;
+              return `${key}: ${value} !important;`;
             })
             .join("")}}`;
         });
