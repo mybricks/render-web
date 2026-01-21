@@ -8,6 +8,46 @@ import { uuid } from "./normal";
 /** 处理引擎提供的toJSON数据 */
 export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
   const { global, modules, scenes } = toJSON as ToJSON;
+
+  if (toJSON.type === "module") {
+    const comInfo = toJSON.coms[toJSON.slot.comAry[0].id];
+    if (comInfo.asRoot && comInfo.model.isAICode) {
+      // ai区块
+      const { config, configs, inputs, outputs } = comInfo.model.data;
+      inputs.forEach(({ id, title }) => {
+        toJSON.inputs.push({
+          id,
+          title,
+          type: "normal",
+        });
+      });
+
+      configs.forEach(({ type, title, fieldName }) => {
+        toJSON.inputs.push({
+          id: fieldName,
+          title,
+          type: "config",
+          editor: {
+            type,
+          },
+          extValues: {
+            config: {
+              defaultValue: config[fieldName],
+            },
+          },
+        });
+      });
+
+      outputs.forEach(({ id, title }) => {
+        toJSON.outputs.push({
+          id,
+          title,
+          type: "normal",
+        });
+      });
+    }
+  }
+
   if (!scenes) {
     // 非多场景
     if ((toJSON as ToUiJSON).slot) {
