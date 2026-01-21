@@ -10,8 +10,8 @@ export function transformToJSON(toJSON: ToJSON | ToUiJSON) {
   const { global, modules, scenes } = toJSON as ToJSON;
 
   if (toJSON.type === "module") {
-    const comInfo = toJSON.coms[toJSON.slot.comAry[0].id];
-    if (comInfo.asRoot && comInfo.model.isAICode) {
+    const comInfo = toJSON.coms[toJSON.slot.comAry[0]?.id];
+    if (comInfo?.asRoot && comInfo.model.isAICode) {
       // ai区块
       const { config, configs, inputs, outputs } = comInfo.model.data;
       inputs.forEach(({ id, title }) => {
