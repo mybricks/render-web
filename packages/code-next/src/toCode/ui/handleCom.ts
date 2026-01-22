@@ -63,6 +63,11 @@ const handleCom = (com: Com, config: UiBaseConfig): HandleComResult => {
     >((pre, [eventId, events]) => {
       const event = events.find((event) => event.active)!;
 
+      if (!event) {
+        // events是空数组情况兼容
+        return pre;
+      }
+
       pre[eventId] = {
         type: event.type,
         isAbstract: event.isAbstract,

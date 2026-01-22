@@ -141,3 +141,14 @@ export const getConFromSceneById = (
 
   return reslut!;
 };
+
+const UUID_SEED =
+  "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+export const uuid = (len = 5) => {
+  const maxPos = UUID_SEED.length;
+  let rtn = "";
+  for (let i = 0; i < len; i++) {
+    rtn += UUID_SEED.charAt(Math.floor(Math.random() * maxPos));
+  }
+  return "u_" + rtn;
+};

@@ -1,7 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Frame, ComInfo, Diagram, DiagramCon } from "../types";
 import type { HandleFrameConfig } from "./handleFrame";
-import { getComponentTypeAndCategoryByDef, getConFromSceneById } from "./utils";
+import {
+  getComponentTypeAndCategoryByDef,
+  getConFromSceneById,
+  uuid,
+} from "./utils";
 
 export interface HandleDiagramConfig extends HandleFrameConfig {
   getFrame: () => Frame;
@@ -18,6 +22,28 @@ const handleDiagram = (
   config: HandleDiagramConfig,
 ): HandleDiagramResult | undefined => {
   const { id, starter, conAry } = diagram;
+
+  if (starter?.type === "var") {
+    // 兼容逻辑，后续可以去掉
+    const pinIdMap: Record<string, string> = {};
+    conAry.forEach((con) => {
+      const { startPinParentKey, finishPinParentKey } = con;
+      if (startPinParentKey?.startsWith("0.")) {
+        if (!pinIdMap[startPinParentKey]) {
+          pinIdMap[startPinParentKey] = uuid();
+        }
+        con.startPinParentKey = pinIdMap[startPinParentKey];
+      }
+
+      if (finishPinParentKey?.startsWith("0.")) {
+        if (!pinIdMap[finishPinParentKey]) {
+          pinIdMap[finishPinParentKey] = uuid();
+        }
+        con.finishPinParentKey = pinIdMap[finishPinParentKey];
+      }
+    });
+  }
+
   const frame = config.getFrame();
   const frameType = frame.type;
 
@@ -453,6 +479,11 @@ const handleProcess = (
 
     // 节点信息
     const comInfo = config.getComInfo(con.to.parent.id);
+
+    if (!comInfo) {
+      // tojson错误数据兼容，ai生成页面后，变量的change事件连ui组件，组件并不存在作用域隔离，但是报错
+      return;
+    }
 
     // 节点类型
     const { componentType, category } = getComponentTypeAndCategoryByDef(
