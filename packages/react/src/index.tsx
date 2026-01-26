@@ -814,7 +814,9 @@ class Stylization {
         Object.entries(styleMap).forEach(([key, value]: any) => {
           innerHTML += `${key} {${Object.entries(value)
             .map(([key, value]: any) => {
-              const suffix = value.includes("!important") ? "" : " !important";
+              const suffix = value?.includes?.("!important")
+                ? ""
+                : " !important";
               return `${key}: ${value}${suffix};`;
             })
             .join("")}}`;
@@ -843,7 +845,9 @@ class Stylization {
         Object.entries(css).forEach(([key, value]: any) => {
           innerHTML += `${key} {${Object.entries(value)
             .map(([key, value]: any) => {
-              const suffix = value.includes("!important") ? "" : " !important";
+              const suffix = value?.includes?.("!important")
+                ? ""
+                : " !important";
               return `${key}: ${value}${suffix};`;
             })
             .join("")}}`;
