@@ -39,7 +39,7 @@ const toTargetCode = (
       });
     }
 
-    const uiCode = handleSlot(scene.ui, {
+    const { jsx, css } = handleSlot(scene.ui, {
       ...baseConfig,
       setComTarget(id: string, target: any) {
         comIdToTargetMap[id] = target;
@@ -49,9 +49,12 @@ const toTargetCode = (
 
     const result = codePrettier(`${importManager.toCode()}
     export default function () {
-      return ${uiCode}
+      return ${jsx}
     }`);
-    console.log("[result]", result);
+    console.log("[result]", {
+      jsx: result,
+      css,
+    });
   });
 
   return toCodejson;

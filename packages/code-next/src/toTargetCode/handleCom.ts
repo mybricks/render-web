@@ -2,16 +2,18 @@
 import { TAG_TRANSLATE, TARGET_TYPE } from "./constant";
 import type { UI, BaseConfig } from "./index";
 import handleSlot from "./handleSlot";
+import { convertCamelToHyphen } from "./utils";
 
 export type Com = Extract<UI["children"][0], { type: "com" }>;
 
 const handleCom = (com: Com, config: BaseConfig) => {
   const comDef = config.getComDef(com.meta.def);
 
-  const comStyle = cleanStyle(com.props.style);
+  const { css, style } = extractStyleAndCSS(com);
+  let childCssCode = "";
   const targetResult = comDef?.target?.[TARGET_TYPE[config.target]]?.({
     data: com.props.data,
-    style: comStyle,
+    style,
     slots: new Proxy(
       {},
       {
@@ -20,7 +22,9 @@ const handleCom = (com: Com, config: BaseConfig) => {
             render() {
               const slot = com.slots?.[slotId];
               if (slot) {
-                return handleSlot(slot, config);
+                const { css, jsx } = handleSlot(slot, config);
+                childCssCode += css;
+                return jsx;
               }
               return "";
             },
@@ -43,14 +47,43 @@ const handleCom = (com: Com, config: BaseConfig) => {
 
   const divTag = TAG_TRANSLATE[config.target].div;
 
-  return `<${divTag} style={${JSON.stringify(comStyle)}}>${targetResult?.jsx}</${divTag}>`;
+  return {
+    jsx: `<${divTag} className="${com.props.id}" style={${JSON.stringify(style)}}>${targetResult?.jsx}</${divTag}>`,
+    css: css + childCssCode,
+  };
 };
 
 export default handleCom;
 
-const cleanStyle = (style: any) => {
-  const cleanStyle = { ...style };
+const extractStyleAndCSS = (com: any) => {
+  const style = com.props.style;
+  const comId = com.props.id;
+
+  const { styleAry, ...other } = style;
+  const cleanStyle = { ...other };
   Reflect.deleteProperty(cleanStyle, "_new");
   Reflect.deleteProperty(cleanStyle, "xCenter");
-  return cleanStyle;
+  Reflect.deleteProperty(cleanStyle, "themesId");
+  Reflect.deleteProperty(cleanStyle, "inSmartLayout");
+
+  let cssCode = "";
+
+  styleAry?.forEach(({ css, selector }: any) => {
+    if (selector === ":root") {
+      selector = "> *:first-child";
+    }
+
+    selector = selector.replace(/\{id\}/g, `${comId}`);
+
+    cssCode += `${selector} {
+      ${Object.entries(css)
+        .map(([key, value]) => `${convertCamelToHyphen(key)}: ${value};`)
+        .join("\n")}
+    }`;
+  });
+
+  return {
+    css: cssCode ? `.${com.props.id} {${cssCode}}` : "",
+    style: cleanStyle,
+  };
 };

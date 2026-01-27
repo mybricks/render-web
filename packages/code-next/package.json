@@ -1,6 +1,6 @@
 {
   "name": "@mybricks/to-code-react",
-  "version": "0.0.5-next.164",
+  "version": "0.0.5-next.165",
   "description": "",
   "module": "dist/esm/index.js",
   "types": "dist/esm/index.d.ts",
@@ -9,7 +9,7 @@
     "build": "father build",
     "build:deps": "father prebundle",
     "prepublishOnly": "father doctor && npm run build",
-    "publish:next": "pnpm build && pnpm publish --tag next"
+    "publish:next": "pnpm build && pnpm publish --tag next --no-git-checks"
   },
   "keywords": [],
   "authors": [],

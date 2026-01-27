@@ -8,19 +8,27 @@ type Dom = Extract<UI["children"][0], { type: "dom" }>;
 const handleDom = (dom: Dom, config: BaseConfig) => {
   const { children, props } = dom;
 
-  let uiCode = "";
+  let jsxCode = "";
+  let cssCode = "";
 
   children.forEach((child) => {
     if (child.type === "com") {
-      uiCode += handleCom(child, config);
+      const { jsx, css } = handleCom(child, config);
+      jsxCode += jsx;
+      cssCode += css;
     } else if (child.type === "dom") {
-      uiCode += handleDom(child, config);
+      const { jsx, css } = handleDom(child, config);
+      jsxCode += jsx;
+      cssCode += css;
     }
   });
 
   const divTag = TAG_TRANSLATE[config.target].div;
 
-  return `<${divTag} style={${JSON.stringify(props.style)}}>${uiCode}</${divTag}>`;
+  return {
+    jsx: `<${divTag} style={${JSON.stringify(props.style)}}>${jsxCode}</${divTag}>`,
+    css: cssCode,
+  };
 };
 
 export default handleDom;
