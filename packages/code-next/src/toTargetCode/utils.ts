@@ -95,6 +95,10 @@ export class ImportManager {
           }
         }
 
+        if (!defaultDependency && !namedDependencies) {
+          return pre + `import '${packageName}';\n`;
+        }
+
         return (
           pre +
           `import ${defaultDependency}${namedDependencies} from '${packageName}';\n`
