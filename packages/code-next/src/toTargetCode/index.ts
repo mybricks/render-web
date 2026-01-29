@@ -47,13 +47,15 @@ const toTargetCode = (
       importManager,
     });
 
-    const result = codePrettier(`${importManager.toCode()}
-    export default function () {
-      return ${jsx}
-    }`);
     console.log("[result]", {
-      jsx: result,
-      css,
+      jsx: codePrettier(
+        `${importManager.toCode()}
+        export default function () {
+          return ${jsx}
+        }`,
+        "babel",
+      ),
+      css: codePrettier(css, "less"),
     });
   });
 

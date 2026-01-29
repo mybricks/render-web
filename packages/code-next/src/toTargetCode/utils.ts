@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import prettier from "prettier";
 import parserBabel from "prettier/parser-babel";
+import parserPostCSS from "prettier/parser-postcss";
 
 export const initComdefs = () => {
   const regAry = (comAray: any, comDefs: any) => {
@@ -26,8 +27,15 @@ export const initComdefs = () => {
   return comDefs;
 };
 
-export const codePrettier = (content: string) => {
-  return prettier.format(content, { parser: "babel", plugins: [parserBabel] });
+const PARSER_PLUGINS = {
+  babel: [parserBabel],
+  less: [parserPostCSS],
+};
+export const codePrettier = (
+  content: string,
+  parser: keyof typeof PARSER_PLUGINS,
+) => {
+  return prettier.format(content, { parser, plugins: PARSER_PLUGINS[parser] });
 };
 
 type ImportType = "default" | "named";

@@ -24,7 +24,7 @@ const handleCom = (com: Com, config: BaseConfig) => {
               if (slot) {
                 const { css, jsx } = handleSlot(slot, config);
                 childCssCode += css;
-                return jsx;
+                return `{/** ${slot.meta.title} - ${slot.meta.slotId} */}${jsx}`;
               }
               return "";
             },
@@ -48,7 +48,7 @@ const handleCom = (com: Com, config: BaseConfig) => {
   const divTag = TAG_TRANSLATE[config.target].div;
 
   return {
-    jsx: `<${divTag} className="${com.props.id}" style={${JSON.stringify(style)}}>${targetResult?.jsx}</${divTag}>`,
+    jsx: `{/* ${com.meta.title} - ${com.meta.id} */}<${divTag} className="${com.props.id}" style={${JSON.stringify(style)}}>${targetResult?.jsx}</${divTag}>`,
     css: css + childCssCode,
   };
 };

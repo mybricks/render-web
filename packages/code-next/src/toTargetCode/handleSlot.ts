@@ -38,6 +38,10 @@ const cleanStyle = (style: any) => {
     width: "100%",
     height: "100%",
   };
+  if (cleanStyle.position === "smart") {
+    cleanStyle.flexDirection = "column";
+  }
   Reflect.deleteProperty(cleanStyle, "layout");
+  Reflect.deleteProperty(cleanStyle, "smart");
   return cleanStyle;
 };
