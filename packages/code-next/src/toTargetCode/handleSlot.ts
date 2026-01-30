@@ -38,10 +38,41 @@ const cleanStyle = (style: any) => {
     width: "100%",
     height: "100%",
   };
-  if (cleanStyle.position === "smart") {
-    cleanStyle.flexDirection = "column";
+
+  switch (cleanStyle.layout) {
+    case "smart":
+      cleanStyle.flexDirection = "column";
+      break;
+    case "flex-column":
+      cleanStyle.flexDirection = "column";
+      break;
+    case "flex-row":
+      cleanStyle.flexDirection = "row";
+      break;
+    default:
+      cleanStyle.flexDirection = "row";
+      break;
   }
+
+  cleanStyle.display = "flex";
+
+  if ("rowGap" in style || "columnGap" in style) {
+    const row = style.rowGap ?? 0;
+    const column = style.columnGap ?? 0;
+    if (row || column) {
+      // CSS gap 简写：1 值行列同；2 值 行 列
+      cleanStyle.gap = row === column ? `${row}px` : `${row}px ${column}px`;
+    }
+    Reflect.deleteProperty(cleanStyle, "rowGap");
+    Reflect.deleteProperty(cleanStyle, "columnGap");
+  }
+
+  if (cleanStyle.flexWrap === "nowrap") {
+    Reflect.deleteProperty(cleanStyle, "flexWrap");
+  }
+
   Reflect.deleteProperty(cleanStyle, "layout");
   Reflect.deleteProperty(cleanStyle, "position");
+
   return cleanStyle;
 };

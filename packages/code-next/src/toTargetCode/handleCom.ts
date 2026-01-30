@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { TAG_TRANSLATE, TARGET_TYPE } from "./constant";
+import { TARGET_TYPE } from "./constant";
 import type { UI, BaseConfig } from "./index";
 import handleSlot from "./handleSlot";
 import { convertCamelToHyphen } from "./utils";
@@ -12,6 +12,7 @@ const handleCom = (com: Com, config: BaseConfig) => {
   const { css, style } = extractStyleAndCSS(com);
   let childCssCode = "";
   const targetResult = comDef?.target?.[TARGET_TYPE[config.target]]?.({
+    id: com.props.id,
     data: com.props.data,
     style,
     slots: new Proxy(
@@ -45,12 +46,19 @@ const handleCom = (com: Com, config: BaseConfig) => {
     });
   });
 
-  const divTag = TAG_TRANSLATE[config.target].div;
+  // const divTag = TAG_TRANSLATE[config.target].div;
 
   return {
-    jsx: `{/* ${com.meta.title} - ${com.meta.id} */}<${divTag} className="${com.props.id}" style={${JSON.stringify(style)}}>${targetResult?.jsx}</${divTag}>`,
+    jsx: targetResult?.jsx
+      ? `{/* ${com.meta.title} - ${com.meta.id} */}${targetResult?.jsx}`
+      : "",
     css: css + childCssCode,
   };
+
+  // return {
+  //   jsx: `{/* ${com.meta.title} - ${com.meta.id} */}<${divTag} className="${com.props.id}" style={${JSON.stringify(style)}}>${targetResult?.jsx}</${divTag}>`,
+  //   css: css + childCssCode,
+  // };
 };
 
 export default handleCom;
@@ -75,7 +83,7 @@ const extractStyleAndCSS = (com: any) => {
 
     selector = selector.replace(/\{id\}/g, `${comId}`);
 
-    cssCode += `${selector} {
+    cssCode += `.${com.props.id}${selector} {
       ${Object.entries(css)
         .map(([key, value]) => `${convertCamelToHyphen(key)}: ${value};`)
         .join("\n")}
@@ -83,7 +91,7 @@ const extractStyleAndCSS = (com: any) => {
   });
 
   return {
-    css: cssCode ? `.${com.props.id} {${cssCode}}` : "",
+    css: cssCode,
     style: cleanStyle,
   };
 };
