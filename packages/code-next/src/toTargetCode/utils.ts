@@ -27,15 +27,30 @@ export const initComdefs = () => {
   return comDefs;
 };
 
-const PARSER_PLUGINS = {
-  babel: [parserBabel],
-  less: [parserPostCSS],
+const PARSER_PLUGINS: any = {
+  babel: {
+    semi: true, // 分号
+    singleQuote: true,
+    // jsxSingleQuote: true,
+    tabWidth: 2,
+    useTabs: false,
+    printWidth: 120,
+    trailingComma: "none",
+    bracketSpacing: true,
+    arrowParens: "always",
+    parser: "babel",
+    plugins: [parserBabel],
+  },
+  less: {
+    parser: "less",
+    plugins: [parserPostCSS],
+  },
 };
 export const codePrettier = (
   content: string,
   parser: keyof typeof PARSER_PLUGINS,
 ) => {
-  return prettier.format(content, { parser, plugins: PARSER_PLUGINS[parser] });
+  return prettier.format(content, PARSER_PLUGINS[parser]);
 };
 
 type ImportType = "default" | "named";

@@ -42,6 +42,6 @@ const cleanStyle = (style: any) => {
     cleanStyle.flexDirection = "column";
   }
   Reflect.deleteProperty(cleanStyle, "layout");
-  Reflect.deleteProperty(cleanStyle, "smart");
+  Reflect.deleteProperty(cleanStyle, "position");
   return cleanStyle;
 };
