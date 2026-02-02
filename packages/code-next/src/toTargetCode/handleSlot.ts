@@ -74,5 +74,13 @@ const cleanStyle = (style: any) => {
   Reflect.deleteProperty(cleanStyle, "layout");
   Reflect.deleteProperty(cleanStyle, "position");
 
+  if (cleanStyle.backgroundImage === "none") {
+    Reflect.deleteProperty(cleanStyle, "backgroundImage");
+  }
+
+  if (cleanStyle.flexDirection === "row") {
+    Reflect.deleteProperty(cleanStyle, "flexDirection");
+  }
+
   return cleanStyle;
 };
