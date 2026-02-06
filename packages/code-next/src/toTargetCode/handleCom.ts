@@ -7,7 +7,15 @@ import { convertCamelToHyphen } from "./utils";
 export type Com = Extract<UI["children"][0], { type: "com" }>;
 
 const handleCom = (com: Com, config: BaseConfig) => {
+  // 1. 优先处理 AI 组件
+  const aiResult = handleAICom(com, config);
+  if (aiResult) {
+    return aiResult;
+  }
+
   const comDef = config.getComDef(com.meta.def);
+
+  console.log("com", com);
 
   const { css, style } = extractStyleAndCSS(com);
   let childCssCode = "";
@@ -59,6 +67,48 @@ const handleCom = (com: Com, config: BaseConfig) => {
   //   jsx: `{/* ${com.meta.title} - ${com.meta.id} */}<${divTag} className="${com.props.id}" style={${JSON.stringify(style)}}>${targetResult?.jsx}</${divTag}>`,
   //   css: css + childCssCode,
   // };
+};
+
+const handleAICom = (com: Com, config: BaseConfig) => {
+  if (com.meta.def.namespace !== "mybricks.basic-comlib.ai-mix") return null;
+
+  const comDef = config.getComDef(com.meta.def);
+  const targetFn = comDef?.target?.[TARGET_TYPE[config.target]];
+
+  if (!targetFn) return null;
+
+  const { css, style } = extractStyleAndCSS(com);
+
+  // 假设 target 函数返回 { jsx, componentName, files: [] }
+  const res = targetFn({
+    title: com.meta.title,
+    id: com.props.id,
+    data: com.props.data,
+    style,
+    slots: com.slots, // 传递 slots 以防万一
+  });
+
+  if (!res) return null;
+
+  // 1. 收集文件
+  if (res.files && Array.isArray(res.files)) {
+    config.addComponentFile(res.componentName, res.files);
+  }
+
+  // 2. 添加引用（相对于当前页面的 index.tsx）
+  if (res.componentName) {
+    config.importManager.addImport({
+      packageName: `./components/${res.componentName}`,
+      dependencyNames: [res.componentName],
+      importType: "default",
+    });
+  }
+
+  // 3. 返回结果
+  return {
+    jsx: res.jsx ? `{/* ${com.meta.title} */}${res.jsx}` : "",
+    css: css, // 只返回布局样式
+  };
 };
 
 export default handleCom;
