@@ -71,6 +71,14 @@ type DependencyImport = Record<
 /** 导入依赖收集、解析 */
 export class ImportManager {
   private _imports: DependencyImport = {};
+  private _styleImports: string[] = [];
+
+  /** 添加样式文件引入（放在所有 import 最后） */
+  addStyleImport(packageName: string) {
+    if (packageName) {
+      this._styleImports.push(packageName);
+    }
+  }
 
   /** 添加依赖 */
   addImport({
@@ -99,7 +107,7 @@ export class ImportManager {
 
   /** 依赖解析为code */
   toCode() {
-    return Object.entries(this._imports).reduce(
+    const codePart = Object.entries(this._imports).reduce(
       (pre, [packageName, dependencies]) => {
         let defaultDependency = "";
         let namedDependencies = "";
@@ -133,9 +141,24 @@ export class ImportManager {
       },
       "",
     );
+    const stylePart = this._styleImports
+      .map((p) => `import '${p}';\n`)
+      .join("");
+    return codePart + stylePart;
   }
 }
 
 export function convertCamelToHyphen(str: string) {
   return str.replace(/([A-Z])/g, "-$1").toLowerCase();
+}
+
+/**
+ * 将 id/名称 转为安全的路径片段（目录名、文件名），避免 UUID 或特殊字符导致的问题。
+ * 仅保留 [a-zA-Z0-9_-]，其余替换为 _；若以数字开头则加前缀 p_
+ */
+export function toSafeFileName(str: string): string {
+  if (!str) return "unnamed";
+  const safe = str.replace(/[^a-zA-Z0-9_.-]/g, "_");
+  if (!safe) return "unnamed";
+  return /^[0-9]/.test(safe) ? `p_${safe}` : safe;
 }

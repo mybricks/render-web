@@ -2,7 +2,12 @@
 import toCode from "../toCode";
 import type { ToJSON } from "../toCode/types";
 import handleSlot from "./handleSlot";
-import { initComdefs, codePrettier, ImportManager } from "./utils";
+import {
+  initComdefs,
+  codePrettier,
+  ImportManager,
+  toSafeFileName,
+} from "./utils";
 
 interface ToTargetCodeConfig {
   target: "react";
@@ -55,6 +60,7 @@ const toTargetCode = (
 
   toCodejson.scenes.forEach((sceneData: any) => {
     const scene = sceneData.scene;
+    const pageDir = toSafeFileName(scene.id);
     const importManager = new ImportManager();
     const comIdToTargetMap: any = {};
     const currentSceneComponents = new Set<string>();
@@ -83,16 +89,21 @@ const toTargetCode = (
         if (currentSceneComponents.has(componentName)) return;
         currentSceneComponents.add(componentName);
 
-        // 将组件文件放在当前页面的 components 目录下
-        const componentDir = `pages/${scene.id}/components/${componentName}`;
+        // 将组件文件放在当前页面的 components 目录下（路径片段做安全处理）
+        const componentDir = `pages/${pageDir}/components/${toSafeFileName(componentName)}`;
         files.forEach((file) => {
           allFiles.push({
-            path: `${componentDir}/${file.name}`,
+            path: `${componentDir}/${toSafeFileName(file.name)}`,
             content: file.content,
           });
         });
       },
     });
+
+    const cssContent = codePrettier(css, "less");
+    if (cssContent) {
+      importManager.addStyleImport("./style.less");
+    }
 
     const pageContent = codePrettier(
       `${importManager.toCode()}
@@ -102,17 +113,15 @@ const toTargetCode = (
       "babel",
     );
 
-    const cssContent = codePrettier(css, "less");
-
     // 假设每个 scene 是一个页面
     allFiles.push({
-      path: `pages/${scene.id}/index.tsx`,
+      path: `pages/${pageDir}/index.tsx`,
       content: pageContent,
     });
 
     if (cssContent) {
       allFiles.push({
-        path: `pages/${scene.id}/style.less`,
+        path: `pages/${pageDir}/style.less`,
         content: cssContent,
       });
     }
@@ -121,21 +130,28 @@ const toTargetCode = (
     if (currentSceneComponents.size > 0) {
       const exportContent = Array.from(currentSceneComponents)
         .map((name) => {
-          return `export { default as ${name} } from './${name}';`;
+          return `export { default as ${name} } from './${toSafeFileName(name)}';`;
         })
         .join("\n");
 
       allFiles.push({
-        path: `pages/${scene.id}/components/index.ts`,
+        path: `pages/${pageDir}/components/index.ts`,
         content: exportContent,
       });
     }
-
-    console.log("[result]", {
-      jsx: pageContent,
-      css: cssContent,
-    });
   });
+
+  // 多页面时：在 pages 同级提供 index.tsx，默认导出第 0 个页面
+  if (toCodejson.scenes.length > 0) {
+    const firstPageDir = toSafeFileName(toCodejson.scenes[0].scene.id);
+    allFiles.push({
+      path: "index.tsx",
+      content: codePrettier(
+        `export { default } from './pages/${firstPageDir}';`,
+        "babel",
+      ),
+    });
+  }
 
   return buildFileTree(allFiles);
 };

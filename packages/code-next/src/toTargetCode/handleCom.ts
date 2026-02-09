@@ -2,7 +2,7 @@
 import { TARGET_TYPE } from "./constant";
 import type { UI, BaseConfig } from "./index";
 import handleSlot from "./handleSlot";
-import { convertCamelToHyphen } from "./utils";
+import { convertCamelToHyphen, toSafeFileName } from "./utils";
 
 export type Com = Extract<UI["children"][0], { type: "com" }>;
 
@@ -14,8 +14,6 @@ const handleCom = (com: Com, config: BaseConfig) => {
   }
 
   const comDef = config.getComDef(com.meta.def);
-
-  console.log("com", com);
 
   const { css, style } = extractStyleAndCSS(com);
   let childCssCode = "";
@@ -95,10 +93,11 @@ const handleAICom = (com: Com, config: BaseConfig) => {
     config.addComponentFile(res.componentName, res.files);
   }
 
-  // 2. 添加引用（相对于当前页面的 index.tsx）
+  // 2. 添加引用（相对于当前页面的 index.tsx，路径与 toTargetCode 中目录名一致）
   if (res.componentName) {
+    const safeDir = toSafeFileName(res.componentName);
     config.importManager.addImport({
-      packageName: `./components/${res.componentName}`,
+      packageName: `./components/${safeDir}`,
       dependencyNames: [res.componentName],
       importType: "default",
     });
@@ -131,7 +130,7 @@ const extractStyleAndCSS = (com: any) => {
       selector = "> *:first-child";
     }
 
-    selector = selector.replace(/\{id\}/g, `${comId}`);
+    selector = selector.replace(/\{id\}/g, comId);
 
     cssCode += `.${com.props.id}${selector} {
       ${Object.entries(css)
