@@ -116,21 +116,22 @@ const extractStyleAndCSS = (com: any) => {
   const style = com.props.style;
   const comId = com.props.id;
 
-  const { styleAry, ...other } = style;
+  const { styleAry, inSmartLayout, ...other } = style;
   const cleanStyle = { ...other };
   Reflect.deleteProperty(cleanStyle, "_new");
   Reflect.deleteProperty(cleanStyle, "xCenter");
   Reflect.deleteProperty(cleanStyle, "themesId");
-  Reflect.deleteProperty(cleanStyle, "inSmartLayout");
 
   let cssCode = "";
 
   styleAry?.forEach(({ css, selector }: any) => {
-    if (selector === ":root") {
-      selector = "> *:first-child";
-    }
+    // if (selector === ":root") {
+    //   selector = "> *:first-child";
+    // }
 
-    selector = selector.replace(/\{id\}/g, comId);
+    selector = selector
+      .replace(":root", `${inSmartLayout ? "> *:first-child" : ""}`)
+      .replace(/\{id\}/g, comId);
 
     cssCode += `.${com.props.id}${selector} {
       ${Object.entries(css)
