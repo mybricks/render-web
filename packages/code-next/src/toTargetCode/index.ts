@@ -23,6 +23,12 @@ export interface BaseConfig extends ToTargetCodeConfig {
     componentName: string,
     files: { name: string; content: string }[],
   ) => void;
+  addUtilFile: (params: { name: string; content: string }) => void;
+  /** 获取事件 */
+  getEventByDiagramId: (
+    diagramId: string,
+  ) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
+  refs: Map<string, boolean>;
 }
 
 export interface FileNode {
@@ -45,6 +51,8 @@ const toTargetCode = (
   const allFiles: { path: string; content: string }[] = [];
   // 每个页面维护自己的组件集合
   const sceneComponentsMap = new Map<string, Set<string>>();
+  // 每个页面维护自己的函数集合
+  const sceneUtilsMap = new Map<string, Set<string>>();
 
   const transformConfig = (config: ToTargetCodeConfig) => {
     const comDefs: any = initComdefs();
@@ -60,11 +68,14 @@ const toTargetCode = (
 
   toCodejson.scenes.forEach((sceneData: any) => {
     const scene = sceneData.scene;
+    const event = sceneData.event;
     const pageDir = toSafeFileName(scene.id);
     const importManager = new ImportManager();
     const comIdToTargetMap: any = {};
     const currentSceneComponents = new Set<string>();
     sceneComponentsMap.set(scene.id, currentSceneComponents);
+    const currentSceneUtils = new Set<string>();
+    sceneUtilsMap.set(scene.id, currentSceneUtils);
 
     if (config.target === "react") {
       importManager.addImport({
@@ -73,6 +84,8 @@ const toTargetCode = (
         importType: "default",
       });
     }
+
+    const refs = new Map<string, boolean>();
 
     const { jsx, css } = handleSlot(sceneData.ui, {
       ...baseConfig,
@@ -98,6 +111,22 @@ const toTargetCode = (
           });
         });
       },
+      addUtilFile: ({ name, content }) => {
+        // 检查当前页面是否已经有这个组件
+        if (currentSceneUtils.has(name)) return;
+        currentSceneUtils.add(name);
+
+        // 将函数文件放在当前页面的 utils 目录下（路径片段做安全处理）
+        const componentDir = `pages/${pageDir}/utils`;
+        allFiles.push({
+          path: `${componentDir}/${toSafeFileName(name)}`,
+          content: content,
+        });
+      },
+      getEventByDiagramId: (diagramId) => {
+        return event.find((event: any) => event.diagramId === diagramId)!;
+      },
+      refs,
     });
 
     const cssContent = codePrettier(css, "less");
@@ -105,13 +134,36 @@ const toTargetCode = (
       importManager.addStyleImport("./style.less");
     }
 
+    let nextJsx = jsx;
+    let refCode = "";
+    let hasRef = false;
+    refs.forEach((bool, key) => {
+      if (!bool) {
+        nextJsx = nextJsx.replace(`ref={${key}Ref}`, "");
+      } else {
+        refCode = `const ${key}Ref = useRef();`;
+        hasRef = true;
+      }
+    });
+
+    if (config.target === "react" && hasRef) {
+      importManager.addImport({
+        packageName: "react",
+        dependencyNames: ["useRef"],
+        importType: "named",
+      });
+    }
+
     const pageContent = codePrettier(
       `${importManager.toCode()}
         export default function () {
-          return ${jsx}
+          ${refCode}
+          return ${nextJsx}
         }`,
       "babel",
     );
+
+    console.log("[@pageContent]", pageContent);
 
     // 假设每个 scene 是一个页面
     allFiles.push({
