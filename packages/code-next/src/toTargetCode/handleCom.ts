@@ -135,11 +135,11 @@ const handleAICom = (com: Com, config: BaseConfig) => {
 
   // 2. 添加引用（相对于当前页面的 index.tsx，路径与 toTargetCode 中目录名一致）
   if (res.componentName) {
-    const safeDir = toSafeFileName(res.componentName);
+    const safeName = toSafeFileName(res.componentName);
     config.importManager.addImport({
-      packageName: `./components/${safeDir}`,
-      dependencyNames: [res.componentName],
-      importType: "default",
+      packageName: `./components`,
+      dependencyNames: [safeName],
+      importType: "named",
     });
   }
 
@@ -198,10 +198,27 @@ const handleProcess = (
       // 特殊处理，ai计算组件
       const { sourceCode } = props.data;
       const safeName = toSafeFileName(meta.id);
-      config.addUtilFile({
-        name: `${safeName}.ts`,
-        content: decodeURIComponent(sourceCode),
-      });
+      config.addUtilFile(safeName, [
+        {
+          name: `${safeName}.ts`,
+          content: decodeURIComponent(sourceCode),
+        },
+        {
+          name: "index.ts",
+          content: `import js from "./${safeName}";
+import { createJSHandle } from "../../../utils"
+
+export default function(...values) {
+  return createJSHandle(js, {
+    props: {
+      inputs: ${JSON.stringify(props.inputs)},
+      outputs: ${JSON.stringify(props.outputs)},
+      data: {}
+    }
+  })(...values)
+};`,
+        },
+      ]);
       config.importManager.addImport({
         packageName: `./utils/${safeName}`,
         dependencyNames: [safeName],

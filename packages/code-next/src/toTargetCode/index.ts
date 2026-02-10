@@ -23,7 +23,11 @@ export interface BaseConfig extends ToTargetCodeConfig {
     componentName: string,
     files: { name: string; content: string }[],
   ) => void;
-  addUtilFile: (params: { name: string; content: string }) => void;
+  // addUtilFile: (params: { name: string; content: string }) => void;
+  addUtilFile: (
+    utilName: string,
+    files: { name: string; content: string }[],
+  ) => void;
   /** 获取事件 */
   getEventByDiagramId: (
     diagramId: string,
@@ -111,16 +115,32 @@ const toTargetCode = (
           });
         });
       },
-      addUtilFile: ({ name, content }) => {
-        // 检查当前页面是否已经有这个组件
-        if (currentSceneUtils.has(name)) return;
-        currentSceneUtils.add(name);
+      // addUtilFile: ({ name, content }) => {
+      //   // 检查当前页面是否已经有这个组件
+      //   if (currentSceneUtils.has(name)) return;
+      //   currentSceneUtils.add(name);
 
-        // 将函数文件放在当前页面的 utils 目录下（路径片段做安全处理）
-        const componentDir = `pages/${pageDir}/utils`;
-        allFiles.push({
-          path: `${componentDir}/${toSafeFileName(name)}`,
-          content: content,
+      //   // 将函数文件放在当前页面的 utils 目录下（路径片段做安全处理）
+      //   const componentDir = `pages/${pageDir}/utils`;
+      //   allFiles.push({
+      //     path: `${componentDir}/${toSafeFileName(name)}`,
+      //     content: content,
+      //   });
+      // },
+      addUtilFile: (
+        utilName: string,
+        files: { name: string; content: string }[],
+      ) => {
+        // 检查当前页面是否已经有这个组件
+        if (currentSceneUtils.has(utilName)) return;
+        currentSceneUtils.add(utilName);
+
+        const componentDir = `pages/${pageDir}/utils/${toSafeFileName(utilName)}`;
+        files.forEach((file) => {
+          allFiles.push({
+            path: `${componentDir}/${toSafeFileName(file.name)}`,
+            content: file.content,
+          });
         });
       },
       getEventByDiagramId: (diagramId) => {
@@ -180,15 +200,22 @@ const toTargetCode = (
 
     // 为当前页面生成 components/index.ts (如果存在组件)
     if (currentSceneComponents.size > 0) {
-      const exportContent = Array.from(currentSceneComponents)
-        .map((name) => {
-          return `export { default as ${name} } from './${toSafeFileName(name)}';`;
-        })
-        .join("\n");
+      let importContent = "";
+      let exportContent = "";
+
+      Array.from(currentSceneComponents).forEach((name) => {
+        const safeName = toSafeFileName(name);
+        importContent += `import Ori${safeName} from './${safeName}';\n`;
+        exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
+      });
+
+      importContent += `import wrap from '../../utils/wrap';\n`;
+
+      exportContent = `export const Button = wrap(OriButton);`;
 
       allFiles.push({
         path: `pages/${pageDir}/components/index.ts`,
-        content: exportContent,
+        content: importContent + exportContent,
       });
     }
   });
