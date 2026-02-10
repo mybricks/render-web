@@ -212,8 +212,6 @@ const toTargetCode = (
 
       importContent += `import { wrap } from '../../../utils';\n`;
 
-      exportContent = `export const Button = wrap(OriButton);`;
-
       allFiles.push({
         path: `pages/${pageDir}/components/index.ts`,
         content: importContent + exportContent,
