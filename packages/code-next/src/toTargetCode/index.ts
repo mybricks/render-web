@@ -209,7 +209,7 @@ const toTargetCode = (
         exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
       });
 
-      importContent += `import wrap from '../../utils/wrap';\n`;
+      importContent += `import { wrap } from '../../utils';\n`;
 
       exportContent = `export const Button = wrap(OriButton);`;
 
