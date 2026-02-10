@@ -7,6 +7,7 @@ import {
   codePrettier,
   ImportManager,
   toSafeFileName,
+  getUtilsFiles,
 } from "./utils";
 
 interface ToTargetCodeConfig {
@@ -209,7 +210,7 @@ const toTargetCode = (
         exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
       });
 
-      importContent += `import { wrap } from '../../utils';\n`;
+      importContent += `import { wrap } from '../../../utils';\n`;
 
       exportContent = `export const Button = wrap(OriButton);`;
 
@@ -231,6 +232,8 @@ const toTargetCode = (
       ),
     });
   }
+
+  allFiles.push(...getUtilsFiles());
 
   return buildFileTree(allFiles);
 };

@@ -206,7 +206,7 @@ const handleProcess = (
         {
           name: "index.ts",
           content: `import js from "./${safeName}";
-import { createJSHandle } from "../../../utils"
+import { createJSHandle } from "../../../../utils"
 
 export default function(...values) {
   return createJSHandle(js, {
