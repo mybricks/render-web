@@ -12,6 +12,8 @@ import {
 
 interface ToTargetCodeConfig {
   target: "react";
+  /** 若传入，则只导出该场景，且该场景目录提到根（不再放在 pages 下） */
+  sceneId?: string;
 }
 
 export interface BaseConfig extends ToTargetCodeConfig {
@@ -52,6 +54,23 @@ const toTargetCode = (
   console.log("[@config]", config);
   console.log("[@comDefs]", initComdefs());
 
+  const singleSceneId = config.sceneId;
+  const scenes = singleSceneId
+    ? toCodejson.scenes.filter((s: any) => s.scene.id === singleSceneId)
+    : toCodejson.scenes;
+  if (singleSceneId && scenes.length === 0) {
+    return buildFileTree([]);
+  }
+
+  // 单场景导出时，不建场景 ID 文件夹，页面文件直接放在根（index.tsx、style.less、components 等）
+  const pagePathPrefix = (pageDir: string) =>
+    singleSceneId ? "" : `pages/${pageDir}`;
+  const joinPath = (base: string, ...parts: string[]) =>
+    base ? `${base}/${parts.join("/")}` : parts.join("/");
+  const relativeUtilsFromComponents = singleSceneId
+    ? "../utils"
+    : "../../../utils";
+
   // 收集所有生成的文件
   const allFiles: { path: string; content: string }[] = [];
   // 每个页面维护自己的组件集合
@@ -71,10 +90,11 @@ const toTargetCode = (
 
   const baseConfig = transformConfig(config);
 
-  toCodejson.scenes.forEach((sceneData: any) => {
+  scenes.forEach((sceneData: any) => {
     const scene = sceneData.scene;
     const event = sceneData.event;
     const pageDir = toSafeFileName(scene.id);
+    const basePath = pagePathPrefix(pageDir);
     const importManager = new ImportManager();
     const comIdToTargetMap: any = {};
     const currentSceneComponents = new Set<string>();
@@ -108,7 +128,11 @@ const toTargetCode = (
         currentSceneComponents.add(componentName);
 
         // 将组件文件放在当前页面的 components 目录下（路径片段做安全处理）
-        const componentDir = `pages/${pageDir}/components/${toSafeFileName(componentName)}`;
+        const componentDir = joinPath(
+          basePath,
+          "components",
+          toSafeFileName(componentName),
+        );
         files.forEach((file) => {
           allFiles.push({
             path: `${componentDir}/${toSafeFileName(file.name)}`,
@@ -136,7 +160,11 @@ const toTargetCode = (
         if (currentSceneUtils.has(utilName)) return;
         currentSceneUtils.add(utilName);
 
-        const componentDir = `pages/${pageDir}/utils/${toSafeFileName(utilName)}`;
+        const componentDir = joinPath(
+          basePath,
+          "utils",
+          toSafeFileName(utilName),
+        );
         files.forEach((file) => {
           allFiles.push({
             path: `${componentDir}/${toSafeFileName(file.name)}`,
@@ -188,13 +216,13 @@ const toTargetCode = (
 
     // 假设每个 scene 是一个页面
     allFiles.push({
-      path: `pages/${pageDir}/index.tsx`,
+      path: joinPath(basePath, "index.tsx"),
       content: pageContent,
     });
 
     if (cssContent) {
       allFiles.push({
-        path: `pages/${pageDir}/style.less`,
+        path: joinPath(basePath, "style.less"),
         content: cssContent,
       });
     }
@@ -210,18 +238,18 @@ const toTargetCode = (
         exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
       });
 
-      importContent += `import { wrap } from '../../../utils';\n`;
+      importContent += `import { wrap } from '${relativeUtilsFromComponents}';\n`;
 
       allFiles.push({
-        path: `pages/${pageDir}/components/index.ts`,
+        path: joinPath(basePath, "components", "index.ts"),
         content: importContent + exportContent,
       });
     }
   });
 
-  // 多页面时：在 pages 同级提供 index.tsx，默认导出第 0 个页面
-  if (toCodejson.scenes.length > 0) {
-    const firstPageDir = toSafeFileName(toCodejson.scenes[0].scene.id);
+  // 多页面时：根 index.tsx 重新导出第 0 个页面；单场景时页面已在根 index.tsx，无需再导出一层
+  if (scenes.length > 0 && !singleSceneId) {
+    const firstPageDir = toSafeFileName(scenes[0].scene.id);
     allFiles.push({
       path: "index.tsx",
       content: codePrettier(
