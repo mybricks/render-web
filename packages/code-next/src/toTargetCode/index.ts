@@ -230,19 +230,21 @@ const toTargetCode = (
     // 为当前页面生成 components/index.ts (如果存在组件)
     if (currentSceneComponents.size > 0) {
       let importContent = "";
-      let exportContent = "";
+      // let exportContent = "";
 
       Array.from(currentSceneComponents).forEach((name) => {
         const safeName = toSafeFileName(name);
-        importContent += `import Ori${safeName} from './${safeName}';\n`;
-        exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
+        importContent += `export { default as ${safeName} } from "./${safeName}";\n`;
+        // importContent += `import Ori${safeName} from './${safeName}';\n`;
+        // exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
       });
 
-      importContent += `import { wrap } from '${relativeUtilsFromComponents}';\n`;
+      // importContent += `import { wrap } from '${relativeUtilsFromComponents}';\n`;
 
       allFiles.push({
         path: joinPath(basePath, "components", "index.ts"),
-        content: importContent + exportContent,
+        // content: importContent + exportContent,
+        content: importContent,
       });
     }
   });

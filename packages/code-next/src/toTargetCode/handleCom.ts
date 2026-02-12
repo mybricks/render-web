@@ -90,21 +90,22 @@ const handleAICom = (com: Com, config: BaseConfig) => {
       {},
       {
         get(_, key: string) {
-          let eventCode = "";
-          const diagramId = com.events?.[key]?.diagramId;
-          if (diagramId) {
-            const event = config.getEventByDiagramId(diagramId)!;
-            if (event) {
-              eventCode = handleProcess(event, {
-                ...config,
-                addParentDependencyImport: config.importManager.addImport,
-                getParams: () => ({ [key]: "value" }),
-              });
-            }
-          }
-          return `${key}={(value) => {
-            ${eventCode}
-          }}`;
+          return `${key}={(value) => {}}`;
+          // let eventCode = "";
+          // const diagramId = com.events?.[key]?.diagramId;
+          // if (diagramId) {
+          //   const event = config.getEventByDiagramId(diagramId)!;
+          //   if (event) {
+          //     eventCode = handleProcess(event, {
+          //       ...config,
+          //       addParentDependencyImport: config.importManager.addImport,
+          //       getParams: () => ({ [key]: "value" }),
+          //     });
+          //   }
+          // }
+          // return `${key}={(value) => {
+          //   ${eventCode}
+          // }}`;
         },
       },
     ),
