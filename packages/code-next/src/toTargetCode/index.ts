@@ -36,6 +36,8 @@ export interface BaseConfig extends ToTargetCodeConfig {
     diagramId: string,
   ) => ReturnType<typeof toCode>["scenes"][0]["event"][0];
   refs: Map<string, boolean>;
+  // [TEMP]
+  useIO: () => void;
 }
 
 export interface FileNode {
@@ -101,6 +103,8 @@ const toTargetCode = (
     sceneComponentsMap.set(scene.id, currentSceneComponents);
     const currentSceneUtils = new Set<string>();
     sceneUtilsMap.set(scene.id, currentSceneUtils);
+    // [TEMP] 临时代码，用于判断当前是否有事件连线，用于决定是否生成utils等
+    let useIO = false;
 
     if (config.target === "react") {
       importManager.addImport({
@@ -175,6 +179,9 @@ const toTargetCode = (
       getEventByDiagramId: (diagramId) => {
         return event.find((event: any) => event.diagramId === diagramId)!;
       },
+      useIO() {
+        useIO = true;
+      },
       refs,
     });
 
@@ -230,21 +237,25 @@ const toTargetCode = (
     // 为当前页面生成 components/index.ts (如果存在组件)
     if (currentSceneComponents.size > 0) {
       let importContent = "";
-      // let exportContent = "";
+      let exportContent = "";
 
       Array.from(currentSceneComponents).forEach((name) => {
         const safeName = toSafeFileName(name);
-        importContent += `export { default as ${safeName} } from "./${safeName}";\n`;
-        // importContent += `import Ori${safeName} from './${safeName}';\n`;
-        // exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
+        if (useIO) {
+          importContent += `import Ori${safeName} from './${safeName}';\n`;
+          exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
+        } else {
+          importContent += `export { default as ${safeName} } from "./${safeName}";\n`;
+        }
       });
 
-      // importContent += `import { wrap } from '${relativeUtilsFromComponents}';\n`;
+      if (useIO) {
+        importContent += `import { wrap } from '${relativeUtilsFromComponents}';\n`;
+      }
 
       allFiles.push({
         path: joinPath(basePath, "components", "index.ts"),
-        // content: importContent + exportContent,
-        content: importContent,
+        content: importContent + exportContent,
       });
     }
   });
