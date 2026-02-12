@@ -7,7 +7,7 @@ import {
   codePrettier,
   ImportManager,
   toSafeFileName,
-  getUtilsFiles,
+  // getUtilsFiles,
 } from "./utils";
 
 interface ToTargetCodeConfig {
@@ -259,7 +259,8 @@ const toTargetCode = (
     });
   }
 
-  allFiles.push(...getUtilsFiles());
+  // [TODO] 临时去除，下一版加上判断逻辑
+  // allFiles.push(...getUtilsFiles());
 
   return buildFileTree(allFiles);
 };

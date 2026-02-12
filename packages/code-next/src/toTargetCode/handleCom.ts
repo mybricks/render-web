@@ -90,36 +90,20 @@ const handleAICom = (com: Com, config: BaseConfig) => {
       {},
       {
         get(_, key: string) {
-          const comEvent = com.events?.[key];
-          if (!comEvent) {
-            return "";
+          let eventCode = "";
+          const diagramId = com.events?.[key]?.diagramId;
+          if (diagramId) {
+            const event = config.getEventByDiagramId(diagramId)!;
+            if (event) {
+              eventCode = handleProcess(event, {
+                ...config,
+                addParentDependencyImport: config.importManager.addImport,
+                getParams: () => ({ [key]: "value" }),
+              });
+            }
           }
-
-          const { diagramId } = comEvent;
-
-          if (!diagramId) {
-            // 没有添加事件
-            return "";
-          }
-
-          const event = config.getEventByDiagramId(diagramId)!;
-
-          if (!event) {
-            return "";
-          }
-
-          const process = handleProcess(event, {
-            ...config,
-            addParentDependencyImport: config.importManager.addImport,
-            getParams: () => {
-              return {
-                [key]: "value",
-              };
-            },
-          });
-
           return `${key}={(value) => {
-            ${process}
+            ${eventCode}
           }}`;
         },
       },
