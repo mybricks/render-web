@@ -46,16 +46,16 @@ const PARSER_PLUGINS: any = {
     plugins: [parserPostCSS],
   },
 };
-// export const codePrettier = (
-//   content: string,
-//   parser: keyof typeof PARSER_PLUGINS,
-// ) => {
-//   return prettier.format(content, PARSER_PLUGINS[parser]);
-// };
-
-export const codePrettier = (content: string, _: any): string => {
-  return content;
+export const codePrettier = (
+  content: string,
+  parser: keyof typeof PARSER_PLUGINS,
+) => {
+  return prettier.format(content, PARSER_PLUGINS[parser]);
 };
+
+// export const codePrettier = (content: string, _: any): string => {
+//   return content;
+// };
 
 type ImportType = "default" | "named";
 type DependencyImport = Record<

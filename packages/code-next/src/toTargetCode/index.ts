@@ -7,7 +7,7 @@ import {
   codePrettier,
   ImportManager,
   toSafeFileName,
-  // getUtilsFiles,
+  getUtilsFiles,
 } from "./utils";
 
 interface ToTargetCodeConfig {
@@ -92,6 +92,8 @@ const toTargetCode = (
 
   const baseConfig = transformConfig(config);
 
+  let useIO = false;
+
   scenes.forEach((sceneData: any) => {
     const scene = sceneData.scene;
     const event = sceneData.event;
@@ -104,7 +106,7 @@ const toTargetCode = (
     const currentSceneUtils = new Set<string>();
     sceneUtilsMap.set(scene.id, currentSceneUtils);
     // [TEMP] 临时代码，用于判断当前是否有事件连线，用于决定是否生成utils等
-    let useIO = false;
+    let currentUseIO = false;
 
     if (config.target === "react") {
       importManager.addImport({
@@ -166,7 +168,7 @@ const toTargetCode = (
 
         const componentDir = joinPath(
           basePath,
-          "utils",
+          "helper",
           toSafeFileName(utilName),
         );
         files.forEach((file) => {
@@ -180,6 +182,7 @@ const toTargetCode = (
         return event.find((event: any) => event.diagramId === diagramId)!;
       },
       useIO() {
+        currentUseIO = true;
         useIO = true;
       },
       refs,
@@ -241,7 +244,7 @@ const toTargetCode = (
 
       Array.from(currentSceneComponents).forEach((name) => {
         const safeName = toSafeFileName(name);
-        if (useIO) {
+        if (currentUseIO) {
           importContent += `import Ori${safeName} from './${safeName}';\n`;
           exportContent += `export const ${safeName} = wrap(Ori${safeName});\n`;
         } else {
@@ -249,7 +252,7 @@ const toTargetCode = (
         }
       });
 
-      if (useIO) {
+      if (currentUseIO) {
         importContent += `import { wrap } from '${relativeUtilsFromComponents}';\n`;
       }
 
@@ -273,7 +276,9 @@ const toTargetCode = (
   }
 
   // [TODO] 临时去除，下一版加上判断逻辑
-  // allFiles.push(...getUtilsFiles());
+  if (useIO) {
+    allFiles.push(...getUtilsFiles());
+  }
 
   return buildFileTree(allFiles);
 };
