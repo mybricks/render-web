@@ -90,7 +90,7 @@ const handleAICom = (com: Com, config: BaseConfig) => {
       {},
       {
         get(_, key: string) {
-          return `${key}={(value) => {}}`;
+          return `${key}={() => {}}`;
           // let eventCode = "";
           // const diagramId = com.events?.[key]?.diagramId;
           // if (diagramId) {
