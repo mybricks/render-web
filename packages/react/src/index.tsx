@@ -465,7 +465,7 @@ class Context {
         if (comDef.comAray) {
           regAry(comDef.comAray, comDefs);
         } else {
-          comDefs[`${comDef.namespace}-${comDef.version}`] = comDef;
+          comDefs[`${comDef.namespace}__${comDef.version}`] = comDef;
         }
       });
     };
@@ -501,11 +501,11 @@ class Context {
   getComDef(def: { namespace: string; version: string }) {
     const { comDefs } = this;
     const rtn =
-      comDefs[def.namespace + "-" + def.version] || comDefs[def.namespace];
+      comDefs[def.namespace + "__" + def.version] || comDefs[def.namespace];
     if (!rtn) {
       const ary = [];
       for (const ns in comDefs) {
-        if (ns.startsWith(def.namespace + "-")) {
+        if (ns.startsWith(def.namespace + "__")) {
           ary.push(comDefs[ns]);
         }
       }
