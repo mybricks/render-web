@@ -532,7 +532,8 @@ function transformSlotComAry(
       // 组件样式信息
       const style = component.model.style
 
-      style.zIndex = index + 1
+      // 纵向排列表格，分页下拉框被遮挡
+      // style.zIndex = index + 1
 
       const calculateStyle = component.style
 
