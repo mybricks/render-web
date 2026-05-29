@@ -7,7 +7,9 @@ import { getStylesheetMountNode } from "../../../../core/utils";
 
 import lazyCss from "./style.lazy.less";
 
-const css: any = lazyCss.locals;
+import { getLazyCss } from "../../less";
+
+const css = getLazyCss(lazyCss);
 const resumeIcon = (
   <svg
     viewBox="0 0 1024 1024"

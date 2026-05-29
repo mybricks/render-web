@@ -31,8 +31,9 @@ import { useModuleContext } from "./index";
 import lazyCss from "./RenderSlot.lazy.less";
 import ErrorBoundary from "./ErrorBoundary";
 import AiRender from "./AiRender";
+import { getLazyCss } from "./less";
 
-const css = lazyCss.locals;
+const css = getLazyCss(lazyCss);
 
 function renderRstTraverseCom2({
   com,

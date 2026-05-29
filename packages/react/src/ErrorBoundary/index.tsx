@@ -2,7 +2,9 @@ import React from 'react';
 import Notification from '../Notification';
 import lazyCss from './style.lazy.less';
 
-const css = lazyCss.locals;
+import { getLazyCss } from "../less";
+
+const css = getLazyCss(lazyCss);
 
 interface Props {
   errorTip?: string;
