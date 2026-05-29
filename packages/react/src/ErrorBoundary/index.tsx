@@ -1,6 +1,6 @@
 import React from 'react';
 import Notification from '../Notification';
-import lazyCss from './style.lazy.less';
+import * as lazyCss from './style.lazy.less';
 
 import { getLazyCss } from "../less";
 

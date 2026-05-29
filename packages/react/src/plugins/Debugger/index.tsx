@@ -5,7 +5,7 @@ import ReactDOM from "react-dom";
 
 import { getStylesheetMountNode } from "../../../../core/utils";
 
-import lazyCss from "./style.lazy.less";
+import * as lazyCss from "./style.lazy.less";
 
 import { getLazyCss } from "../../less";
 

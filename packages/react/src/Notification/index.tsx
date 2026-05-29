@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import ReactDOM from "react-dom";
-import lazyCss from "./style.lazy.less";
+import * as lazyCss from "./style.lazy.less";
 
 import { getLazyCss } from "../less";
 

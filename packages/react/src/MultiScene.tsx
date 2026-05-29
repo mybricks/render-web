@@ -10,7 +10,8 @@ import executor, { Var } from "../../core/executor";
 import RenderModuleComponent from "./RenderModuleComponent";
 import { deepCopy } from "../../core/utils";
 
-import lazyCss from "./MultiScene.lazy.less";
+import * as lazyCss from "./MultiScene.lazy.less";
+import { getLazyCss } from "./less";
 
 class DebugHistory {
   history: {
@@ -66,7 +67,7 @@ class DebugHistory {
   }
 }
 
-const css = lazyCss.locals;
+const css = getLazyCss(lazyCss);
 
 export default function MultiScene({ json, options }: any) {
   const _context = useMyBricksRenderContext();
