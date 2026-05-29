@@ -82,7 +82,7 @@ export default class MyBricksRenderDebugger {
 
       // 引擎环境内引擎提供onError，目前用于逻辑面板计算组件的报错ui展示
       context.onError = onError;
-      lazyCss.use({ target: getStylesheetMountNode() });
+      lazyCss.default.use({ target: getStylesheetMountNode() });
     }
   }
 }
